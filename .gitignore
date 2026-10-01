@@ -12,6 +12,10 @@
 
 # testing
 /coverage
+# SQLite databases (dev, test, screenshot) — never commit data
+*.db
+*.db-journal
+/backups
 
 # next.js
 /.next/
@@ -39,3 +43,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/src/generated/prisma
+
+# local artifacts
+/screenshots
+/test-results
+/playwright-report
+/.agents
+/.windsurf

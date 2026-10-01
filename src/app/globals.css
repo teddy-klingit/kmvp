@@ -1,26 +1,201 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Base surfaces — a light gray canvas behind white cards, so boxes read
+     as distinct surfaces instead of blending into the page. */
+  --background: #f5f6f7;
+  --foreground: #1e1e1e;
+  --card: #ffffff;
+  --card-foreground: #1e1e1e;
+  --sidebar: #f5f6f7;
+  --sidebar-foreground: #1e1e1e;
+
+  /* Direct brand tokens, for call sites that want the palette by name
+     rather than through a semantic slot below. */
+  --paper: #ffffff;
+  --ink: #1e1e1e;
+  --surface: #dee1e6;
+  --eggshell: #dee1e6;
+  --fantasy: #f9f5ec;
+  --faint: #b9b6ae;
+
+  /* Borders / inputs — ink at ~15% opacity over white, flattened to a hex
+     so the existing single-class `border-border` pattern keeps working. */
+  --border: #dddddd;
+  --input: #dddddd;
+  --ring: #1e1e1e;
+
+  /* Text — `muted` is a background in some existing call sites (bg-muted)
+     and a text color in others (text-muted-foreground); both keep working,
+     now pointing at eggshell and the new mid-gray text respectively. */
+  --muted: #dee1e6;
+  --muted-foreground: #7f828c;
+
+  /* Brand / primary — ink is the fill, never a hue. */
+  --primary: #1e1e1e;
+  --primary-foreground: #ffffff;
+  --primary-hover: #000000;
+
+  /* Accent — purple, used only for pill/label fills, never for text. */
+  --accent: #f8dcf9;
+  --accent-foreground: #1e1e1e;
+  --accent-soft: #fceefd;
+
+  --secondary: #ffffff;
+  --secondary-foreground: #1e1e1e;
+
+  --destructive: #ff5d02;
+  --destructive-foreground: #1e1e1e;
+
+  /* Status semantics collapse onto the three accent hues — green (won/live),
+     purple (ongoing), orange (urgent/error) — per the design system's rule
+     that only these three accents exist and text is never colored by them. */
+  --success: #e4f2b3;
+  --success-soft: #eff7d6;
+  --success-foreground: #1e1e1e;
+
+  --info: #f8dcf9;
+  --info-soft: #fceefd;
+  --info-foreground: #1e1e1e;
+
+  --warning: #ff5d02;
+  --warning-soft: #ffe4d6;
+  --warning-foreground: #1e1e1e;
+
+  --danger: #ff5d02;
+  --danger-soft: #ffe4d6;
+  --danger-foreground: #1e1e1e;
+
+  --neutral-soft: #dee1e6;
+  --neutral-foreground: #7f828c;
+
+  /* Raw accent hues + soft tints, for direct tone-system use. */
+  --orange: #ff5d02;
+  --orange-soft: #ffe4d6;
+  --purple: #f8dcf9;
+  --purple-soft: #fceefd;
+  --green: #e4f2b3;
+  --green-soft: #eff7d6;
+
+  /* Fades — always two colors, always 135deg. */
+  --fade-purple-green: linear-gradient(135deg, #f8dcf9, #e4f2b3);
+  --fade-purple-orange: linear-gradient(135deg, #f8dcf9, #ff5d02);
+
+  /* Avatar palette (deterministic per-person) — a small decorative
+     exception to the strict 3-accent rule, kept varied on purpose. */
+  --avatar-1: #e0447a;
+  --avatar-2: #d9772a;
+  --avatar-3: #2f5fe3;
+  --avatar-4: #2f9e6b;
+  --avatar-5: #8447c9;
+  --avatar-6: #c9a227;
+  --avatar-7: #2b9e9e;
+  --avatar-8: #b5495b;
+
+  /* Radii */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+
+  /* No card shadow — the border does the job. */
+  --shadow-card: none;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-surface: var(--surface);
+  --color-eggshell: var(--eggshell);
+  --color-fantasy: var(--fantasy);
+  --color-faint: var(--faint);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent-soft: var(--accent-soft);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-success-foreground: var(--success-foreground);
+
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-info-foreground: var(--info-foreground);
+
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-foreground: var(--warning-foreground);
+
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-foreground: var(--danger-foreground);
+
+  --color-neutral-soft: var(--neutral-soft);
+  --color-neutral-foreground: var(--neutral-foreground);
+
+  --color-orange: var(--orange);
+  --color-orange-soft: var(--orange-soft);
+  --color-purple: var(--purple);
+  --color-purple-soft: var(--purple-soft);
+  --color-green: var(--green);
+  --color-green-soft: var(--green-soft);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-inter);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+* {
+  border-color: var(--border);
+}
+
+.bg-fade-purple-green {
+  background-image: var(--fade-purple-green);
+}
+.bg-fade-purple-orange {
+  background-image: var(--fade-purple-orange);
+}
+
+@media print {
+  aside {
+    display: none !important;
+  }
+  main {
+    overflow: visible !important;
+    padding: 0 !important;
+  }
 }

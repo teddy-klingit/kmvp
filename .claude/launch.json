@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "klingit-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000
+    },
+    {
+      "name": "klingit-screens",
+      "runtimeExecutable": "env",
+      "runtimeArgs": ["DATABASE_URL=file:./prisma/screens.db", "npx", "next", "dev", "--port", "3100"],
+      "port": 3100
+    }
+  ]
+}

@@ -1,0 +1,1556 @@
+// Klingit data model.
+// NOTE: datasource is sqlite for zero-install local dev (no Docker/Postgres
+// available in this environment). Everything here is written to be
+// Postgres-compatible — switching the provider to "postgresql" and pointing
+// DATABASE_URL at a real instance is the only change needed later. The one
+// SQLite constraint this schema works around is native scalar lists
+// (String[]) — those are modeled as `Json` instead, which behaves the same
+// in application code on both providers.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Auth (Auth.js / NextAuth PrismaAdapter shape, extended with role + profile)
+// ---------------------------------------------------------------------------
+
+enum UserRole {
+  CLIENT
+  INTERNAL
+}
+
+enum UserStatus {
+  INVITED
+  ACTIVE
+  SUSPENDED
+}
+
+model User {
+  id               String     @id @default(cuid())
+  name             String
+  email            String     @unique
+  emailVerified    DateTime?
+  image            String?
+  passwordHash     String?
+  role             UserRole
+  status           UserStatus @default(INVITED)
+  twoFactorEnabled Boolean    @default(false)
+  invitedAt        DateTime?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  accounts Account[]
+  sessions Session[]
+
+  clientUser  ClientUser?
+  staffMember StaffMember?
+
+  comments         Comment[]
+  notifications    Notification[]
+  notificationPref NotificationPreference?
+  overriddenRuns   AgentRun[]              @relation("AgentRunOverriddenBy")
+  selfServiceAgentRuns AgentRun[]          @relation("AgentRunRequestedBy")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ---------------------------------------------------------------------------
+// Client (agency's customer org) + people
+// ---------------------------------------------------------------------------
+
+enum PlanTier {
+  STARTER
+  GROWTH
+  SCALE
+}
+
+enum ClientStatus {
+  ONBOARDING
+  ACTIVE
+  PAUSED
+  OFFBOARDED
+}
+
+model Client {
+  id                     String       @id @default(cuid())
+  name                   String
+  slug                   String       @unique
+  industry               String?
+  website                String? // e.g. "klarna.com" — powers SEO/AI-visibility audits
+  competitorBrands       Json? // string[] — brand names to watch in Market Intelligence (e.g. Meta Ad Library search)
+  brandSummary           String? // short blurb for the Brand Intelligence rail
+  planTier               PlanTier     @default(GROWTH)
+  status                 ClientStatus @default(ONBOARDING)
+  monthlyCreditAllowance Int          @default(0)
+  creditBalance          Int          @default(0)
+  healthScore            Int          @default(80) // 0-100
+  isSampleAccount        Boolean      @default(false) // pitch/demo client — Insights shows seeded sample data styled as this client, never Klingit's own real connected ad accounts
+  paidMediaInScope       Boolean      @default(true) // false = this client's engagement is contractually organic-only — Performance/Reports hide all paid-ad sections rather than showing irrelevant spend/CTR data
+  accountLeadId          String?
+  renewalDate            DateTime?
+  onboardingCompletedAt  DateTime?
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+
+  accountLead StaffMember? @relation("ClientAccountLead", fields: [accountLeadId], references: [id])
+
+  users                       ClientUser[]
+  brands                      Brand[]
+  projects                    Project[]
+  brandOS                     BrandOS?
+  invoices                    Invoice[]
+  creditLedger                CreditLedgerEntry[]
+  assets                      Asset[]
+  agentRuns                   AgentRun[]
+  touchpoints                 Touchpoint[]
+  templates                   Template[]
+  marketSignals               MarketSignal[]
+  inspirations                Inspiration[]
+  notifications               Notification[]
+  calendarItems               ClientCalendarItem[]
+  brandAssets                 BrandAsset[]
+  marketIntelligenceBrief     MarketIntelligenceBrief?
+  marketIntelligenceIdeas     MarketIntelligenceIdea[]
+  marketIntelligenceQuestions MarketIntelligenceQuestion[]
+  competitorSnapshots         CompetitorSnapshot[]
+  competitorProfiles          CompetitorProfile[]
+  trendBrief                  TrendBrief?
+  performanceBenchmark        PerformanceBenchmark?
+  suggestedCompetitors        SuggestedCompetitor[]
+  performanceBrief            PerformanceBrief?
+  siteAudits                  SiteAudit[]
+  aiVisibilityChecks          AiVisibilityCheck[]
+  seoBrief                    SeoBrief?
+  performanceSnapshots        PerformanceSnapshot[]
+  customApps                  ClientApp[]
+  contentPosts                ContentPost[]
+  followerSnapshots           FollowerSnapshot[]
+  businessOutcomes            ClientBusinessOutcome[]
+  contentPlanTargets          ContentPlanTarget[]
+  contentPlanSuggestions      ContentPlanSuggestion[]
+  reportingConfig             ClientReportingConfig?
+  savedReports                SavedReport[]
+  sampleAdCampaigns           SampleAdCampaign[]
+  communityManagementSnapshots CommunityManagementSnapshot[]
+  internalMessages            ClientInternalMessage[]
+  audienceSnapshots           AudienceSnapshot[]
+  connectedChannels           ConnectedChannel[]
+  sentMessageLogs             SentMessageLog[]
+  communityEscalations        CommunityEscalation[]
+  websiteAnalyticsSnapshots   WebsiteAnalyticsSnapshot[]
+}
+
+// AI-synthesized read of the Market Intelligence signals (news, competitor
+// ads, internal performance) for one client — regenerated on demand rather
+// than on every page view, so it's cached until the client asks to refresh.
+model MarketIntelligenceBrief {
+  id          String   @id @default(cuid())
+  clientId    String   @unique
+  summary     String
+  assumptions Json // string[]
+  generatedAt DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+enum IdeaStatus {
+  NEW
+  SAVED
+  DISMISSED
+  BRIEFED
+}
+
+// One persistent row per AI-generated creative idea, so ideas survive brief
+// refreshes instead of being overwritten, and the client's Save/Dismiss/Start
+// a brief actions stick — an idea already dismissed or briefed doesn't
+// resurface as "new" next time the agent runs.
+model MarketIntelligenceIdea {
+  id        String     @id @default(cuid())
+  clientId  String
+  title     String
+  detail    String
+  status    IdeaStatus @default(NEW)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, status])
+}
+
+// Ad-hoc question a client asked the Market Intelligence agent, with its
+// answer, kept as a running log (not just the last one) so the Feed tab has
+// real conversational history instead of a single ephemeral Q&A.
+model MarketIntelligenceQuestion {
+  id        String   @id @default(cuid())
+  clientId  String
+  question  String
+  answer    String
+  createdAt DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, createdAt])
+}
+
+// Point-in-time read of one competitor's ad activity on one platform, so we
+// can detect real deltas (new ads spotted, total volume up X%) instead of
+// only ever showing a live snapshot. Written opportunistically when the
+// Market Intelligence page loads and the last snapshot for this client is
+// stale — no separate cron infra needed.
+model CompetitorSnapshot {
+  id         String   @id @default(cuid())
+  clientId   String
+  brand      String
+  platform   String // "Meta" | "LinkedIn"
+  totalAds   Int? // true total, only available where the platform's API reports one (LinkedIn)
+  adIds      Json // string[] — ad ids/urls in this sample, for new-ad detection even without a true total
+  capturedAt DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, brand, platform, capturedAt])
+}
+
+// AI-synthesized read of one competitor's positioning and messaging —
+// generated from real ad samples/volume, not just a re-listing of their ads.
+// Cached like the main brief; regenerated alongside it.
+model CompetitorProfile {
+  id            String   @id @default(cuid())
+  clientId      String
+  brand         String
+  positioning   String // 1-2 sentence read on their current angle
+  themes        Json // { theme: string; evidence: string }[]
+  activityLevel String // "High" | "Medium" | "Low"
+  generatedAt   DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, brand])
+}
+
+// AI-synthesized read of what's actually shaping the category right now —
+// themed takeaways grounded in the news headlines on file, not just the raw
+// article list.
+model TrendBrief {
+  id          String   @id @default(cuid())
+  clientId    String   @unique
+  takeaway    String
+  themes      Json // { theme: string; articleTitles: string[] }[]
+  generatedAt DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+enum SuggestedCompetitorStatus {
+  NEW
+  ADDED
+  DISMISSED
+}
+
+// A brand the agent noticed repeatedly in category news but that isn't in
+// Client.competitorBrands yet — surfaced for a one-click add instead of the
+// client having to notice and maintain the list themselves.
+model SuggestedCompetitor {
+  id        String                    @id @default(cuid())
+  clientId  String
+  name      String
+  evidence  String
+  status    SuggestedCompetitorStatus @default(NEW)
+  createdAt DateTime                  @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, name])
+}
+
+// AI-synthesized read of live ad-account performance across every connected
+// platform plus delivered creative performance — what's actually working and
+// what to do about it, not just a re-listing of campaigns.
+model PerformanceBrief {
+  id              String   @id @default(cuid())
+  clientId        String   @unique
+  summary         String
+  recommendations Json // { title: string; detail: string }[]
+  generatedAt     DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+// Point-in-time read of one live campaign's CTR, so we can detect a real
+// threshold breach (CTR down vs. its own trailing average) instead of just
+// showing the current number. Written opportunistically alongside the
+// Performance Insights page load, staleness-guarded like CompetitorSnapshot.
+model PerformanceSnapshot {
+  id           String   @id @default(cuid())
+  clientId     String
+  platform     String // "Meta" | "LinkedIn" | "Google"
+  campaignId   String
+  campaignName String
+  ctr          Float
+  impressions  Int
+  clicks       Int
+  spend        Float? // period spend — only populated where seeded/known; real-account recording doesn't set this yet
+  conversions  Int? // period conversions — same caveat as spend
+  capturedAt   DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, platform, campaignId, capturedAt])
+}
+
+// Seeded paid-campaign data for a pitch/demo client (Client.isSampleAccount)
+// — mirrors PlatformCampaign's shape exactly so the Performance tab can
+// render sample data through the same components as real ad-platform data,
+// clearly labeled as sample rather than silently reusing Klingit's own
+// real connected Meta/LinkedIn/Google accounts.
+model SampleAdCampaign {
+  id                String   @id @default(cuid())
+  clientId          String
+  platform          String
+  accountName       String
+  campaignName      String
+  impressions       Int
+  clicks            Int
+  ctr               Float
+  spend             Float
+  currency          String   @default("USD")
+  conversions       Int      @default(0)
+  costPerConversion Float?
+  createdAt         DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, platform])
+}
+
+enum ContentChannelType {
+  PAID
+  ORGANIC
+}
+
+enum ContentPostStatus {
+  PLANNED
+  PUBLISHED
+}
+
+// A single piece of content — paid or organic — on the living content
+// calendar. Paid posts duplicate some of what PerformanceSnapshot already
+// tracks at the campaign level; this model is post/creative-level and is
+// what the calendar UI and suggestion engine actually reason over. Metrics
+// are denormalized directly onto the post (one snapshot, not a time series)
+// since organic posts don't accrue spend the way ad campaigns do.
+model ContentPost {
+  id             String             @id @default(cuid())
+  clientId       String
+  platform       String // "LinkedIn" | "Instagram" | "TikTok" | "Website" | "Meta" | "Google"
+  channelType    ContentChannelType
+  contentType    String? // "Feed post" | "Carousel" | "Reel" | "Story" | "Short-form video" | "Static post"
+  title          String
+  status         ContentPostStatus  @default(PLANNED)
+  scheduledDate  DateTime?
+  publishedDate  DateTime?
+  impressions    Int?
+  reach          Int?
+  engagements    Int?
+  engagementRate Float? // percent
+  videoViews     Int?
+  websiteClicks  Int?
+  saves          Int? // SOW weekly-report metric
+  shares         Int? // SOW weekly-report metric
+  comments       Int?
+  sourceSuggestionId String? // set when this post was created by approving a ContentPlanSuggestion, so the calendar visibly shows where it came from
+  createdAt      DateTime           @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, platform, status])
+}
+
+// Weekly-report "community management summary" data (comment/DM volume,
+// sentiment split, escalations) — manually seeded for now, same as
+// ClientBusinessOutcome, since no real inbox/sentiment integration exists.
+model CommunityManagementSnapshot {
+  id                   String   @id @default(cuid())
+  clientId             String
+  periodStart          DateTime
+  periodEnd            DateTime
+  commentVolume        Int
+  dmVolume             Int
+  sentimentPositivePct Int
+  sentimentNeutralPct  Int
+  sentimentNegativePct Int
+  escalations          Int      @default(0)
+  createdAt            DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, periodStart])
+}
+
+// Monthly-report "audience growth and demographic trends" data — per
+// platform, seeded breakdowns rather than a real analytics API pull.
+model AudienceSnapshot {
+  id              String   @id @default(cuid())
+  clientId        String
+  platform        String
+  ageBreakdown    Json? // [{ label, pct }]
+  genderBreakdown Json? // [{ label, pct }]
+  topLocations    Json? // [{ label, pct }]
+  capturedAt      DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, platform])
+}
+
+// Platform follower-count time series — a separate model from ContentPost
+// since follower count is a channel-level number, not tied to any one post.
+model FollowerSnapshot {
+  id            String   @id @default(cuid())
+  clientId      String
+  platform      String
+  followerCount Int
+  capturedAt    DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, platform, capturedAt])
+}
+
+// The client's own business results (their revenue/leads, not what they pay
+// Klingit) — manually entered for now since no real CRM/ERP integration
+// exists anywhere in this codebase. This is what "closes the loop" between
+// content performance and actual business outcomes.
+model ClientBusinessOutcome {
+  id             String   @id @default(cuid())
+  clientId       String
+  periodStart    DateTime
+  periodEnd      DateTime
+  revenue        Float?
+  leadsGenerated Int?
+  source         String   @default("manual")
+  note           String?
+  createdAt      DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, periodStart])
+}
+
+// The user-set baseline plan the living calendar starts from and evolves
+// against — e.g. "4 posts per week on LinkedIn."
+model ContentPlanTarget {
+  id           String   @id @default(cuid())
+  clientId     String
+  platform     String
+  weeklyVolume Int
+  updatedAt    DateTime @updatedAt
+  createdAt    DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, platform])
+}
+
+enum ContentPlanSuggestionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// Where the suggestion sits in the human approval pipeline — mirrors an
+// SOW-style workflow (submitted -> in review -> revised -> approved ->
+// scheduled) so the UI can show visible progression, not just a card that
+// disappears on click.
+enum ContentPlanSuggestionStage {
+  SUBMITTED
+  IN_REVIEW
+  REVISED
+  APPROVED
+  SCHEDULED
+}
+
+// An AI-proposed adjustment to the plan, grounded in real ContentPost
+// performance and ClientBusinessOutcome data — surfaced for explicit
+// human approval, never auto-applied. Approving one can flow into a Brief
+// via briefedProjectId, mirroring the existing MarketIntelligenceIdea ->
+// startBriefFromIdeaAction precedent.
+model ContentPlanSuggestion {
+  id                    String                      @id @default(cuid())
+  clientId              String
+  title                 String
+  rationale             String
+  platform              String?
+  suggestedVolumeChange Int? // e.g. +2 or -1 posts/week on `platform`
+  status                ContentPlanSuggestionStatus @default(PENDING)
+  stage                 ContentPlanSuggestionStage  @default(IN_REVIEW)
+  sourceCadence         String                      @default("Monthly strategy recommendation") // e.g. "Weekly trend scan" vs "Monthly strategy recommendation" — which reporting cadence this suggestion is the AI-assisted version of
+  briefedProjectId      String?
+  createdAt             DateTime                    @default(now())
+  resolvedAt            DateTime?
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, status])
+}
+
+// Per-client reporting cadence and KPI targets — how often they want
+// reports and what "good" looks like per metric (e.g. Spotify's RFP: weekly
+// Slack report, follower growth %, engagement rate, video views target).
+model ClientReportingConfig {
+  id         String   @id @default(cuid())
+  clientId   String   @unique
+  cadence    String   @default("WEEKLY") // WEEKLY | BIWEEKLY | MONTHLY
+  kpiTargets Json? // [{ metric, target, platform? }]
+  updatedAt  DateTime @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+// A named, reusable cut of the Reports page — the filter selection (date
+// range, platform, content type) a client or ops user built and wants to
+// come back to without re-picking it every time. The report itself is
+// never stored; only the filter criteria, so reopening it always reflects
+// current data for that slice.
+model SavedReport {
+  id        String   @id @default(cuid())
+  clientId  String
+  name      String
+  filters   Json // { dateFrom?, dateTo?, platform?, contentType? }
+  createdAt DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, createdAt])
+}
+
+// One SEO/AI-crawler audit of a single site — the client's own, or a
+// tracked competitor's. Real fetched signals only: on-page checks (title,
+// meta description, headings, structured data) run via a direct HTML fetch;
+// AI-crawler permissions read from the site's actual robots.txt; Core Web
+// Vitals scores from Google's PageSpeed Insights API when configured.
+model SiteAudit {
+  id                 String   @id @default(cuid())
+  clientId           String
+  subject            String // brand name, or "Own site" for the client's own domain
+  domain             String
+  performanceScore   Int? // PageSpeed Insights 0-100, null if not configured
+  seoScore           Int?
+  accessibilityScore Int?
+  bestPracticesScore Int?
+  onPageChecks       Json // { hasTitle, titleLength, hasMetaDescription, metaDescriptionLength, h1Count, structuredDataTypes: string[], hasSitemap, aiCrawlerAccess: { [bot: string]: "allowed"|"blocked"|"unknown" } }
+  fetchError         String? // set if the site couldn't be reached at all
+  auditedAt          DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, subject])
+}
+
+// A real question put to Claude as a natural customer would ask it, checked
+// afterward (deterministically, not self-reported) for which tracked brands
+// actually got mentioned in the answer — a genuine, if necessarily narrow,
+// proxy for AI-search visibility since we don't have access to Google AI
+// Overviews / ChatGPT search results directly.
+model AiVisibilityCheck {
+  id        String   @id @default(cuid())
+  clientId  String
+  engine    String   @default("claude") // "claude" | "perplexity"
+  grounded  Boolean  @default(false) // true once the answer is backed by a real web search, not just model memory
+  question  String
+  answer    String
+  mentions  Json // { brand: string; mentioned: boolean }[]
+  checkedAt DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+// AI-synthesized read of the SEO/AI-visibility audits — what to actually do
+// about it, not just a score dump.
+model SeoBrief {
+  id              String   @id @default(cuid())
+  clientId        String   @unique
+  summary         String
+  recommendations Json // { title: string; detail: string }[]
+  generatedAt     DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+// AI-estimated category performance benchmark — explicitly an inference from
+// available signals (competitor volume/positioning, category context), not
+// measured third-party data. Always surfaced in the UI as an estimate.
+model PerformanceBenchmark {
+  id            String   @id @default(cuid())
+  clientId      String   @unique
+  ownFormat     String
+  ownCtr        Float
+  estimatedLow  Float
+  estimatedHigh Float
+  rationale     String
+  generatedAt   DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model Brand {
+  id        String   @id @default(cuid())
+  clientId  String
+  name      String
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+enum ClientPermission {
+  OWNER
+  APPROVER
+  VIEWER
+}
+
+model ClientUser {
+  id         String           @id @default(cuid())
+  userId     String           @unique
+  clientId   String
+  jobTitle   String?
+  permission ClientPermission @default(VIEWER)
+  createdAt  DateTime         @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  submittedBriefs    Brief[]
+  comments           Comment[]       @relation("ClientUserComments")
+  touchpoints        Touchpoint[]
+  createdProjects    Project[]       @relation("ProjectCreatedBy")
+  projectMemberships ProjectMember[]
+  internalMessages   ClientInternalMessage[]
+  channelReads       ProjectChannelRead[]
+}
+
+// ---------------------------------------------------------------------------
+// Staff (agency's internal people)
+// ---------------------------------------------------------------------------
+
+enum InternalRole {
+  ADMIN
+  ACCOUNT_LEAD
+  ART_DIRECTOR
+  COPYWRITER
+  MOTION_DESIGNER
+  PROJECT_MANAGER
+}
+
+model StaffMember {
+  id                   String       @id @default(cuid())
+  userId               String       @unique
+  title                InternalRole
+  skills               Json? // string[]
+  brandFitTags         Json? // string[] e.g. ["Klarna", "fintech"]
+  capacityHoursPerWeek Int          @default(40)
+  performanceRating    Float        @default(4.5) // 0-5, from past project reviews
+  createdAt            DateTime     @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  leadClients        Client[]     @relation("ClientAccountLead")
+  teamMemberships    TeamMember[]
+  sentEstimates      Estimate[]
+  proposedTeams      Team[]
+  publishedClientApps ClientApp[]
+}
+
+// ---------------------------------------------------------------------------
+// Pipeline: Project + its 10 stages
+// ---------------------------------------------------------------------------
+
+enum PipelineStageName {
+  BRIEF
+  ESTIMATE
+  STAFFING
+  PRODUCTION
+  QA
+  FIRST_DRAFT_DELIVERY
+  FEEDBACK
+  FINAL_DELIVERY
+  ARCHIVE_LEARN_MEASURE
+  SUGGESTIONS
+}
+
+enum StageStatus {
+  UPCOMING
+  ACTIVE
+  COMPLETED
+  SKIPPED
+}
+
+enum ProjectStatus {
+  DRAFT // client (and their team) is still shaping the brief — not yet visible to the Klingit ops side
+  BRIEFING
+  ESTIMATING
+  STAFFING
+  IN_PRODUCTION
+  QA
+  AWAITING_REVIEW
+  IN_FEEDBACK
+  DELIVERED
+  PAUSED
+  ARCHIVED
+}
+
+// A project is not always an ad campaign — it can be a single asset, a deck,
+// a motion piece, a dev/build request, brand work, or something else the
+// client asks for. Brief copy and deliverable options adapt to this.
+enum ProjectType {
+  CAMPAIGN
+  SINGLE_ASSET
+  PRESENTATION
+  MOTION_VIDEO
+  DEVELOPMENT
+  BRAND_GUIDELINES
+  OTHER
+}
+
+model Project {
+  id                    String         @id @default(cuid())
+  clientId              String
+  name                  String
+  type                  ProjectType    @default(CAMPAIGN)
+  status                ProjectStatus  @default(BRIEFING)
+  pausedFromStatus      ProjectStatus? // status to restore to on resume — only set while status = PAUSED
+  dueDate               DateTime?
+  startedAt             DateTime?
+  deliveredAt           DateTime?
+  creditsQuoted         Int?
+  creditsActual         Int?
+  priceAmount           Float?
+  priceCurrency         String         @default("EUR")
+  // Confidential projects are hidden from other client-side teammates —
+  // visible only to the creator and the ClientUsers added as members below.
+  // This is a client-internal privacy boundary; it never restricts Klingit ops.
+  confidential          Boolean        @default(false)
+  createdByClientUserId String?
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  client    Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdBy ClientUser? @relation("ProjectCreatedBy", fields: [createdByClientUserId], references: [id], onDelete: SetNull)
+
+  pipelineStages PipelineStage[]
+  brief          Brief?
+  estimate       Estimate?
+  team           Team?
+  assets         Asset[]
+  comments       Comment[]
+  agentRuns      AgentRun[]
+  notifications  Notification[]
+  invoices       Invoice[]
+  creditLedger   CreditLedgerEntry[]
+  changeRequests ChangeRequest[]
+  internalMessages ClientInternalMessage[]
+  channelReads     ProjectChannelRead[]
+  members        ProjectMember[]
+}
+
+// Grants a specific client teammate access to a project — used both to invite
+// collaborators onto a project's team and, when the project is confidential,
+// as the allowlist of who besides the creator can see it.
+model ProjectMember {
+  id           String   @id @default(cuid())
+  projectId    String
+  clientUserId String
+  addedAt      DateTime @default(now())
+
+  project    Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  clientUser ClientUser @relation(fields: [clientUserId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, clientUserId])
+}
+
+model PipelineStage {
+  id          String            @id @default(cuid())
+  projectId   String
+  name        PipelineStageName
+  order       Int
+  status      StageStatus       @default(UPCOMING)
+  startedAt   DateTime?
+  completedAt DateTime?
+  etaAt       DateTime?
+  summary     String?
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, name])
+}
+
+// ---------------------------------------------------------------------------
+// Brief
+// ---------------------------------------------------------------------------
+
+enum BriefStatus {
+  DRAFT
+  SUBMITTED
+  GAPS_FLAGGED
+  ACCEPTED
+}
+
+model Brief {
+  id                  String      @id @default(cuid())
+  projectId           String      @unique
+  submittedByUserId   String?
+  goals               String?
+  targetAudience      String?
+  successMetrics      String?
+  toneTags            Json? // string[]
+  keyMessage          String?
+  references          String?
+  deliverablesNotes   String?
+  emphasizedColors    Json? // hex[] selected from Brand IQ during intake
+  rawIntake           String? // the client's original free-text brief
+  sourceLink          String? // optional link to a doc/deck they shared
+  sourceFileName      String? // optional file they attached
+  pendingQuestions    Json? // AI-generated clarifying questions: [{key, question, quickAnswers: string[]}]
+  transcript          Json? // conversational Q&A turns: [{key, question, answer}]
+  gapsFlagged         Json? // string[]
+  followUpSuggestions Json? // string[] — quick-tap replies the client can send their team about the flagged gaps
+  aiSummary           String? // Brief agent's structured summary of the brief
+  aiQualityScore      Int? // Brief agent's 0-100 completeness/clarity score
+  status              BriefStatus @default(DRAFT)
+  submittedAt         DateTime?
+  acceptedAt          DateTime?
+  createdAt           DateTime    @default(now())
+
+  project         Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  submittedByUser ClientUser?     @relation(fields: [submittedByUserId], references: [id])
+  revisions       BriefRevision[]
+}
+
+// A snapshot of the brief's editable fields taken right before an edit is
+// applied to an already-accepted brief — the version-control trail so the
+// team can see exactly what the brief said at any point in time.
+model BriefRevision {
+  id             String   @id @default(cuid())
+  briefId        String
+  goals          String?
+  targetAudience String?
+  successMetrics String?
+  references     String?
+  changedByName  String
+  createdAt      DateTime @default(now())
+
+  brief Brief @relation(fields: [briefId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Estimate
+// ---------------------------------------------------------------------------
+
+enum EstimateStatus {
+  DRAFT
+  SENT
+  APPROVED
+  CHANGES_REQUESTED
+  EXPIRED
+}
+
+model Estimate {
+  id            String         @id @default(cuid())
+  projectId     String         @unique
+  sentByStaffId String?
+  status        EstimateStatus @default(DRAFT)
+  totalHours    Float          @default(0)
+  totalCredits  Int            @default(0)
+  currency      String         @default("EUR")
+  totalPrice    Float?
+  notes         String?
+  sentAt        DateTime?
+  expiresAt     DateTime?
+  respondedAt   DateTime?
+  createdAt     DateTime       @default(now())
+
+  project     Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sentByStaff StaffMember?       @relation(fields: [sentByStaffId], references: [id])
+  lineItems   EstimateLineItem[]
+  inclusions  Json? // string[]
+  // Deliverables the Estimate agent flagged as having no matching Price List
+  // entry — it must never invent a cost for these; a human prices them
+  // manually before the estimate is considered complete.
+  unresolvedNeeds Json? // {description, reason}[]
+}
+
+// ---------------------------------------------------------------------------
+// Price list — the agency's rate card, keyed by deliverable type + how
+// complex that instance of it is. This is what the Estimate agent prices
+// line items against instead of guessing hours itself.
+// ---------------------------------------------------------------------------
+
+enum ComplexityTier {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model PriceListItem {
+  id              String         @id @default(cuid())
+  deliverableType String
+  complexityTier  ComplexityTier
+  creditCost      Int
+  notes           String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@unique([deliverableType, complexityTier])
+}
+
+model EstimateLineItem {
+  id          String @id @default(cuid())
+  estimateId  String
+  deliverable String
+  detail      String
+  hours       Float
+  credits     Int
+  order       Int    @default(0)
+
+  estimate Estimate @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Team / Staffing
+// ---------------------------------------------------------------------------
+
+model Team {
+  id                String   @id @default(cuid())
+  projectId         String   @unique
+  proposedByStaffId String?
+  confirmed         Boolean  @default(false)
+  confirmedAt       DateTime? // starts the first-draft clock (committed: within 2 business days)
+  createdAt         DateTime @default(now())
+
+  project         Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  proposedByStaff StaffMember? @relation(fields: [proposedByStaffId], references: [id])
+  members         TeamMember[]
+}
+
+model TeamMember {
+  id             String  @id @default(cuid())
+  teamId         String
+  staffMemberId  String
+  roleOnProject  String
+  recommended    Boolean @default(false)
+  allocatedHours Float   @default(0)
+
+  team        Team        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  staffMember StaffMember @relation(fields: [staffMemberId], references: [id])
+
+  @@unique([teamId, staffMemberId])
+}
+
+// ---------------------------------------------------------------------------
+// Assets / feedback
+// ---------------------------------------------------------------------------
+
+enum AssetType {
+  IMAGE
+  VIDEO
+  COPY
+  HTML5
+}
+
+enum AssetStatus {
+  IN_REVIEW
+  APPROVED
+  CHANGES_REQUESTED
+  DELIVERED
+  ARCHIVED
+}
+
+model Asset {
+  id               String      @id @default(cuid())
+  projectId        String
+  clientId         String
+  name             String
+  format           String // e.g. "Story 9:16", "Static 1:1"
+  platform         String? // e.g. "Instagram", "TikTok", "Facebook", "Display Network"
+  type             AssetType   @default(IMAGE)
+  fileUrl          String?
+  thumbnailColor   String      @default("var(--avatar-3)") // fixture placeholder swatch
+  durationSeconds  Int? // set for VIDEO assets — drives the mock player's scrubber length
+  status           AssetStatus @default(IN_REVIEW)
+  version          Int         @default(1)
+  performanceCtr   Float?
+  performanceScore Int?
+  tags             Json?
+  createdAt        DateTime    @default(now())
+
+  project  Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  client   Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  comments Comment[]
+}
+
+model Comment {
+  id                 String   @id @default(cuid())
+  projectId          String
+  assetId            String?
+  authorUserId       String?
+  authorClientUserId String?
+  body               String
+  resolved           Boolean  @default(false)
+  agentPriority      String? // "High" | "Medium" | "Low" — set by the Feedback agent
+  agentTaskSummary   String? // Feedback agent's structured task description
+  xPercent           Float? // pin (or region top-left) position on the asset preview, 0-100 — null = a general (unpinned) comment
+  yPercent           Float?
+  widthPercent       Float? // set only for a drawn region comment (Figma-style marquee), not a single point pin
+  heightPercent      Float?
+  timestampSeconds   Float? // set only for a video/motion asset comment — the moment in playback being referenced
+  archivedAt         DateTime? // soft delete — archived comments are hidden everywhere but kept for restore
+  createdAt          DateTime @default(now())
+
+  project      Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  asset        Asset?      @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  author       User?       @relation(fields: [authorUserId], references: [id])
+  clientAuthor ClientUser? @relation("ClientUserComments", fields: [authorClientUserId], references: [id])
+}
+
+// The client org's own back-channel on a project. Never readable by Klingit
+// staff — only src/lib/internal-messages.ts may query this table.
+model ClientInternalMessage {
+  id                 String    @id @default(cuid())
+  projectId          String
+  clientId           String
+  authorClientUserId String
+  body               String
+  archivedAt         DateTime?
+  createdAt          DateTime  @default(now())
+
+  project Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  client  Client     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  author  ClientUser @relation(fields: [authorClientUserId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt])
+}
+
+enum ConversationChannel {
+  KLINGIT
+  INTERNAL
+}
+
+// Drives the unread dot per conversation channel, per client user.
+model ProjectChannelRead {
+  id           String              @id @default(cuid())
+  clientUserId String
+  projectId    String
+  channel      ConversationChannel
+  lastReadAt   DateTime
+
+  clientUser ClientUser @relation(fields: [clientUserId], references: [id], onDelete: Cascade)
+  project    Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([clientUserId, projectId, channel])
+}
+
+model ChangeRequest {
+  id          String   @id @default(cuid())
+  projectId   String
+  description String
+  status      String   @default("SUBMITTED") // SUBMITTED, SCOPING, APPROVED, DECLINED
+  createdAt   DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Agents
+// ---------------------------------------------------------------------------
+
+enum AgentCategory {
+  FOUNDATION
+  BRIEF
+  ESTIMATE
+  STAFFING
+  PRODUCTION
+  QA
+  DELIVERY
+  FEEDBACK
+  ARCHIVE
+}
+
+enum AgentStatus {
+  LIVE
+  SANDBOX
+  DISABLED
+  ERROR
+}
+
+model Agent {
+  id                String        @id @default(cuid())
+  key               String        @unique // "brand_os", "brief_agent", "ad_gen", ...
+  name              String
+  category          AgentCategory
+  description       String
+  status            AgentStatus   @default(LIVE)
+  version           String        @default("1.0.0")
+  costPerRunCredits Float?
+  selfService       Boolean       @default(false) // true = the client can run this themselves from Brand IQ, not just Klingit staff internally
+  createdAt         DateTime      @default(now())
+
+  runs AgentRun[]
+}
+
+enum AgentRunStatus {
+  SUCCESS
+  FAILED
+  FLAGGED
+}
+
+model AgentRun {
+  id                 String         @id @default(cuid())
+  agentId            String
+  projectId          String?
+  clientId           String?
+  input              Json?
+  output             Json?
+  decision           String?
+  status             AgentRunStatus @default(SUCCESS)
+  overridden         Boolean        @default(false)
+  overriddenByUserId String?
+  overrideReason     String?
+  requestedByUserId  String? // set when a client ran a self-service agent themselves, rather than an internal pipeline run
+  durationMs         Int?
+  createdAt          DateTime       @default(now())
+
+  agent            Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  project          Project? @relation(fields: [projectId], references: [id])
+  client           Client?  @relation(fields: [clientId], references: [id])
+  overriddenByUser User?    @relation("AgentRunOverriddenBy", fields: [overriddenByUserId], references: [id])
+  requestedByUser  User?    @relation("AgentRunRequestedBy", fields: [requestedByUserId], references: [id])
+}
+
+// ---------------------------------------------------------------------------
+// Brand OS
+// ---------------------------------------------------------------------------
+
+model BrandOS {
+  id                   String    @id @default(cuid())
+  clientId             String    @unique
+  toneRules            Json?
+  dos                  Json?
+  donts                Json?
+  approvedColors       Json?
+  approvedTypography   Json?
+  figmaSyncConfig      Json?
+  foundationPct        Int       @default(0)
+  figmaLibraryPct      Int       @default(0)
+  assetArchivePct      Int       @default(0)
+  qualityBenchmarksPct Int       @default(0)
+  indexedAssetsCount   Int       @default(0)
+  brandOsRulesCount    Int       @default(0)
+  toneGuidelinesCount  Int       @default(0)
+  lastSyncedAt         DateTime?
+  updatedAt            DateTime  @updatedAt
+
+  // Full brand profile — everything about the brand beyond raw campaign
+  // guidelines, so Brand IQ reads like a real brand portal (Frontify-style).
+  valueProposition  String?
+  keyProducts       Json? // string[]
+  audiencePersonas  Json? // [{name, description, ageRange, traits: string[]}]
+  voiceAttributes   Json? // [{label, leftLabel, rightLabel, value 0-100}]
+  imageryStyle      String?
+  illustrationStyle String?
+  competitiveNote   String?
+
+  // Brand & Message platform — the DAM-style "our brand" document set.
+  vision       String?
+  mission      String?
+  coreValues   Json? // [{title, description}]
+  usps         Json? // string[]
+  servicesNote String?
+
+  // Structured colour system — approvedColors stays as the flat legacy list
+  // used for quick swatches elsewhere; colorPalette/colorGradients power the
+  // richer Brand colours DAM folder (primary/secondary roles + gradients).
+  colorPalette   Json? // [{hex, name, role: "primary" | "secondary"}]
+  colorGradients Json? // [{name, from, to}]
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Billing
+// ---------------------------------------------------------------------------
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+}
+
+model Invoice {
+  id        String        @id @default(cuid())
+  clientId  String
+  projectId String?
+  number    String        @unique
+  amount    Float
+  currency  String        @default("EUR")
+  status    InvoiceStatus @default(DRAFT)
+  issuedAt  DateTime?
+  dueAt     DateTime?
+  paidAt    DateTime?
+  lineItems Json?
+  createdAt DateTime      @default(now())
+
+  client  Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id])
+}
+
+enum LedgerEntryType {
+  ALLOWANCE
+  PURCHASE
+  CONSUMPTION
+  ADJUSTMENT
+}
+
+model CreditLedgerEntry {
+  id           String          @id @default(cuid())
+  clientId     String
+  projectId    String?
+  type         LedgerEntryType
+  amount       Int // signed: + for allowance/purchase, - for consumption
+  balanceAfter Int
+  note         String?
+  createdAt    DateTime        @default(now())
+
+  client  Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id])
+}
+
+// ---------------------------------------------------------------------------
+// Notifications
+// ---------------------------------------------------------------------------
+
+enum NotificationType {
+  APPROVAL_NEEDED
+  DELIVERY_READY
+  COMMENT
+  AGENT_FAILURE
+  SLA_BREACH
+  SYSTEM
+}
+
+model Notification {
+  id          String           @id @default(cuid())
+  userId      String
+  clientId    String?
+  projectId   String?
+  type        NotificationType
+  title       String
+  body        String
+  read        Boolean          @default(false)
+  actionUrl   String?
+  actionLabel String?
+  archivedAt  DateTime? // soft delete — hidden from every list and count, kept for restore
+  createdAt   DateTime         @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  client  Client?  @relation(fields: [clientId], references: [id])
+  project Project? @relation(fields: [projectId], references: [id])
+}
+
+model NotificationPreference {
+  id             String  @id @default(cuid())
+  userId         String  @unique
+  emailEnabled   Boolean @default(true)
+  inAppEnabled   Boolean @default(true)
+  slackEnabled   Boolean @default(false)
+  slackWorkspace String?
+  slackChannel   String?
+  frequency      String  @default("INSTANT") // INSTANT, DAILY_DIGEST, WEEKLY
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Misc client-portal content
+// ---------------------------------------------------------------------------
+
+model Touchpoint {
+  id               String   @id @default(cuid())
+  clientId         String
+  withClientUserId String?
+  title            String
+  scheduledAt      DateTime
+
+  client         Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  withClientUser ClientUser? @relation(fields: [withClientUserId], references: [id])
+}
+
+// Content the client is planning or running OUTSIDE Klingit (organic social,
+// PR, events, etc.) — tracked here purely for their own visibility on the
+// content calendar, alongside Klingit projects and suggested new work.
+model ClientCalendarItem {
+  id        String   @id @default(cuid())
+  clientId  String
+  title     String
+  date      DateTime
+  channel   String // "Organic social", "PR", "Email", "Event", "Other"
+  notes     String?
+  createdAt DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model Template {
+  id           String   @id @default(cuid())
+  clientId     String? // null = global/agency-wide template
+  name         String
+  figmaUrl     String?
+  previewColor String   @default("var(--avatar-3)")
+  category     String
+  usageCount   Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  client Client? @relation(fields: [clientId], references: [id])
+}
+
+enum BrandAssetCategory {
+  LOGO
+  ICON
+  PHOTOGRAPHY
+  ILLUSTRATION
+  PATTERN
+  VIDEO
+  ANIMATION
+}
+
+// The client's brand kit / DAM — logos, icons, photography style, patterns —
+// distinct from campaign Assets (which are tied to a specific Project).
+// Colors and typography live on BrandOS since they're simple value lists;
+// this model is for the file-like brand identity assets.
+model BrandAsset {
+  id            String             @id @default(cuid())
+  clientId      String
+  name          String
+  category      BrandAssetCategory
+  variant       String? // e.g. "Primary", "Reversed / white", "Icon mark"
+  format        String? // e.g. "SVG", "PNG", "PDF"
+  fileUrl       String?
+  previewColor  String             @default("var(--avatar-3)")
+  dimensions    String? // e.g. "1800 x 1800"
+  fileSizeLabel String? // e.g. "1 MB"
+  colorSpace    String? // e.g. "RGB"
+  createdAt     DateTime           @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+enum CustomAppStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+// A small hosted tool (built elsewhere, e.g. on the internal micro-apps
+// platform) that Ops publishes to one specific client — the client sees it
+// under their own "Custom Apps" tab with an outbound link. This is a
+// registry/publishing record only; it doesn't build or host anything itself.
+model ClientApp {
+  id              String          @id @default(cuid())
+  clientId        String
+  name            String
+  slug            String?
+  description     String?
+  hostedUrl       String
+  status          CustomAppStatus @default(ACTIVE)
+  createdByStaffId String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  client        Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdByStaff StaffMember? @relation(fields: [createdByStaffId], references: [id], onDelete: SetNull)
+
+  @@index([clientId])
+}
+
+model MarketSignal {
+  id          String   @id @default(cuid())
+  clientId    String
+  type        String // COMPETITOR, TREND, MARKET
+  title       String
+  summary     String
+  source      String?
+  relevance   String   @default("Watch") // "High relevance", "Relevant", "Watch"
+  publishedAt DateTime
+  // Identifies "the same alert" across checks (e.g. perf:LinkedIn:<campaignId>)
+  // so a still-ongoing condition isn't re-raised on every refresh.
+  dedupeKey   String?
+  archivedAt  DateTime? // soft delete — hidden from feeds, kept for restore
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, dedupeKey])
+}
+
+model Inspiration {
+  id             String    @id @default(cuid())
+  clientId       String
+  title          String
+  description    String
+  formatTags     Json?
+  thumbnailColor String    @default("var(--avatar-5)")
+  targetDate     DateTime? // the moment this idea is tied to, if any (e.g. a seasonal date)
+  leadTimeDays   Int       @default(21) // typical production lead time, for "start by" calendar suggestions
+  createdAt      DateTime  @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+// OAuth-connected ad platform credentials (currently LinkedIn) — Meta uses a
+// static long-lived System User token in env vars instead, so it has no row
+// here. One row per provider, refreshed in place as tokens rotate.
+model IntegrationConnection {
+  id           String    @id @default(cuid())
+  provider     String    @unique // "linkedin"
+  accessToken  String
+  refreshToken String?
+  expiresAt    DateTime?
+  connectedAt  DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+enum SendChannelType {
+  SLACK
+  TEAMS
+  EMAIL
+}
+
+// A client-side "we've connected X" record — NOT a real OAuth integration
+// (no tokens, no live API calls). Lets a client point briefs/reports at a
+// Slack channel, Teams channel, or email distribution list they've told us
+// about, so "send this to the team" is one click instead of a manual export.
+model ConnectedChannel {
+  id          String          @id @default(cuid())
+  clientId    String
+  type        SendChannelType
+  name        String // "#social-team", "Marketing Ops", "leadership-updates@lifeatspotify.com"
+  connectedAt DateTime        @default(now())
+
+  client       Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  sentMessages SentMessageLog[]
+
+  @@index([clientId])
+}
+
+enum SentSubjectType {
+  BRIEF
+  REPORT
+}
+
+// A log entry for one "send to channel" click — the delivery itself is
+// simulated (this app has no real Slack/Teams/email API credentials), but
+// the log is real, so a client can see what's already been shared and when.
+model SentMessageLog {
+  id           String          @id @default(cuid())
+  clientId     String
+  channelId    String
+  subjectType  SentSubjectType
+  subjectLabel String // e.g. a project name, or "Weekly Report — 11 Sept"
+  sentAt       DateTime        @default(now())
+
+  client  Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  channel ConnectedChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, sentAt])
+}
+
+enum EscalationSentiment {
+  POSITIVE
+  NEUTRAL
+  NEGATIVE
+}
+
+enum EscalationStatus {
+  OPEN
+  RESOLVED
+}
+
+// A specific comment/DM flagged by community management as needing human
+// attention — the concrete "should this be escalated?" items behind the
+// aggregate CommunityManagementSnapshot counts.
+model CommunityEscalation {
+  id        String              @id @default(cuid())
+  clientId  String
+  platform  String
+  snippet   String
+  sentiment EscalationSentiment
+  status    EscalationStatus    @default(OPEN)
+  createdAt DateTime            @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, status])
+}
+
+// Website traffic/conversion data — separate from ContentPost.websiteClicks
+// (which is only social→website click-throughs). No real analytics
+// integration exists yet, so this is manually-reported/seeded like
+// ClientBusinessOutcome, one row per reporting period.
+model WebsiteAnalyticsSnapshot {
+  id                   String   @id @default(cuid())
+  clientId             String
+  periodStart          DateTime
+  periodEnd            DateTime
+  visits               Int
+  uniqueVisitors       Int
+  conversions          Int
+  conversionRate       Float // percent
+  avgSessionSeconds    Int?
+  socialReferralVisits Int?
+  topSource            String?
+  createdAt            DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, periodStart])
+}
