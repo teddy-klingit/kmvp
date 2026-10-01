@@ -1,4 +1,6 @@
 import { prisma } from "@/lib/prisma";
+import { assetTitle } from "@/lib/asset-display";
+import { onLabel } from "@/lib/context-label";
 import type { PortalViewer } from "@/lib/brief-intake";
 import { listInternalMessages, countUnreadInternal } from "@/lib/internal-messages";
 import { INTERNAL_ROLE_LABEL } from "@/lib/labels";
@@ -64,7 +66,7 @@ export async function loadProjectConversation(
 
   const klingit: ChatMessage[] = comments.map((c) => {
     const isStaff = !c.authorClientUserId && Boolean(c.author);
-    const contextLabel = c.contextLabel ?? (c.asset ? c.asset.name : null);
+    const contextLabel = c.contextLabel ?? (c.asset ? onLabel(assetTitle(c.asset.name, c.asset.format)) : null);
     const contextKind = c.contextKind ?? (c.asset ? "asset" : null);
     const contextRef = c.contextRef ?? c.assetId;
     return {

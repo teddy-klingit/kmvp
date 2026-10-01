@@ -4,7 +4,8 @@ import { cn } from "@/lib/utils";
 /**
  * The same card in every stage. "turn" = the client's turn (orange-tinted
  * border + icon tile, "YOUR TURN"); "klingit" = neutral, "KLINGIT IS ON IT".
- * No gradients, no coloured left bar.
+ * No gradients, no coloured left bar. Pass actions secondary-first, primary last
+ * (the desktop order); on phones they stack full-width with the primary on top.
  */
 export function NextStepCard({
   variant,
@@ -45,7 +46,12 @@ export function NextStepCard({
         <span className="text-[16px] font-semibold text-ds-text">{title}</span>
         {description && <span className="text-[14px] text-ds-text-2">{description}</span>}
       </div>
-      {actions && <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>}
+      {/* Phones: full-width buttons, stacked, primary first (callers pass the primary last). */}
+      {actions && (
+        <div className="flex w-full shrink-0 flex-col-reverse gap-2 md:w-auto md:flex-row md:flex-wrap [&>*]:w-full md:[&>*]:w-auto [&_button]:w-full md:[&_button]:w-auto">
+          {actions}
+        </div>
+      )}
     </section>
   );
 }

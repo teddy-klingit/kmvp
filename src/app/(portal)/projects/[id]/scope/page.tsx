@@ -38,7 +38,7 @@ export default async function ProjectScopePage({
   const estimate = await prisma.estimate.findFirst({
     // An unsent DRAFT is Klingit's working copy — never shown to the client.
     where: { projectId: id, status: { not: "DRAFT" }, project: { clientId: viewer.clientId } },
-    include: { lineItems: { orderBy: { order: "asc" } }, sentByStaff: { include: { user: true } } },
+    include: { lineItems: { orderBy: { order: "asc" }, include: { priceListItem: true } }, sentByStaff: { include: { user: true } } },
   });
   const inclusions = jsonArray<string>(estimate?.inclusions);
   const unresolved = jsonArray<UnresolvedNeed>(estimate?.unresolvedNeeds);
@@ -54,7 +54,7 @@ export default async function ProjectScopePage({
           meta={
             estimate && pill ? (
               <>
-                <StatusPill>v1</StatusPill>
+                <StatusPill>v{estimate.version}</StatusPill>
                 <StatusPill tone={pill.tone}>{pill.label}</StatusPill>
               </>
             ) : undefined

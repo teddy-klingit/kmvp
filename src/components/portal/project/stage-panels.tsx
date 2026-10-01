@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Check, ImageIcon, Play } from "lucide-react";
+import { Check, Download, ImageIcon, Play } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { Card, CardHeader } from "@/components/ds/card";
 import { Button } from "@/components/ds/button";
@@ -11,6 +11,9 @@ import { RatingStars } from "@/components/portal/rating-stars";
 import { approveEstimateAction, rateProjectAction, signOffProjectAction } from "@/lib/actions/project-actions";
 import { resumeProjectAction } from "@/lib/actions/project-lifecycle-actions";
 import { jsonArray } from "@/lib/utils";
+import { loadReviewAssets } from "@/lib/review-assets";
+import { COMPLEXITY_LABEL, lineName } from "@/lib/estimate-display";
+import type { ComplexityTier } from "@/generated/prisma";
 import { shortDate, FIRST_DRAFT_BUSINESS_DAYS, type ProjectState } from "@/lib/project-state";
 import type { PortalViewer } from "@/lib/brief-intake";
 
@@ -133,7 +136,7 @@ export async function OverviewNextStep({ projectId, viewer, state }: PanelProps)
 export async function EstimateCard({ projectId, viewer }: Omit<PanelProps, "state">) {
   const estimate = await prisma.estimate.findFirst({
     where: { projectId, status: "SENT", project: { clientId: viewer.clientId } },
-    include: { lineItems: { orderBy: { order: "asc" } } },
+    include: { lineItems: { orderBy: { order: "asc" }, include: { priceListItem: true } } },
   });
   if (!estimate) return null;
   const inclusions = jsonArray<string>(estimate.inclusions);
@@ -141,7 +144,7 @@ export async function EstimateCard({ projectId, viewer }: Omit<PanelProps, "stat
     <Card aria-label="Estimate" className="overflow-hidden" id="estimate">
       <CardHeader
         title="Estimate"
-        meta={<StatusPill>v1{estimate.expiresAt ? ` · valid until ${shortDate(estimate.expiresAt)}` : ""}</StatusPill>}
+        meta={<StatusPill>v{estimate.version}{estimate.expiresAt ? ` · valid until ${shortDate(estimate.expiresAt)}` : ""}</StatusPill>}
         action={<span className="text-[12px] text-ds-text-2">Priced from the Klingit price list</span>}
       />
       <EstimateTable lines={estimate.lineItems} total={estimate.totalCredits} />
@@ -150,36 +153,53 @@ export async function EstimateCard({ projectId, viewer }: Omit<PanelProps, "stat
   );
 }
 
-export function EstimateTable({ lines, total }: { lines: { id: string; deliverable: string; detail: string | null; credits: number }[]; total: number }) {
+export type EstimateTableLine = {
+  id: string;
+  deliverable: string;
+  detail: string | null;
+  credits: number;
+  complexityTier: ComplexityTier | null;
+  priceListItem?: { displayName: string | null } | null;
+};
+
+/** Deliverable · Details · Complexity · Credits, with the total row — as in Main.dc.html. */
+export function EstimateTable({ lines, total }: { lines: EstimateTableLine[]; total: number }) {
   return (
-    <div>
-      <table className="w-full border-collapse text-[14px]">
-        <thead>
-          <tr className="text-left text-[12px] text-ds-text-2">
-            <th scope="col" className="px-6 py-2.5 font-medium">Deliverable</th>
-            <th scope="col" className="hidden px-3 py-2.5 font-medium sm:table-cell">Details</th>
-            <th scope="col" className="px-6 py-2.5 text-right font-medium">Credits</th>
+    <table className="w-full border-collapse text-[14px]">
+      <thead>
+        <tr className="text-left text-[12px] text-ds-text-2">
+          <th scope="col" className="px-6 py-2.5 font-medium">Deliverable</th>
+          <th scope="col" className="hidden px-3 py-2.5 font-medium sm:table-cell">Details</th>
+          <th scope="col" className="hidden px-3 py-2.5 font-medium sm:table-cell">Complexity</th>
+          <th scope="col" className="px-6 py-2.5 text-right font-medium">Credits</th>
+        </tr>
+      </thead>
+      <tbody>
+        {lines.map((li) => (
+          <tr key={li.id} id={`line-${li.id}`} className="border-t border-ds-divider">
+            <td className="px-6 py-3.5 font-medium text-ds-text">
+              {lineName(li)}
+              {/* Phones: details and complexity move under the name. */}
+              <span className="mt-1 flex flex-wrap items-center gap-2 font-normal text-ds-text-2 sm:hidden">
+                {li.detail}
+                {li.complexityTier && <StatusPill>{COMPLEXITY_LABEL[li.complexityTier]}</StatusPill>}
+              </span>
+            </td>
+            <td className="hidden px-3 py-3.5 text-ds-text-2 sm:table-cell">{li.detail}</td>
+            <td className="hidden px-3 py-3.5 sm:table-cell">
+              {li.complexityTier && <StatusPill>{COMPLEXITY_LABEL[li.complexityTier]}</StatusPill>}
+            </td>
+            <td className="px-6 py-3.5 text-right tabular-nums text-ds-text">{li.credits}</td>
           </tr>
-        </thead>
-        <tbody>
-          {lines.map((li) => (
-            <tr key={li.id} id={`line-${li.id}`} className="border-t border-ds-divider">
-              <td className="px-6 py-3.5 font-medium text-ds-text">
-                {li.deliverable}
-                {li.detail && <span className="mt-0.5 block font-normal text-ds-text-2 sm:hidden">{li.detail}</span>}
-              </td>
-              <td className="hidden px-3 py-3.5 text-ds-text-2 sm:table-cell">{li.detail}</td>
-              <td className="px-6 py-3.5 text-right tabular-nums text-ds-text">{li.credits}</td>
-            </tr>
-          ))}
-          <tr className="border-t border-ds-border bg-ds-subtle-2">
-            <td className="px-6 py-3.5 font-semibold text-ds-text">Total</td>
-            <td className="hidden sm:table-cell" />
-            <td className="whitespace-nowrap px-6 py-3.5 text-right font-semibold tabular-nums text-ds-text">{total} credits</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+        ))}
+        <tr className="border-t border-ds-border bg-ds-subtle-2">
+          <td className="px-6 py-3.5 font-semibold text-ds-text">Total</td>
+          <td className="hidden sm:table-cell" />
+          <td className="hidden sm:table-cell" />
+          <td className="whitespace-nowrap px-6 py-3.5 text-right font-semibold tabular-nums text-ds-text">{total} credits</td>
+        </tr>
+      </tbody>
+    </table>
   );
 }
 
@@ -253,32 +273,26 @@ export async function BriefAndNextStepsRow({ projectId, viewer }: Omit<PanelProp
 const ACTIVITY_LIMIT = 4;
 
 /**
- * estimating / staffing / production — the latest project events, newest first.
+ * The latest project events (system messages), newest first. Only what actually happened, as recorded in the DB:
+ * no stage summaries, which describe agents that don't produce work today.
  * The step and first-draft date already sit in the header and the Next step card, so they're not repeated here.
  */
-export async function WhatsHappeningCard({ projectId }: Pick<PanelProps, "projectId" | "state">) {
-  const [events, stages] = await Promise.all([
-    prisma.comment.findMany({ where: { projectId, kind: "SYSTEM", archivedAt: null }, orderBy: { createdAt: "desc" }, take: ACTIVITY_LIMIT }),
-    prisma.pipelineStage.findMany({
-      where: { projectId, summary: { not: null }, OR: [{ status: "ACTIVE" }, { status: "COMPLETED" }] },
-      orderBy: [{ completedAt: "desc" }, { startedAt: "desc" }],
-      take: ACTIVITY_LIMIT,
-    }),
-  ]);
-  // System events are the record; older projects only have stage summaries.
-  const activity = events.length
-    ? events.map((e) => ({ id: e.id, text: e.body, at: e.createdAt }))
-    : stages.map((s) => ({ id: s.id, text: s.summary!, at: s.completedAt ?? s.startedAt }));
+export async function ActivityCard({ projectId, title = "What's happening" }: { projectId: string; title?: string }) {
+  const events = await prisma.comment.findMany({
+    where: { projectId, kind: "SYSTEM", archivedAt: null },
+    orderBy: { createdAt: "desc" },
+    take: ACTIVITY_LIMIT,
+  });
   return (
-    <Card aria-label="What's happening">
-      <CardHeader title="What's happening" />
-      {activity.length > 0 ? (
+    <Card aria-label={title}>
+      <CardHeader title={title} />
+      {events.length > 0 ? (
         <ol className="m-0 flex list-none flex-col gap-3 px-6 pb-5 pt-4 text-[14px]">
-          {activity.map((a) => (
-            <li key={a.id} className="flex items-start gap-3">
+          {events.map((e) => (
+            <li key={e.id} className="flex items-start gap-3">
               <span className="mt-[7px] size-1.5 shrink-0 rounded-full bg-ds-text-3" />
-              <span className="min-w-0 flex-1 text-ds-text">{a.text}</span>
-              {a.at && <span className="shrink-0 text-[13px] text-ds-text-2">{shortDate(a.at)}</span>}
+              <span className="min-w-0 flex-1 text-ds-text">{e.body}</span>
+              <span className="shrink-0 text-[13px] text-ds-text-2">{shortDate(e.createdAt)}</span>
             </li>
           ))}
         </ol>
@@ -289,25 +303,83 @@ export async function WhatsHappeningCard({ projectId }: Pick<PanelProps, "projec
   );
 }
 
-/** final + closed — what was delivered. */
+/** review — the assets waiting on the client, as thumbnails that open each one in Work. */
+export async function WaitingForReviewCard({ projectId, viewer }: Omit<PanelProps, "state">) {
+  const assets = await loadReviewAssets(projectId, viewer.clientId, ["IN_REVIEW"]);
+  if (assets.length === 0) return null;
+  return (
+    <Card aria-label="Waiting for your review">
+      <CardHeader
+        title="Waiting for your review"
+        meta={<StatusPill tone="turn">{assets.length}</StatusPill>}
+        action={
+          <Link href={`/projects/${projectId}/work?filter=review`} className="text-[13px] font-medium text-ds-text no-underline hover:underline">
+            Open in Work
+          </Link>
+        }
+      />
+      <ul className="m-0 grid list-none grid-cols-2 gap-4 p-6 sm:grid-cols-4">
+        {assets.map((a) => (
+          <li key={a.id}>
+            <Link href={`/projects/${projectId}/work?asset=${a.id}`} className="group flex flex-col gap-1.5 no-underline">
+              <span
+                className="flex aspect-[4/3] items-center justify-center rounded-[8px] border border-ds-divider group-hover:border-ds-text-3"
+                style={{ backgroundColor: `color-mix(in srgb, ${a.thumbnailColor} 16%, white)` }}
+              >
+                {a.type === "VIDEO" ? (
+                  <Play className="size-5 text-ds-text/35" strokeWidth={1.5} />
+                ) : (
+                  <ImageIcon className="size-5 text-ds-text/35" strokeWidth={1.5} />
+                )}
+              </span>
+              <span className="truncate text-[13px] font-medium text-ds-text">{a.name}</span>
+              <span className="-mt-1 text-[12px] text-ds-text-2">{a.format}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}
+
+/** estimating / staffing / production. */
+export async function WhatsHappeningCard({ projectId }: Pick<PanelProps, "projectId" | "state">) {
+  return <ActivityCard projectId={projectId} />;
+}
+
+/** final + closed — what was delivered: the deliverables from the estimate, then every file with its own download. */
 export async function DeliveryPackageCard({ projectId, viewer }: Omit<PanelProps, "state">) {
   const [assets, lineItems] = await Promise.all([
-    prisma.asset.findMany({
-      where: { projectId, clientId: viewer.clientId, status: { in: ["APPROVED", "DELIVERED"] } },
-      orderBy: { createdAt: "asc" },
+    loadReviewAssets(projectId, viewer.clientId, ["APPROVED", "DELIVERED"]),
+    prisma.estimateLineItem.findMany({
+      where: { estimate: { projectId } },
+      include: { priceListItem: true },
+      orderBy: { order: "asc" },
     }),
-    prisma.estimateLineItem.findMany({ where: { estimate: { projectId } }, orderBy: { order: "asc" } }),
   ]);
   return (
     <Card aria-label="Delivery package">
-      <CardHeader title="Delivery package" meta={<StatusPill>{assets.length} {assets.length === 1 ? "file" : "files"}</StatusPill>} />
+      <CardHeader
+        title="Delivery package"
+        meta={<StatusPill>{assets.length} {assets.length === 1 ? "file" : "files"}</StatusPill>}
+        action={
+          assets.length > 0 ? (
+            <Button asChild variant="secondary" size="md">
+              <a href={`/api/projects/${projectId}/download`} download>
+                <Download strokeWidth={1.75} />
+                Download all (.zip)
+              </a>
+            </Button>
+          ) : undefined
+        }
+      />
       {lineItems.length > 0 && (
         <ul className="m-0 flex list-none flex-col gap-2.5 border-b border-ds-divider px-6 py-4">
           {lineItems.map((li) => (
             <li key={li.id} className="flex items-start gap-3 text-[14px]">
               <Check className="mt-0.5 size-4 shrink-0 text-ds-check" strokeWidth={2} />
               <span>
-                <span className="font-medium text-ds-text">{li.deliverable}</span>
+                <span className="font-medium text-ds-text">{lineName(li)}</span>
                 {li.detail && <span className="text-ds-text-2"> · {li.detail}</span>}
               </span>
             </li>
@@ -315,24 +387,30 @@ export async function DeliveryPackageCard({ projectId, viewer }: Omit<PanelProps
         </ul>
       )}
       {assets.length > 0 ? (
-        <div className="grid grid-cols-2 gap-4 p-6 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 p-6 min-[480px]:grid-cols-2 sm:grid-cols-3">
           {assets.map((a) => (
-            <div key={a.id} className="flex flex-col gap-1.5">
+            <div key={a.id} className="flex flex-col gap-2">
               <div
-                className="relative flex aspect-[4/3] items-center justify-center rounded-[8px] border border-ds-divider"
+                className="flex aspect-[4/3] items-center justify-center rounded-[8px] border border-ds-divider"
                 style={{ backgroundColor: `color-mix(in srgb, ${a.thumbnailColor} 16%, white)` }}
               >
-                <StatusPill tone="success" className="absolute left-2 top-2">
-                  {a.status === "DELIVERED" ? "Delivered" : "Approved"}
-                </StatusPill>
                 {a.type === "VIDEO" ? (
                   <Play className="size-6 text-ds-text/35" strokeWidth={1.5} />
                 ) : (
                   <ImageIcon className="size-6 text-ds-text/35" strokeWidth={1.5} />
                 )}
               </div>
-              <span className="text-[14px] font-semibold text-ds-text">{a.name}</span>
-              <span className="text-[12px] text-ds-text-2">{a.format}</span>
+              <div className="flex items-start gap-2">
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <span className="truncate text-[14px] font-semibold text-ds-text">{a.name}</span>
+                  <span className="text-[12px] text-ds-text-2">{a.format}</span>
+                </div>
+                <Button asChild variant="ghost" size="icon" aria-label={`Download ${a.name}`}>
+                  <a href={`/api/assets/${a.id}/download`} download>
+                    <Download strokeWidth={1.75} />
+                  </a>
+                </Button>
+              </div>
             </div>
           ))}
         </div>
@@ -347,7 +425,6 @@ function SignOffButton({ projectId }: { projectId: string }) {
   return (
     <form action={signOffProjectAction}>
       <input type="hidden" name="projectId" value={projectId} />
-      <input type="hidden" name="rating" value={5} />
       <Button type="submit" variant="primary" size="lg">
         Sign off
       </Button>

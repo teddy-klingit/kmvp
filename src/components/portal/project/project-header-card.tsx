@@ -30,9 +30,9 @@ function summaryItems(state: ProjectState, assets: { total: number; approved: nu
   } else if (keyFacts.firstDraftEta) {
     items.push({ key: "draft", label: "First draft", value: formatDay(keyFacts.firstDraftEta) });
   } else if (stage === "estimating" || stage === "awaiting_approval") {
-    items.push({ key: "draft", label: "First draft", value: `${FIRST_DRAFT_BUSINESS_DAYS} days after approval` });
+    items.push({ key: "draft", label: "First draft", value: `≤ ${FIRST_DRAFT_BUSINESS_DAYS} days after OK` });
   } else if (stage === "staffing") {
-    items.push({ key: "draft", label: "First draft", value: `${FIRST_DRAFT_BUSINESS_DAYS} days after staffing` });
+    items.push({ key: "draft", label: "First draft", value: `≤ ${FIRST_DRAFT_BUSINESS_DAYS} days after staffing` });
   }
 
   const team = keyFacts.staffedTeam;
@@ -43,7 +43,7 @@ function summaryItems(state: ProjectState, assets: { total: number; approved: nu
       wide: true,
       leading: <AvatarStack names={team.map((m) => m.name)} size={30} />,
       value: (
-        <span className="text-[13px] font-medium">
+        <span>
           {team.slice(0, 2).map((m) => firstName(m.name)).join(", ")}
           {team.length > 2 ? ` +${team.length - 2}` : ""}
         </span>
@@ -54,7 +54,7 @@ function summaryItems(state: ProjectState, assets: { total: number; approved: nu
       key: "team",
       label: "Klingit team",
       wide: true,
-      value: <span className="font-medium text-ds-text-2">Assigned when you approve</span>,
+      value: <span className="font-medium text-ds-text-2">Assigned on approval</span>,
     });
   } else if (stage === "staffing") {
     items.push({ key: "team", label: "Klingit team", wide: true, value: <span className="font-medium text-ds-text-2">Being staffed</span> });

@@ -9,6 +9,7 @@ import { Avatar, AvatarStack } from "@/components/ds/avatar";
 import { SegmentedControl } from "@/components/ds/segmented-control";
 import { useConversation } from "@/components/ds/conversation-context";
 import { cn } from "@/lib/utils";
+import { onLabel } from "@/lib/context-label";
 import type { ChatMessage } from "@/lib/project-conversation";
 
 export type PanelChannel = {
@@ -23,6 +24,8 @@ export type PanelChannel = {
   body?: React.ReactNode;
   post?: (formData: FormData) => void | Promise<void>;
   readKey?: string;
+  /** Shown as chips in the empty state; clicking one fills the composer. */
+  suggestions?: string[];
 };
 
 type Mode = "sheet" | "overlay" | "docked";
@@ -302,7 +305,16 @@ function PanelInner({
           (active.messages && active.messages.length > 0 ? (
             <MessageList messages={active.messages} />
           ) : (
-            <p className="m-auto text-center text-[13px] text-ds-text-2">No messages yet.</p>
+            <EmptyThread
+              suggestions={active.post ? active.suggestions : undefined}
+              onPick={(text) => {
+                const el = textareaRef.current;
+                if (!el) return;
+                el.value = text;
+                el.focus();
+                el.setSelectionRange(text.length, text.length);
+              }}
+            />
           ))}
       </div>
 
@@ -320,6 +332,31 @@ function PanelInner({
               clearContext={() => setContext(null)}
             />
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EmptyThread({ suggestions, onPick }: { suggestions?: string[]; onPick: (text: string) => void }) {
+  return (
+    <div className="m-auto flex max-w-[280px] flex-col items-center gap-3 text-center">
+      <span className="flex size-10 items-center justify-center rounded-[10px] bg-ds-subtle text-ds-text-2">
+        <MessageCircle className="size-5" strokeWidth={1.75} />
+      </span>
+      <p className="m-0 text-[14px] font-medium text-ds-text">No messages yet</p>
+      {suggestions && suggestions.length > 0 && (
+        <div className="flex flex-wrap justify-center gap-2">
+          {suggestions.map((text) => (
+            <button
+              key={text}
+              type="button"
+              onClick={() => onPick(text)}
+              className="h-11 rounded-full border border-ds-control-border bg-white px-3 text-[13px] font-medium text-ds-text hover:border-ds-text-3 sm:h-8"
+            >
+              {text}
+            </button>
+          ))}
         </div>
       )}
     </div>
@@ -380,7 +417,7 @@ function MessageList({ messages }: { messages: ChatMessage[] }) {
                       m.mine ? "bg-white/15 text-white hover:bg-white/25" : "bg-ds-nav-active text-ds-text hover:bg-ds-border"
                     )}
                   >
-                    {m.context.label}
+                    {onLabel(m.context.label)}
                   </Link>
                 )}
                 <div>{m.body}</div>
@@ -438,13 +475,13 @@ function Composer({
       <div className="flex flex-col gap-2 rounded-[10px] border border-ds-control-border px-3 py-2.5 focus-within:border-ds-text-3">
         {context && (
           <span className="inline-flex items-center gap-1.5 self-start rounded-[6px] bg-ds-nav-active px-2 py-0.5 text-[12px] text-ds-text">
-            {context.label}
+            {onLabel(context.label)}
             <button type="button" aria-label="Remove context" onClick={clearContext} className="text-ds-text-2 hover:text-ds-text">
               <X className="size-3" />
             </button>
             <input type="hidden" name="contextKind" value={context.kind} />
             <input type="hidden" name="contextRef" value={context.ref ?? ""} />
-            <input type="hidden" name="contextLabel" value={context.label} />
+            <input type="hidden" name="contextLabel" value={onLabel(context.label)} />
           </span>
         )}
         <input type="hidden" name="projectId" value={projectId} />

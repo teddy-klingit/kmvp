@@ -52,3 +52,6 @@ next-env.d.ts
 /playwright-report
 /.agents
 /.windsurf
+
+# Local asset uploads (Railway stores them on the /data volume)
+/uploads

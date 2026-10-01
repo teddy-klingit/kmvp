@@ -8,6 +8,8 @@ import {
   OverviewNextStep,
   RatingCard,
   WhatsHappeningCard,
+  WaitingForReviewCard,
+  ActivityCard,
 } from "@/components/portal/project/stage-panels";
 import { loadProjectState } from "@/lib/project-state-loader";
 import type { ProjectState } from "@/lib/project-state";
@@ -47,7 +49,12 @@ async function StageContent(props: { projectId: string; viewer: PortalViewer; st
     case "production":
       return <WhatsHappeningCard {...props} />;
     case "review":
-      return null;
+      return (
+        <>
+          <WaitingForReviewCard {...props} />
+          <ActivityCard projectId={props.projectId} title="Latest activity" />
+        </>
+      );
     case "final":
       return state.ballInCourt === "client" ? (
         <>

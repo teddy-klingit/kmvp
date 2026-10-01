@@ -85,10 +85,18 @@ async function main() {
       inclusions: ["Applied to your existing Klarna deck template", "2 rounds of revisions", "Editable .pptx plus PDF"],
     },
   });
+  const price = (deliverableType: string, complexityTier: "LOW" | "MEDIUM" | "HIGH") =>
+    prisma.priceListItem.findUniqueOrThrow({ where: { deliverableType_complexityTier: { deliverableType, complexityTier } } });
+  const [slideMed, slideHigh, postMed, cutLow] = await Promise.all([
+    price("PPT slide", "MEDIUM"),
+    price("PPT slide", "HIGH"),
+    price("Social post (static)", "MEDIUM"),
+    price("Video cutdown (<30s)", "LOW"),
+  ]);
   await prisma.estimateLineItem.createMany({
     data: [
-      { estimateId: est.id, deliverable: "PPT slide", detail: "10 slides · Medium — text and existing template", hours: 20, credits: 20, order: 0 },
-      { estimateId: est.id, deliverable: "PPT slide", detail: "2 slides · High — custom data visualisation", hours: 8, credits: 8, order: 1 },
+      { estimateId: est.id, deliverable: "PPT slide", detail: "10 slides · text on your existing template", quantity: 10, complexityTier: "MEDIUM", priceListItemId: slideMed.id, hours: 20, credits: 20, order: 0 },
+      { estimateId: est.id, deliverable: "PPT slide", detail: "2 slides · custom charts", quantity: 2, complexityTier: "HIGH", priceListItemId: slideHigh.id, hours: 8, credits: 8, order: 1 },
     ],
   });
 
@@ -105,12 +113,12 @@ async function main() {
     data: { projectId: holiday.id, submittedByUserId: jack.id, status: "ACCEPTED", goals: "Holiday shopping social pack.", targetAudience: "Existing Klarna app users.", acceptedAt: day(-14) },
   });
   const holidayEst = await prisma.estimate.create({
-    data: { projectId: holiday.id, sentByStaffId: teddy.id, status: "APPROVED", totalCredits: 24, sentAt: day(-13), respondedAt: day(-13) },
+    data: { projectId: holiday.id, sentByStaffId: teddy.id, status: "APPROVED", approvedVersion: 1, totalCredits: 21, sentAt: day(-13), respondedAt: day(-13) },
   });
   await prisma.estimateLineItem.createMany({
     data: [
-      { estimateId: holidayEst.id, deliverable: "Social post (static)", detail: "4 posts · Medium", hours: 16, credits: 16, order: 0 },
-      { estimateId: holidayEst.id, deliverable: "Video cutdown (<30s)", detail: "1 cutdown · Low", hours: 8, credits: 8, order: 1 },
+      { estimateId: holidayEst.id, deliverable: "Social post (static)", detail: "4 posts", quantity: 4, complexityTier: "MEDIUM", priceListItemId: postMed.id, hours: 16, credits: 16, order: 0 },
+      { estimateId: holidayEst.id, deliverable: "Video cutdown (<30s)", detail: "1 cutdown", quantity: 1, complexityTier: "LOW", priceListItemId: cutLow.id, hours: 5, credits: 5, order: 1 },
     ],
   });
   const holidayTeam = await prisma.team.create({ data: { projectId: holiday.id, proposedByStaffId: teddy.id, confirmed: true, confirmedAt: day(-12) } });
@@ -121,9 +129,16 @@ async function main() {
     ],
   });
   const colors = ["var(--avatar-1)", "var(--avatar-3)", "var(--avatar-5)", "var(--avatar-6)", "var(--avatar-2)"];
-  for (const [i, name] of ["Gift guide story", "Last-minute deals post", "Wishlist carousel", "Holiday hero static", "Countdown cutdown"].entries()) {
+  const holidayAssets: [string, string, "IMAGE" | "VIDEO"][] = [
+    ["Gift guide", "Story 9:16", "IMAGE"],
+    ["Last-minute deals", "Static 1:1", "IMAGE"],
+    ["Wishlist", "Carousel · 4 slides", "IMAGE"],
+    ["Holiday hero", "Static 1:1", "IMAGE"],
+    ["Countdown", "Video 9:16", "VIDEO"],
+  ];
+  for (const [i, [name, format, type]] of holidayAssets.entries()) {
     await prisma.asset.create({
-      data: { projectId: holiday.id, clientId: klarna.id, name, format: i === 4 ? "Video 9:16" : "Static 1:1", status: "APPROVED", thumbnailColor: colors[i] },
+      data: { projectId: holiday.id, clientId: klarna.id, name, format, type, status: "APPROVED", thumbnailColor: colors[i] },
     });
   }
 

@@ -46,7 +46,7 @@ export default async function ProjectLayout({
     <ConversationProvider defaultChannel="klingit">
       {/* PortalMain renders project pages full-bleed, so the panel runs full height down the right edge. */}
       <div className="flex min-h-full">
-        <div className="min-w-0 flex-1 px-4 pb-24 pt-6 md:px-10 md:pb-12 md:pt-8">
+        <div className="@container/main min-w-0 flex-1 px-4 pb-24 pt-6 md:px-10 md:pb-12 md:pt-8">
           <div className="mx-auto flex max-w-[1040px] flex-col gap-5">
             <Link
               href="/projects"
@@ -86,6 +86,7 @@ export default async function ProjectLayout({
               messages: conversation.klingit,
               post: postCommentAction,
               readKey: "KLINGIT",
+              suggestions: ["When will I see a first draft?", "Can we change the deadline?", "Who's working on this?"],
             },
             {
               key: "internal",
@@ -97,6 +98,7 @@ export default async function ProjectLayout({
               messages: conversation.internal,
               post: postInternalMessageAction,
               readKey: "INTERNAL",
+              suggestions: ["Can you check this before I approve?", "Does this match the brief?"],
             },
           ]}
         />

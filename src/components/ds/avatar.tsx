@@ -29,6 +29,7 @@ export function Avatar({
   className,
   ring = false,
   color,
+  style,
 }: {
   name: string;
   size?: number;
@@ -36,6 +37,7 @@ export function Avatar({
   ring?: boolean;
   /** Only AvatarStack sets this, to keep neighbours apart. */
   color?: string;
+  style?: React.CSSProperties;
 }) {
   return (
     <span
@@ -45,14 +47,17 @@ export function Avatar({
         ring && "border-2 border-white",
         className
       )}
-      style={{ width: size, height: size, backgroundColor: color ?? colorFor(name), fontSize: size >= 36 ? 12 : 11 }}
+      style={{ width: size, height: size, backgroundColor: color ?? colorFor(name), fontSize: size >= 36 ? 12 : 11, ...style }}
     >
       {initials(name)}
     </span>
   );
 }
 
-/** Overlapping avatars (-8px), each with a white ring. No two in one stack share a colour. */
+/**
+ * Overlapping avatars, each with a 2px white ring. They overlap by 6px and each one sits above the next,
+ * so only the right edge of a ring is covered, never its initials. No two in one stack share a colour.
+ */
 export function AvatarStack({ names, size = 26, max = 4 }: { names: string[]; size?: number; max?: number }) {
   const shown = names.slice(0, max);
   const used = new Set<number>();
@@ -65,7 +70,15 @@ export function AvatarStack({ names, size = 26, max = 4 }: { names: string[]; si
   return (
     <span className="flex">
       {shown.map((n, i) => (
-        <Avatar key={`${n}-${i}`} name={n} size={size} ring color={colors[i]} className={i > 0 ? "-ml-2" : undefined} />
+        <Avatar
+          key={`${n}-${i}`}
+          name={n}
+          size={size}
+          ring
+          color={colors[i]}
+          className={cn("relative box-content", i > 0 && "-ml-1.5")}
+          style={{ zIndex: shown.length - i }}
+        />
       ))}
     </span>
   );

@@ -599,26 +599,26 @@ function nowCaption(state: ProjectState): string {
   const { stage, ballInCourt, brief, nextAction, keyFacts } = state;
   switch (stage) {
     case "briefing":
-      if (ballInCourt !== "client") return "Now · Klingit reviewing";
+      if (ballInCourt !== "client") return "Now · reviewing";
       if (brief.mode !== "intake" && brief.next) {
         const left = brief.total - brief.answered;
         return `Now · ${left} question${left === 1 ? "" : "s"}`;
       }
-      return state.draft ? "Now · ready to start" : "Now · your input needed";
+      return state.draft ? "Now · ready" : "Now · your input";
     case "estimating":
-      return "Now · Klingit pricing";
+      return "Now · pricing";
     case "awaiting_approval":
-      return nextAction.dueAt ? `Now · approve by ${shortDate(nextAction.dueAt)}` : "Now · your approval";
+      return nextAction.dueAt ? `Now · by ${shortDate(nextAction.dueAt)}` : "Now · your approval";
     case "staffing":
-      return "Now · staffing your team";
+      return "Now · staffing";
     case "production":
-      return keyFacts.firstDraftEta ? `Now · first draft ${shortDate(keyFacts.firstDraftEta)}` : "Now · in production";
+      return keyFacts.firstDraftEta ? `Now · draft ${shortDate(keyFacts.firstDraftEta)}` : "Now · in production";
     case "review":
       return state.assetsAwaitingReview > 0
         ? `Now · ${state.assetsAwaitingReview} to review`
-        : "Now · Klingit revising";
+        : "Now · revising";
     case "final":
-      return ballInCourt === "client" ? "Now · your sign-off" : "Now · final files";
+      return ballInCourt === "client" ? "Now · sign-off" : "Now · final files";
     case "closed":
       return "Delivered";
   }

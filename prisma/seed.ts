@@ -68,22 +68,22 @@ async function syncStages(projectId: string, stages: Partial<Record<StageName, S
 // Deliverable-type strings here are what the Estimate agent is constrained
 // to pick from, so keep them specific and production-meaningful.
 // ---------------------------------------------------------------------------
-const PRICE_LIST_ITEMS: { deliverableType: string; complexityTier: "LOW" | "MEDIUM" | "HIGH"; creditCost: number; notes?: string }[] = [
-  { deliverableType: "Social post (static)", complexityTier: "LOW", creditCost: 2, notes: "Single platform, existing template" },
-  { deliverableType: "Social post (static)", complexityTier: "MEDIUM", creditCost: 4 },
-  { deliverableType: "Social post (static)", complexityTier: "HIGH", creditCost: 7, notes: "Custom illustration or photo shoot needed" },
-  { deliverableType: "PPT slide", complexityTier: "LOW", creditCost: 1, notes: "Text + existing template" },
-  { deliverableType: "PPT slide", complexityTier: "MEDIUM", creditCost: 2 },
-  { deliverableType: "PPT slide", complexityTier: "HIGH", creditCost: 4, notes: "Custom data viz or diagram" },
-  { deliverableType: "Video cutdown (<30s)", complexityTier: "LOW", creditCost: 5, notes: "Re-edit of existing footage" },
-  { deliverableType: "Video cutdown (<30s)", complexityTier: "MEDIUM", creditCost: 9 },
-  { deliverableType: "Video cutdown (<30s)", complexityTier: "HIGH", creditCost: 15, notes: "New motion graphics" },
-  { deliverableType: "Full video production", complexityTier: "HIGH", creditCost: 30, notes: "Script to final cut, 60-90s" },
-  { deliverableType: "Landing page build", complexityTier: "MEDIUM", creditCost: 16, notes: "Single page, existing component library" },
-  { deliverableType: "Landing page build", complexityTier: "HIGH", creditCost: 32, notes: "Custom layout or new components" },
-  { deliverableType: "Email copy", complexityTier: "LOW", creditCost: 2 },
-  { deliverableType: "Email copy", complexityTier: "MEDIUM", creditCost: 4, notes: "Multi-section campaign email" },
-  { deliverableType: "Brand guidelines deck", complexityTier: "HIGH", creditCost: 40, notes: "Full visual identity system" },
+const PRICE_LIST_ITEMS: { deliverableType: string; complexityTier: "LOW" | "MEDIUM" | "HIGH"; creditCost: number; notes?: string; displayName?: string; unit?: string }[] = [
+  { deliverableType: "Social post (static)", complexityTier: "LOW", creditCost: 2, notes: "Single platform, existing template", displayName: "Social posts", unit: "post" },
+  { deliverableType: "Social post (static)", complexityTier: "MEDIUM", creditCost: 4, displayName: "Social posts", unit: "post" },
+  { deliverableType: "Social post (static)", complexityTier: "HIGH", creditCost: 7, notes: "Custom illustration or photo shoot needed", displayName: "Custom social posts", unit: "post" },
+  { deliverableType: "PPT slide", complexityTier: "LOW", creditCost: 1, notes: "Text + existing template", displayName: "Presentation slides", unit: "slide" },
+  { deliverableType: "PPT slide", complexityTier: "MEDIUM", creditCost: 2, displayName: "Presentation slides", unit: "slide" },
+  { deliverableType: "PPT slide", complexityTier: "HIGH", creditCost: 4, notes: "Custom data viz or diagram", displayName: "Data visualisation slides", unit: "slide" },
+  { deliverableType: "Video cutdown (<30s)", complexityTier: "LOW", creditCost: 5, notes: "Re-edit of existing footage", displayName: "Video cutdowns", unit: "cutdown" },
+  { deliverableType: "Video cutdown (<30s)", complexityTier: "MEDIUM", creditCost: 9, displayName: "Video cutdowns", unit: "cutdown" },
+  { deliverableType: "Video cutdown (<30s)", complexityTier: "HIGH", creditCost: 15, notes: "New motion graphics", displayName: "Motion cutdowns", unit: "cutdown" },
+  { deliverableType: "Full video production", complexityTier: "HIGH", creditCost: 30, notes: "Script to final cut, 60-90s", displayName: "Video production", unit: "video" },
+  { deliverableType: "Landing page build", complexityTier: "MEDIUM", creditCost: 16, notes: "Single page, existing component library", displayName: "Landing page", unit: "page" },
+  { deliverableType: "Landing page build", complexityTier: "HIGH", creditCost: 32, notes: "Custom layout or new components", displayName: "Custom landing page", unit: "page" },
+  { deliverableType: "Email copy", complexityTier: "LOW", creditCost: 2, displayName: "Email copy", unit: "email" },
+  { deliverableType: "Email copy", complexityTier: "MEDIUM", creditCost: 4, notes: "Multi-section campaign email", displayName: "Campaign email copy", unit: "email" },
+  { deliverableType: "Brand guidelines deck", complexityTier: "HIGH", creditCost: 40, notes: "Full visual identity system", displayName: "Brand guidelines", unit: "deck" },
 ];
 
 async function main() {
@@ -96,7 +96,7 @@ async function main() {
   for (const item of PRICE_LIST_ITEMS) {
     await prisma.priceListItem.upsert({
       where: { deliverableType_complexityTier: { deliverableType: item.deliverableType, complexityTier: item.complexityTier } },
-      update: { creditCost: item.creditCost, notes: item.notes ?? null },
+      update: { creditCost: item.creditCost, notes: item.notes ?? null, displayName: item.displayName ?? null, unit: item.unit ?? null },
       create: item,
     });
   }
@@ -355,9 +355,10 @@ async function main() {
   };
   const q3Estimate = await prisma.estimate.upsert({ where: { projectId: q3.id }, update: q3EstimateData, create: q3EstimateData });
   for (const item of [
-    { deliverable: "Social ads", detail: "6 formats × 3 variants · Static and motion", hours: 18, credits: 18, order: 0 },
-    { deliverable: "Display", detail: "4 sizes · HTML5 + static fallback", hours: 10, credits: 10, order: 1 },
-    { deliverable: "Copy", detail: "Headlines and body copy · EN and SE", hours: 6, credits: 6, order: 2 },
+    // Campaign bundles aren't on the price list, so these are custom lines priced by the account lead.
+    { deliverable: "Social ads", detail: "6 formats × 3 variants · Static and motion", hours: 18, credits: 18, order: 0, quantity: 18, complexityTier: "MEDIUM" as const, isCustom: true, customReason: "Campaign bundle priced by the account lead" },
+    { deliverable: "Display banners", detail: "4 sizes · HTML5 + static fallback", hours: 10, credits: 10, order: 1, quantity: 4, complexityTier: "MEDIUM" as const, isCustom: true, customReason: "Campaign bundle priced by the account lead" },
+    { deliverable: "Ad copy", detail: "Headlines and body copy · EN and SE", hours: 6, credits: 6, order: 2, quantity: 1, complexityTier: "LOW" as const, isCustom: true, customReason: "Campaign bundle priced by the account lead" },
   ]) {
     await sync(prisma.estimateLineItem, { estimateId: q3Estimate.id, order: item.order }, { estimateId: q3Estimate.id, ...item });
   }
@@ -387,8 +388,22 @@ async function main() {
       performanceCtr: ctr,
     });
   }
-  await syncAsset(q3.id, "Story 9:16 — hero", "Story 9:16", "var(--avatar-2)", "IN_REVIEW", 6.8);
-  await syncAsset(q3.id, "1080x1080 static", "Static 1:1", "var(--avatar-3)", "IN_REVIEW", null);
+  // Titles never repeat the format (that's the subtitle). Older seeds used "Format — title"; rename them in place.
+  const ASSET_RENAMES: [string, string][] = [
+    ["Story 9:16 — hero", "App hero"],
+    ["1080x1080 static", "Feature highlight"],
+    ["Story 9:16 — beach hero", "Beach hero"],
+    ["Story 9:16 — product close", "Product close-up"],
+    ["Carousel — 3 slide", "Summer picks carousel"],
+    ["Static 1:1 — lifestyle", "Lifestyle"],
+    ["Banner 300x250", "Pay later banner"],
+    ["Static 1:1 — product", "Product shot"],
+  ];
+  for (const [from, to] of ASSET_RENAMES) {
+    await prisma.asset.updateMany({ where: { clientId: klarna.id, name: from }, data: { name: to } });
+  }
+  await syncAsset(q3.id, "App hero", "Story 9:16", "var(--avatar-2)", "IN_REVIEW", 6.8);
+  await syncAsset(q3.id, "Feature highlight", "Static 1:1", "var(--avatar-3)", "IN_REVIEW", null);
 
   for (const run of [
     { agentId: agents.ad_gen.id, status: "SUCCESS" as const, decision: "Social formats 14/18 complete", output: { completed: 14, total: 18 } },
@@ -426,12 +441,12 @@ async function main() {
     { staffMemberId: marcus.id, roleOnProject: "Copywriter", recommended: true, allocatedHours: 6 },
   ]);
   const summerAssets: [string, string, string, "APPROVED" | "CHANGES_REQUESTED" | "IN_REVIEW", number | null][] = [
-    ["Story 9:16 — beach hero", "Story 9:16", "var(--avatar-1)", "APPROVED", 7.4],
-    ["Story 9:16 — product close", "Story 9:16", "var(--avatar-3)", "APPROVED", 4.2],
-    ["Carousel — 3 slide", "Carousel", "var(--avatar-4)", "CHANGES_REQUESTED", 5.1],
-    ["Static 1:1 — lifestyle", "Static 1:1", "var(--avatar-6)", "IN_REVIEW", null],
-    ["Banner 300x250", "Banner", "var(--avatar-5)", "IN_REVIEW", 2.8],
-    ["Static 1:1 — product", "Static 1:1", "var(--avatar-8)", "IN_REVIEW", 2.1],
+    ["Beach hero", "Story 9:16", "var(--avatar-1)", "APPROVED", 7.4],
+    ["Product close-up", "Story 9:16", "var(--avatar-3)", "APPROVED", 4.2],
+    ["Summer picks carousel", "Carousel · 3 slides", "var(--avatar-4)", "CHANGES_REQUESTED", 5.1],
+    ["Lifestyle", "Static 1:1", "var(--avatar-6)", "IN_REVIEW", null],
+    ["Pay later banner", "Banner 300×250", "var(--avatar-5)", "IN_REVIEW", 2.8],
+    ["Product shot", "Static 1:1", "var(--avatar-8)", "IN_REVIEW", 2.1],
   ];
   const summerAssetRows = [];
   for (const [name, format, color, status, ctr] of summerAssets) {

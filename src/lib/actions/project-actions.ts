@@ -8,6 +8,7 @@ import { jsonArray } from "@/lib/utils";
 import { getEffectiveBriefQuestions, type BriefQuestionKey } from "@/lib/brief-questions";
 import { analyzeBrief } from "@/lib/ai/agents/brief-agent";
 import { loadProjectState } from "@/lib/project-state-loader";
+import { onLabel } from "@/lib/context-label";
 import { postProjectEvent } from "@/lib/project-events";
 
 type EmptyState = Record<string, never>;
@@ -267,8 +268,9 @@ export async function postCommentAction(formData: FormData) {
 async function messageContext(projectId: string, formData: FormData) {
   const kind = String(formData.get("contextKind") ?? "");
   const ref = String(formData.get("contextRef") ?? "");
-  const label = String(formData.get("contextLabel") ?? "").trim().slice(0, 120);
-  if (!label) return { fields: {} };
+  const raw = String(formData.get("contextLabel") ?? "").trim();
+  if (!raw) return { fields: {} };
+  const label = onLabel(raw).slice(0, 120);
 
   if (kind === "asset") {
     const asset = await prisma.asset.findFirst({ where: { id: ref, projectId }, select: { id: true } });
@@ -331,6 +333,9 @@ export async function rateProjectAction(formData: FormData) {
   const rating = Number(formData.get("rating") ?? 0);
   const feedback = String(formData.get("feedback") ?? "").trim();
 
+  // Stars start empty: no rating is ever recorded unless the client picked one.
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) return;
+
   const project = await prisma.project.findFirst({ where: { id: projectId, clientId: viewer.clientId } });
   if (!project) return;
 
@@ -348,7 +353,6 @@ export async function rateProjectAction(formData: FormData) {
 export async function signOffProjectAction(formData: FormData) {
   const viewer = await getPortalViewer();
   const projectId = String(formData.get("projectId") ?? "");
-  const rating = Number(formData.get("rating") ?? 0);
 
   const loaded = await loadProjectState(projectId, viewer.clientId);
   if (!loaded || loaded.state.stage !== "final" || loaded.state.ballInCourt !== "client") return;
@@ -361,13 +365,8 @@ export async function signOffProjectAction(formData: FormData) {
     where: { projectId, name: "FINAL_DELIVERY" },
     data: { status: "COMPLETED", completedAt: new Date() },
   });
-  await prisma.comment.create({
-    data: {
-      projectId,
-      authorClientUserId: viewer.id,
-      body: `Signed off with a rating of ${rating}/5.`,
-    },
-  });
+  // Rating is separate (RatingCard); signing off never invents one.
+  await postProjectEvent(projectId, "Signed off and delivered");
 
   revalidatePath(`/projects/${projectId}`, "layout");
   revalidatePath("/dashboard");

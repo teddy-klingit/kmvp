@@ -52,11 +52,14 @@ model User {
   clientUser  ClientUser?
   staffMember StaffMember?
 
-  comments         Comment[]
-  notifications    Notification[]
-  notificationPref NotificationPreference?
-  overriddenRuns   AgentRun[]              @relation("AgentRunOverriddenBy")
-  selfServiceAgentRuns AgentRun[]          @relation("AgentRunRequestedBy")
+  comments             Comment[]
+  notifications        Notification[]
+  notificationPref     NotificationPreference?
+  overriddenRuns       AgentRun[]              @relation("AgentRunOverriddenBy")
+  selfServiceAgentRuns AgentRun[]              @relation("AgentRunRequestedBy")
+  estimateRevisions    EstimateRevision[]      @relation("EstimateRevisionCreatedBy")
+  staffNotes           ProjectStaffNote[]      @relation("StaffNoteAuthor")
+  decisions            DecisionLog[]           @relation("DecisionLogActor")
 }
 
 model Account {
@@ -135,50 +138,50 @@ model Client {
 
   accountLead StaffMember? @relation("ClientAccountLead", fields: [accountLeadId], references: [id])
 
-  users                       ClientUser[]
-  brands                      Brand[]
-  projects                    Project[]
-  brandOS                     BrandOS?
-  invoices                    Invoice[]
-  creditLedger                CreditLedgerEntry[]
-  assets                      Asset[]
-  agentRuns                   AgentRun[]
-  touchpoints                 Touchpoint[]
-  templates                   Template[]
-  marketSignals               MarketSignal[]
-  inspirations                Inspiration[]
-  notifications               Notification[]
-  calendarItems               ClientCalendarItem[]
-  brandAssets                 BrandAsset[]
-  marketIntelligenceBrief     MarketIntelligenceBrief?
-  marketIntelligenceIdeas     MarketIntelligenceIdea[]
-  marketIntelligenceQuestions MarketIntelligenceQuestion[]
-  competitorSnapshots         CompetitorSnapshot[]
-  competitorProfiles          CompetitorProfile[]
-  trendBrief                  TrendBrief?
-  performanceBenchmark        PerformanceBenchmark?
-  suggestedCompetitors        SuggestedCompetitor[]
-  performanceBrief            PerformanceBrief?
-  siteAudits                  SiteAudit[]
-  aiVisibilityChecks          AiVisibilityCheck[]
-  seoBrief                    SeoBrief?
-  performanceSnapshots        PerformanceSnapshot[]
-  customApps                  ClientApp[]
-  contentPosts                ContentPost[]
-  followerSnapshots           FollowerSnapshot[]
-  businessOutcomes            ClientBusinessOutcome[]
-  contentPlanTargets          ContentPlanTarget[]
-  contentPlanSuggestions      ContentPlanSuggestion[]
-  reportingConfig             ClientReportingConfig?
-  savedReports                SavedReport[]
-  sampleAdCampaigns           SampleAdCampaign[]
+  users                        ClientUser[]
+  brands                       Brand[]
+  projects                     Project[]
+  brandOS                      BrandOS?
+  invoices                     Invoice[]
+  creditLedger                 CreditLedgerEntry[]
+  assets                       Asset[]
+  agentRuns                    AgentRun[]
+  touchpoints                  Touchpoint[]
+  templates                    Template[]
+  marketSignals                MarketSignal[]
+  inspirations                 Inspiration[]
+  notifications                Notification[]
+  calendarItems                ClientCalendarItem[]
+  brandAssets                  BrandAsset[]
+  marketIntelligenceBrief      MarketIntelligenceBrief?
+  marketIntelligenceIdeas      MarketIntelligenceIdea[]
+  marketIntelligenceQuestions  MarketIntelligenceQuestion[]
+  competitorSnapshots          CompetitorSnapshot[]
+  competitorProfiles           CompetitorProfile[]
+  trendBrief                   TrendBrief?
+  performanceBenchmark         PerformanceBenchmark?
+  suggestedCompetitors         SuggestedCompetitor[]
+  performanceBrief             PerformanceBrief?
+  siteAudits                   SiteAudit[]
+  aiVisibilityChecks           AiVisibilityCheck[]
+  seoBrief                     SeoBrief?
+  performanceSnapshots         PerformanceSnapshot[]
+  customApps                   ClientApp[]
+  contentPosts                 ContentPost[]
+  followerSnapshots            FollowerSnapshot[]
+  businessOutcomes             ClientBusinessOutcome[]
+  contentPlanTargets           ContentPlanTarget[]
+  contentPlanSuggestions       ContentPlanSuggestion[]
+  reportingConfig              ClientReportingConfig?
+  savedReports                 SavedReport[]
+  sampleAdCampaigns            SampleAdCampaign[]
   communityManagementSnapshots CommunityManagementSnapshot[]
-  internalMessages            ClientInternalMessage[]
-  audienceSnapshots           AudienceSnapshot[]
-  connectedChannels           ConnectedChannel[]
-  sentMessageLogs             SentMessageLog[]
-  communityEscalations        CommunityEscalation[]
-  websiteAnalyticsSnapshots   WebsiteAnalyticsSnapshot[]
+  internalMessages             ClientInternalMessage[]
+  audienceSnapshots            AudienceSnapshot[]
+  connectedChannels            ConnectedChannel[]
+  sentMessageLogs              SentMessageLog[]
+  communityEscalations         CommunityEscalation[]
+  websiteAnalyticsSnapshots    WebsiteAnalyticsSnapshot[]
 }
 
 // AI-synthesized read of the Market Intelligence signals (news, competitor
@@ -382,26 +385,26 @@ enum ContentPostStatus {
 // are denormalized directly onto the post (one snapshot, not a time series)
 // since organic posts don't accrue spend the way ad campaigns do.
 model ContentPost {
-  id             String             @id @default(cuid())
-  clientId       String
-  platform       String // "LinkedIn" | "Instagram" | "TikTok" | "Website" | "Meta" | "Google"
-  channelType    ContentChannelType
-  contentType    String? // "Feed post" | "Carousel" | "Reel" | "Story" | "Short-form video" | "Static post"
-  title          String
-  status         ContentPostStatus  @default(PLANNED)
-  scheduledDate  DateTime?
-  publishedDate  DateTime?
-  impressions    Int?
-  reach          Int?
-  engagements    Int?
-  engagementRate Float? // percent
-  videoViews     Int?
-  websiteClicks  Int?
-  saves          Int? // SOW weekly-report metric
-  shares         Int? // SOW weekly-report metric
-  comments       Int?
+  id                 String             @id @default(cuid())
+  clientId           String
+  platform           String // "LinkedIn" | "Instagram" | "TikTok" | "Website" | "Meta" | "Google"
+  channelType        ContentChannelType
+  contentType        String? // "Feed post" | "Carousel" | "Reel" | "Story" | "Short-form video" | "Static post"
+  title              String
+  status             ContentPostStatus  @default(PLANNED)
+  scheduledDate      DateTime?
+  publishedDate      DateTime?
+  impressions        Int?
+  reach              Int?
+  engagements        Int?
+  engagementRate     Float? // percent
+  videoViews         Int?
+  websiteClicks      Int?
+  saves              Int? // SOW weekly-report metric
+  shares             Int? // SOW weekly-report metric
+  comments           Int?
   sourceSuggestionId String? // set when this post was created by approving a ContentPlanSuggestion, so the calendar visibly shows where it came from
-  createdAt      DateTime           @default(now())
+  createdAt          DateTime           @default(now())
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
@@ -663,9 +666,9 @@ model ClientUser {
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   submittedBriefs    Brief[]
-  comments           Comment[]       @relation("ClientUserComments")
+  comments           Comment[]               @relation("ClientUserComments")
   touchpoints        Touchpoint[]
-  createdProjects    Project[]       @relation("ProjectCreatedBy")
+  createdProjects    Project[]               @relation("ProjectCreatedBy")
   projectMemberships ProjectMember[]
   internalMessages   ClientInternalMessage[]
   channelReads       ProjectChannelRead[]
@@ -696,10 +699,10 @@ model StaffMember {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  leadClients        Client[]     @relation("ClientAccountLead")
-  teamMemberships    TeamMember[]
-  sentEstimates      Estimate[]
-  proposedTeams      Team[]
+  leadClients         Client[]     @relation("ClientAccountLead")
+  teamMemberships     TeamMember[]
+  sentEstimates       Estimate[]
+  proposedTeams       Team[]
   publishedClientApps ClientApp[]
 }
 
@@ -755,44 +758,50 @@ enum ProjectType {
 }
 
 model Project {
-  id                    String         @id @default(cuid())
-  clientId              String
-  name                  String
-  type                  ProjectType    @default(CAMPAIGN)
-  status                ProjectStatus  @default(BRIEFING)
-  pausedFromStatus      ProjectStatus? // status to restore to on resume — only set while status = PAUSED
-  dueDate               DateTime?
-  startedAt             DateTime?
-  deliveredAt           DateTime?
-  creditsQuoted         Int?
-  creditsActual         Int?
-  priceAmount           Float?
-  priceCurrency         String         @default("EUR")
+  id                      String         @id @default(cuid())
+  clientId                String
+  name                    String
+  type                    ProjectType    @default(CAMPAIGN)
+  status                  ProjectStatus  @default(BRIEFING)
+  pausedFromStatus        ProjectStatus? // status to restore to on resume — only set while status = PAUSED
+  dueDate                 DateTime?
+  startedAt               DateTime?
+  deliveredAt             DateTime?
+  creditsQuoted           Int?
+  creditsActual           Int?
+  priceAmount             Float?
+  priceCurrency           String         @default("EUR")
   // Confidential projects are hidden from other client-side teammates —
   // visible only to the creator and the ClientUsers added as members below.
   // This is a client-internal privacy boundary; it never restricts Klingit ops.
-  confidential          Boolean        @default(false)
-  createdByClientUserId String?
-  createdAt             DateTime       @default(now())
-  updatedAt             DateTime       @updatedAt
+  confidential            Boolean        @default(false)
+  // Autopilot runs the automatic steps (brief accept, estimate send, staffing). Pausing stops them; unpausing doesn't replay.
+  autopilot               Boolean        @default(true)
+  autopilotPausedAt       DateTime?
+  autopilotPausedByUserId String?
+  createdByClientUserId   String?
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
 
   client    Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
   createdBy ClientUser? @relation("ProjectCreatedBy", fields: [createdByClientUserId], references: [id], onDelete: SetNull)
 
-  pipelineStages PipelineStage[]
-  brief          Brief?
-  estimate       Estimate?
-  team           Team?
-  assets         Asset[]
-  comments       Comment[]
-  agentRuns      AgentRun[]
-  notifications  Notification[]
-  invoices       Invoice[]
-  creditLedger   CreditLedgerEntry[]
-  changeRequests ChangeRequest[]
+  pipelineStages   PipelineStage[]
+  brief            Brief?
+  estimate         Estimate?
+  team             Team?
+  assets           Asset[]
+  comments         Comment[]
+  agentRuns        AgentRun[]
+  notifications    Notification[]
+  invoices         Invoice[]
+  creditLedger     CreditLedgerEntry[]
+  changeRequests   ChangeRequest[]
   internalMessages ClientInternalMessage[]
   channelReads     ProjectChannelRead[]
-  members        ProjectMember[]
+  members          ProjectMember[]
+  staffNotes       ProjectStaffNote[]
+  decisions        DecisionLog[]
 }
 
 // Grants a specific client teammate access to a project — used both to invite
@@ -897,24 +906,31 @@ enum EstimateStatus {
 }
 
 model Estimate {
-  id            String         @id @default(cuid())
-  projectId     String         @unique
-  sentByStaffId String?
-  status        EstimateStatus @default(DRAFT)
-  totalHours    Float          @default(0)
-  totalCredits  Int            @default(0)
-  currency      String         @default("EUR")
-  totalPrice    Float?
-  notes         String?
-  sentAt        DateTime?
-  expiresAt     DateTime?
-  respondedAt   DateTime?
-  createdAt     DateTime       @default(now())
+  id              String         @id @default(cuid())
+  projectId       String         @unique
+  sentByStaffId   String?
+  status          EstimateStatus @default(DRAFT)
+  totalHours      Float          @default(0)
+  totalCredits    Int            @default(0)
+  currency        String         @default("EUR")
+  totalPrice      Float?
+  notes           String?
+  sentAt          DateTime?
+  expiresAt       DateTime?
+  respondedAt     DateTime?
+  // Current version shown to the client. v(n+1) is created when a PM edits an estimate the client already has.
+  version         Int            @default(1)
+  // The "Reason for the client" attached to the current version (v2+).
+  revisionReason  String?
+  // Last version the client approved; stays in force if they decline a revision.
+  approvedVersion Int?
+  createdAt       DateTime       @default(now())
 
-  project     Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  sentByStaff StaffMember?       @relation(fields: [sentByStaffId], references: [id])
-  lineItems   EstimateLineItem[]
-  inclusions  Json? // string[]
+  project         Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sentByStaff     StaffMember?       @relation(fields: [sentByStaffId], references: [id])
+  lineItems       EstimateLineItem[]
+  revisions       EstimateRevision[]
+  inclusions      Json? // string[]
   // Deliverables the Estimate agent flagged as having no matching Price List
   // entry — it must never invent a cost for these; a human prices them
   // manually before the estimate is considered complete.
@@ -934,27 +950,58 @@ enum ComplexityTier {
 }
 
 model PriceListItem {
-  id              String         @id @default(cuid())
+  id              String             @id @default(cuid())
   deliverableType String
+  // Client-facing name, e.g. "Presentation slides" for deliverableType "PPT slide".
+  displayName     String?
+  // What one unit is, e.g. "slide", "post", "cutdown".
+  unit            String?
   complexityTier  ComplexityTier
   creditCost      Int
   notes           String?
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  lineItems       EstimateLineItem[]
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
 
   @@unique([deliverableType, complexityTier])
 }
 
 model EstimateLineItem {
-  id          String @id @default(cuid())
-  estimateId  String
-  deliverable String
-  detail      String
-  hours       Float
-  credits     Int
-  order       Int    @default(0)
+  id              String          @id @default(cuid())
+  estimateId      String
+  deliverable     String
+  detail          String
+  hours           Float
+  // Always computed on the server: quantity × Price List cost, or the stated credits on a custom line.
+  credits         Int
+  order           Int             @default(0)
+  quantity        Int             @default(1)
+  complexityTier  ComplexityTier?
+  priceListItemId String?
+  isCustom        Boolean         @default(false)
+  customReason    String?
 
-  estimate Estimate @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+  estimate      Estimate       @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+  priceListItem PriceListItem? @relation(fields: [priceListItemId], references: [id], onDelete: SetNull)
+}
+
+/// Snapshot of each estimate version the client was sent: lines, total, reason, who/when, and the client's answer.
+model EstimateRevision {
+  id              String    @id @default(cuid())
+  estimateId      String
+  version         Int
+  lineItems       Json // {deliverable, detail, quantity, complexityTier, credits, isCustom, customReason}[]
+  totalCredits    Int
+  reason          String?
+  createdByUserId String?
+  status          String    @default("SENT") // SENT | APPROVED | DECLINED | SUPERSEDED
+  respondedAt     DateTime?
+  createdAt       DateTime  @default(now())
+
+  estimate  Estimate @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+  createdBy User?    @relation("EstimateRevisionCreatedBy", fields: [createdByUserId], references: [id])
+
+  @@unique([estimateId, version])
 }
 
 // ---------------------------------------------------------------------------
@@ -962,12 +1009,12 @@ model EstimateLineItem {
 // ---------------------------------------------------------------------------
 
 model Team {
-  id                String   @id @default(cuid())
-  projectId         String   @unique
+  id                String    @id @default(cuid())
+  projectId         String    @unique
   proposedByStaffId String?
-  confirmed         Boolean  @default(false)
+  confirmed         Boolean   @default(false)
   confirmedAt       DateTime? // starts the first-draft clock (committed: within 2 business days)
-  createdAt         DateTime @default(now())
+  createdAt         DateTime  @default(now())
 
   project         Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
   proposedByStaff StaffMember? @relation(fields: [proposedByStaffId], references: [id])
@@ -1008,22 +1055,29 @@ enum AssetStatus {
 }
 
 model Asset {
-  id               String      @id @default(cuid())
-  projectId        String
-  clientId         String
-  name             String
-  format           String // e.g. "Story 9:16", "Static 1:1"
-  platform         String? // e.g. "Instagram", "TikTok", "Facebook", "Display Network"
-  type             AssetType   @default(IMAGE)
-  fileUrl          String?
-  thumbnailColor   String      @default("var(--avatar-3)") // fixture placeholder swatch
-  durationSeconds  Int? // set for VIDEO assets — drives the mock player's scrubber length
-  status           AssetStatus @default(IN_REVIEW)
-  version          Int         @default(1)
-  performanceCtr   Float?
-  performanceScore Int?
-  tags             Json?
-  createdAt        DateTime    @default(now())
+  id                 String      @id @default(cuid())
+  projectId          String
+  clientId           String
+  name               String
+  format             String // e.g. "Story 9:16", "Static 1:1"
+  platform           String? // e.g. "Instagram", "TikTok", "Facebook", "Display Network"
+  type               AssetType   @default(IMAGE)
+  fileUrl            String?
+  // Uploaded file, stored under UPLOADS_DIR (/data/uploads on Railway) and served through an access-checked route.
+  storageKey         String?
+  mimeType           String?
+  sizeBytes          Int?
+  uploadedByUserId   String?
+  // Times the client asked for changes; the second one is a PM exception.
+  changeRequestCount Int         @default(0)
+  thumbnailColor     String      @default("var(--avatar-3)") // fixture placeholder swatch
+  durationSeconds    Int? // set for VIDEO assets — drives the mock player's scrubber length
+  status             AssetStatus @default(IN_REVIEW)
+  version            Int         @default(1)
+  performanceCtr     Float?
+  performanceScore   Int?
+  tags               Json?
+  createdAt          DateTime    @default(now())
 
   project  Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   client   Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
@@ -1036,13 +1090,13 @@ enum CommentKind {
 }
 
 model Comment {
-  id                 String   @id @default(cuid())
+  id                 String      @id @default(cuid())
   projectId          String
   assetId            String?
   authorUserId       String?
   authorClientUserId String?
   body               String
-  resolved           Boolean  @default(false)
+  resolved           Boolean     @default(false)
   agentPriority      String? // "High" | "Medium" | "Low" — set by the Feedback agent
   agentTaskSummary   String? // Feedback agent's structured task description
   xPercent           Float? // pin (or region top-left) position on the asset preview, 0-100 — null = a general (unpinned) comment
@@ -1058,7 +1112,7 @@ model Comment {
   contextKind        String?
   contextRef         String?
   contextLabel       String?
-  createdAt          DateTime @default(now())
+  createdAt          DateTime    @default(now())
 
   project      Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
   asset        Asset?      @relation(fields: [assetId], references: [id], onDelete: Cascade)
@@ -1408,31 +1462,31 @@ enum CustomAppStatus {
 // under their own "Custom Apps" tab with an outbound link. This is a
 // registry/publishing record only; it doesn't build or host anything itself.
 model ClientApp {
-  id              String          @id @default(cuid())
-  clientId        String
-  name            String
-  slug            String?
-  description     String?
-  hostedUrl       String
-  status          CustomAppStatus @default(ACTIVE)
+  id               String          @id @default(cuid())
+  clientId         String
+  name             String
+  slug             String?
+  description      String?
+  hostedUrl        String
+  status           CustomAppStatus @default(ACTIVE)
   createdByStaffId String?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
 
-  client        Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client         Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
   createdByStaff StaffMember? @relation(fields: [createdByStaffId], references: [id], onDelete: SetNull)
 
   @@index([clientId])
 }
 
 model MarketSignal {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   clientId    String
   type        String // COMPETITOR, TREND, MARKET
   title       String
   summary     String
   source      String?
-  relevance   String   @default("Watch") // "High relevance", "Relevant", "Watch"
+  relevance   String    @default("Watch") // "High relevance", "Relevant", "Watch"
   publishedAt DateTime
   // Identifies "the same alert" across checks (e.g. perf:LinkedIn:<campaignId>)
   // so a still-ongoing condition isn't re-raised on every refresh.
@@ -1565,4 +1619,38 @@ model WebsiteAnalyticsSnapshot {
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId, periodStart])
+}
+
+/// Klingit-only notes on a project. Never readable by clients: only src/lib/staff-notes.ts may query this table.
+model ProjectStaffNote {
+  id           String    @id @default(cuid())
+  projectId    String
+  authorUserId String
+  body         String
+  archivedAt   DateTime?
+  createdAt    DateTime  @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  author  User    @relation("StaffNoteAuthor", fields: [authorUserId], references: [id])
+
+  @@index([projectId, createdAt])
+}
+
+/// Every PM edit and automatic step: who, what, before → after, reason, and the agent run it overrides (if any).
+model DecisionLog {
+  id          String   @id @default(cuid())
+  projectId   String
+  actorUserId String? // null = autopilot
+  area        String // brief | estimate | staffing | dates | assets | autopilot
+  action      String
+  before      Json?
+  after       Json?
+  reason      String?
+  agentRunId  String?
+  createdAt   DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  actor   User?   @relation("DecisionLogActor", fields: [actorUserId], references: [id])
+
+  @@index([projectId, createdAt])
 }

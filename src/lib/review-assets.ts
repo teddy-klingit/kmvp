@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { assetTitle, formatLabel } from "@/lib/asset-display";
 import type { AssetStatus } from "@/generated/prisma";
 import type { ReviewAsset } from "@/components/portal/asset-review-viewer";
 
@@ -18,8 +19,8 @@ export async function loadReviewAssets(projectId: string, clientId: string, stat
 
   return assets.map((asset) => ({
     id: asset.id,
-    name: asset.name,
-    format: asset.format,
+    name: assetTitle(asset.name, asset.format),
+    format: formatLabel(asset.format),
     thumbnailColor: asset.thumbnailColor,
     status: asset.status,
     type: asset.type,

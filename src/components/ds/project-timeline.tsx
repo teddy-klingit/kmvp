@@ -35,10 +35,10 @@ export function ProjectTimeline({
                   <Dot status={s.status} dot={dot} />
                   {!last && <span className={cn("mx-2 h-0.5 flex-1", s.status === "done" ? "bg-ds-text" : "bg-ds-border")} />}
                 </div>
-                <div className={cn("flex flex-col gap-0.5", !last && "pr-3")}>
+                <div className={cn("flex min-w-0 flex-col gap-0.5", !last && "pr-3")}>
                   <span
                     className={cn(
-                      "text-[13px]",
+                      "whitespace-nowrap text-[13px]",
                       s.status === "current" ? "font-semibold text-ds-text" : s.status === "done" ? "font-medium text-ds-text" : "font-medium text-ds-text-2"
                     )}
                   >
@@ -46,8 +46,9 @@ export function ProjectTimeline({
                   </span>
                   {s.caption && (
                     <span
+                      title={s.caption}
                       className={cn(
-                        "text-[12px] tabular-nums",
+                        "truncate whitespace-nowrap text-[12px] tabular-nums",
                         s.status === "current" ? "font-medium text-ds-turn-text" : s.status === "done" ? "text-ds-text-2" : "text-ds-text-3"
                       )}
                     >
