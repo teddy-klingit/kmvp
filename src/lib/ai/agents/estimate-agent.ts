@@ -44,6 +44,8 @@ export async function generateEstimate(args: {
   targetAudience: string | null;
   successMetrics: string | null;
   deliverablesNotes: string | null;
+  /** From brandSourcesForAgents(): titles + links only. */
+  linkedSources?: string;
   priceList: PriceListEntry[];
 }) {
   const typeLabel = PROJECT_TYPE_LABEL[args.projectType] ?? args.projectType;
@@ -58,7 +60,7 @@ export async function generateEstimate(args: {
   const prompt = `Client: ${args.clientName}
 Project type: ${typeLabel}
 Brand context: ${args.brandSummary ?? "No brand context on file yet."}
-
+${args.linkedSources ? `${args.linkedSources}\n` : ""}
 What they need and why: ${args.goals ?? "—"}
 Who it's for: ${args.targetAudience ?? "—"}
 Success metrics: ${args.successMetrics ?? "—"}

@@ -60,6 +60,7 @@ model User {
   estimateRevisions    EstimateRevision[]      @relation("EstimateRevisionCreatedBy")
   staffNotes           ProjectStaffNote[]      @relation("StaffNoteAuthor")
   decisions            DecisionLog[]           @relation("DecisionLogActor")
+  brandSources         BrandSource[]           @relation("BrandSourceCreatedBy")
 }
 
 model Account {
@@ -182,6 +183,8 @@ model Client {
   sentMessageLogs              SentMessageLog[]
   communityEscalations         CommunityEscalation[]
   websiteAnalyticsSnapshots    WebsiteAnalyticsSnapshot[]
+  brandSources                 BrandSource[]
+  brandConnections             BrandConnection[]
 }
 
 // AI-synthesized read of the Market Intelligence signals (news, competitor
@@ -1653,4 +1656,39 @@ model DecisionLog {
   actor   User?   @relation("DecisionLogActor", fields: [actorUserId], references: [id])
 
   @@index([projectId, createdAt])
+}
+
+/// A link to where the client's brand material lives (Drive file, Figma library, any URL), optionally pinned
+/// to one Brand OS section. Agents get the title, app and URL as reference; contents are never fetched.
+model BrandSource {
+  id              String    @id @default(cuid())
+  clientId        String
+  app             String // google_drive | figma | notion | dropbox | sharepoint | canva | frameio | slack | web
+  url             String
+  title           String
+  section         String? // Brand OS section slug (our-brand, vision, …, visual-identity, figma-design-system); null = library only
+  isDemo          Boolean   @default(false) // picked from a demo connection: the file isn't real yet
+  createdByUserId String?
+  archivedAt      DateTime? // soft delete — removing a chip archives it
+  createdAt       DateTime  @default(now())
+
+  client    Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdBy User?  @relation("BrandSourceCreatedBy", fields: [createdByUserId], references: [id])
+
+  @@index([clientId, section])
+}
+
+/// A connected app. MVP: every connection is a demo (no OAuth, nothing synced), labelled as such everywhere.
+model BrandConnection {
+  id          String    @id @default(cuid())
+  clientId    String
+  app         String
+  status      String    @default("CONNECTED") // CONNECTED | DISCONNECTED
+  connectedAt DateTime?
+  isDemo      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, app])
 }

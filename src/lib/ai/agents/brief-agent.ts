@@ -32,6 +32,8 @@ export async function analyzeBrief(args: {
   clientName: string;
   projectType: string;
   brandSummary: string | null;
+  /** From brandSourcesForAgents(): titles + links only. */
+  linkedSources?: string;
   briefText: string;
 }) {
   const typeLabel = PROJECT_TYPE_LABEL[args.projectType] ?? args.projectType;
@@ -41,7 +43,7 @@ export async function analyzeBrief(args: {
   const prompt = `Client: ${args.clientName}
 Project type: ${typeLabel}
 Brand context: ${args.brandSummary ?? "No brand context on file yet."}
-
+${args.linkedSources ? `${args.linkedSources}\n` : ""}
 THE FULL BRIEF (client's own words plus any Q&A so far):
 ${args.briefText}
 

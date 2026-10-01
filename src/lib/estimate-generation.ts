@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { generateEstimate } from "@/lib/ai/agents/estimate-agent";
+import { brandSourcesForAgents } from "@/lib/brand-sources-data";
 
 export type UnresolvedNeed = {
   description: string;
@@ -40,6 +41,7 @@ export async function generateDraftEstimate(projectId: string, opts: { replace?:
     targetAudience: project.brief.targetAudience,
     successMetrics: project.brief.successMetrics,
     deliverablesNotes: project.brief.deliverablesNotes,
+    linkedSources: await brandSourcesForAgents(project.clientId),
     priceList: priceList.map((p) => ({ deliverableType: p.deliverableType, complexityTier: p.complexityTier, creditCost: p.creditCost })),
   });
   if (!result.ok) return { ok: false as const, error: result.error };

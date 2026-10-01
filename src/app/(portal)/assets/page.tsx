@@ -4,16 +4,20 @@ import { Card, SectionLabel } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { jsonArray, initialsFor } from "@/lib/utils";
 import { DownloadBrandButton } from "@/components/portal/download-brand-button";
+import { SourcesSummaryCard } from "@/components/portal/brand-sources/sources-summary-card";
+import { listBrandConnections, listBrandSources } from "@/lib/brand-sources-data";
 
 type Persona = { name: string; ageRange: string; description: string; traits: string[] };
 type VoiceAttribute = { label: string; leftLabel: string; rightLabel: string; value: number };
 
 export default async function BrandOSOverviewPage() {
   const viewer = await getPortalViewer();
-  const [client, brandOS, brandAssets] = await Promise.all([
+  const [client, brandOS, brandAssets, sources, connections] = await Promise.all([
     prisma.client.findUniqueOrThrow({ where: { id: viewer.clientId } }),
     prisma.brandOS.findUnique({ where: { clientId: viewer.clientId } }),
     prisma.brandAsset.findMany({ where: { clientId: viewer.clientId } }),
+    listBrandSources(viewer.clientId),
+    listBrandConnections(viewer.clientId),
   ]);
 
   const personas = jsonArray<Persona>(brandOS?.audiencePersonas);
@@ -81,6 +85,13 @@ export default async function BrandOSOverviewPage() {
         Everything every Klingit agent reads before producing a single asset — product, audience, voice, and visual
         style.
       </p>
+
+      <SourcesSummaryCard
+        apps={[...new Set([...connections.map((c) => c.app), ...sources.filter((x) => !x.isDemo).map((x) => x.app)])]}
+        linkedFiles={sources.length}
+        demo={connections.some((c) => c.isDemo)}
+      />
+
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="flex flex-col gap-3">

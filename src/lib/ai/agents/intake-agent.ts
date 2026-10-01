@@ -43,6 +43,8 @@ export async function intakeBrief(args: {
   clientId: string;
   client: Pick<Client, "name" | "industry" | "brandSummary">;
   brandOS: BrandOS | null;
+  /** From brandSourcesForAgents(). */
+  linkedSources?: string;
   rawText: string;
   link?: string | null;
   fileName?: string | null;
@@ -52,7 +54,7 @@ export async function intakeBrief(args: {
 
 You are given the client's full brand record below (audience personas, voice/tone, visual guidelines, etc.) — this already exists on file. Never ask a question that record already answers. In particular: if audience personas are listed, don't ask who the work is for; if voice attributes or tone rules are listed, don't ask about tone of voice; if imagery/illustration style or a color palette is listed, don't ask about visual style — unless the client's own text suggests THIS specific project should deviate from the brand default, in which case it's fine to confirm that deviation. Keep remaining questions short and give quick-tap answer options wherever the likely answers are predictable.`;
 
-  const parts = [buildBrandContext(args.client, args.brandOS), "", "WHAT THE CLIENT WROTE:", args.rawText];
+  const parts = [buildBrandContext(args.client, args.brandOS, args.linkedSources), "", "WHAT THE CLIENT WROTE:", args.rawText];
   if (args.link) parts.push("", `They also shared this link for reference: ${args.link}`);
   if (args.fileName) {
     parts.push("", `They also attached a file: ${args.fileName}${args.fileText ? " — extracted contents below:" : " (contents not extracted — ask about it if relevant)."}`);

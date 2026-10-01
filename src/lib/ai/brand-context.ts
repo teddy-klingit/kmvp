@@ -9,7 +9,9 @@ type ColorEntry = { hex: string; name: string; role?: string };
  * block of text for any agent's prompt, so content an agent generates (or a
  * question it asks) is actually grounded in what's already known about the
  * brand instead of re-deriving or re-asking for it. */
-export function buildBrandContext(client: Pick<Client, "name" | "industry" | "brandSummary">, brandOS: BrandOS | null) {
+/** `linkedSources` is the block from brandSourcesForAgents(): titles, apps and URLs of the client's linked brand
+ * material (Drive, Figma, …). Agents may reference them; their contents are never fetched. */
+export function buildBrandContext(client: Pick<Client, "name" | "industry" | "brandSummary">, brandOS: BrandOS | null, linkedSources?: string) {
   const lines = [`Brand: ${client.name}`, `Industry: ${client.industry ?? "Not specified"}`];
 
   lines.push(`Brand summary: ${client.brandSummary ?? "No summary documented yet."}`);
@@ -50,6 +52,8 @@ export function buildBrandContext(client: Pick<Client, "name" | "industry" | "br
   }
 
   if (brandOS?.approvedTypography) lines.push(`Approved typography: ${JSON.stringify(brandOS.approvedTypography)}`);
+
+  if (linkedSources) lines.push(linkedSources);
 
   return lines.join("\n");
 }

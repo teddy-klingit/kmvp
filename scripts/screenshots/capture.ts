@@ -138,8 +138,62 @@ async function phaseHome() {
   await browser.close();
 }
 
+/** Brand OS linked sources at 1440: page, connect flow (real clicks), a section with chips, the popover, the overview card. */
+async function phaseSources() {
+  const outDir = "screenshots/sources";
+  mkdirSync(outDir, { recursive: true });
+  const browser = await chromium.launch();
+  const width = 1440;
+  const context = await browser.newContext({ viewport: { width, height: 900 }, deviceScaleFactor: 1 });
+  const page = await context.newPage();
+  await page.goto(`${BASE}/sign-in`, { waitUntil: "networkidle" });
+  await page.fill('input[name="email"]', "jack.ross@klarna.com");
+  await page.fill('input[name="password"]', DEMO_PASSWORD);
+  await page.click('button[type="submit"]');
+  await page.waitForURL((url) => url.pathname === "/dashboard", { timeout: 60_000 });
+
+  await shot(page, "/assets/sources", "01-sources-page", outDir, width);
+
+  // Connect flow on Dropbox, step by step (viewport shots so the modal is in frame).
+  await page.goto(`${BASE}/assets/sources`, { waitUntil: "networkidle" });
+  await page.getByRole("article", { name: "Dropbox" }).getByRole("button", { name: "Connect" }).click();
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: `${outDir}/02-connect-step1-sign-in-${width}.png` });
+  await page.getByRole("button", { name: "Sign in with Dropbox" }).click();
+  await page.getByText("Pick the folders and files").waitFor();
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${outDir}/03-connect-step2-pick-files-${width}.png` });
+  await page.getByRole("button", { name: /^Connect \d+ item/ }).click();
+  await page.getByText("Dropbox is connected").waitFor();
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${outDir}/04-connect-step3-connected-${width}.png` });
+  console.log("  02–04 connect steps");
+
+  await shot(page, "/assets/brand-platform/our-brand", "05-our-brand-with-sources", outDir, width);
+  await page.goto(`${BASE}/assets/brand-platform/our-brand`, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "Add source" }).click();
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${outDir}/06-add-source-paste-link-${width}.png` });
+  await page.getByRole("tab", { name: "From connected apps" }).click();
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${outDir}/07-add-source-from-apps-${width}.png` });
+  console.log("  06–07 popover");
+
+  // The edit field: 1px border + soft focus ring.
+  await page.goto(`${BASE}/assets/brand-platform/our-brand`, { waitUntil: "networkidle" });
+  await page.getByRole("button", { name: "Edit" }).first().click({ force: true });
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${outDir}/08-our-brand-editing-${width}.png` });
+
+  await shot(page, "/assets/visual-identity", "09-visual-identity-figma-slot", outDir, width);
+  await shot(page, "/assets", "10-overview-sources-card", outDir, width);
+  await context.close();
+  await browser.close();
+}
+
 async function main() {
   if (phase === "i") return phaseI();
+  if (phase === "sources") return phaseSources();
   if (phase === "home") return phaseHome();
   const prisma = new PrismaClient({ datasourceUrl: "file:./prisma/screens.db" });
   const projects = await prisma.project.findMany({ where: { name: { in: Object.values(STAGE_PROJECTS) } }, select: { id: true, name: true } });

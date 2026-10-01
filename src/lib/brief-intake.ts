@@ -3,6 +3,7 @@ import type { getPortalViewer } from "@/lib/current-viewer";
 import { intakeBrief, type IntakeAnalysis } from "@/lib/ai/agents/intake-agent";
 import { PIPELINE_STAGE_ORDER } from "@/lib/labels";
 import { projectVisibilityWhere } from "@/lib/project-visibility";
+import { brandSourcesForAgents } from "@/lib/brand-sources-data";
 import type { Client } from "@/generated/prisma";
 
 // Deliberately NOT a "use server" module: these take a trusted viewer object
@@ -38,6 +39,7 @@ export async function runIntake(args: {
     clientId: args.clientId,
     client: args.client,
     brandOS,
+    linkedSources: await brandSourcesForAgents(args.clientId),
     rawText: args.rawText,
     link: args.link || null,
     fileName: args.fileName || null,

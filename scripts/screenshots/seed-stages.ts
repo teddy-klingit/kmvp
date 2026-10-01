@@ -296,6 +296,21 @@ async function main() {
     ],
   });
 
+  // Brand OS linked sources: Drive + Figma connected as demos, real links on "Our Brand".
+  for (const app of ["google_drive", "figma"]) {
+    await prisma.brandConnection.create({ data: { clientId: klarna.id, app, status: "CONNECTED", connectedAt: hoursAgo(26), isDemo: true } });
+  }
+  await prisma.brandSource.createMany({
+    data: [
+      { clientId: klarna.id, app: "google_drive", url: "https://drive.google.com/", title: "Brand guidelines 2026.pdf", section: "our-brand", isDemo: true, createdByUserId: jack.userId },
+      { clientId: klarna.id, app: "notion", url: "https://www.notion.so/klarna/Tone-of-voice", title: "Tone of voice", section: "our-brand", isDemo: false, createdByUserId: jack.userId },
+      { clientId: klarna.id, app: "web", url: "https://www.klarna.com/international/about-us/", title: "klarna.com · About us", section: "our-brand", isDemo: false, createdByUserId: jack.userId },
+      { clientId: klarna.id, app: "figma", url: "https://www.figma.com/", title: "Klarna Design System", section: "figma-design-system", isDemo: true, createdByUserId: jack.userId },
+      { clientId: klarna.id, app: "google_drive", url: "https://drive.google.com/", title: "Campaign assets", isDemo: true, createdByUserId: jack.userId },
+      { clientId: klarna.id, app: "figma", url: "https://www.figma.com/", title: "Logo suite", section: "visual-identity", isDemo: true, createdByUserId: jack.userId },
+    ],
+  });
+
   console.log("Stage demo projects:", { briefing: deck.id, awaiting_approval: investor.id, production: q3.id, final: holiday.id });
 }
 

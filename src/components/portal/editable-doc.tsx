@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from "react";
 import { Pencil, Check, X } from "lucide-react";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 
 type EmptyState = Record<string, never>;
@@ -56,13 +55,19 @@ export function EditableDoc({
         <input key={k} type="hidden" name={k} value={v} />
       ))}
       {helperText && <p className="text-xs text-muted-foreground">{helperText}</p>}
-      <Textarea
+      {/* Standard input style: 1px border and a soft focus ring (not the 2px ink ring). Writing-assistant
+          extensions (Grammarly, LanguageTool) are opted out so their floating bubble doesn't sit inside the field. */}
+      <textarea
         name="value"
         defaultValue={initialValue}
         placeholder={placeholder}
-        className="min-h-32"
         autoFocus
         disabled={pending}
+        data-gramm="false"
+        data-gramm_editor="false"
+        data-enable-grammarly="false"
+        data-lt-active="false"
+        className="min-h-32 w-full resize-y rounded-[8px] border border-ds-control-border bg-white px-3 py-2.5 text-[14px] leading-relaxed text-ds-text outline-none transition-[border-color,box-shadow] placeholder:text-ds-text-3 focus:border-ds-text-3 focus:ring-4 focus:ring-ds-text/5 disabled:opacity-60"
       />
       <div className="flex gap-2">
         <Button type="submit" size="sm" disabled={pending} className="gap-1.5">

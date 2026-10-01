@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { jsonArray } from "@/lib/utils";
 import { BRAND_PLATFORM_DOCS } from "@/lib/brand-iq-taxonomy";
 import { EditableDoc } from "@/components/portal/editable-doc";
+import { SourcesRow } from "@/components/portal/brand-sources/sources-row";
+import { sectionSources } from "@/lib/brand-sources-data";
 import {
   updateBrandTextDocAction,
   updateUspsAction,
@@ -22,15 +24,19 @@ export default async function BrandPlatformDocPage({ params }: { params: Promise
   if (!meta) notFound();
 
   const viewer = await getPortalViewer();
-  const [client, brandOS] = await Promise.all([
+  const [client, brandOS, linked] = await Promise.all([
     prisma.client.findUniqueOrThrow({ where: { id: viewer.clientId } }),
     prisma.brandOS.findUnique({ where: { clientId: viewer.clientId } }),
+    sectionSources(viewer.clientId, doc),
   ]);
 
   return (
     <div className="flex flex-col gap-6">
       <h2 className="text-lg font-semibold">{meta.label}</h2>
-      <Card className="p-6">{renderDoc(doc, client, brandOS)}</Card>
+      <Card className="flex flex-col gap-5 p-6">
+        {renderDoc(doc, client, brandOS)}
+        <SourcesRow section={doc} sources={linked.sources} connected={linked.connected} />
+      </Card>
     </div>
   );
 }

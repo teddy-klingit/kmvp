@@ -11,6 +11,7 @@ import {
   FolderOpen,
   HeartPulse,
   Bot,
+  Link2,
 } from "lucide-react";
 import { VISUAL_IDENTITY_FOLDERS, BRAND_PLATFORM_DOCS } from "@/lib/brand-iq-taxonomy";
 
@@ -26,6 +27,7 @@ export function BrandIqSidebar({ templateCategories }: { templateCategories: str
 
   const sections: NavSection[] = [
     { label: "Overview", href: "/assets", icon: LayoutDashboard },
+    { label: "Sources", href: "/assets/sources", icon: Link2 },
     {
       label: "Visual identity",
       href: "/assets/visual-identity",
@@ -65,7 +67,8 @@ export function BrandIqSidebar({ templateCategories }: { templateCategories: str
   return (
     <nav className="flex w-64 shrink-0 flex-col gap-1 border-r border-border pr-4">
       {sections.map((section) => {
-        const active = pathname === section.href || pathname?.startsWith(section.href + "/");
+        // Overview is /assets itself; every other section also owns its sub-pages.
+        const active = pathname === section.href || (section.href !== "/assets" && pathname?.startsWith(section.href + "/"));
         const Icon = section.icon;
         return (
           <div key={section.href} className="flex flex-col">

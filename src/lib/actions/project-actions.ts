@@ -9,6 +9,7 @@ import { getEffectiveBriefQuestions, type BriefQuestionKey } from "@/lib/brief-q
 import { analyzeBrief } from "@/lib/ai/agents/brief-agent";
 import { loadProjectState } from "@/lib/project-state-loader";
 import { onLabel } from "@/lib/context-label";
+import { brandSourcesForAgents } from "@/lib/brand-sources-data";
 import { runAutopilot } from "@/lib/autopilot-runner";
 import type { SnapshotLine } from "@/lib/estimate-diff";
 import { postProjectEvent } from "@/lib/project-events";
@@ -61,6 +62,7 @@ export async function answerBriefQuestionAction(_prev: EmptyState, formData: For
       clientName: viewer.client.name,
       projectType: project?.type ?? "CAMPAIGN",
       brandSummary: client?.brandSummary ?? null,
+      linkedSources: await brandSourcesForAgents(viewer.clientId),
       briefText,
     });
 
@@ -130,6 +132,7 @@ export async function answerDynamicBriefQuestionAction(_prev: EmptyState, formDa
       clientName: viewer.client.name,
       projectType: project?.type ?? "CAMPAIGN",
       brandSummary: client?.brandSummary ?? null,
+      linkedSources: await brandSourcesForAgents(viewer.clientId),
       briefText,
     });
 

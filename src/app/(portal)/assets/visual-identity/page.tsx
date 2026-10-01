@@ -6,6 +6,9 @@ import { jsonArray } from "@/lib/utils";
 import { VISUAL_IDENTITY_FOLDERS } from "@/lib/brand-iq-taxonomy";
 import { Palette, Type, Image as ImageIcon, Shapes, Grid3x3, Video, Sparkles } from "lucide-react";
 import type { BrandAssetCategory } from "@/generated/prisma";
+import { sectionSources } from "@/lib/brand-sources-data";
+import { SourcesRow } from "@/components/portal/brand-sources/sources-row";
+import { FigmaDesignSystemSlot } from "@/components/portal/brand-sources/figma-slot";
 
 const ICON_FOR: Record<string, React.ComponentType<{ className?: string }>> = {
   logotype: Shapes,
@@ -31,10 +34,13 @@ const CATEGORY_FOR: Record<string, BrandAssetCategory> = {
 
 export default async function VisualIdentityPage() {
   const viewer = await getPortalViewer();
-  const [brandOS, brandAssets] = await Promise.all([
+  const [brandOS, brandAssets, linked, figma] = await Promise.all([
     prisma.brandOS.findUnique({ where: { clientId: viewer.clientId } }),
     prisma.brandAsset.findMany({ where: { clientId: viewer.clientId } }),
+    sectionSources(viewer.clientId, "visual-identity"),
+    sectionSources(viewer.clientId, "figma-design-system"),
   ]);
+  const figmaConnected = figma.connected.some((c) => c.app === "figma");
 
   const colors = jsonArray<string>(brandOS?.approvedColors);
   const typography = jsonArray<string>(brandOS?.approvedTypography);
@@ -54,6 +60,12 @@ export default async function VisualIdentityPage() {
           The complete visual system — logos, colour, type, photography, and motion.
         </p>
       </div>
+      <FigmaDesignSystemSlot
+        source={figma.sources.at(-1) ?? null}
+        figmaConnected={figmaConnected}
+        connected={figma.connected}
+        linkedCount={figma.sources.length}
+      />
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
         {VISUAL_IDENTITY_FOLDERS.map((folder, i) => {
           const Icon = ICON_FOR[folder.slug] ?? Shapes;
@@ -78,6 +90,9 @@ export default async function VisualIdentityPage() {
           );
         })}
       </div>
+      <Card className="p-6">
+        <SourcesRow section="visual-identity" sources={linked.sources} connected={linked.connected} divider={false} />
+      </Card>
     </div>
   );
 }
