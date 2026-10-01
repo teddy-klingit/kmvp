@@ -13,6 +13,14 @@ function isProjectDetail(pathname: string) {
 
 export function PortalMain({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "";
+  if (pathname === "/dashboard") {
+    // Brand theme (ClientHome.dc.html): cream page, its own padding and width.
+    return (
+      <main className="theme-brand min-w-0 flex-1 overflow-y-auto px-4 pb-12 pt-4 min-[900px]:pb-12 min-[900px]:pl-2 min-[900px]:pr-8 min-[900px]:pt-6">
+        <PageTransition>{children}</PageTransition>
+      </main>
+    );
+  }
   if (isProjectDetail(pathname)) {
     // No page transition here: it is keyed by pathname and would remount the conversation panel on every tab switch.
     return <main className="min-w-0 flex-1 overflow-y-auto">{children}</main>;

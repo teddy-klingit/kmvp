@@ -23,7 +23,10 @@ export type TurnItem = {
   kind: "review" | "approve" | "brief" | "signoff" | "other";
   title: string;
   due: { label: string; tone: "danger" | "neutral" } | null;
+  /** "Project · detail", for one-line rows. */
   context: string;
+  projectName: string;
+  detail: string;
   href: string;
   cta: string;
   dueAt: Date | null;
@@ -63,6 +66,8 @@ export function yourTurn(items: Item[], now = new Date()): TurnItem[] {
         title: sentence(state.nextAction.label).replace(/^Approve estimate \((\d+) credits?\)$/, "Approve estimate · $1 credits"),
         due,
         context: `${project.name} · ${context}`,
+        projectName: project.name,
+        detail: context,
         href: state.nextAction.href,
         cta: state.nextAction.cta ?? "Open",
         dueAt,
@@ -122,6 +127,12 @@ export function inProgress(items: Item[], typeLabel: (t: string) => string, acco
     });
 }
 
+/** Projects signed off (closed) this calendar month. */
+export function deliveredThisMonth(items: Item[], now = new Date()) {
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  return items.filter(({ project, state }) => state.stage === "closed" && project.deliveredAt && project.deliveredAt >= start).length;
+}
+
 // ─── Credits ───────────────────────────────────────────────────────────────
 
 export type CreditSummary = {
@@ -166,7 +177,14 @@ export async function creditSummary(clientId: string, now = new Date()): Promise
 
 // ─── Next 7 days ───────────────────────────────────────────────────────────
 
-export type UpcomingItem = { id: string; at: Date; title: string; sub: string; href?: string };
+export type UpcomingItem = {
+  id: string;
+  kind: "draft" | "due_client" | "due_klingit" | "estimate" | "touchpoint";
+  at: Date;
+  title: string;
+  sub: string;
+  href?: string;
+};
 
 export async function nextSevenDays(clientId: string, items: Item[], now = new Date()): Promise<UpcomingItem[]> {
   const from = new Date(now);
@@ -179,12 +197,13 @@ export async function nextSevenDays(clientId: string, items: Item[], now = new D
     if (state.stage === "closed" || state.archived) continue;
     const eta = state.keyFacts.firstDraftEta;
     if (state.stage === "production" && within(eta)) {
-      out.push({ id: `draft-${project.id}`, at: eta, title: `First draft: ${project.name}`, sub: "You get a notification when it's ready", href: `/projects/${project.id}` });
+      out.push({ id: `draft-${project.id}`, kind: "draft", at: eta, title: `First draft: ${project.name}`, sub: "You get a notification when it's ready", href: `/projects/${project.id}` });
     }
     const due = state.keyFacts.dueDate;
     if (within(due)) {
       out.push({
         id: `due-${project.id}`,
+        kind: state.ballInCourt === "client" ? "due_client" : "due_klingit",
         at: due,
         title: `${project.name} due`,
         sub: state.ballInCourt === "client" ? `Needs you first: ${sentence(state.nextAction.label).toLowerCase()}` : `Klingit: ${sentence(state.nextAction.label).toLowerCase()}`,
@@ -198,11 +217,12 @@ export async function nextSevenDays(clientId: string, items: Item[], now = new D
     prisma.touchpoint.findMany({ where: { clientId, scheduledAt: { gte: from, lt: to } } }),
   ]);
   for (const e of estimates) {
-    out.push({ id: `est-${e.id}`, at: e.expiresAt!, title: `Estimate expires: ${e.project.name}`, sub: `v${e.version} · ${e.totalCredits} credits`, href: `/projects/${e.projectId}` });
+    out.push({ id: `est-${e.id}`, kind: "estimate", at: e.expiresAt!, title: `Estimate expires: ${e.project.name}`, sub: `v${e.version} · ${e.totalCredits} credits`, href: `/projects/${e.projectId}` });
   }
   for (const t of touchpoints) {
     out.push({
       id: `tp-${t.id}`,
+      kind: "touchpoint",
       at: t.scheduledAt,
       title: t.title,
       sub: new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit" }).format(t.scheduledAt),
@@ -217,6 +237,8 @@ export type MarketRow = {
   key: "performance" | "competitor" | "other";
   title: string;
   detail: string;
+  /** One short line for compact cards. */
+  short: string;
   action: { label: string; href: string; primary?: boolean };
 };
 
@@ -247,6 +269,7 @@ export async function marketThisWeek(clientId: string, now = new Date()): Promis
       key: "performance",
       title: `${perf.length} ${platforms.length === 1 ? `${platforms[0]} ` : ""}ad${perf.length === 1 ? " is" : "s are"} losing clicks`,
       detail,
+      short: `CTR down ${range ?? "sharply"} vs their own average.`,
       action: { label: "Brief a refresh", href: `/projects/new?idea=${encodeURIComponent(idea)}&detail=${encodeURIComponent(detail)}`, primary: true },
     });
   }
@@ -267,6 +290,7 @@ export async function marketThisWeek(clientId: string, now = new Date()): Promis
       key: "competitor",
       title: `Competitors launched ${total} new ${platforms.length === 1 ? `${platforms[0]} ` : ""}ad${total === 1 ? "" : "s"}`,
       detail: [...byBrand.entries()].sort((a, b) => b[1] - a[1]).map(([b, n]) => `${b} ${n}`).join(" · "),
+      short: [...byBrand.entries()].sort((a, b) => b[1] - a[1]).map(([b, n]) => `${b} ${n}`).join(" · "),
       action: { label: "See ads", href: "/insights/market-intelligence/competitors" },
     });
   }
@@ -277,6 +301,7 @@ export async function marketThisWeek(clientId: string, now = new Date()): Promis
       key: "other",
       title: other.length === 1 ? other[0].title : `${other.length} industry updates`,
       detail: other.length === 1 ? other[0].summary : other.slice(0, 2).map((s) => s.title).join(" · "),
+      short: other.length === 1 ? other[0].source ?? "Industry news" : `${other.length} headlines from industry news`,
       action: { label: "Read", href: "/insights/market-intelligence/trends" },
     });
   }

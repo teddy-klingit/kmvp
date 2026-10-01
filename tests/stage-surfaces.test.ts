@@ -5,6 +5,8 @@ import { setMockSession } from "./setup";
 import { prisma } from "@/lib/prisma";
 import { createStageFixtures, type StageKey } from "./stage-fixtures";
 import { ConversationProvider } from "@/components/ds/conversation-context";
+import { yourTurn } from "@/lib/client-home";
+import { loadProjectStates } from "@/lib/project-state-loader";
 import { legacyTabRedirect, type LegacyTab, type ProjectStage } from "@/lib/project-state";
 
 import ProjectsPage from "@/app/(portal)/projects/page";
@@ -73,7 +75,7 @@ function region(html: string, marker: string, ends: string[]) {
 
 /** The text of the dashboard's "Your turn" card. */
 function yourTurnList(html: string) {
-  return asText(region(html, 'data-list="your-turn"', ['aria-label="In progress"']));
+  return asText(region(html, 'data-list="your-turn"', ['aria-label="Your projects"']));
 }
 
 const tab = (id: string) => ({ params: Promise.resolve({ id }) });
@@ -180,8 +182,9 @@ describe.each(STAGES)("stage %s — every surface agrees", (stage) => {
   });
 
   it("dashboard: in Your turn only when it's the client's turn", async () => {
-    const html = await render(DashboardPage());
-    expect(yourTurnList(html).includes(p().name)).toBe(e.dashboard);
+    // The page shows the first 2 cards; the full list (and the YOUR TURN tile count) is this.
+    const turns = yourTurn(await loadProjectStates({ status: { not: "ARCHIVED" } }, fx.client.id));
+    expect(turns.some((t) => t.projectName === p().name)).toBe(e.dashboard);
   });
 
   it("header: status pill, milestone timeline, 3 tabs, Share, conversation panel", async () => {
@@ -346,11 +349,13 @@ describe("regressions — the contradictions seen on a Draft project ('Klarna 10
   it("header counts only client actions — market alerts never count — and no allowance is invented", async () => {
     const before = asText(await render(DashboardPage()));
     const count = before.match(/(\d+) things? needs? you/)?.[1];
+    expect(Number(count)).toBe(5);
     await prisma.marketSignal.create({ data: { clientId: fx.client.id, type: "COMPETITOR", title: "Zip launched 3 new ads on LinkedIn", summary: "x", source: "LinkedIn", publishedAt: new Date() } });
     const after = asText(await render(DashboardPage()));
     expect(after.match(/(\d+) things? needs? you/)?.[1]).toBe(count);
     expect(after).toContain("Competitors launched 3 new LinkedIn ads");
-    expect(after).not.toContain("left this month");
-    expect(after).toContain("no monthly allowance");
+    expect(after).not.toContain("CREDITS LEFT");
+    expect(after).toContain("CREDITS USED");
+    expect(after).toContain("no allowance");
   });
 });

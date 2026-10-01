@@ -14,7 +14,7 @@ export default async function PortalLayout({ children }: { children: React.React
   ]);
 
   return (
-    <div className="flex h-screen w-full flex-col bg-background md:flex-row">
+    <div className="flex h-screen w-full flex-col bg-background min-[900px]:flex-row">
       <PortalSidebar
         userName={viewer.user.name}
         userEmail={viewer.user.email}

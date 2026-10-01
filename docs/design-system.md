@@ -115,3 +115,31 @@ Built from the same `ds` parts, following `PMHome.dc.html` and `PMCockpit.dc.htm
 | Internal timeline | `ProjectTimeline variant="internal"` | 8 stages from `internalTimeline()` in `src/lib/ops-cockpit.ts`. |
 
 Extra tokens: `ds-note` / `ds-note-border` (staff notes, changed estimate rows), `ds-watch-border` (a changed complexity select), `ds-dashed` ("Add line" button), `ds-star` / `ds-star-stroke` (rating).
+
+## Brand theme (client Dashboard only, for now)
+
+`ClientHome.dc.html` uses the Klingit website brand. It's a separate theme. Scope it with `className="theme-brand"`, which sets the cream background, ink text and Albert Sans. Today only `/dashboard` uses it: `PortalMain` wraps that page in it, and the portal sidebar switches to brand styling on that route.
+
+| Token | Value | Use |
+|---|---|---|
+| `brand-cream` | #F9F5EC | Page background, nav |
+| `brand-ink` / `brand-ink-2` | #1E1E1E / #4F4F50 | Text; secondary text |
+| `brand-orange` | #FF5D02 | Primary call to action (pill), "your turn" dots, progress bar when it's the client's turn |
+| `brand-lime` / `brand-lime-strong` | #E4F2B3 / #8D9E47 | Credits tile, market card, brief buttons, the hero connector |
+| `brand-pink` | #F8DCF9 | Delivered tile, icon tiles, estimate dates |
+| `brand-peach` | #FEECE5 | Your-turn tile, "Up next" and near-deadline pills |
+| `brand-grey` | #F7F7F8 | Neutral pills, brief question box |
+| `brand-line` / `brand-track` / `brand-outline` | #E6E0D2 / #F0EEE8 / #C2C3C5 | Nav divider / progress track / outline buttons |
+| `font-brand` | Albert Sans 300/400/600 | Text (stand-in for the licensed PolySans) |
+| `font-brand-mono` | Azeret Mono 400 | Eyebrows, labels, button text |
+| `rounded-pill` | 999px | Buttons, pills and nav items |
+
+Rules:
+- Cards are white with radius 12 and no border.
+- Big numbers are 56px at weight 300; the greeting is 48px at weight 300 (40px on phones).
+- Buttons are pills with a mono label and an arrow, and grow to 44px tall on phones.
+- The welcome banner uses `public/brand/klingit-hero.webp` under a dark left-to-right gradient, with the "Up next" card joined by the lime square-and-line connector.
+
+Breakpoints on this screen:
+- **Under 1100px:** one column, project cards 2 across.
+- **Under 900px:** the nav becomes a top bar, tiles go 2×2 and cards stack. The 900px top-bar breakpoint now applies to the whole portal.

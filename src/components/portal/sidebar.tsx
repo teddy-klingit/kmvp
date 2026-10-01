@@ -61,6 +61,8 @@ export function PortalSidebar(props: SidebarProps) {
   const hasSecondarySidebar = pathname === "/assets" || pathname.startsWith("/assets/");
   const isNarrow = useIsNarrowViewport();
   const collapsed = manualOverride ?? hasSecondarySidebar;
+  // The client Dashboard uses the brand theme (cream, pills); every other page keeps the product look for now.
+  const brand = pathname === "/dashboard";
 
   // Exposed so viewport-fixed elements (e.g. a bottom action bar) can offset
   // themselves correctly without needing to lift this component's state.
@@ -70,24 +72,30 @@ export function PortalSidebar(props: SidebarProps) {
 
   return (
     <>
-      <MobileTopBar {...props} />
+      <MobileTopBar {...props} brand={brand} />
       <aside
         className={cn(
-          "hidden h-screen shrink-0 flex-col justify-between border-r border-ds-border bg-ds-bg py-6 transition-[width] duration-200 md:flex",
-          collapsed ? "w-16 px-2" : "w-[232px] px-4"
+          "hidden h-screen shrink-0 flex-col justify-between transition-[width] duration-200 min-[900px]:flex",
+          brand ? "bg-brand-cream pb-5 pt-7 font-brand" : "border-r border-ds-border bg-ds-bg py-6",
+          collapsed ? "w-16 px-2" : brand ? "w-[240px] px-4" : "w-[232px] px-4"
         )}
       >
-        <SidebarContent {...props} collapsed={collapsed} onToggle={() => setManualOverride(!collapsed)} />
+        <SidebarContent {...props} brand={brand} collapsed={collapsed} onToggle={() => setManualOverride(!collapsed)} />
       </aside>
     </>
   );
 }
 
-function MobileTopBar(props: SidebarProps) {
+function MobileTopBar({ brand, ...props }: SidebarProps & { brand: boolean }) {
   const [open, setOpen] = useState(false);
   return (
     <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
-      <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b border-ds-border bg-ds-bg px-4 md:hidden">
+      <header
+        className={cn(
+          "sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b px-4 min-[900px]:hidden",
+          brand ? "border-brand-line bg-brand-cream" : "border-ds-border bg-ds-bg"
+        )}
+      >
         <Link href="/dashboard" className="flex items-center text-ds-text" aria-label="Klingit home">
           <Logo className="h-5 w-auto" />
         </Link>
@@ -102,10 +110,15 @@ function MobileTopBar(props: SidebarProps) {
         </DialogPrimitive.Trigger>
       </header>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/30 md:hidden" />
-        <DialogPrimitive.Content className="fixed inset-y-0 left-0 z-50 flex w-[288px] max-w-[85vw] flex-col justify-between overflow-y-auto bg-ds-bg px-4 py-5 shadow-xl outline-none md:hidden">
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/30 min-[900px]:hidden" />
+        <DialogPrimitive.Content
+          className={cn(
+            "fixed inset-y-0 left-0 z-50 flex w-[288px] max-w-[85vw] flex-col justify-between overflow-y-auto px-4 py-5 shadow-xl outline-none min-[900px]:hidden",
+            brand ? "bg-brand-cream font-brand" : "bg-ds-bg"
+          )}
+        >
           <DialogPrimitive.Title className="sr-only">Menu</DialogPrimitive.Title>
-          <SidebarContent {...props} collapsed={false} onNavigate={() => setOpen(false)} onClose={() => setOpen(false)} />
+          <SidebarContent {...props} brand={brand} collapsed={false} onNavigate={() => setOpen(false)} onClose={() => setOpen(false)} />
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
@@ -122,10 +135,14 @@ function SidebarContent({
   onToggle,
   onNavigate,
   onClose,
-}: SidebarProps & { collapsed: boolean; onToggle?: () => void; onNavigate?: () => void; onClose?: () => void }) {
+  brand = false,
+}: SidebarProps & { collapsed: boolean; onToggle?: () => void; onNavigate?: () => void; onClose?: () => void; brand?: boolean }) {
   const pathname = usePathname();
   // In the sheet every row is a 44px tap target.
-  const row = onClose ? "py-3" : "py-2.5";
+  const row = onClose ? "py-3" : brand ? "py-[11px]" : "py-2.5";
+  // Brand theme: pill rows, ink active state; product theme: 8px rows, grey active state.
+  const shape = brand ? "rounded-full px-3.5 text-[15px]" : "rounded-[8px] px-3 text-[14px]";
+  const idle = brand ? "text-brand-ink-2 hover:bg-brand-ink/5 hover:text-brand-ink" : "text-ds-text-2 hover:bg-ds-nav-active/60 hover:text-ds-text";
   return (
     <>
       <div>
@@ -182,10 +199,11 @@ function SidebarContent({
                 onClick={onNavigate}
                 title={collapsed ? item.label : undefined}
                 className={cn(
-                  "flex items-center gap-3 rounded-[8px] px-3 text-[14px] transition-colors",
+                  "flex items-center gap-3 transition-colors",
+                  shape,
                   row,
                   collapsed && "justify-center",
-                  active ? "bg-ds-nav-active font-medium text-ds-text" : "text-ds-text-2 hover:bg-ds-nav-active/60 hover:text-ds-text"
+                  active ? (brand ? "bg-brand-ink font-medium text-white" : "bg-ds-nav-active font-medium text-ds-text") : idle
                 )}
               >
                 <item.icon className="size-[18px] shrink-0" strokeWidth={1.75} />
@@ -203,7 +221,9 @@ function SidebarContent({
           onClick={onNavigate}
           title={collapsed ? "Notifications" : undefined}
           className={cn(
-            "flex items-center gap-3 rounded-[8px] px-3 text-[14px] text-ds-text-2 hover:bg-ds-nav-active/60 hover:text-ds-text",
+            "flex items-center gap-3",
+            shape,
+            idle,
             row,
             collapsed && "justify-center"
           )}
@@ -219,7 +239,9 @@ function SidebarContent({
           onClick={onNavigate}
           title={collapsed ? "Help" : undefined}
           className={cn(
-            "flex items-center gap-3 rounded-[8px] px-3 text-[14px] text-ds-text-2 hover:bg-ds-nav-active/60 hover:text-ds-text",
+            "flex items-center gap-3",
+            shape,
+            idle,
             row,
             collapsed && "justify-center"
           )}
@@ -231,15 +253,16 @@ function SidebarContent({
           href="/account"
           onClick={onNavigate}
           className={cn(
-            "mt-2 flex items-center gap-3 border-t border-ds-border px-3 pt-4 no-underline",
+            "mt-2 flex items-center gap-3 border-t px-3 pt-4 no-underline",
+            brand ? "border-brand-line px-3.5" : "border-ds-border",
             collapsed && "justify-center px-0"
           )}
         >
-          <Avatar name={userName} size={32} />
+          <Avatar name={userName} size={brand ? 34 : 32} />
           {!collapsed && (
             <div className="flex min-w-0 flex-col">
-              <span className="truncate text-[14px] font-medium text-ds-text">{userName}</span>
-              <span className="truncate text-[12px] text-ds-text-2">{clientName}</span>
+              <span className={cn("truncate font-medium", brand ? "text-[15px] font-semibold text-brand-ink" : "text-[14px] text-ds-text")}>{userName}</span>
+              <span className={cn("truncate", brand ? "font-brand-mono text-[11px] uppercase text-brand-ink-2" : "text-[12px] text-ds-text-2")}>{clientName}</span>
             </div>
           )}
         </Link>
@@ -248,7 +271,7 @@ function SidebarContent({
   );
 }
 
-const NARROW_QUERY = "(max-width: 767px)";
+const NARROW_QUERY = "(max-width: 899px)";
 
 /** Phones get the top bar + sheet instead of the sidebar. */
 function useIsNarrowViewport() {
