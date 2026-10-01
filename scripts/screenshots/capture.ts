@@ -115,9 +115,9 @@ async function phaseI() {
   await browser.close();
 }
 
-/** Client home (ClientHome.dc.html) at 1440 and 390, signed in as Jack. */
+/** Client home (ClientHomeV2.dc.html, the calm dashboard) at 1440 and 390, signed in as Jack. */
 async function phaseHome() {
-  const outDir = "screenshots/home";
+  const outDir = "screenshots/home-v2";
   mkdirSync(outDir, { recursive: true });
   const browser = await chromium.launch();
   for (const width of [1440, 390]) {

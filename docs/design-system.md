@@ -63,7 +63,7 @@ Below 640px, buttons, chips, segmented controls and tabs grow to 44px tall. From
 | `Card`, `CardHeader`, `CardBody` | The only section container. `tone="turn"` gives the orange border used by the Next step card. `CardHeader` takes `title` (15/600), `meta` (pills next to the title) and `action` (pushed right), with a divider below. |
 | `StatusPill` | Tones: neutral, turn, success, changes, watch, danger, info. `dot` adds the leading dot, which the header uses. There is one pill style; don't make others. |
 | `Button` | Variants primary, secondary, ghost. Sizes sm (32), md (36), lg (40), icon. `asChild` for links. **One primary button per page.** |
-| `Avatar`, `AvatarStack` | Initials on a deterministic palette colour (FNV-1a of the display name). Within a stack, no two avatars share a colour. |
+| `Avatar`, `AvatarStack` | Initials on a deterministic palette colour (FNV-1a of the display name), never orange. Within a stack, no two avatars share a colour. `overlap` (default 6px) sets how far each one tucks under the last. |
 | `SummaryBar` | The facts row in the header card. A flex row when the card is at least 640px wide, a 2×2 grid when narrower. This is a container query, so it reacts to the docked panel as well as the viewport. Pass only facts that have a value; never "—" or TBD. |
 | `ProjectTimeline` | One continuous track. Done is a dark dot with a check; current is an orange ring with a halo and a "Now · …" caption; upcoming is a grey ring. On phones it renders vertically. Variant `internal` (8 stages, 20px dots) is for the PM cockpit. |
 | `PageTabs` | Underline tabs (gap 24, active 600 with a 2px ink underline). |
@@ -118,29 +118,33 @@ Extra tokens: `ds-note` / `ds-note-border` (staff notes, changed estimate rows),
 
 ## Brand theme (client Dashboard only, for now)
 
-`ClientHome.dc.html` uses the Klingit website brand. It's a separate theme. Scope it with `className="theme-brand"`, which sets the light grey background, ink text and Albert Sans. Today only `/dashboard` uses it: `PortalMain` wraps that page in it, and the portal sidebar switches to brand styling on that route.
+The calm dashboard (`ClientHomeV2.dc.html`, target `dashboard-target-1440.png`) uses the Klingit website brand. It replaces `ClientHome.dc.html` and its tiles. It's a separate theme. Scope it with `className="theme-brand"`, which sets the cream background, ink text and Albert Sans. Today only `/dashboard` uses it: `PortalMain` wraps that page in it, and the portal sidebar switches to brand styling on that route.
 
 | Token | Value | Use |
 |---|---|---|
-| `brand-page` | #F7F7F8 | Page background, nav (the VI light grey; the first design pass used cream) |
-| `brand-cream` | #F9F5EC | Text on dark surfaces (banner eyebrow, the dark brief card) |
-| `brand-ink` / `brand-ink-2` | #1E1E1E / #4F4F50 | Text; secondary text |
-| `brand-orange` | #FF5D02 | Primary call to action (pill), "your turn" dots, progress bar when it's the client's turn |
-| `brand-lime` / `brand-lime-strong` | #E4F2B3 / #8D9E47 | Credits tile, market card, brief buttons, the hero connector |
-| `brand-pink` | #F8DCF9 | Delivered tile, icon tiles, estimate dates |
-| `brand-peach` | #FEECE5 | Your-turn tile, "Up next" and near-deadline pills |
-| `brand-grey` | #F7F7F8 | Neutral pills, brief question box |
-| `brand-line` / `brand-track` / `brand-outline` | #E4E4E6 / #EEEEF0 / #C2C3C5 | Nav divider / progress track / outline buttons |
+| `brand-page` | #F9F5EC | Page background, nav (warm cream, as in ClientHomeV2) |
+| `brand-cream` | #F9F5EC | Text on the photo banner, the "New project" pill |
+| `brand-ink` / `brand-ink-2` | #1E1E1E / #4F4F50 | Text, primary buttons, progress fill; secondary text |
+| `brand-orange` | #FF5D02 | **Your action only:** the numbered "Do this next" markers and "Waiting on you" dots |
+| `brand-lime-strong` | #8D9E47 | The market-insight square |
+| `brand-line` / `brand-track` | #EFEBE2 | Card title rules and row dividers / progress track |
+| `brand-chip` | #F7F5F0 | Date chips in Next 7 days |
+| `brand-rule` | #E6E0D2 | Nav user-block rule |
+| `brand-outline` | #C2C3C5 | Secondary (outlined) pill border |
+| `brand-lime` / `brand-pink` / `brand-peach` / `brand-grey` | #E4F2B3 / #F8DCF9 / #FEECE5 / #F7F7F8 | Kept as tokens; not used on the calm dashboard |
 | `font-brand` | Albert Sans 300/400/600 | Text (stand-in for the licensed PolySans) |
-| `font-brand-mono` | Azeret Mono 400 | Eyebrows, labels, button text |
-| `rounded-pill` | 999px | Buttons, pills and nav items |
+| `font-brand-mono` | Azeret Mono 400 | Eyebrows, counts, stage labels, button text |
+| `rounded-pill` | 999px | Buttons and nav items |
 
 Rules:
-- Cards are white with radius 12 and no border.
-- Big numbers are 56px at weight 300; the greeting is 48px at weight 300 (40px on phones).
-- Buttons are pills with a mono label and an arrow, and grow to 44px tall on phones.
-- The welcome banner uses `public/brand/klingit-hero.webp` under a dark left-to-right gradient, with the "Up next" card joined by the lime square-and-line connector.
+- A 12-column grid: main column 8, side column 4, 24px gap. It sits 16px in from the banner edges.
+- Hero: a 220px photo banner (`public/brand/klingit-hero.webp`, dark top-to-bottom gradient) with the date, a 36px weight-300 greeting, the summary line and the cream "New project" pill. The grid overlaps the banner's bottom 64px (a 96px pull-up minus the 32px section gap).
+- Every section is a white card (radius 12, no border) with the same title row: 18px weight 400, 20px 24px padding, a #EFEBE2 rule underneath, and an optional mono count or link on the right.
+- One primary button style: the black pill (40px, mono 12px, arrow, fixed 132px in "Do this next"). Secondary is an outlined pill. No decorative tiles.
+- Orange means "your action" and appears nowhere else. The ds avatar palette has no orange for this reason.
+- Project names never wrap (ellipsis). AvatarStack uses `overlap={4}` here, with the 2px white ring.
 
-Breakpoints on this screen:
-- **Under 1100px:** one column, project cards 2 across.
-- **Under 900px:** the nav becomes a top bar, tiles go 2×2 and cards stack. The 900px top-bar breakpoint now applies to the whole portal.
+Breakpoints on this screen (container queries):
+- **`@container/dash` under 960px:** one column; the side cards follow the main ones.
+- **`@container/col` under 600px:** "Do this next" puts the due date and button on a second line; project rows stack (name and avatars, status, then the stage bar).
+- **Under 900px viewport:** the nav becomes a top bar. The 900px top-bar breakpoint applies to the whole portal.

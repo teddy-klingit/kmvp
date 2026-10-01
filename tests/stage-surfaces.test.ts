@@ -73,7 +73,7 @@ function region(html: string, marker: string, ends: string[]) {
   return rest.slice(0, cut);
 }
 
-/** The text of the dashboard's "Your turn" card. */
+/** The text of the dashboard's "Do this next" card. */
 function yourTurnList(html: string) {
   return asText(region(html, 'data-list="your-turn"', ['aria-label="Your projects"']));
 }
@@ -350,12 +350,14 @@ describe("regressions — the contradictions seen on a Draft project ('Klarna 10
     const before = asText(await render(DashboardPage()));
     const count = before.match(/(\d+) things? needs? you/)?.[1];
     expect(Number(count)).toBe(5);
+    const insights = (t: string) => Number(t.match(/(\d+) market insights? this week/)?.[1] ?? 0);
     await prisma.marketSignal.create({ data: { clientId: fx.client.id, type: "COMPETITOR", title: "Zip launched 3 new ads on LinkedIn", summary: "x", source: "LinkedIn", publishedAt: new Date() } });
     const after = asText(await render(DashboardPage()));
     expect(after.match(/(\d+) things? needs? you/)?.[1]).toBe(count);
-    expect(after).toContain("Competitors launched 3 new LinkedIn ads");
-    expect(after).not.toContain("CREDITS LEFT");
-    expect(after).toContain("CREDITS USED");
-    expect(after).toContain("no allowance");
+    // The alert shows up as a market insight, not as something to do.
+    expect(insights(after)).toBe(insights(before) + 1);
+    expect(after).not.toMatch(/\d+ of \d+ left/);
+    expect(after).toMatch(/\d+ used · /);
+    expect(after).toContain("No monthly allowance");
   });
 });

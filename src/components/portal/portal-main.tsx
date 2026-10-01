@@ -14,9 +14,9 @@ function isProjectDetail(pathname: string) {
 export function PortalMain({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "";
   if (pathname === "/dashboard") {
-    // Brand theme (ClientHome.dc.html): light grey page, its own padding and width.
+    // Brand theme (ClientHomeV2.dc.html): cream page, its own padding (24 40 56 16) and width.
     return (
-      <main className="theme-brand min-w-0 flex-1 overflow-y-auto px-4 pb-12 pt-4 min-[900px]:pb-12 min-[900px]:pl-2 min-[900px]:pr-8 min-[900px]:pt-6">
+      <main className="theme-brand min-w-0 flex-1 overflow-y-auto px-4 pb-12 pt-4 min-[900px]:pb-14 min-[900px]:pl-4 min-[900px]:pr-10 min-[900px]:pt-6">
         <PageTransition>{children}</PageTransition>
       </main>
     );

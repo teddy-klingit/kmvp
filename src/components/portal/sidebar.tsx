@@ -61,7 +61,7 @@ export function PortalSidebar(props: SidebarProps) {
   const hasSecondarySidebar = pathname === "/assets" || pathname.startsWith("/assets/");
   const isNarrow = useIsNarrowViewport();
   const collapsed = manualOverride ?? hasSecondarySidebar;
-  // The client Dashboard uses the brand theme (grey page, pills); every other page keeps the product look for now.
+  // The client Dashboard uses the brand theme (cream page, pills); every other page keeps the product look for now.
   const brand = pathname === "/dashboard";
 
   // Exposed so viewport-fixed elements (e.g. a bottom action bar) can offset
@@ -254,7 +254,7 @@ function SidebarContent({
           onClick={onNavigate}
           className={cn(
             "mt-2 flex items-center gap-3 border-t px-3 pt-4 no-underline",
-            brand ? "border-brand-line px-3.5" : "border-ds-border",
+            brand ? "border-brand-rule px-3.5" : "border-ds-border",
             collapsed && "justify-center px-0"
           )}
         >

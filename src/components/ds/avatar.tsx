@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 
-const PALETTE = ["#D9772B", "#2F7F7A", "#B98A16", "#B0384C", "#6D5BD0", "#3B6FB6"];
+/** No orange: orange is reserved for "your action" (calm dashboard). */
+const PALETTE = ["#6B7A2E", "#2F7F7A", "#B98A16", "#B0384C", "#6D5BD0", "#3B6FB6"];
 
 function initials(name: string) {
   return name
@@ -55,10 +56,10 @@ export function Avatar({
 }
 
 /**
- * Overlapping avatars, each with a 2px white ring. They overlap by 6px and each one sits above the next,
+ * Overlapping avatars, each with a 2px white ring. They overlap by 6px (the calm dashboard uses 4px) and each one sits above the next,
  * so only the right edge of a ring is covered, never its initials. No two in one stack share a colour.
  */
-export function AvatarStack({ names, size = 26, max = 4 }: { names: string[]; size?: number; max?: number }) {
+export function AvatarStack({ names, size = 26, max = 4, overlap = 6 }: { names: string[]; size?: number; max?: number; /** px each avatar tucks under the previous one. */ overlap?: number }) {
   const shown = names.slice(0, max);
   const used = new Set<number>();
   const colors = shown.map((n) => {
@@ -76,8 +77,8 @@ export function AvatarStack({ names, size = 26, max = 4 }: { names: string[]; si
           size={size}
           ring
           color={colors[i]}
-          className={cn("relative box-content", i > 0 && "-ml-1.5")}
-          style={{ zIndex: shown.length - i }}
+          className="relative box-content"
+          style={{ zIndex: shown.length - i, marginLeft: i > 0 ? -overlap : undefined }}
         />
       ))}
     </span>

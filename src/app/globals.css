@@ -135,7 +135,7 @@
   --ds-credit-pending: #9aa0a8;
   /* Brand theme (Klingit website look). Used on the client Dashboard only for now — see docs/design-system.md. */
   --brand-cream: #f9f5ec; /* text on dark surfaces only */
-  --brand-page: #f7f7f8; /* page and nav background (VI light grey) */
+  --brand-page: #f9f5ec; /* page and nav background (ClientHomeV2: warm cream) */
   --brand-ink: #1e1e1e;
   --brand-ink-2: #4f4f50;
   --brand-orange: #ff5d02;
@@ -144,8 +144,10 @@
   --brand-pink: #f8dcf9;
   --brand-peach: #feece5;
   --brand-grey: #f7f7f8;
-  --brand-line: #e4e4e6;
-  --brand-track: #eeeef0;
+  --brand-line: #efebe2; /* card title rules and row dividers */
+  --brand-track: #efebe2; /* progress bar track */
+  --brand-chip: #f7f5f0; /* date chips in Next 7 days */
+  --brand-rule: #e6e0d2; /* nav user-block rule */
   --brand-outline: #c2c3c5;
   --ds-note: #fffbef;
   --ds-watch-border: #c9a227;
@@ -264,6 +266,8 @@
   --color-brand-grey: var(--brand-grey);
   --color-brand-line: var(--brand-line);
   --color-brand-track: var(--brand-track);
+  --color-brand-chip: var(--brand-chip);
+  --color-brand-rule: var(--brand-rule);
   --color-brand-outline: var(--brand-outline);
   --font-brand: var(--font-albert), "Helvetica Neue", Arial, sans-serif;
   --font-brand-mono: var(--font-azeret), ui-monospace, monospace;
@@ -310,7 +314,7 @@ body {
   }
 }
 
-/* The brand theme: light grey page, Albert Sans text. Scope it with class="theme-brand". */
+/* The brand theme: warm cream page, Albert Sans text. Scope it with class="theme-brand". */
 .theme-brand {
   background: var(--brand-page);
   color: var(--brand-ink);

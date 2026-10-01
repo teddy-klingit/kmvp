@@ -1,20 +1,20 @@
 import Link from "next/link";
-import { ArrowRight, Image as ImageIcon, MessageSquareText, ReceiptText, Signal } from "lucide-react";
+import { ArrowRight, Plus } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
 import { projectVisibilityWhere } from "@/lib/project-visibility";
 import { loadProjectStates } from "@/lib/project-state-loader";
-import { clientMilestones } from "@/lib/project-state";
-import { creditSummary, deliveredThisMonth, inProgress, marketThisWeek, nextSevenDays, yourTurn, type TurnItem, type UpcomingItem } from "@/lib/client-home";
+import { clientMilestones, type ProjectState } from "@/lib/project-state";
+import { creditSummary, inProgress, marketThisWeek, nextSevenDays, yourTurn, type CreditSummary, type TurnItem } from "@/lib/client-home";
 import { PROJECT_TYPE_LABEL } from "@/lib/labels";
 import { WORK_TZ } from "@/lib/working-hours";
 import { Avatar, AvatarStack } from "@/components/ds/avatar";
-import { BrandBriefInput } from "@/components/portal/home/home-brief-input";
 import { cn } from "@/lib/utils";
 
-/** Your turn shows at most this many cards; the rest are behind "See all". */
-const TURN_CARDS = 2;
-const PROJECT_CARDS = 6;
+/** "Do this next" shows at most this many rows; the rest are behind "See all". */
+const TURN_ROWS = 5;
+const PROJECT_ROWS = 6;
+const UPCOMING_ROWS = 5;
 
 function greeting(now: Date) {
   const hour = Number(new Intl.DateTimeFormat("en-GB", { timeZone: WORK_TZ, hour: "numeric", hourCycle: "h23" }).format(now));
@@ -25,68 +25,49 @@ function typeLabel(t: string) {
   return PROJECT_TYPE_LABEL[t]?.split(" / ")[0] ?? t;
 }
 
-type BrandTone = "grey" | "peach" | "lime" | "pink" | "orange";
+const weekday = (d: Date) => new Intl.DateTimeFormat("en-GB", { timeZone: WORK_TZ, weekday: "short" }).format(d);
 
-/** Brand pill: radius 999, 12px. Tone picks the brand colour. */
-function Pill({ tone = "grey", children, className }: { tone?: BrandTone; children: React.ReactNode; className?: string }) {
-  const bg = { grey: "bg-brand-grey", peach: "bg-brand-peach", lime: "bg-brand-lime", pink: "bg-brand-pink", orange: "bg-brand-orange" }[tone];
-  return <span className={cn("inline-flex items-center rounded-full px-2.5 py-1 text-[12px] text-brand-ink", bg, className)}>{children}</span>;
+/** Short, fixed-width button labels; the row's title already says what the action is. */
+const ROW_CTA: Record<TurnItem["kind"], string | null> = { review: "Review", approve: "Review", brief: "Answer", signoff: "Sign off", other: null };
+
+/** "By Sun 4 Oct" → "Due Sun 4 Oct". "Overdue" and "Due today" read as they are. */
+function dueText(t: TurnItem) {
+  return t.due?.label.replace(/^By /, "Due ") ?? null;
 }
 
-/** Pill button with a mono label and an arrow — the brand's call to action. */
-function PillLink({
-  href,
-  tone = "ink",
-  children,
-  arrow = true,
-  className,
-}: {
-  href: string;
-  tone?: "ink" | "lime" | "orange" | "outline";
-  children: React.ReactNode;
-  arrow?: boolean;
-  className?: string;
-}) {
-  const tones = {
-    ink: "bg-brand-ink text-white hover:bg-black",
-    lime: "bg-brand-lime text-brand-ink hover:brightness-95",
-    orange: "bg-brand-orange text-brand-ink hover:brightness-95",
-    outline: "border border-brand-outline bg-white text-brand-ink hover:border-brand-ink",
-  }[tone];
+/** One status line per project: orange "Waiting on you" when it's the client's move, otherwise what Klingit is doing. */
+function projectStatus(state: ProjectState, now: Date): { label: string; dot: string; late: boolean } {
+  if (state.paused) return { label: "Paused", dot: "bg-brand-outline", late: false };
+  if (state.ballInCourt === "client") return { label: "Waiting on you", dot: "bg-brand-orange", late: false };
+  const eta = state.keyFacts.firstDraftEta;
+  if (state.stage === "production" && eta) {
+    const endOfEta = new Date(eta);
+    endOfEta.setHours(23, 59, 59, 999);
+    if (endOfEta < now) return { label: "Klingit working · draft late", dot: "bg-brand-ink", late: true };
+    const soon = eta.getTime() - now.getTime() < 6 * 86400000;
+    const when = soon ? weekday(eta) : new Intl.DateTimeFormat("en-GB", { timeZone: WORK_TZ, day: "numeric", month: "short" }).format(eta);
+    return { label: `Klingit working · draft ${when}`, dot: "bg-brand-ink", late: false };
+  }
+  return { label: "Klingit working", dot: "bg-brand-ink", late: false };
+}
+
+/** Every section is a white card with this title row. */
+function CardTitle({ title, children }: { title: string; children?: React.ReactNode }) {
   return (
-    <Link href={href} className={cn("inline-flex min-h-11 items-center gap-2.5 rounded-full px-4 py-2.5 font-brand-mono text-[12px] no-underline min-[900px]:min-h-0", tones, className)}>
+    <div className="flex items-center gap-2.5 border-b border-brand-line px-6 py-5">
+      <h2 className="m-0 flex-1 text-[18px] font-normal leading-[1.3]">{title}</h2>
       {children}
-      {arrow && <ArrowRight className="size-4" strokeWidth={1.75} />}
-    </Link>
+    </div>
   );
 }
 
-/** Orange only when it's really late (overdue / due today); peach when it's close; grey otherwise. */
-function dueTone(t: TurnItem, now: Date): BrandTone | null {
-  if (!t.due) return null;
-  if (t.due.tone === "danger") return "orange";
-  return t.dueAt && t.dueAt.getTime() - now.getTime() < 4 * 86400000 ? "peach" : "grey";
-}
-
-const UPCOMING_TONE: Record<UpcomingItem["kind"], string> = {
-  touchpoint: "bg-brand-grey",
-  due_client: "bg-brand-peach",
-  due_klingit: "bg-brand-lime",
-  draft: "bg-brand-lime",
-  estimate: "bg-brand-pink",
-};
-
-const STAGE_PILL: Record<string, BrandTone> = {
-  Brief: "lime",
-  Estimate: "pink",
-  Production: "grey",
-  Review: "peach",
-  Delivered: "grey",
-};
+const card = "overflow-hidden rounded-[12px] bg-white";
+const monoLink = "font-brand-mono text-[12px] text-brand-ink underline underline-offset-4 hover:no-underline";
 
 /**
- * Client home in the Klingit brand theme (ClientHome.dc.html). Counts and "Your turn" come only from
- * getProjectState — market alerts never count as something the client owes.
+ * The calm client home (ClientHomeV2.dc.html): a photo banner with the 12-column grid overlapping its
+ * bottom edge. Counts and "Do this next" come only from getProjectState; market alerts never count as
+ * something the client owes. Orange means "your action" and appears nowhere else.
  */
 export default async function DashboardPage() {
   const viewer = await getPortalViewer();
@@ -97,216 +78,158 @@ export default async function DashboardPage() {
 
   const [credits, upcoming, market] = await Promise.all([creditSummary(viewer.clientId, now), nextSevenDays(viewer.clientId, items, now), marketThisWeek(viewer.clientId, now)]);
   const turns = yourTurn(items, now);
-  // Drafts are still the client's own work: they show in Your turn, not as projects in progress.
+  // Drafts are still the client's own work: they show in Do this next, not as projects.
   const progress = inProgress(items.filter(({ state }) => !state.draft), typeLabel, lead);
-  const delivered = deliveredThisMonth(items, now);
-  const shownTurns = turns.slice(0, TURN_CARDS);
-
-  // What each Your-turn card previews: the assets waiting, the agent's question, or the estimate.
-  const previewAssets = await prisma.asset.findMany({
-    where: { projectId: { in: shownTurns.filter((t) => t.kind === "review" || t.kind === "signoff").map((t) => t.id) }, status: { in: ["IN_REVIEW", "APPROVED"] } },
-    select: { projectId: true, thumbnailColor: true, status: true },
-    orderBy: { createdAt: "asc" },
-  });
-  const stateOf = (id: string) => items.find((i) => i.project.id === id)?.state;
-  const topMarket = market[0];
-  const otherMarket = market.slice(1);
+  const stateOf = (id: string) => items.find((i) => i.project.id === id)!.state;
+  const statuses = new Map(progress.map((p) => [p.id, projectStatus(stateOf(p.id), now)]));
+  const late = [...statuses.values()].filter((s) => s.late).length;
   const messageProject = turns[0]?.id ?? progress[0]?.id ?? null;
   const dateEyebrow = new Intl.DateTimeFormat("en-GB", { timeZone: WORK_TZ, weekday: "long", day: "numeric", month: "long" }).format(now).toUpperCase().replace(",", "");
-  const first = turns[0];
+
+  const summary =
+    turns.length === 0
+      ? "Nothing needs you right now. Klingit is on everything."
+      : `${turns.length} ${turns.length === 1 ? "thing needs" : "things need"} you. ${
+          late > 0 ? `${late} draft${late === 1 ? " is" : "s are"} running late; Klingit is on it.` : "Everything else is on track."
+        }`;
 
   return (
-    <div className="mx-auto flex max-w-[1160px] flex-col gap-5">
-      {/* Welcome banner */}
-      <section
+    <div className="@container/dash mx-auto flex max-w-[1120px] flex-col">
+      {/* Photo banner. The grid below overlaps its bottom 64px (96px pull-up less the 32px section gap). */}
+      <header
         aria-label="Welcome"
-        className="relative flex min-h-[248px] items-stretch overflow-hidden rounded-[16px] bg-[#6B5A40] bg-cover bg-center"
+        className="relative -mb-16 flex flex-col items-start gap-5 overflow-hidden rounded-[16px] bg-[#6B5A40] bg-cover bg-center px-6 pb-[92px] pt-6 @min-[640px]/dash:h-[220px] @min-[640px]/dash:flex-row @min-[640px]/dash:gap-6 @min-[640px]/dash:px-9 @min-[640px]/dash:py-8"
         style={{ backgroundImage: "url(/brand/klingit-hero.webp)" }}
       >
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(30,30,30,0.55)_0%,rgba(30,30,30,0.15)_60%,rgba(30,30,30,0)_100%)]" />
-        <div className="relative flex flex-1 items-end justify-between gap-8 p-6 min-[900px]:px-10 min-[900px]:py-9">
-          <div className="flex flex-col items-start gap-5">
-            <span className="font-brand-mono text-[13px] text-brand-cream">{dateEyebrow}</span>
-            <h1 className="m-0 text-[40px] font-light leading-[1.1] tracking-[0.01em] text-white min-[900px]:text-[48px]">
-              {greeting(now)},
-              <br />
-              {viewer.user.name.split(" ")[0]}
-            </h1>
-            {first ? (
-              <PillLink href={first.href} tone="orange" className="gap-3.5 px-[22px] py-3.5 text-[14px]">
-                {turns.length} {turns.length === 1 ? "thing needs" : "things need"} you
-              </PillLink>
-            ) : (
-              <PillLink href="#new-need" tone="orange" className="gap-3.5 px-[22px] py-3.5 text-[14px]">
-                Nothing needs you · start something
-              </PillLink>
-            )}
-          </div>
-          {first && (
-            <div className="hidden items-center min-[900px]:flex" aria-label="Up next">
-              <span className="size-2.5 bg-brand-lime" />
-              <span className="h-px w-14 bg-brand-lime" />
-              <Link href={first.href} className="flex w-[280px] flex-col gap-3 rounded-[10px] bg-white p-4 text-brand-ink no-underline">
-                <Pill tone="peach" className="self-start">
-                  Up next
-                </Pill>
-                <span className="flex items-center gap-3">
-                  <span className="flex size-11 shrink-0 items-center justify-center rounded-[6px] bg-brand-pink">
-                    {first.kind === "brief" ? (
-                      <MessageSquareText className="size-5" strokeWidth={1.75} />
-                    ) : first.kind === "approve" ? (
-                      <ReceiptText className="size-5" strokeWidth={1.75} />
-                    ) : (
-                      <ImageIcon className="size-5" strokeWidth={1.75} />
-                    )}
-                  </span>
-                  <span className="flex min-w-0 flex-col">
-                    <span className="truncate text-[15px]">{first.title}</span>
-                    <span className="truncate text-[12px] text-brand-ink-2">
-                      {first.projectName}
-                      {first.dueAt ? ` · by ${new Intl.DateTimeFormat("en-GB", { weekday: "short" }).format(first.dueAt)}` : ""}
-                    </span>
-                  </span>
-                </span>
-              </Link>
-            </div>
-          )}
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(30,30,30,0.45),rgba(30,30,30,0.05))]" />
+        <div className="relative flex flex-1 flex-col gap-2 text-white">
+          <span className="font-brand-mono text-[12px] text-brand-cream">{dateEyebrow}</span>
+          <h1 className="m-0 text-[30px] font-light leading-[1.15] text-white @min-[640px]/dash:text-[36px]">
+            {greeting(now)}, {viewer.user.name.split(" ")[0]}
+          </h1>
+          <p className="m-0 text-[16px] text-brand-cream">{summary}</p>
         </div>
-      </section>
+        <Link
+          href="/projects/new"
+          className="relative inline-flex h-11 shrink-0 items-center gap-2.5 rounded-full bg-brand-cream px-5 font-brand-mono text-[13px] text-brand-ink no-underline hover:bg-white"
+        >
+          <Plus className="size-4" strokeWidth={1.75} />
+          New project
+        </Link>
+      </header>
 
-      {/* Four tiles */}
-      <section aria-label="At a glance" className="grid grid-cols-2 gap-4 min-[900px]:grid-cols-4">
-        <Tile href="#your-turn" bg="bg-brand-peach" dot="rounded-full bg-brand-orange" label="YOUR TURN" value={String(turns.length)} />
-        <Tile href="#projects" bg="bg-white" dot="rounded-full bg-brand-ink" label="IN PROGRESS" value={String(progress.length)} />
-        {credits.available !== null && credits.free !== null ? (
-          <Tile href="/account/usage" bg="bg-brand-lime" dot="bg-brand-lime-strong" label="CREDITS LEFT" value={String(credits.free)} suffix={`/ ${credits.available}`} />
-        ) : (
-          <Tile href="/account/usage" bg="bg-brand-lime" dot="bg-brand-lime-strong" label="CREDITS USED" value={String(credits.used)} suffix="no allowance" />
-        )}
-        <Tile href="/projects" bg="bg-brand-pink" dot="rounded-full bg-brand-ink" label={`DELIVERED ${credits.month.slice(0, 3).toUpperCase()}`} value={String(delivered)} />
-      </section>
-
-      {/* Two columns from 1100px; one below. */}
-      <div className="flex flex-col gap-5 min-[1100px]:grid min-[1100px]:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] min-[1100px]:items-start">
-        <div className="flex min-w-0 flex-col gap-5">
-          <section id="your-turn" aria-label="Your turn" className="flex scroll-mt-4 flex-col gap-3" data-list="your-turn">
-            <div className="flex items-baseline px-1 pt-1">
-              <h2 className="m-0 flex-1 text-[22px] font-normal tracking-[0.01em]">Your turn</h2>
-              {turns.length > TURN_CARDS && (
-                <Link href="/projects" className="font-brand-mono text-[12px] text-brand-ink">
+      <div className="relative grid grid-cols-1 items-start gap-6 px-4 @min-[960px]/dash:grid-cols-12">
+        <div className="@container/col flex min-w-0 flex-col gap-6 @min-[960px]/dash:col-span-8">
+          <section aria-label="Do this next" className={card} data-list="your-turn">
+            <CardTitle title="Do this next">
+              <span className="font-brand-mono text-[12px] text-brand-ink-2">{turns.length} OPEN</span>
+            </CardTitle>
+            {turns.length === 0 ? (
+              <p className="m-0 px-6 py-5 text-[15px] text-brand-ink-2">Nothing needs you. Klingit is on everything.</p>
+            ) : (
+              <ol className="m-0 list-none p-0">
+                {turns.slice(0, TURN_ROWS).map((t, i) => (
+                  <li key={t.id} className="flex flex-wrap items-center gap-x-4 gap-y-3 border-t border-brand-line px-6 py-5 first:border-t-0">
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-orange font-brand-mono text-[13px] text-brand-ink">{i + 1}</span>
+                    <div className="flex min-w-0 flex-1 basis-[calc(100%-48px)] flex-col gap-0.5 @min-[600px]/col:basis-0">
+                      <span className="text-[17px] leading-[1.35]">{t.title}</span>
+                      <span className="line-clamp-2 text-[14px] text-brand-ink-2 @min-[600px]/col:line-clamp-1" title={t.context}>
+                        {t.context}
+                      </span>
+                    </div>
+                    <span
+                      className={cn(
+                        "flex-1 whitespace-nowrap text-[13px] text-brand-ink @min-[600px]/col:w-[110px] @min-[600px]/col:flex-none @min-[600px]/col:text-right",
+                        t.due?.tone === "danger" && "font-semibold"
+                      )}
+                    >
+                      {dueText(t)}
+                    </span>
+                    <Link
+                      href={t.href}
+                      className="inline-flex h-10 w-[132px] shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-full bg-brand-ink font-brand-mono text-[12px] text-white no-underline hover:bg-black"
+                    >
+                      {ROW_CTA[t.kind] ?? t.cta}
+                      <ArrowRight className="size-3.5" strokeWidth={1.75} />
+                    </Link>
+                  </li>
+                ))}
+              </ol>
+            )}
+            {turns.length > TURN_ROWS && (
+              <div className="border-t border-brand-line px-6 py-4">
+                <Link href="/projects" className={monoLink}>
                   SEE ALL {turns.length}
                 </Link>
-              )}
-            </div>
-            {shownTurns.length === 0 ? (
-              <div className="rounded-[12px] bg-white p-5 text-[15px] text-brand-ink-2">Nothing needs you. Klingit is on everything.</div>
-            ) : (
-              <div className="grid grid-cols-1 gap-4 min-[900px]:grid-cols-2">
-                {shownTurns.map((t) => {
-                  const st = stateOf(t.id);
-                  const thumbs = previewAssets.filter((a) => a.projectId === t.id && (t.kind === "review" ? a.status === "IN_REVIEW" : true)).slice(0, 3);
-                  const tone = dueTone(t, now);
-                  return (
-                    <article key={t.id} className="flex flex-col gap-[18px] rounded-[12px] bg-white p-5">
-                      {(t.kind === "review" || t.kind === "signoff") && thumbs.length > 0 ? (
-                        <div className="flex h-[72px] gap-2" aria-hidden>
-                          {thumbs.map((a, i) => (
-                            <span key={i} className="flex-1 rounded-[6px]" style={{ backgroundColor: `color-mix(in srgb, ${a.thumbnailColor} 14%, white)` }} />
-                          ))}
-                        </div>
-                      ) : t.kind === "brief" && st?.brief.mode !== "intake" && st?.brief.next ? (
-                        <div className="flex h-[72px] flex-col justify-center gap-1.5 rounded-[6px] bg-brand-grey px-3.5">
-                          <span className="font-brand-mono text-[11px] text-brand-ink-2">BRIEF AGENT ASKS</span>
-                          <span className="line-clamp-2 text-[14px]">{st.brief.next.question}</span>
-                        </div>
-                      ) : (
-                        <div className="flex h-[72px] flex-col justify-center gap-1.5 rounded-[6px] bg-brand-grey px-3.5">
-                          <span className="font-brand-mono text-[11px] text-brand-ink-2">{t.kind === "approve" ? "ESTIMATE" : "NEXT STEP"}</span>
-                          <span className="line-clamp-2 text-[14px]">{t.kind === "approve" ? `${st?.keyFacts.credits ?? ""} credits · first draft 2 days after you approve` : t.detail}</span>
-                        </div>
-                      )}
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[18px]">{t.title}</span>
-                        <span className="line-clamp-2 text-[13px] text-brand-ink-2 min-[900px]:line-clamp-1">
-                          {t.projectName} · {t.detail}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between gap-3">
-                        {t.due && tone ? <Pill tone={tone}>{t.due.label}</Pill> : <span />}
-                        <PillLink href={t.href} tone={t.kind === "brief" ? "lime" : "ink"}>
-                          {t.cta}
-                        </PillLink>
-                      </div>
-                    </article>
-                  );
-                })}
               </div>
             )}
           </section>
 
-          <section id="projects" aria-label="Your projects" className="flex scroll-mt-4 flex-col gap-3">
-            <div className="flex items-baseline px-1 pt-1">
-              <h2 className="m-0 flex-1 text-[22px] font-normal tracking-[0.01em]">Your projects</h2>
-              <Link href="/projects" className="font-brand-mono text-[12px] text-brand-ink">
+          <section aria-label="Your projects" className={card}>
+            <CardTitle title="Your projects">
+              <Link href="/projects" className={monoLink}>
                 ALL PROJECTS
               </Link>
-            </div>
+            </CardTitle>
             {progress.length === 0 ? (
-              <div className="rounded-[12px] bg-white p-5 text-[15px] text-brand-ink-2">No projects in progress. Tell us what you need made.</div>
+              <p className="m-0 px-6 py-5 text-[15px] text-brand-ink-2">No projects yet. Start one with “New project”.</p>
             ) : (
-              <div className="grid grid-cols-1 gap-4 min-[900px]:grid-cols-2 min-[1100px]:grid-cols-3">
-                {progress.slice(0, PROJECT_CARDS).map((p) => {
-                  const st = stateOf(p.id)!;
-                  const current = clientMilestones(st).find((m) => m.status === "current");
+              <ul className="m-0 list-none p-0">
+                {progress.slice(0, PROJECT_ROWS).map((p) => {
+                  const current = clientMilestones(stateOf(p.id)).find((m) => m.status === "current");
                   const step = p.steps.indexOf("current") + 1 || p.steps.filter((s) => s === "done").length;
-                  const theirTurn = st.ballInCourt === "client";
+                  const status = statuses.get(p.id)!;
                   return (
-                    <Link
-                      key={p.id}
-                      href={`/projects/${p.id}`}
-                      className="flex flex-col gap-4 rounded-[12px] bg-white p-5 text-brand-ink no-underline hover:shadow-[0_2px_10px_rgba(30,30,30,0.06)]"
-                    >
-                      <div className="flex items-center justify-between">
-                        <Pill tone={STAGE_PILL[current?.label ?? ""] ?? "grey"}>{st.paused ? "Paused" : (current?.label ?? "Delivered")}</Pill>
-                        {p.team.length > 0 && <AvatarStack names={p.team} size={28} max={3} />}
-                      </div>
-                      <div className="flex min-h-16 flex-col gap-1">
-                        <span className="text-[17px] leading-[1.3]">{p.name}</span>
-                        <span className="text-[13px] text-brand-ink-2">{p.next}</span>
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        <div className="h-1.5 overflow-hidden rounded-full bg-brand-track">
-                          <span className={cn("block h-full rounded-full", theirTurn ? "bg-brand-orange" : "bg-brand-ink")} style={{ width: `${(step / 5) * 100}%` }} />
-                        </div>
-                        <span className="font-brand-mono text-[11px] text-brand-ink-2">STEP {step} OF 5</span>
-                      </div>
-                    </Link>
+                    <li key={p.id} className="border-t border-brand-line first:border-t-0">
+                      <Link
+                        href={`/projects/${p.id}`}
+                        className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-3 px-6 py-[18px] text-brand-ink no-underline hover:bg-brand-chip @min-[600px]/col:grid-cols-[minmax(0,1.6fr)_minmax(0,1.4fr)_minmax(0,0.9fr)_80px]"
+                      >
+                        <span className="flex min-w-0 flex-col gap-0.5">
+                          <span className="truncate text-[16px]">{p.name}</span>
+                          <span className="truncate text-[13px] text-brand-ink-2">{p.meta}</span>
+                        </span>
+                        <span className="order-2 col-span-2 flex items-center gap-2 whitespace-nowrap text-[14px] @min-[600px]/col:order-none @min-[600px]/col:col-span-1">
+                          <span className={cn("size-2 shrink-0 rounded-full", status.dot)} />
+                          <span className="truncate">{status.label}</span>
+                        </span>
+                        <span className="order-3 col-span-2 flex flex-col gap-1.5 @min-[600px]/col:order-none @min-[600px]/col:col-span-1">
+                          <span className="block h-1 overflow-hidden rounded-full bg-brand-track">
+                            <span className="block h-full rounded-full bg-brand-ink" style={{ width: `${(step / 5) * 100}%` }} />
+                          </span>
+                          <span className="whitespace-nowrap font-brand-mono text-[11px] text-brand-ink-2">
+                            {(current?.label ?? "Delivered").toUpperCase()} · {step} OF 5
+                          </span>
+                        </span>
+                        <span className="flex justify-end">{p.team.length > 0 && <AvatarStack names={p.team} size={24} max={3} overlap={4} />}</span>
+                      </Link>
+                    </li>
                   );
                 })}
-              </div>
+              </ul>
             )}
-            {progress.length > PROJECT_CARDS && (
-              <Link href="/projects" className="self-start px-1 font-brand-mono text-[12px] text-brand-ink">
-                +{progress.length - PROJECT_CARDS} MORE
-              </Link>
+            {progress.length > PROJECT_ROWS && (
+              <div className="border-t border-brand-line px-6 py-4">
+                <Link href="/projects" className={monoLink}>
+                  +{progress.length - PROJECT_ROWS} MORE
+                </Link>
+              </div>
             )}
           </section>
         </div>
 
-        <div className="flex min-w-0 flex-col gap-4">
-          <BrandBriefInput />
-
-          <section aria-label="Next 7 days" className="flex flex-col gap-3.5 rounded-[12px] bg-white p-5">
-            <span className="text-[18px]">Next 7 days</span>
+        <aside className="flex min-w-0 flex-col gap-6 @min-[960px]/dash:col-span-4">
+          <section aria-label="Next 7 days" className={card}>
+            <CardTitle title="Next 7 days" />
             {upcoming.length === 0 ? (
-              <span className="text-[14px] text-brand-ink-2">Nothing scheduled this week.</span>
+              <p className="m-0 px-6 py-5 text-[14px] text-brand-ink-2">Nothing scheduled this week.</p>
             ) : (
-              <ol className="m-0 flex list-none flex-col gap-3 p-0">
-                {upcoming.slice(0, 5).map((u) => {
+              <ol className="m-0 list-none py-2 pl-0">
+                {upcoming.slice(0, UPCOMING_ROWS).map((u) => {
                   const body = (
                     <>
-                      <span className={cn("flex size-11 shrink-0 flex-col items-center justify-center rounded-[8px]", UPCOMING_TONE[u.kind])}>
-                        <span className="font-brand-mono text-[10px] uppercase">{new Intl.DateTimeFormat("en-GB", { weekday: "short" }).format(u.at)}</span>
+                      <span className="flex size-11 shrink-0 flex-col items-center justify-center rounded-[8px] bg-brand-chip">
+                        <span className="font-brand-mono text-[10px] uppercase text-brand-ink-2">{weekday(u.at)}</span>
                         <span className="text-[16px] leading-[1.1]">{u.at.getDate()}</span>
                       </span>
                       <span className="flex min-w-0 flex-col">
@@ -318,11 +241,11 @@ export default async function DashboardPage() {
                   return (
                     <li key={u.id}>
                       {u.href ? (
-                        <Link href={u.href} className="flex items-center gap-3 text-brand-ink no-underline">
+                        <Link href={u.href} className="flex items-center gap-3.5 px-6 py-3 text-brand-ink no-underline hover:bg-brand-chip">
                           {body}
                         </Link>
                       ) : (
-                        <div className="flex items-center gap-3">{body}</div>
+                        <div className="flex items-center gap-3.5 px-6 py-3">{body}</div>
                       )}
                     </li>
                   );
@@ -331,60 +254,76 @@ export default async function DashboardPage() {
             )}
           </section>
 
-          <section aria-label="This week in your market" className="flex flex-col gap-3.5 rounded-[12px] bg-brand-lime p-5">
-            <div className="flex items-center gap-2.5">
-              <span className="flex size-7 items-center justify-center rounded-[6px] bg-brand-pink">
-                <Signal className="size-4" strokeWidth={1.75} />
-              </span>
-              <span className="font-brand-mono text-[12px]">THIS WEEK IN YOUR MARKET</span>
-            </div>
-            {topMarket ? (
-              <>
-                <span className="text-[18px] leading-[1.35]">{topMarket.title}</span>
-                <span className="text-[13px] text-brand-ink-2">
-                  {topMarket.short}
-                  {otherMarket.length > 0 && ` Plus ${otherMarket.length} more update${otherMarket.length === 1 ? "" : "s"} in Insights.`}
-                </span>
-              </>
-            ) : (
-              <span className="text-[15px]">A quiet week: no performance drops or competitor launches.</span>
-            )}
-            <PillLink href="/insights" className="self-start">
-              See insights
-            </PillLink>
-          </section>
+          <Credits credits={credits} />
 
           {lead && (
-            <section aria-label="Account lead" className="flex items-center gap-3 rounded-[12px] bg-white px-5 py-4">
+            <section aria-label="Account lead" className="flex items-center gap-3 rounded-[12px] bg-white px-6 py-4">
               <Avatar name={lead} size={40} />
               <div className="flex min-w-0 flex-1 flex-col">
-                <span className="text-[15px]">{lead}</span>
+                <span className="truncate text-[15px]">{lead}</span>
                 <span className="text-[12px] text-brand-ink-2">Your account lead</span>
               </div>
               {messageProject && (
-                <PillLink href={`/projects/${messageProject}?channel=klingit`} tone="outline" arrow={false} className="px-3.5">
+                <Link
+                  href={`/projects/${messageProject}?channel=klingit`}
+                  className="inline-flex h-9 shrink-0 items-center rounded-full border border-brand-outline bg-white px-3.5 font-brand-mono text-[12px] text-brand-ink no-underline hover:border-brand-ink"
+                >
                   Message
-                </PillLink>
+                </Link>
               )}
             </section>
           )}
-        </div>
+
+          <Link href="/insights" className="flex items-center gap-2.5 px-2 text-[14px] text-brand-ink no-underline hover:underline">
+            <span className="size-2 shrink-0 bg-brand-lime-strong" />
+            <span className="flex-1">
+              {market.length === 0 ? "No market changes this week" : `${market.length} market insight${market.length === 1 ? "" : "s"} this week`}
+            </span>
+            <ArrowRight className="size-4" strokeWidth={1.75} />
+          </Link>
+        </aside>
       </div>
     </div>
   );
 }
 
-function Tile({ href, bg, dot, label, value, suffix }: { href: string; bg: string; dot: string; label: string; value: string; suffix?: string }) {
+/** "40 of 40 left · Oct". Approved estimates are taken from the allowance; ones still waiting are held back. No allowance = no "left". */
+function Credits({ credits }: { credits: CreditSummary }) {
+  const month = credits.month.slice(0, 3);
+  const total = credits.available;
+  const pct = (n: number) => (total ? `${Math.min(100, (n / total) * 100)}%` : "0%");
+  const note =
+    total === null
+      ? "No monthly allowance. Credits are billed as you approve estimates."
+      : credits.used === 0 && credits.awaiting === 0
+        ? "Nothing used yet this month. Estimates you approve are taken from here."
+        : `${credits.used} used${credits.awaiting ? `, ${credits.awaiting} held for estimates you haven't approved yet` : ""}. Estimates you approve are taken from here.`;
   return (
-    <Link href={href} className={cn("flex flex-col gap-7 rounded-[12px] p-5 text-brand-ink no-underline", bg)}>
-      <span className="flex items-center gap-2 whitespace-nowrap font-brand-mono text-[12px]">
-        <span className={cn("size-2 shrink-0", dot)} />
-        <span className="truncate">{label}</span>
-      </span>
-      <span className="flex items-baseline gap-2">
-        <span className="text-[56px] font-light leading-none tabular-nums">{value}</span>
-        {suffix && <span className="text-[18px] font-light text-brand-ink-2">{suffix}</span>}
-      </span>
-    </Link>
+    <section aria-label="Credits" className="flex flex-col gap-3 rounded-[12px] bg-white px-6 py-5">
+      <div className="flex items-baseline gap-3">
+        <h2 className="m-0 flex-1 text-[18px] font-normal leading-[1.3]">Credits</h2>
+        {total !== null && credits.free !== null ? (
+          <span className="text-[14px]">
+            <span className="tabular-nums">{credits.free}</span>
+            <span className="text-brand-ink-2">
+              {" "}
+              of {total} left · {month}
+            </span>
+          </span>
+        ) : (
+          <span className="text-[14px]">
+            <span className="tabular-nums">{credits.used}</span>
+            <span className="text-brand-ink-2"> used · {month}</span>
+          </span>
+        )}
+      </div>
+      {total !== null && (
+        <div role="img" aria-label={`${credits.used} of ${total} credits used`} className="flex h-1 overflow-hidden rounded-full bg-brand-track">
+          <span className="h-full bg-brand-ink" style={{ width: pct(credits.used) }} />
+          <span className="h-full bg-brand-outline" style={{ width: pct(credits.awaiting) }} />
+        </div>
+      )}
+      <span className="text-[12px] leading-[1.5] text-brand-ink-2">{note}</span>
+    </section>
   );
 }
