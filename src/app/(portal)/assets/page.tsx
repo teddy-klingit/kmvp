@@ -8,7 +8,7 @@ import { DownloadBrandButton } from "@/components/portal/download-brand-button";
 type Persona = { name: string; ageRange: string; description: string; traits: string[] };
 type VoiceAttribute = { label: string; leftLabel: string; rightLabel: string; value: number };
 
-export default async function BrandIQOverviewPage() {
+export default async function BrandOSOverviewPage() {
   const viewer = await getPortalViewer();
   const [client, brandOS, brandAssets] = await Promise.all([
     prisma.client.findUniqueOrThrow({ where: { id: viewer.clientId } }),

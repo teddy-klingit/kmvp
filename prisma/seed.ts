@@ -141,7 +141,7 @@ async function main() {
     { key: "learning_agent", name: "Learning agent", category: "ARCHIVE", description: "Extracts rules from outcomes into the Brand OS." },
   ] as const;
 
-  // Agents the client can trigger themselves from Brand IQ, not just Klingit
+  // Agents the client can trigger themselves from Brand OS, not just Klingit
   // staff internally — niche, single-purpose agents are self-contained
   // enough to hand directly to the client; agents tied to internal pipeline
   // stages (staffing, QA, delivery, etc.) or too broad to run unsupervised

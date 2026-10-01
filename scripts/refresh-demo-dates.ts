@@ -88,6 +88,37 @@ async function main() {
     }
   }
 
+  // The flagship's team: the seed confirms it yesterday, so the first draft (2 business days later) is still ahead.
+  // Older databases confirmed it weeks before its other dates, which made the first draft read as long past.
+  const flagship = await prisma.project.findFirst({ where: { clientId: klarna.id, name: "Q3 App install campaign", status: "IN_PRODUCTION" }, include: { team: true } });
+  if (flagship?.team?.confirmedAt) {
+    const firstDraft = new Date(flagship.team.confirmedAt.getTime() + 2 * DAY_MS);
+    if (firstDraft < now) {
+      const yesterday = daysFromToday(-1, now);
+      keep("teamConfirmedAt", [{ id: flagship.team.id, confirmedAt: flagship.team.confirmedAt }]);
+      console.log(`- Q3 team confirmed ${flagship.team.confirmedAt.toISOString().slice(0, 10)} → ${yesterday.toISOString().slice(0, 10)} (first draft was already past)`);
+      if (apply) await prisma.team.update({ where: { id: flagship.team.id }, data: { confirmedAt: yesterday } });
+    }
+  }
+
+  // Demo meetings at a real meeting time (the old seed stored whatever time it ran at, e.g. 21:52).
+  const meetingTimes: Record<string, [number, number]> = { "Campaign sync": [10, 0], "Quarterly brand review": [14, 30] };
+  for (const t of await prisma.touchpoint.findMany({ where: { clientId: klarna.id } })) {
+    const hm = meetingTimes[t.title];
+    if (!hm) continue;
+    const stockholm = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Stockholm", hour: "numeric", minute: "numeric", hourCycle: "h23" }).format(t.scheduledAt);
+    if (stockholm === `${String(hm[0]).padStart(2, "0")}:${String(hm[1]).padStart(2, "0")}`) continue;
+    // Same calendar day, at hh:mm Stockholm time (CEST/CET offset from the date itself).
+    const day = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Stockholm" }).format(t.scheduledAt);
+    const offset = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Stockholm", timeZoneName: "shortOffset" }).formatToParts(t.scheduledAt).find((x) => x.type === "timeZoneName")?.value.replace("GMT", "") || "+0";
+    const sign = offset.startsWith("-") ? "-" : "+";
+    const hours = offset.replace(/^[+-]/, "").split(":");
+    const iso = `${day}T${String(hm[0]).padStart(2, "0")}:${String(hm[1]).padStart(2, "0")}:00${sign}${hours[0].padStart(2, "0")}:${(hours[1] ?? "00").padStart(2, "0")}`;
+    keep("touchpointTime", [{ id: t.id, scheduledAt: t.scheduledAt }]);
+    console.log(`- ${t.title}: ${stockholm} → ${iso.slice(11, 16)} Stockholm`);
+    if (apply) await prisma.touchpoint.update({ where: { id: t.id }, data: { scheduledAt: new Date(iso) } });
+  }
+
   // Competitor alerts: one per competitor per 7 days, as the code now records them.
   const competitor = await prisma.marketSignal.findMany({ where: { type: "COMPETITOR", archivedAt: null }, orderBy: { publishedAt: "asc" } });
   const lastKept = new Map<string, Date>();

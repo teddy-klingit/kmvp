@@ -118,18 +118,19 @@ Extra tokens: `ds-note` / `ds-note-border` (staff notes, changed estimate rows),
 
 ## Brand theme (client Dashboard only, for now)
 
-`ClientHome.dc.html` uses the Klingit website brand. It's a separate theme. Scope it with `className="theme-brand"`, which sets the cream background, ink text and Albert Sans. Today only `/dashboard` uses it: `PortalMain` wraps that page in it, and the portal sidebar switches to brand styling on that route.
+`ClientHome.dc.html` uses the Klingit website brand. It's a separate theme. Scope it with `className="theme-brand"`, which sets the light grey background, ink text and Albert Sans. Today only `/dashboard` uses it: `PortalMain` wraps that page in it, and the portal sidebar switches to brand styling on that route.
 
 | Token | Value | Use |
 |---|---|---|
-| `brand-cream` | #F9F5EC | Page background, nav |
+| `brand-page` | #F7F7F8 | Page background, nav (the VI light grey; the first design pass used cream) |
+| `brand-cream` | #F9F5EC | Text on dark surfaces (banner eyebrow, the dark brief card) |
 | `brand-ink` / `brand-ink-2` | #1E1E1E / #4F4F50 | Text; secondary text |
 | `brand-orange` | #FF5D02 | Primary call to action (pill), "your turn" dots, progress bar when it's the client's turn |
 | `brand-lime` / `brand-lime-strong` | #E4F2B3 / #8D9E47 | Credits tile, market card, brief buttons, the hero connector |
 | `brand-pink` | #F8DCF9 | Delivered tile, icon tiles, estimate dates |
 | `brand-peach` | #FEECE5 | Your-turn tile, "Up next" and near-deadline pills |
 | `brand-grey` | #F7F7F8 | Neutral pills, brief question box |
-| `brand-line` / `brand-track` / `brand-outline` | #E6E0D2 / #F0EEE8 / #C2C3C5 | Nav divider / progress track / outline buttons |
+| `brand-line` / `brand-track` / `brand-outline` | #E4E4E6 / #EEEEF0 / #C2C3C5 | Nav divider / progress track / outline buttons |
 | `font-brand` | Albert Sans 300/400/600 | Text (stand-in for the licensed PolySans) |
 | `font-brand-mono` | Azeret Mono 400 | Eyebrows, labels, button text |
 | `rounded-pill` | 999px | Buttons, pills and nav items |

@@ -113,7 +113,9 @@ export function inProgress(items: Item[], typeLabel: (t: string) => string, acco
               ? `Brief · ${left} question${left === 1 ? "" : "s"} left`
               : `${current?.label ?? "Next step"} · waiting on you`
           : state.stage === "production" && eta
-            ? `First draft ${formatDay(eta)}`
+            ? endOfDay(eta).getTime() < Date.now()
+              ? `First draft late · was due ${formatDay(eta)}`
+              : `First draft ${formatDay(eta)}`
             : (KLINGIT_NEXT[state.stage] ?? `${current?.label ?? "Next step"} · in progress`);
       const team = state.keyFacts.staffedTeam.map((m) => m.name);
       return {

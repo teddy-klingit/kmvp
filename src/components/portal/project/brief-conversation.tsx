@@ -17,7 +17,7 @@ type TranscriptTurn = { key?: string; question: string; answer: string };
 
 const LAST_QUESTION_THINKING = [
   "Reviewing your full brief…",
-  "Checking it against your Brand IQ…",
+  "Checking it against your Brand OS…",
   "Weighing what's missing…",
   "Almost done…",
 ];

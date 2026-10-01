@@ -58,7 +58,7 @@ export default async function AgentDetailPage({ params }: { params: Promise<{ ag
             <div>
               <p className="text-sm font-medium">Self-service</p>
               <p className="text-sm text-muted-foreground">
-                Let clients run this agent themselves from Brand IQ, without a Klingit account manager in the loop.
+                Let clients run this agent themselves from Brand OS, without a Klingit account manager in the loop.
               </p>
             </div>
             <form action={updateAgentSelfServiceAction} className="flex gap-2">

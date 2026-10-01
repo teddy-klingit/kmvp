@@ -134,7 +134,8 @@
   --ds-info-text: #2c3a8c;
   --ds-credit-pending: #9aa0a8;
   /* Brand theme (Klingit website look). Used on the client Dashboard only for now — see docs/design-system.md. */
-  --brand-cream: #f9f5ec;
+  --brand-cream: #f9f5ec; /* text on dark surfaces only */
+  --brand-page: #f7f7f8; /* page and nav background (VI light grey) */
   --brand-ink: #1e1e1e;
   --brand-ink-2: #4f4f50;
   --brand-orange: #ff5d02;
@@ -143,8 +144,8 @@
   --brand-pink: #f8dcf9;
   --brand-peach: #feece5;
   --brand-grey: #f7f7f8;
-  --brand-line: #e6e0d2;
-  --brand-track: #f0eee8;
+  --brand-line: #e4e4e6;
+  --brand-track: #eeeef0;
   --brand-outline: #c2c3c5;
   --ds-note: #fffbef;
   --ds-watch-border: #c9a227;
@@ -252,6 +253,7 @@
   --color-ds-info-text: var(--ds-info-text);
   --color-ds-credit-pending: var(--ds-credit-pending);
   --color-brand-cream: var(--brand-cream);
+  --color-brand-page: var(--brand-page);
   --color-brand-ink: var(--brand-ink);
   --color-brand-ink-2: var(--brand-ink-2);
   --color-brand-orange: var(--brand-orange);
@@ -308,9 +310,9 @@ body {
   }
 }
 
-/* The brand theme: cream page, Albert Sans text. Scope it with class="theme-brand". */
+/* The brand theme: light grey page, Albert Sans text. Scope it with class="theme-brand". */
 .theme-brand {
-  background: var(--brand-cream);
+  background: var(--brand-page);
   color: var(--brand-ink);
   font-family: var(--font-albert), "Helvetica Neue", Arial, sans-serif;
   font-size: 15px;

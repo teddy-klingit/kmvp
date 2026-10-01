@@ -35,7 +35,7 @@ import { cn } from "@/lib/utils";
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Projects", href: "/projects", icon: FolderKanban },
-  { label: "Brand IQ", href: "/assets", icon: ImageIcon },
+  { label: "Brand OS", href: "/assets", icon: ImageIcon },
   { label: "Insights", href: "/insights", icon: BarChart3 },
   { label: "Calendar", href: "/calendar", icon: CalendarDays },
   { label: "Reports", href: "/reports", icon: FileText },
@@ -61,7 +61,7 @@ export function PortalSidebar(props: SidebarProps) {
   const hasSecondarySidebar = pathname === "/assets" || pathname.startsWith("/assets/");
   const isNarrow = useIsNarrowViewport();
   const collapsed = manualOverride ?? hasSecondarySidebar;
-  // The client Dashboard uses the brand theme (cream, pills); every other page keeps the product look for now.
+  // The client Dashboard uses the brand theme (grey page, pills); every other page keeps the product look for now.
   const brand = pathname === "/dashboard";
 
   // Exposed so viewport-fixed elements (e.g. a bottom action bar) can offset
@@ -76,7 +76,7 @@ export function PortalSidebar(props: SidebarProps) {
       <aside
         className={cn(
           "hidden h-screen shrink-0 flex-col justify-between transition-[width] duration-200 min-[900px]:flex",
-          brand ? "bg-brand-cream pb-5 pt-7 font-brand" : "border-r border-ds-border bg-ds-bg py-6",
+          brand ? "bg-brand-page pb-5 pt-7 font-brand" : "border-r border-ds-border bg-ds-bg py-6",
           collapsed ? "w-16 px-2" : brand ? "w-[240px] px-4" : "w-[232px] px-4"
         )}
       >
@@ -93,7 +93,7 @@ function MobileTopBar({ brand, ...props }: SidebarProps & { brand: boolean }) {
       <header
         className={cn(
           "sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b px-4 min-[900px]:hidden",
-          brand ? "border-brand-line bg-brand-cream" : "border-ds-border bg-ds-bg"
+          brand ? "border-brand-line bg-brand-page" : "border-ds-border bg-ds-bg"
         )}
       >
         <Link href="/dashboard" className="flex items-center text-ds-text" aria-label="Klingit home">
@@ -114,7 +114,7 @@ function MobileTopBar({ brand, ...props }: SidebarProps & { brand: boolean }) {
         <DialogPrimitive.Content
           className={cn(
             "fixed inset-y-0 left-0 z-50 flex w-[288px] max-w-[85vw] flex-col justify-between overflow-y-auto px-4 py-5 shadow-xl outline-none min-[900px]:hidden",
-            brand ? "bg-brand-cream font-brand" : "bg-ds-bg"
+            brand ? "bg-brand-page font-brand" : "bg-ds-bg"
           )}
         >
           <DialogPrimitive.Title className="sr-only">Menu</DialogPrimitive.Title>

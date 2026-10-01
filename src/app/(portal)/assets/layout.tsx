@@ -14,7 +14,7 @@ export default async function AssetsLayout({ children }: { children: React.React
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Brand IQ" />
+      <PageHeader title="Brand OS" />
       <div className="flex gap-6">
         <BrandIqSidebar templateCategories={categories.map((c) => c.category)} />
         <div className="min-w-0 flex-1">{children}</div>
