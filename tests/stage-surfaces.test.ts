@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { Fragment, cloneElement, createElement, isValidElement, type ReactElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { setMockSession } from "./setup";
+import { prisma } from "@/lib/prisma";
 import { createStageFixtures, type StageKey } from "./stage-fixtures";
 import { ConversationProvider } from "@/components/ds/conversation-context";
 import { legacyTabRedirect, type LegacyTab, type ProjectStage } from "@/lib/project-state";
@@ -68,6 +69,11 @@ function region(html: string, marker: string, ends: string[]) {
   const rest = html.slice(start + marker.length);
   const cut = Math.min(...ends.map((e) => rest.indexOf(e)).filter((i) => i >= 0), rest.length);
   return rest.slice(0, cut);
+}
+
+/** The text of the dashboard's "Your turn" card. */
+function yourTurnList(html: string) {
+  return asText(region(html, 'data-list="your-turn"', ['aria-label="In progress"']));
 }
 
 const tab = (id: string) => ({ params: Promise.resolve({ id }) });
@@ -173,12 +179,9 @@ describe.each(STAGES)("stage %s — every surface agrees", (stage) => {
     expect(column).toContain(stage === "closed" ? "Delivered" : e.next);
   });
 
-  it("dashboard: in Needs your input only when it's the client's turn, never in both lists", async () => {
+  it("dashboard: in Your turn only when it's the client's turn", async () => {
     const html = await render(DashboardPage());
-    const urgent = asText(region(html, 'data-list="urgent"', ['data-list="needs-input"', "Active projects"]));
-    const needsInput = asText(region(html, 'data-list="needs-input"', ["Active projects"]));
-    expect(urgent).not.toContain(p().name);
-    expect(needsInput.includes(p().name)).toBe(e.dashboard);
+    expect(yourTurnList(html).includes(p().name)).toBe(e.dashboard);
   });
 
   it("header: status pill, milestone timeline, 3 tabs, Share, conversation panel", async () => {
@@ -320,22 +323,34 @@ describe("regressions — the contradictions seen on a Draft project ('Klarna 10
 
   it("Dashboard's estimate approval matches the board's Estimate column", async () => {
     const [dashboard, board] = await Promise.all([render(DashboardPage()), render(ProjectsPage({ searchParams: Promise.resolve({}) }))]);
-    expect(asText(region(dashboard, 'data-list="needs-input"', ["Active projects"]))).toContain("approve estimate (28 credits)");
+    expect(yourTurnList(dashboard)).toContain("Approve estimate · 28 credits");
     expect(asText(region(board, 'data-column="Estimate"', ["data-column="]))).toContain(fx.projects.awaiting_approval.name);
   });
 
-  it("an overdue approval is urgent — and only urgent", async () => {
-    const html = await render(DashboardPage());
+  it("an overdue approval leads Your turn with a red Overdue pill; nothing else is marked overdue", async () => {
+    const list = yourTurnList(await render(DashboardPage()));
     const name = fx.overdueApproval.name;
-    expect(asText(region(html, 'data-list="urgent"', ['data-list="needs-input"', "Active projects"]))).toContain(name);
-    expect(asText(region(html, 'data-list="needs-input"', ["Active projects"]))).not.toContain(name);
+    expect(list).toContain(`${name} ·`);
+    // Sorted by deadline, so the overdue item comes first.
+    expect(list.indexOf("Overdue")).toBeLessThan(list.indexOf(fx.projects.awaiting_approval.name));
+    // The pill, not the fixture's own name ("Stage Deck Overdue Approval").
+    expect(list.match(/Overdue(?! Approval)/g)).toHaveLength(1);
+    expect(list).not.toContain("Urgent matters");
   });
 
-  it("Dashboard lists the estimate in one list only", async () => {
-    const html = await render(DashboardPage());
-    const name = fx.projects.awaiting_approval.name;
-    const urgent = asText(region(html, 'data-list="urgent"', ['data-list="needs-input"', "Active projects"]));
-    const needsInput = asText(region(html, 'data-list="needs-input"', ["Active projects"]));
-    expect([urgent.includes(name), needsInput.includes(name)].filter(Boolean)).toHaveLength(1);
+  it("Dashboard lists the estimate once", async () => {
+    const list = yourTurnList(await render(DashboardPage()));
+    expect(list.split(fx.projects.awaiting_approval.name).length - 1).toBe(1);
+  });
+
+  it("header counts only client actions — market alerts never count — and no allowance is invented", async () => {
+    const before = asText(await render(DashboardPage()));
+    const count = before.match(/(\d+) things? needs? you/)?.[1];
+    await prisma.marketSignal.create({ data: { clientId: fx.client.id, type: "COMPETITOR", title: "Zip launched 3 new ads on LinkedIn", summary: "x", source: "LinkedIn", publishedAt: new Date() } });
+    const after = asText(await render(DashboardPage()));
+    expect(after.match(/(\d+) things? needs? you/)?.[1]).toBe(count);
+    expect(after).toContain("Competitors launched 3 new LinkedIn ads");
+    expect(after).not.toContain("left this month");
+    expect(after).toContain("no monthly allowance");
   });
 });

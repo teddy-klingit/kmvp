@@ -132,6 +132,7 @@
   --ds-danger-text: #9b1c1c;
   --ds-info-tint: #eef0fb;
   --ds-info-text: #2c3a8c;
+  --ds-credit-pending: #9aa0a8;
   --ds-note: #fffbef;
   --ds-watch-border: #c9a227;
   --ds-dashed: #b9bdc4;
@@ -236,6 +237,7 @@
   --color-ds-danger-text: var(--ds-danger-text);
   --color-ds-info-tint: var(--ds-info-tint);
   --color-ds-info-text: var(--ds-info-text);
+  --color-ds-credit-pending: var(--ds-credit-pending);
   --color-ds-note: var(--ds-note);
   --color-ds-watch-border: var(--ds-watch-border);
   --color-ds-dashed: var(--ds-dashed);

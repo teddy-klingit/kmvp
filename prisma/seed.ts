@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import { PrismaClient, InternalRole, type Prisma } from "../src/generated/prisma";
+import { DEMO_DUE_IN_DAYS } from "./demo-dates";
 
 const prisma = new PrismaClient();
 
@@ -7,6 +8,7 @@ const prisma = new PrismaClient();
 // regardless of when this seed is actually run.
 const TODAY = new Date();
 const days = (n: number) => new Date(TODAY.getTime() + n * 86400000);
+const atTime = (d: Date, h: number, m: number) => new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, m);
 
 const PASSWORD = "klingit-demo";
 
@@ -208,8 +210,8 @@ async function main() {
       brandSummary: "150M users · Pink-first brand, bold type, anti-bank tone",
       planTier: "SCALE",
       status: "ACTIVE",
-      monthlyCreditAllowance: 40,
-      creditBalance: 27,
+      monthlyCreditAllowance: 120,
+      creditBalance: 113,
       healthScore: 88,
       accountLeadId: teddy.id,
       renewalDate: days(120),
@@ -304,7 +306,7 @@ async function main() {
     name: "Q3 App install campaign",
     status: "IN_PRODUCTION",
     startedAt: days(-5),
-    dueDate: days(6),
+    dueDate: days(DEMO_DUE_IN_DAYS["Q3 App install campaign"]),
     deliveredAt: null,
     creditsQuoted: 34,
     priceAmount: 5440,
@@ -314,7 +316,7 @@ async function main() {
     BRIEF: { status: "COMPLETED", startedAt: days(-5), completedAt: days(-5), summary: "Jack submitted brief. 2 gaps flagged and resolved by agent." },
     ESTIMATE: { status: "COMPLETED", startedAt: days(-4), completedAt: days(-3), summary: "34-credit scope approved by Jack Ross." },
     STAFFING: { status: "COMPLETED", startedAt: days(-3), completedAt: days(-1), summary: "Team confirmed: Sara N., Marcus L., Priya K." },
-    PRODUCTION: { status: "ACTIVE", startedAt: days(-1), etaAt: days(1), summary: "Ad gen agent generating 14 social formats. Copy agent EN complete, SE in progress." },
+    PRODUCTION: { status: "ACTIVE", startedAt: days(-1), etaAt: days(1), summary: "Team producing 14 social formats. EN copy done, SE in progress." },
     QA: { status: "UPCOMING", etaAt: days(2) },
     FIRST_DRAFT_DELIVERY: { status: "UPCOMING", etaAt: days(2) },
     FEEDBACK: { status: "UPCOMING", etaAt: days(4) },
@@ -414,7 +416,7 @@ async function main() {
     status: "AWAITING_REVIEW",
     startedAt: days(-6),
     deliveredAt: days(0),
-    dueDate: days(3),
+    dueDate: days(DEMO_DUE_IN_DAYS["Summer social pack"]),
     creditsQuoted: 22,
     priceAmount: 3520,
     priceCurrency: "EUR",
@@ -459,7 +461,7 @@ async function main() {
     clientId: klarna.id,
     name: "Autumn brand refresh",
     status: "BRIEFING",
-    dueDate: days(24),
+    dueDate: days(DEMO_DUE_IN_DAYS["Autumn brand refresh"]),
   });
   await syncStages(autumn.id, { BRIEF: { status: "ACTIVE", startedAt: days(-1) } });
   const autumnBriefData = {
@@ -522,19 +524,22 @@ async function main() {
   });
 
   // Credit ledger — keyed by note + resulting balance (the allowance note repeats monthly).
+  // Dated inside the current month (never before the 1st), so the dashboard's "this month" is right on any day.
+  const monthStart = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1, 9);
+  const inMonth = (n: number) => new Date(Math.max(monthStart.getTime(), days(n).getTime()));
   for (const entry of [
-    { type: "ALLOWANCE" as const, amount: 40, balanceAfter: 40, note: "Monthly allowance", createdAt: days(-30) },
-    { projectId: summer.id, type: "CONSUMPTION" as const, amount: -22, balanceAfter: 24, note: "Summer social pack scope", createdAt: days(-5) },
-    { projectId: q3.id, type: "CONSUMPTION" as const, amount: -34, balanceAfter: 6, note: "Q3 App install campaign scope", createdAt: days(-3) },
-    { type: "ALLOWANCE" as const, amount: 40, balanceAfter: 46, note: "Monthly allowance", createdAt: days(-2) },
-    { type: "ADJUSTMENT" as const, amount: 3, balanceAfter: 27, note: "Goodwill credit — late revision turnaround", createdAt: days(-1) },
+    { type: "ALLOWANCE" as const, amount: 40, balanceAfter: 40, note: "Monthly allowance", createdAt: new Date(monthStart.getTime() - 30 * 86400000) },
+    { projectId: summer.id, type: "CONSUMPTION" as const, amount: -22, balanceAfter: 24, note: "Summer social pack scope", createdAt: new Date(monthStart.getTime() - 5 * 86400000) },
+    { type: "ALLOWANCE" as const, amount: 120, balanceAfter: 144, note: "Monthly allowance", createdAt: monthStart },
+    { projectId: q3.id, type: "CONSUMPTION" as const, amount: -34, balanceAfter: 110, note: "Q3 App install campaign scope", createdAt: inMonth(-3) },
+    { type: "ADJUSTMENT" as const, amount: 3, balanceAfter: 113, note: "Goodwill credit — late revision turnaround", createdAt: inMonth(-1) },
   ]) {
     await sync(prisma.creditLedgerEntry, { clientId: klarna.id, note: entry.note, balanceAfter: entry.balanceAfter }, { clientId: klarna.id, ...entry });
   }
 
   // Touchpoints
-  await sync(prisma.touchpoint, { clientId: klarna.id, title: "Campaign sync" }, { clientId: klarna.id, withClientUserId: jack.id, title: "Campaign sync", scheduledAt: days(2) });
-  await sync(prisma.touchpoint, { clientId: klarna.id, title: "Quarterly brand review" }, { clientId: klarna.id, title: "Quarterly brand review", scheduledAt: days(9) });
+  await sync(prisma.touchpoint, { clientId: klarna.id, title: "Campaign sync" }, { clientId: klarna.id, withClientUserId: jack.id, title: "Campaign sync", scheduledAt: atTime(days(2), 10, 0) });
+  await sync(prisma.touchpoint, { clientId: klarna.id, title: "Quarterly brand review" }, { clientId: klarna.id, title: "Quarterly brand review", scheduledAt: atTime(days(9), 14, 30) });
 
   // Notifications — project-linked ones are informational; the dashboard reads project state.
   for (const n of [

@@ -284,6 +284,18 @@ async function main() {
     await prisma.comment.create({ data: { projectId: q3.id, kind: "SYSTEM", body: `Estimate v2 sent: ${reason}`, createdAt: hoursAgo(3) } });
   }
 
+  // This week in the market: live Insights pages create these from the ad platforms; seed a typical week.
+  await prisma.marketSignal.createMany({
+    data: [
+      { clientId: klarna.id, type: "PERFORMANCE", dedupeKey: "perf:LinkedIn:aw-1", title: '"Pay later awareness · SE" CTR down 44% vs its trailing average', summary: "LinkedIn: 0.82% → 0.46% CTR.", source: "LinkedIn", relevance: "Relevant", publishedAt: hoursAgo(30) },
+      { clientId: klarna.id, type: "PERFORMANCE", dedupeKey: "perf:LinkedIn:aw-2", title: '"Pay later awareness · NO" CTR down 61% vs its trailing average', summary: "LinkedIn: 0.74% → 0.29% CTR.", source: "LinkedIn", relevance: "High relevance", publishedAt: hoursAgo(54) },
+      { clientId: klarna.id, type: "PERFORMANCE", dedupeKey: "perf:LinkedIn:aw-3", title: '"Checkout video · DK" CTR down 100% vs its trailing average', summary: "LinkedIn: 0.51% → 0% CTR.", source: "LinkedIn", relevance: "High relevance", publishedAt: hoursAgo(76) },
+      { clientId: klarna.id, type: "COMPETITOR", dedupeKey: "competitor:zip", title: "Zip launched 3 new ads on LinkedIn", summary: "Spotted in the LinkedIn Ad Library since the last check.", source: "LinkedIn", relevance: "High relevance", publishedAt: hoursAgo(28) },
+      { clientId: klarna.id, type: "COMPETITOR", dedupeKey: "competitor:afterpay", title: "Afterpay launched 3 new ads on LinkedIn", summary: "Spotted in the LinkedIn Ad Library since the last check.", source: "LinkedIn", relevance: "High relevance", publishedAt: hoursAgo(28) },
+      { clientId: klarna.id, type: "TREND", title: "Marketers are planning for a consumer that no longer exists", summary: "Industry news.", source: "News", relevance: "Watch", publishedAt: hoursAgo(20) },
+    ],
+  });
+
   console.log("Stage demo projects:", { briefing: deck.id, awaiting_approval: investor.id, production: q3.id, final: holiday.id });
 }
 

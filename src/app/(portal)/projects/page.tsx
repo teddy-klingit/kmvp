@@ -28,12 +28,23 @@ function dateLine({ project, state }: BoardItem) {
 export default async function ProjectsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ view?: string }>;
+  searchParams: Promise<{ view?: string; q?: string }>;
 }) {
-  const { view } = await searchParams;
+  const { view, q } = await searchParams;
   const isList = view === "list";
   const viewer = await getPortalViewer();
-  const projects = await loadProjectStates(projectVisibilityWhere(viewer.id), viewer.clientId);
+  const term = q?.trim();
+  // Home search: matches project names and their assets' names.
+  const projects = await loadProjectStates(
+    // AND, never a spread: the visibility rule is itself an OR and must not be overwritten.
+    {
+      AND: [
+        projectVisibilityWhere(viewer.id),
+        ...(term ? [{ OR: [{ name: { contains: term } }, { assets: { some: { name: { contains: term } } } }] }] : []),
+      ],
+    },
+    viewer.clientId
+  );
 
   return (
     <div className="flex flex-col gap-6">

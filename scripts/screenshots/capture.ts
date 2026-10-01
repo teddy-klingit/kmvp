@@ -6,6 +6,7 @@
  *   npx tsx scripts/screenshots/capture.ts f2 --widths=1440,390
  *   npx tsx scripts/screenshots/capture.ts h --widths=1440,1280,390
  *   npx tsx scripts/screenshots/capture.ts i
+ *   npx tsx scripts/screenshots/capture.ts home
  *
  * Output: screenshots/<phase>/...png
  */
@@ -114,8 +115,32 @@ async function phaseI() {
   await browser.close();
 }
 
+/** Client home (ClientHome.dc.html) at 1440 and 390, signed in as Jack. */
+async function phaseHome() {
+  const outDir = "screenshots/home";
+  mkdirSync(outDir, { recursive: true });
+  const browser = await chromium.launch();
+  for (const width of [1440, 390]) {
+    const context = await browser.newContext({ viewport: { width, height: 900 }, deviceScaleFactor: 1 });
+    const page = await context.newPage();
+    await page.goto(`${BASE}/sign-in`, { waitUntil: "networkidle" });
+    await page.fill('input[name="email"]', "jack.ross@klarna.com");
+    await page.fill('input[name="password"]', DEMO_PASSWORD);
+    await page.click('button[type="submit"]');
+    await page.waitForURL((url) => url.pathname === "/dashboard", { timeout: 60_000 });
+    await shot(page, "/dashboard", "dashboard", outDir, width);
+    if (width < 768) {
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      if (overflow > 0) console.warn(`  ! horizontal overflow ${overflow}px`);
+    }
+    await context.close();
+  }
+  await browser.close();
+}
+
 async function main() {
   if (phase === "i") return phaseI();
+  if (phase === "home") return phaseHome();
   const prisma = new PrismaClient({ datasourceUrl: "file:./prisma/screens.db" });
   const projects = await prisma.project.findMany({ where: { name: { in: Object.values(STAGE_PROJECTS) } }, select: { id: true, name: true } });
   const jack = await prisma.user.findUniqueOrThrow({ where: { email: "jack.ross@klarna.com" }, select: { id: true } });

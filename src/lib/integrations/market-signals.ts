@@ -6,6 +6,22 @@ import type { NewsItem } from "@/lib/integrations/industry-news";
 const SNAPSHOT_STALE_MS = 6 * 60 * 60 * 1000; // don't re-diff competitors more than once per 6h
 const SPIKE_NOTIFY_THRESHOLD = 0.5; // notify the client when volume is up 50%+
 const NEW_AD_NOTIFY_THRESHOLD = 3; // notify when 3+ new ads appear in one check
+// One competitor alert per competitor per week, the same way performance alerts are deduped:
+// a brand that keeps launching ads is one ongoing story, not a new alert every 6h check.
+const COMPETITOR_DEDUPE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
+export function competitorAlertKey(brand: string) {
+  return `competitor:${brand.trim().toLowerCase()}`;
+}
+
+/** True when this competitor already raised an alert in the last 7 days (archived alerts count too). */
+async function competitorAlertedRecently(clientId: string, brand: string) {
+  const recent = await prisma.marketSignal.findFirst({
+    where: { clientId, dedupeKey: competitorAlertKey(brand), publishedAt: { gte: new Date(Date.now() - COMPETITOR_DEDUPE_WINDOW_MS) } },
+    select: { id: true },
+  });
+  return Boolean(recent);
+}
 
 async function notifyClientOwner(clientId: string, title: string, body: string) {
   const owner = await prisma.clientUser.findFirst({ where: { clientId, permission: "OWNER" } });
@@ -65,10 +81,11 @@ export async function recordCompetitorSnapshots(
     const previousAdIds = new Set(Array.isArray(previous.adIds) ? (previous.adIds as string[]) : []);
     const newAdCount = snap.adIds.filter((id) => !previousAdIds.has(id)).length;
 
-    if (newAdCount > 0) {
+    if (newAdCount > 0 && !(await competitorAlertedRecently(clientId, snap.brand))) {
       await prisma.marketSignal.create({
         data: {
           clientId,
+          dedupeKey: competitorAlertKey(snap.brand),
           type: "COMPETITOR",
           title: `${snap.brand} launched ${newAdCount} new ad${newAdCount === 1 ? "" : "s"} on ${snap.platform}`,
           summary: `Spotted in the ${snap.platform} Ad Library since the last check.`,
@@ -88,11 +105,12 @@ export async function recordCompetitorSnapshots(
 
     if (snap.totalAds !== null && previous.totalAds !== null && previous.totalAds >= 5) {
       const pctChange = (snap.totalAds - previous.totalAds) / previous.totalAds;
-      if (pctChange >= 0.3) {
+      if (pctChange >= 0.3 && !(await competitorAlertedRecently(clientId, snap.brand))) {
         const pct = Math.round(pctChange * 100);
         await prisma.marketSignal.create({
           data: {
             clientId,
+            dedupeKey: competitorAlertKey(snap.brand),
             type: "COMPETITOR",
             title: `${snap.brand}'s ad volume up ${pct}% on ${snap.platform}`,
             summary: `${previous.totalAds} → ${snap.totalAds} live ads.`,

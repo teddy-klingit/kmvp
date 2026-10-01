@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
+import { OpenConversationFromQuery } from "@/components/ds/open-conversation-from-query";
 import { scheduleAutopilot } from "@/lib/autopilot-schedule";
 import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
@@ -46,6 +47,9 @@ export default async function ProjectLayout({
 
   return (
     <ConversationProvider defaultChannel="klingit">
+      <Suspense fallback={null}>
+        <OpenConversationFromQuery />
+      </Suspense>
       {/* PortalMain renders project pages full-bleed, so the panel runs full height down the right edge. */}
       <div className="flex min-h-full">
         <div className="@container/main min-w-0 flex-1 px-4 pb-24 pt-6 md:px-10 md:pb-12 md:pt-8">
