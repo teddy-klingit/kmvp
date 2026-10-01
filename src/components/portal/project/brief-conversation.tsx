@@ -1,25 +1,26 @@
 import Link from "next/link";
+import { Check, FileText, Link2 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Check, FileText, Link2, ArrowRight } from "lucide-react";
-import { cn, jsonArray } from "@/lib/utils";
-import {
-  answerBriefQuestionAction,
-  answerDynamicBriefQuestionAction,
-  postCommentAction,
-  startProjectAction,
-} from "@/lib/actions/project-actions";
+import { Card, CardBody, CardHeader } from "@/components/ds/card";
+import { Button } from "@/components/ds/button";
+import { StatusPill } from "@/components/ds/status-pill";
+import { AskButton } from "@/components/ds/ask-button";
+import { jsonArray } from "@/lib/utils";
+import { answerBriefQuestionAction, answerDynamicBriefQuestionAction, startProjectAction } from "@/lib/actions/project-actions";
 import { getEffectiveBriefQuestions } from "@/lib/brief-questions";
 import { BriefIntakeForm } from "@/components/portal/brief-intake-form";
 import { AnswerChips } from "@/components/portal/answer-chips";
-import { CollapsibleGaps } from "@/components/portal/collapsible-gaps";
-import { SuggestedReplyChips } from "@/components/portal/suggested-reply-chips";
-import { CommentComposer } from "@/components/portal/comment-composer";
 import type { PortalViewer } from "@/lib/brief-intake";
 import type { ProjectState } from "@/lib/project-state";
 
 type TranscriptTurn = { key?: string; question: string; answer: string };
+
+const LAST_QUESTION_THINKING = [
+  "Reviewing your full brief…",
+  "Checking it against your Brand IQ…",
+  "Weighing what's missing…",
+  "Almost done…",
+];
 
 /**
  * The brief agent conversation, answered inline on Overview while the project
@@ -38,314 +39,143 @@ export async function BriefConversation({
   const brief =
     (await prisma.brief.findFirst({ where: { projectId: id, project: { clientId: viewer.clientId } } })) ??
     (await prisma.brief.create({ data: { projectId: id, status: "DRAFT" } }));
-  const isDraftProject = state.draft;
-
   const progress = state.brief;
-  const transcript = jsonArray<TranscriptTurn>(brief.transcript);
 
-  // ---- State 1: nothing yet — free-text/link/file intake ----
   if (progress.mode === "intake") {
-    return (
-      <div className="flex flex-col gap-6">
-        <div>
-          <h2 className="text-base font-semibold">Your brief</h2>
-          <p className="text-sm text-muted-foreground">
-            Tell us what you need in your own words — Klingit will structure it and ask what&apos;s missing.
-          </p>
-        </div>
-        <BriefIntakeForm projectId={id} />
-      </div>
-    );
+    return <BriefIntakeForm projectId={id} />;
   }
 
-  // ---- State 2: new-style dynamic Q&A ----
-  if (progress.mode === "dynamic") {
-    const nextQuestion = progress.next;
-    const complete = !nextQuestion;
-    const isLastQuestion = progress.total - progress.answered === 1;
-
-    return (
-      <div className="flex flex-col gap-6">
-        <div>
-          <h2 className="text-base font-semibold">Your brief</h2>
-          <p className="text-sm text-muted-foreground">A few quick questions and this is ready for the team.</p>
-        </div>
-
-        <Card className="flex items-start gap-3 p-5">
-          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
-            <FileText className="size-4" />
-          </span>
-          <div className="min-w-0">
-            <p className="text-sm font-medium">What you told us</p>
-            <p className="text-sm text-muted-foreground">{brief.rawIntake}</p>
-            {(brief.sourceLink || brief.sourceFileName) && (
-              <div className="mt-2 flex flex-wrap gap-2">
-                {brief.sourceLink && (
-                  <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                    <Link2 className="size-3" />
-                    {brief.sourceLink}
-                  </span>
-                )}
-                {brief.sourceFileName && (
-                  <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                    <FileText className="size-3" />
-                    {brief.sourceFileName}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-        </Card>
-
-        {transcript.length > 0 && (
-          <Card className="divide-y divide-border p-0">
-            {transcript.map((t, i) => (
-              <div key={i} className="flex items-start gap-3 px-5 py-3.5">
-                <span className="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded border-2 border-success bg-success text-ink">
-                  <Check className="size-2.5" />
-                </span>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium">{t.question}</p>
-                  <p className="truncate text-sm text-foreground">{t.answer}</p>
-                </div>
-              </div>
-            ))}
-          </Card>
-        )}
-
-        {complete ? (
-          <BriefCompleteCard
-            brief={brief}
-            projectId={id}
-            ctaLabel={isDraftProject ? "Start project" : "View project overview"}
-            isDraft={isDraftProject}
-            state={state}
-          />
-        ) : (
-          <>
-            <Card className="flex animate-in fade-in slide-in-from-bottom-1 items-start gap-3 p-5 duration-200">
-              <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-accent-soft text-xs font-semibold text-ink">
-                AI
-              </span>
-              <div>
-                <p className="text-sm">{nextQuestion.question}</p>
-                <p className="mt-0.5 text-xs font-medium text-ink">Brief agent</p>
-              </div>
-            </Card>
-
-            <AnswerChips
-              action={answerDynamicBriefQuestionAction}
-              hidden={{ briefId: brief.id, key: nextQuestion.key }}
-              quickAnswers={nextQuestion.quickAnswers}
-              thinkingLabel={
-                isLastQuestion
-                  ? [
-                      "Reviewing your full brief…",
-                      "Checking it against your Brand IQ…",
-                      "Weighing what's missing…",
-                      "Almost done…",
-                    ]
-                  : "Thinking of what to ask next…"
-              }
-            />
-            <PersistentBriefChat projectId={id} />
-          </>
-        )}
-      </div>
-    );
-  }
-
-  // ---- State 3: legacy fixed 4-question flow (pre-existing briefs) ----
-  const answers: Record<string, string | null> = {
-    goals: brief.goals,
-    targetAudience: brief.targetAudience,
-    successMetrics: brief.successMetrics,
-    references: brief.references,
-  };
-  const brandOS = await prisma.brandOS.findUnique({ where: { clientId: viewer.clientId } });
-  const effectiveQuestions = getEffectiveBriefQuestions(brandOS);
-  const nextLegacyQuestion = progress.next;
-  const legacyComplete = !nextLegacyQuestion;
+  const transcript = jsonArray<TranscriptTurn>(brief.transcript);
+  const fixedAnswers =
+    progress.mode === "fixed"
+      ? getEffectiveBriefQuestions(await prisma.brandOS.findUnique({ where: { clientId: viewer.clientId } }))
+          .map((q) => ({ question: q.question, answer: (brief as Record<string, unknown>)[q.key] as string | null }))
+          .filter((q): q is { question: string; answer: string } => Boolean(q.answer))
+      : [];
+  const answered = progress.mode === "dynamic" ? transcript : fixedAnswers;
+  const next = progress.next;
+  const lastQuestion = progress.total - progress.answered === 1;
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h2 className="text-base font-semibold">Your brief</h2>
-        <p className="text-sm text-muted-foreground">
-          Answer the questions below — our agent will structure the brief and flag any gaps before work starts.
-        </p>
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <p className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-          Your answers so far
-        </p>
-        <Card className="divide-y divide-border p-0">
-          {effectiveQuestions.map((q) => {
-            const answer = answers[q.key];
-            return (
-              <div key={q.key} className="flex items-start gap-3 px-5 py-3.5">
-                <span
-                  className={cn(
-                    "mt-0.5 flex size-4 shrink-0 items-center justify-center rounded border-2",
-                    answer ? "border-success bg-success text-ink" : "border-accent bg-card"
-                  )}
-                >
-                  {answer && <Check className="size-2.5" />}
-                </span>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium">{q.question}</p>
-                  <p className={cn("truncate text-sm", answer ? "text-foreground" : "text-muted-foreground")}>
-                    {answer || q.placeholder}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
-        </Card>
-      </div>
-
-      {legacyComplete ? (
-        <BriefCompleteCard
-          brief={brief}
-          projectId={id}
-          ctaLabel={isDraftProject ? "Start project" : "View project overview"}
-          isDraft={isDraftProject}
-          state={state}
-        />
-      ) : (
-        <>
-          <Card className="flex animate-in fade-in slide-in-from-bottom-1 items-start gap-3 p-5 duration-200">
-            <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-accent-soft text-xs font-semibold text-ink">
-              AI
-            </span>
-            <div>
-              <p className="text-sm">{nextLegacyQuestion.question}</p>
-              <p className="mt-0.5 text-xs font-medium text-ink">Brief agent</p>
-            </div>
-          </Card>
-
-          <AnswerChips
-            action={answerBriefQuestionAction}
-            hidden={{ briefId: brief.id, key: nextLegacyQuestion.key }}
-            quickAnswers={nextLegacyQuestion.quickAnswers}
-            customPlaceholder={`Or type your own — ${nextLegacyQuestion.placeholder ?? ""}`}
-            thinkingLabel={
-              progress.total - progress.answered === 1
-                ? [
-                    "Reviewing your full brief…",
-                    "Checking it against your Brand IQ…",
-                    "Weighing what's missing…",
-                    "Almost done…",
-                  ]
-                : "Thinking of what to ask next…"
+    <div className="flex flex-col gap-5">
+      {next ? (
+        <Card aria-label="Brief agent question">
+          <CardHeader
+            title="Brief agent asks"
+            meta={
+              <StatusPill tone="turn">
+                Question {progress.answered + 1} of {progress.total}
+              </StatusPill>
             }
           />
-          <PersistentBriefChat projectId={id} />
-        </>
+          <CardBody className="flex flex-col gap-4">
+            <p className="text-[16px] font-semibold text-ds-text">{next.question}</p>
+            <AnswerChips
+              action={progress.mode === "dynamic" ? answerDynamicBriefQuestionAction : answerBriefQuestionAction}
+              hidden={{ briefId: brief.id, key: next.key }}
+              quickAnswers={next.quickAnswers}
+              customPlaceholder={next.placeholder ? `Or type your own — ${next.placeholder}` : "Or type your own answer"}
+              thinkingLabel={lastQuestion ? LAST_QUESTION_THINKING : "Thinking of what to ask next…"}
+            />
+          </CardBody>
+        </Card>
+      ) : (
+        <BriefReadyCard
+          projectId={id}
+          state={state}
+          summary={brief.aiSummary}
+          readiness={brief.aiQualityScore}
+          gaps={jsonArray<string>(brief.gapsFlagged)}
+        />
       )}
+
+      <Card aria-label="Your brief so far">
+        <CardHeader
+          title="Your brief so far"
+          action={
+            <Link href={`/projects/${id}/scope`} className="text-[13px] font-medium text-ds-text no-underline hover:underline">
+              View full brief
+            </Link>
+          }
+        />
+        <div className="divide-y divide-ds-divider">
+          {brief.rawIntake && (
+            <div className="flex items-start gap-3 px-6 py-4">
+              <FileText className="mt-0.5 size-4 shrink-0 text-ds-text-2" strokeWidth={1.75} />
+              <div className="min-w-0">
+                <p className="text-[13px] text-ds-text-2">What you told us</p>
+                <p className="text-[14px] text-ds-text">{brief.rawIntake}</p>
+                {(brief.sourceLink || brief.sourceFileName) && (
+                  <p className="mt-1 flex items-center gap-1 text-[12px] text-ds-text-2">
+                    <Link2 className="size-3" />
+                    {[brief.sourceLink, brief.sourceFileName].filter(Boolean).join(" · ")}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+          {answered.map((t, i) => (
+            <div key={i} className="flex items-start gap-3 px-6 py-4">
+              <Check className="mt-0.5 size-4 shrink-0 text-ds-check" strokeWidth={2} />
+              <div className="min-w-0">
+                <p className="text-[13px] text-ds-text-2">{t.question}</p>
+                <p className="text-[14px] text-ds-text">{t.answer}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
     </div>
   );
 }
 
-function PersistentBriefChat({ projectId }: { projectId: string }) {
-  return (
-    <Card className="flex flex-col gap-2 p-4">
-      <p className="text-xs text-muted-foreground">
-        Want to say something else, or change an earlier answer? Message your team directly — it doesn&apos;t have
-        to wait for the next question.
-      </p>
-      <CommentComposer action={postCommentAction} projectId={projectId} />
-    </Card>
-  );
-}
-
-function BriefCompleteCard({
-  brief,
+function BriefReadyCard({
   projectId,
-  ctaLabel,
-  isDraft,
   state,
+  summary,
+  readiness,
+  gaps,
 }: {
-  brief: {
-    status: string;
-    aiSummary: string | null;
-    aiQualityScore: number | null;
-    gapsFlagged: unknown;
-    followUpSuggestions: unknown;
-  };
   projectId: string;
-  ctaLabel: string;
-  isDraft: boolean;
   state: ProjectState;
+  summary: string | null;
+  readiness: number | null;
+  gaps: string[];
 }) {
-  const gaps = jsonArray<string>(brief.gapsFlagged);
-  const suggestions = jsonArray<string>(brief.followUpSuggestions);
-
   return (
-    <div className="flex flex-col gap-4">
-      <Card
-        className={cn(
-          "animate-in fade-in slide-in-from-bottom-2 border-l-4 p-5 duration-200",
-          brief.status === "ACCEPTED" ? "border-l-success" : "border-l-primary"
+    <Card aria-label="Brief ready">
+      <CardHeader
+        title={state.draft ? "Your brief is ready" : "Brief submitted"}
+        meta={readiness !== null ? <StatusPill>Readiness {readiness}/100</StatusPill> : undefined}
+      />
+      <CardBody className="flex flex-col gap-4">
+        {summary && <p className="text-[14px] text-ds-text">{summary}</p>}
+        {gaps.length > 0 && (
+          <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-[14px] text-ds-text-body">
+            {gaps.map((g) => (
+              <li key={g}>· {g}</li>
+            ))}
+          </ul>
         )}
-      >
-        <p className="text-sm font-semibold">
-          {isDraft ? "Your brief is ready" : state.nextAction.label}
-        </p>
-        <p className="text-sm text-muted-foreground">
-          {isDraft
-            ? "This is still a draft, saved automatically. Invite teammates with Share to collaborate on it, and start the project whenever you're ready — nothing is sent to Klingit until you do."
+        <p className="text-[13px] text-ds-text-2">
+          {state.draft
+            ? "Saved automatically. Nothing is sent to Klingit until you start the project."
             : state.nextAction.description}
         </p>
-        {brief.aiSummary && (
-          <div className="mt-3 flex items-start gap-3 rounded-lg border border-border bg-paper p-3">
-            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-accent-soft text-[10px] font-semibold text-ink">
-              AI
-            </span>
-            <div>
-              <p className="text-sm">{brief.aiSummary}</p>
-              {brief.aiQualityScore !== null && (
-                <p className="mt-1 text-xs text-muted-foreground">Brief readiness: {brief.aiQualityScore}/100</p>
-              )}
-            </div>
-          </div>
-        )}
-
-        <CollapsibleGaps gaps={gaps} />
-
-        {isDraft && (
-          <div className="mt-4 flex items-center justify-end gap-2">
-            <Button asChild size="sm" variant="ghost">
-              <Link href="/projects">Save as draft</Link>
-            </Button>
+        <div className="flex flex-wrap justify-end gap-2">
+          <AskButton size="md" context={{ kind: "brief", label: "On the brief" }}>
+            Ask a question
+          </AskButton>
+          {state.draft && (
             <form action={startProjectAction}>
               <input type="hidden" name="projectId" value={projectId} />
-              <Button type="submit" size="sm" className="gap-1.5">
-                {ctaLabel}
-                <ArrowRight className="size-3.5" />
+              <Button type="submit" variant="primary" size="md">
+                Start project
               </Button>
             </form>
-          </div>
-        )}
-      </Card>
-
-      {brief.status !== "ACCEPTED" && (
-        <Card className="animate-in fade-in slide-in-from-bottom-2 flex flex-col gap-3 p-5 duration-200">
-          <div>
-            <p className="text-sm font-semibold">Anything to add?</p>
-            <p className="text-sm text-muted-foreground">
-              This is still a conversation — send your team more detail whenever you have it, or say it&apos;s good
-              to go.
-            </p>
-          </div>
-          <SuggestedReplyChips projectId={projectId} suggestions={suggestions} />
-          <CommentComposer action={postCommentAction} projectId={projectId} />
-          <a href={`/projects/${projectId}?channel=klingit`} className="text-xs font-medium text-primary hover:underline">
-            View full discussion →
-          </a>
-        </Card>
-      )}
-    </div>
+          )}
+        </div>
+      </CardBody>
+    </Card>
   );
 }

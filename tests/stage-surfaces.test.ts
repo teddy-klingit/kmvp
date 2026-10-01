@@ -3,6 +3,7 @@ import { Fragment, cloneElement, createElement, isValidElement, type ReactElemen
 import { renderToStaticMarkup } from "react-dom/server";
 import { setMockSession } from "./setup";
 import { createStageFixtures, type StageKey } from "./stage-fixtures";
+import { ConversationProvider } from "@/components/ds/conversation-context";
 import { legacyTabRedirect, type LegacyTab, type ProjectStage } from "@/lib/project-state";
 
 import ProjectsPage from "@/app/(portal)/projects/page";
@@ -55,7 +56,8 @@ async function resolve(node: ReactNode): Promise<ReactNode> {
 
 async function render(el: ReactNode | Promise<ReactNode>) {
   setMockSession({ user: { id: fx.user.id, role: "CLIENT" } });
-  return renderToStaticMarkup(createElement(Fragment, null, await resolve(await el)));
+  // Project pages render inside the layout's ConversationProvider; give standalone page renders the same context.
+  return renderToStaticMarkup(createElement(ConversationProvider, { defaultChannel: "klingit", children: createElement(Fragment, null, await resolve(await el)) }));
 }
 
 const text = async (el: ReactNode | Promise<ReactNode>) => asText(await render(el));
@@ -70,45 +72,93 @@ function region(html: string, marker: string, ends: string[]) {
 
 const tab = (id: string) => ({ params: Promise.resolve({ id }) });
 const scope = (id: string) => ({ ...tab(id), searchParams: Promise.resolve({}) });
+const work = scope;
 
-type Expect = { column: string; badge: string; next: string; dashboard: boolean; overview: string[] };
+/** next = the board/dashboard label; title = the Next step card heading (the label without its "Your turn:" prefix). */
+type Expect = { column: string; badge: string; next: string; title: string; eyebrow: string; dashboard: boolean; overview: string[] };
 const EXPECT: Record<StageKey, Expect> = {
   briefing: {
     column: "Briefing",
     badge: "Briefing",
     next: "Your turn: answer 1 question about the audience",
+    title: "Answer 1 question about the audience",
+    eyebrow: "YOUR TURN",
     dashboard: true,
-    overview: ["Who will this deck be presented to?", "Investors"],
+    overview: ["Brief agent asks", "Question 1 of 1", "Who will this deck be presented to?", "Investors", "Your brief so far"],
   },
-  estimating: { column: "Estimate", badge: "Estimating", next: "Klingit: preparing your estimate", dashboard: false, overview: ["What Klingit is scoping"] },
+  estimating: {
+    column: "Estimate",
+    badge: "Estimating",
+    next: "Klingit: preparing your estimate",
+    title: "Preparing your estimate",
+    eyebrow: "KLINGIT IS ON IT",
+    dashboard: false,
+    overview: ["What's happening"],
+  },
   awaiting_approval: {
     column: "Estimate",
-    badge: "Awaiting approval",
+    badge: "Awaiting your approval",
     next: "Your turn: approve estimate (28 credits)",
+    title: "Approve the estimate",
+    eyebrow: "YOUR TURN",
     dashboard: true,
-    overview: ["Approve estimate (28 credits)", "Ask a question", "PPT slide"],
+    overview: ["Approve · 28 credits", "Ask a question", "PPT slide", "Total 28 credits", "valid until", "After you approve"],
   },
-  staffing: { column: "In production", badge: "Staffing", next: "Klingit: staffing your team", dashboard: false, overview: ["Progress", "Being staffed"] },
-  production: { column: "In production", badge: "In production", next: "Klingit: producing your first draft", dashboard: false, overview: ["Progress", "Sara Staff"] },
-  review: { column: "In review", badge: "In review", next: "Your turn: review 2 assets", dashboard: true, overview: ["Awaiting your review", "Approve all", "Request changes"] },
+  staffing: {
+    column: "In production",
+    badge: "Staffing",
+    next: "Klingit: staffing your team",
+    title: "Staffing your team",
+    eyebrow: "KLINGIT IS ON IT",
+    dashboard: false,
+    overview: ["What's happening"],
+  },
+  production: {
+    column: "In production",
+    badge: "In production",
+    next: "Klingit: producing your first draft",
+    title: "Producing your first draft",
+    eyebrow: "KLINGIT IS ON IT",
+    dashboard: false,
+    overview: ["What's happening"],
+  },
+  review: {
+    column: "In review",
+    badge: "Ready for your review",
+    next: "Your turn: review 2 assets",
+    title: "Review 2 assets",
+    eyebrow: "YOUR TURN",
+    dashboard: true,
+    overview: ["Review in Work", "Ask a question"],
+  },
   final: {
     column: "Sign-off",
     badge: "Ready for sign-off",
     next: "Your turn: sign off on the final delivery",
+    title: "Sign off on the final delivery",
+    eyebrow: "YOUR TURN",
     dashboard: true,
-    overview: ["Delivery package", "Rate this project", "Sign off and close project"],
+    overview: ["Delivery package", "Rate this project", "Sign off", "full project report"],
   },
-  closed: { column: "Delivered", badge: "Delivered", next: "Delivered", dashboard: false, overview: ["Delivered and signed off", "Request changes"] },
+  closed: {
+    column: "Delivered",
+    badge: "Delivered",
+    next: "Delivered",
+    title: "Delivered and signed off",
+    eyebrow: "DELIVERED",
+    dashboard: false,
+    overview: ["Request changes", "Delivery package"],
+  },
 };
 const STAGES = Object.keys(EXPECT) as StageKey[];
 
-const NEVER_ANYWHERE = ["TBD", "Creative score 88", "94%", "Not yet scoped", "Klingit is working on your project", "Go to review"];
+const NEVER_ANYWHERE = ["TBD", "Creative score 88", "94%", "Not yet scoped", "Klingit is working on your project", "Go to review", " — "];
 
 /** Stage-specific actions that must only ever render in their own stage. */
 const ONLY_IN: Record<string, StageKey[]> = {
-  "Approve all": ["review"],
-  "Approve estimate": ["awaiting_approval"],
-  "Sign off and close project": ["final"],
+  "Review in Work": ["review"],
+  "Approve ·": ["awaiting_approval"],
+  "Sign off": ["final"],
   "Rate this project": ["final"],
 };
 
@@ -131,14 +181,17 @@ describe.each(STAGES)("stage %s — every surface agrees", (stage) => {
     expect(needsInput.includes(p().name)).toBe(e.dashboard);
   });
 
-  it("header: stage badge, compact timeline, 3 tabs, Share, sidebar", async () => {
+  it("header: status pill, milestone timeline, 3 tabs, Share, conversation panel", async () => {
     const t = await text(ProjectLayout({ children: null, ...tab(p().id) }));
     expect(t).toContain(e.badge);
-    for (const label of ["Overview", "Work", "Brief & scope", "Share", "With Klingit", "Internal", "Key facts"]) {
+    for (const label of ["Overview", "Work", "Brief & scope", "Share", "With Klingit", "Internal", "Conversation"]) {
       expect(t).toContain(label);
     }
-    // Past staffing with no team on record, the section is omitted rather than making something up.
-    expect(t.includes("Klingit team")).toBe(stage !== "closed");
+    for (const milestone of ["Brief", "Estimate", "Production", "Review", "Delivered"]) expect(t).toContain(milestone);
+    expect(t).toContain(stage === "closed" ? "Delivered" : "Now ·");
+    // Before an estimate exists, or past staffing with no team on record, the summary item is omitted rather than making something up.
+    expect(/Klingit team (Sara|Assigned|Being)/.test(t)).toBe(stage !== "closed" && stage !== "briefing");
+    for (const bad of NEVER_ANYWHERE) expect(t).not.toContain(bad);
     for (const removed of [">Timeline<", ">Discussion<", ">Team<", ">Delivery<", ">Final<"]) {
       expect(await render(ProjectLayout({ children: null, ...tab(p().id) }))).not.toContain(removed);
     }
@@ -146,8 +199,8 @@ describe.each(STAGES)("stage %s — every surface agrees", (stage) => {
 
   it("overview: next step plus only this stage's content", async () => {
     const t = await text(OverviewPage(tab(p().id)));
-    expect(t).toContain("Next step");
-    expect(t).toContain(e.next);
+    expect(t).toContain(e.eyebrow);
+    expect(t).toContain(e.title);
     for (const expected of e.overview) expect(t).toContain(expected);
     for (const bad of NEVER_ANYWHERE) expect(t).not.toContain(bad);
     for (const [label, stages] of Object.entries(ONLY_IN)) {
@@ -156,9 +209,15 @@ describe.each(STAGES)("stage %s — every surface agrees", (stage) => {
   });
 
   it("work tab: review actions only when assets await review; delivery package at the end", async () => {
-    const t = await text(WorkPage(tab(p().id)));
-    if (stage === "review") expect(t).toContain("Approve all");
-    else expect(t).not.toContain("Approve all");
+    const t = await text(WorkPage(work(p().id)));
+    if (stage === "review") {
+      expect(t).toContain("Approve 2 in review");
+      expect(t).toContain("Needs your review · 2");
+    } else {
+      expect(t).not.toContain("in review");
+      expect(t).not.toContain("Needs your review");
+    }
+    if (stage === "production") expect(t).toContain("Klingit is checking");
     if (stage === "final" || stage === "closed") expect(t).toContain("Delivery package");
     if (stage !== "review") expect(t).not.toContain("Request changes");
     for (const bad of NEVER_ANYWHERE) expect(t).not.toContain(bad);
@@ -166,17 +225,17 @@ describe.each(STAGES)("stage %s — every surface agrees", (stage) => {
 
   it("brief & scope tab: the brief record, then what was agreed — never an unsent draft estimate", async () => {
     const t = await text(ScopePage(scope(p().id)));
-    expect(t).toContain("What you asked for");
-    expect(t).toContain("What was agreed");
+    expect(t).toMatch(/brief|Nothing written yet/i);
+    expect(t.indexOf("What was agreed")).toBeGreaterThan(0);
     if (stage === "awaiting_approval") {
-      expect(t).toContain("28c");
+      expect(t).toContain("Total 28 credits");
       expect(t).toContain("Awaiting your approval");
     }
     if (stage === "estimating") {
       expect(t).toContain("No estimate yet");
       expect(t).not.toContain("99c");
     }
-    expect(t).not.toContain("Approve estimate");
+    expect(t).not.toContain("Approve ·");
   });
 });
 
@@ -224,25 +283,25 @@ describe("regressions — the contradictions seen on a Draft project ('Klarna 10
       expect(t).not.toContain(bad);
     }
     expect(legacyTabRedirect("final", draft().id, { stage: "briefing" })).toBe(`/projects/${draft().id}/work`);
-    expect(await text(WorkPage(tab(draft().id)))).not.toContain("Sign off");
+    expect(await text(WorkPage(work(draft().id)))).not.toContain("Sign off");
   });
 
   it("Work (the old Delivery tab) no longer says 'In production'", async () => {
-    const t = await text(WorkPage(tab(draft().id)));
+    const t = await text(WorkPage(work(draft().id)));
     expect(t).not.toContain("In production");
-    expect(t).toContain("Nothing produced yet");
+    expect(t).toContain("Nothing to review yet");
   });
 
   it("nothing says Klingit is working while the brief waits on the client", async () => {
     const t = (await text(ProjectLayout({ children: null, ...tab(draft().id) }))) + (await text(OverviewPage(tab(draft().id))));
     expect(t).not.toContain("Klingit is working on your project");
-    expect(t).toContain("Your turn: answer 1 question about the audience");
+    expect(t).toContain("Answer 1 question about the audience");
   });
 
   it("no review button when there's nothing to review", async () => {
-    const t = (await text(OverviewPage(tab(draft().id)))) + (await text(WorkPage(tab(draft().id))));
+    const t = (await text(OverviewPage(tab(draft().id)))) + (await text(WorkPage(work(draft().id))));
     expect(t).not.toContain("Go to review");
-    expect(t).not.toContain("Approve all");
+    expect(t).not.toContain("in review");
     expect(t).not.toContain("Request changes");
   });
 

@@ -1,255 +1,395 @@
 import Link from "next/link";
-import { Check } from "lucide-react";
+import { Check, ImageIcon, Play } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { Card, SectionLabel } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { PersonAvatar } from "@/components/ui/avatar";
-import { StatusBadge } from "@/components/ui/badge";
+import { Card, CardHeader } from "@/components/ds/card";
+import { Button } from "@/components/ds/button";
+import { StatusPill } from "@/components/ds/status-pill";
+import { NextStepCard } from "@/components/ds/next-step-card";
+import { AskButton } from "@/components/ds/ask-button";
+import { EmptyState } from "@/components/ds/empty-state";
 import { RatingStars } from "@/components/portal/rating-stars";
-import { CommentComposer } from "@/components/portal/comment-composer";
-import { AssetReviewGrid } from "@/components/portal/asset-review-viewer";
-import { ProjectTimelineStepper } from "@/components/portal/project-timeline-stepper";
-import {
-  approveAllAssetsAction,
-  approveEstimateAction,
-  postCommentAction,
-  rateProjectAction,
-  signOffProjectAction,
-} from "@/lib/actions/project-actions";
-import { loadReviewAssets } from "@/lib/review-assets";
-import { formatDate, jsonArray } from "@/lib/utils";
-import { FIRST_DRAFT_BUSINESS_DAYS, formatDay, type ProjectState } from "@/lib/project-state";
+import { approveEstimateAction, rateProjectAction, signOffProjectAction } from "@/lib/actions/project-actions";
+import { resumeProjectAction } from "@/lib/actions/project-lifecycle-actions";
+import { jsonArray } from "@/lib/utils";
+import { shortDate, FIRST_DRAFT_BUSINESS_DAYS, type ProjectState } from "@/lib/project-state";
 import type { PortalViewer } from "@/lib/brief-intake";
 
 type PanelProps = { projectId: string; viewer: PortalViewer; state: ProjectState };
 
-/** estimating — nothing for the client to do; show what Klingit is scoping. */
-export async function EstimatingPanel({ projectId, viewer }: PanelProps) {
-  const brief = await prisma.brief.findFirst({ where: { projectId, project: { clientId: viewer.clientId } } });
-  const summary = brief?.aiSummary ?? brief?.goals ?? brief?.rawIntake;
-  if (!summary) return null;
-  return (
-    <div className="flex flex-col gap-2">
-      <SectionLabel>What Klingit is scoping</SectionLabel>
-      <Card className="p-5 text-sm">{summary}</Card>
-    </div>
-  );
+function sentence(label: string) {
+  const s = label.replace(/^(Your turn|Klingit): /, "");
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-/** awaiting_approval — the estimate summary with Approve / Ask a question. */
-export async function EstimateApprovalPanel({ projectId, viewer, state }: PanelProps) {
+/** The NextStepCard copy + actions for whichever stage the project is in. */
+export async function OverviewNextStep({ projectId, viewer, state }: PanelProps) {
+  const { nextAction, stage } = state;
+  const turn = state.ballInCourt === "client";
+  const ask = <AskButton context={stage === "awaiting_approval" ? { kind: "estimate", label: "On estimate" } : undefined} />;
+
+  if (state.paused) {
+    return (
+      <NextStepCard
+        variant="turn"
+        title="Paused — resume to continue"
+        description={nextAction.description}
+        actions={
+          <form action={resumeProjectAction}>
+            <input type="hidden" name="projectId" value={projectId} />
+            <Button type="submit" variant="primary" size="lg">
+              Resume project
+            </Button>
+          </form>
+        }
+      />
+    );
+  }
+
+  if (stage === "awaiting_approval") {
+    const estimate = await prisma.estimate.findFirst({
+      where: { projectId, status: "SENT", project: { clientId: viewer.clientId } },
+      select: { id: true, totalCredits: true },
+    });
+    return (
+      <NextStepCard
+        variant="turn"
+        title="Approve the estimate"
+        description={`Once approved, Klingit staffs your team and delivers a first draft within ${FIRST_DRAFT_BUSINESS_DAYS} business days.`}
+        actions={
+          <>
+            {ask}
+            {estimate && (
+              <form action={approveEstimateAction}>
+                <input type="hidden" name="estimateId" value={estimate.id} />
+                <Button type="submit" variant="primary" size="lg">
+                  Approve · {estimate.totalCredits} credits
+                </Button>
+              </form>
+            )}
+          </>
+        }
+      />
+    );
+  }
+
+  if (stage === "review" && turn) {
+    return (
+      <NextStepCard
+        variant="turn"
+        title={sentence(nextAction.label)}
+        description="Approve each asset, or ask for changes on it, in Work."
+        actions={
+          <>
+            {ask}
+            <Button asChild variant="primary" size="lg">
+              <Link href={`/projects/${projectId}/work`}>Review in Work</Link>
+            </Button>
+          </>
+        }
+      />
+    );
+  }
+
+  if (stage === "final" && turn) {
+    return (
+      <NextStepCard
+        variant="turn"
+        title={sentence(nextAction.label)}
+        description="Files move to your archive and you get a full project report."
+        actions={
+          <>
+            {ask}
+            <SignOffButton projectId={projectId} />
+          </>
+        }
+      />
+    );
+  }
+
+  if (stage === "closed") {
+    return (
+      <NextStepCard
+        variant="klingit"
+        eyebrow="DELIVERED"
+        title={state.archived ? "This project is archived" : "Delivered and signed off"}
+        description="Need changes or more of the same? Start a change request."
+        actions={
+          <Button asChild variant="secondary" size="lg">
+            <Link href={`/projects/${projectId}/change-request`}>Request changes</Link>
+          </Button>
+        }
+      />
+    );
+  }
+
+  const description =
+    stage === "briefing" && turn && state.brief.mode !== "intake" && state.brief.next
+      ? "The brief agent's question is just below."
+      : nextAction.description;
+  return <NextStepCard variant={turn ? "turn" : "klingit"} title={sentence(nextAction.label)} description={description} actions={ask} />;
+}
+
+/** awaiting_approval — the estimate as sent: version + validity, line items, total, inclusions. */
+export async function EstimateCard({ projectId, viewer }: Omit<PanelProps, "state">) {
   const estimate = await prisma.estimate.findFirst({
     where: { projectId, status: "SENT", project: { clientId: viewer.clientId } },
-    include: { lineItems: { orderBy: { order: "asc" } }, sentByStaff: { include: { user: true } } },
+    include: { lineItems: { orderBy: { order: "asc" } } },
   });
   if (!estimate) return null;
   const inclusions = jsonArray<string>(estimate.inclusions);
-
   return (
-    <div className="flex flex-col gap-3">
-      <SectionLabel>Estimate for approval</SectionLabel>
-      <Card className="overflow-hidden p-0">
-        {estimate.notes && (
-          <div className="flex items-start gap-3 border-b border-border px-5 py-4">
-            <PersonAvatar name={estimate.sentByStaff?.user.name ?? "Klingit"} size="sm" />
-            <p className="text-sm text-muted-foreground">{estimate.notes}</p>
-          </div>
-        )}
-        <table className="w-full text-sm">
-          <tbody>
-            {estimate.lineItems.map((li) => (
-              <tr key={li.id} className="border-b border-border">
-                <td className="px-5 py-3 font-medium">{li.deliverable}</td>
-                <td className="px-5 py-3 text-muted-foreground">{li.detail}</td>
-                <td className="px-5 py-3 text-right">{li.credits}c</td>
-              </tr>
-            ))}
-            <tr className="font-semibold">
-              <td className="px-5 py-3">Total</td>
-              <td />
-              <td className="px-5 py-3 text-right">{estimate.totalCredits}c</td>
+    <Card aria-label="Estimate" className="overflow-hidden" id="estimate">
+      <CardHeader
+        title="Estimate"
+        meta={<StatusPill>v1{estimate.expiresAt ? ` · valid until ${shortDate(estimate.expiresAt)}` : ""}</StatusPill>}
+        action={<span className="text-[12px] text-ds-text-2">Priced from the Klingit price list</span>}
+      />
+      <EstimateTable lines={estimate.lineItems} total={estimate.totalCredits} />
+      {inclusions.length > 0 && <Inclusions items={inclusions} />}
+    </Card>
+  );
+}
+
+export function EstimateTable({ lines, total }: { lines: { id: string; deliverable: string; detail: string | null; credits: number }[]; total: number }) {
+  return (
+    <div>
+      <table className="w-full border-collapse text-[14px]">
+        <thead>
+          <tr className="text-left text-[12px] text-ds-text-2">
+            <th scope="col" className="px-6 py-2.5 font-medium">Deliverable</th>
+            <th scope="col" className="hidden px-3 py-2.5 font-medium sm:table-cell">Details</th>
+            <th scope="col" className="px-6 py-2.5 text-right font-medium">Credits</th>
+          </tr>
+        </thead>
+        <tbody>
+          {lines.map((li) => (
+            <tr key={li.id} id={`line-${li.id}`} className="border-t border-ds-divider">
+              <td className="px-6 py-3.5 font-medium text-ds-text">
+                {li.deliverable}
+                {li.detail && <span className="mt-0.5 block font-normal text-ds-text-2 sm:hidden">{li.detail}</span>}
+              </td>
+              <td className="hidden px-3 py-3.5 text-ds-text-2 sm:table-cell">{li.detail}</td>
+              <td className="px-6 py-3.5 text-right tabular-nums text-ds-text">{li.credits}</td>
             </tr>
-          </tbody>
-        </table>
-        {inclusions.length > 0 && (
-          <ul className="flex flex-col gap-1.5 border-t border-border px-5 py-4 text-sm">
-            {inclusions.map((item) => (
-              <li key={item} className="flex items-center gap-2">
-                <Check className="size-3.5 shrink-0" />
-                {item}
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
-      <div className="flex flex-col gap-3 rounded-xl border border-border bg-paper p-4">
-        <form action={approveEstimateAction} className="flex flex-wrap items-center justify-between gap-3">
-          <input type="hidden" name="estimateId" value={estimate.id} />
-          <p className="text-sm text-muted-foreground">
-            {estimate.expiresAt ? `Valid until ${formatDay(estimate.expiresAt)}. ` : ""}
-            Approving lets Klingit staff your team — first draft within {FIRST_DRAFT_BUSINESS_DAYS} business days of that.
-          </p>
-          <Button type="submit">Approve estimate ({state.keyFacts.credits} credits)</Button>
-        </form>
-        <div className="flex flex-col gap-1.5">
-          <p className="text-xs font-medium text-muted-foreground">Ask a question</p>
-          <CommentComposer action={postCommentAction} projectId={projectId} placeholder="Ask your account lead about this estimate…" />
-        </div>
-      </div>
+          ))}
+          <tr className="border-t border-ds-border bg-ds-subtle-2">
+            <td className="px-6 py-3.5 font-semibold text-ds-text">Total</td>
+            <td className="hidden sm:table-cell" />
+            <td className="whitespace-nowrap px-6 py-3.5 text-right font-semibold tabular-nums text-ds-text">{total} credits</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   );
 }
 
-/** staffing / production — progress, staffed team, first-draft ETA. */
-export function ProgressPanel({ state }: PanelProps) {
-  const { keyFacts } = state;
+export function Inclusions({ items }: { items: string[] }) {
   return (
-    <div className="flex flex-col gap-3">
-      <SectionLabel>Progress</SectionLabel>
-      <Card className="flex flex-col gap-5 p-5">
-        <ProjectTimelineStepper timeline={state.timeline} />
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <p className="text-xs text-muted-foreground">First draft</p>
-            <p className="text-sm font-medium">
-              {keyFacts.firstDraftEta
-                ? formatDay(keyFacts.firstDraftEta)
-                : `Within ${FIRST_DRAFT_BUSINESS_DAYS} business days of your team being confirmed`}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Your Klingit team</p>
-            {keyFacts.staffedTeam.length ? (
-              <div className="mt-1 flex flex-wrap gap-3">
-                {keyFacts.staffedTeam.map((m) => (
-                  <span key={m.name} className="flex items-center gap-2 text-sm">
-                    <PersonAvatar name={m.name} size="sm" />
-                    <span>
-                      {m.name} <span className="text-muted-foreground">· {m.role}</span>
-                    </span>
-                  </span>
-                ))}
+    <div className="flex flex-wrap gap-x-6 gap-y-2 border-t border-ds-divider px-6 pb-5 pt-4">
+      {items.map((item) => (
+        <span key={item} className="inline-flex items-start gap-2 sm:items-center text-[14px] text-ds-text-body">
+          <Check className="size-4 shrink-0 text-ds-check" strokeWidth={2} />
+          {item}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/** Two-column row under the estimate: what was asked for + what happens after approval. */
+export async function BriefAndNextStepsRow({ projectId, viewer }: Omit<PanelProps, "state">) {
+  const brief = await prisma.brief.findFirst({ where: { projectId, project: { clientId: viewer.clientId } } });
+  const rows = [
+    { label: "Objective", value: brief?.goals },
+    { label: "Audience", value: brief?.targetAudience },
+    { label: "Success metric", value: brief?.successMetrics },
+  ].filter((r): r is { label: string; value: string } => Boolean(r.value));
+
+  return (
+    <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+      <Card aria-label="Brief summary">
+        <CardHeader
+          title="Brief"
+          action={
+            <Link href={`/projects/${projectId}/scope`} className="text-[13px] font-medium text-ds-text no-underline hover:underline">
+              View full brief
+            </Link>
+          }
+        />
+        {rows.length > 0 ? (
+          <dl className="m-0 grid grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-[120px_1fr] sm:gap-y-3 px-6 pb-5 pt-4 text-[14px]">
+            {rows.map((r) => (
+              <div key={r.label} className="contents">
+                <dt className="text-ds-text-2">{r.label}</dt>
+                <dd className="m-0 text-ds-text">{r.value}</dd>
               </div>
-            ) : (
-              <p className="text-sm font-medium">Being staffed</p>
-            )}
-          </div>
-        </div>
-      </Card>
-    </div>
-  );
-}
-
-/** review — assets awaiting review, commented on in place. */
-export async function ReviewPanel({ projectId, viewer, state }: PanelProps) {
-  const assets = await loadReviewAssets(projectId, viewer.clientId, ["IN_REVIEW", "CHANGES_REQUESTED", "APPROVED"]);
-  const canReview = state.assetsAwaitingReview > 0;
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <SectionLabel>Awaiting your review</SectionLabel>
-          <p className="mt-1 text-xs text-muted-foreground">Open an asset to comment directly on it, or request changes.</p>
-        </div>
-        {canReview && (
-          <form action={approveAllAssetsAction}>
-            <input type="hidden" name="projectId" value={projectId} />
-            <Button type="submit" size="sm">
-              Approve all
-            </Button>
-          </form>
+            ))}
+          </dl>
+        ) : (
+          <EmptyState title="No brief details yet" />
         )}
-      </div>
-      <AssetReviewGrid assets={assets} projectId={projectId} canReview={canReview} />
+      </Card>
+      <Card aria-label="What happens next">
+        <CardHeader title="After you approve" />
+        <ol className="m-0 flex list-none flex-col gap-3.5 px-6 pb-5 pt-4 text-[14px] text-ds-text">
+          {[
+            "We match the right creatives and introduce your team here.",
+            `First draft is ready to review within ${FIRST_DRAFT_BUSINESS_DAYS} business days.`,
+            "You comment directly on each piece in Work.",
+          ].map((text, i) => (
+            <li key={i} className="flex gap-3">
+              <span className="flex size-[22px] shrink-0 items-center justify-center rounded-full bg-ds-subtle text-[12px] font-semibold">
+                {i + 1}
+              </span>
+              <span>{text}</span>
+            </li>
+          ))}
+        </ol>
+      </Card>
     </div>
   );
 }
 
-/** final — rating + sign-off. Only rendered when stage is final and it's the client's turn. */
-export function SignOffPanel({ projectId, state }: Pick<PanelProps, "projectId" | "state">) {
-  if (state.stage !== "final" || state.ballInCourt !== "client") return null;
+const ACTIVITY_LIMIT = 4;
+
+/**
+ * estimating / staffing / production — the latest project events, newest first.
+ * The step and first-draft date already sit in the header and the Next step card, so they're not repeated here.
+ */
+export async function WhatsHappeningCard({ projectId }: Pick<PanelProps, "projectId" | "state">) {
+  const [events, stages] = await Promise.all([
+    prisma.comment.findMany({ where: { projectId, kind: "SYSTEM", archivedAt: null }, orderBy: { createdAt: "desc" }, take: ACTIVITY_LIMIT }),
+    prisma.pipelineStage.findMany({
+      where: { projectId, summary: { not: null }, OR: [{ status: "ACTIVE" }, { status: "COMPLETED" }] },
+      orderBy: [{ completedAt: "desc" }, { startedAt: "desc" }],
+      take: ACTIVITY_LIMIT,
+    }),
+  ]);
+  // System events are the record; older projects only have stage summaries.
+  const activity = events.length
+    ? events.map((e) => ({ id: e.id, text: e.body, at: e.createdAt }))
+    : stages.map((s) => ({ id: s.id, text: s.summary!, at: s.completedAt ?? s.startedAt }));
   return (
-    <div className="flex flex-col gap-3">
-      <SectionLabel>How did we do?</SectionLabel>
-      <Card className="p-5">
-        <form action={rateProjectAction} className="flex flex-wrap items-center gap-4">
-          <input type="hidden" name="projectId" value={projectId} />
-          <RatingStars name="rating" />
-          <Input name="feedback" placeholder="Leave a comment for the team (optional)…" className="min-w-48 flex-1" />
-          <Button type="submit" variant="secondary" className="shrink-0">
-            Rate this project
-          </Button>
-        </form>
-      </Card>
-      <Card className="flex flex-wrap items-center justify-between gap-4 border border-border bg-paper p-5">
-        <div>
-          <p className="text-sm font-semibold">Sign off and close project</p>
-          <p className="text-sm text-muted-foreground">Assets move to your archive and you get a full project report.</p>
-        </div>
-        <form action={signOffProjectAction}>
-          <input type="hidden" name="projectId" value={projectId} />
-          <input type="hidden" name="rating" value={5} />
-          <Button type="submit" className="bg-success text-ink hover:bg-success">
-            Sign off
-          </Button>
-        </form>
-      </Card>
-    </div>
+    <Card aria-label="What's happening">
+      <CardHeader title="What's happening" />
+      {activity.length > 0 ? (
+        <ol className="m-0 flex list-none flex-col gap-3 px-6 pb-5 pt-4 text-[14px]">
+          {activity.map((a) => (
+            <li key={a.id} className="flex items-start gap-3">
+              <span className="mt-[7px] size-1.5 shrink-0 rounded-full bg-ds-text-3" />
+              <span className="min-w-0 flex-1 text-ds-text">{a.text}</span>
+              {a.at && <span className="shrink-0 text-[13px] text-ds-text-2">{shortDate(a.at)}</span>}
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p className="m-0 px-6 pb-5 pt-4 text-[14px] text-ds-text-2">Updates from your team show up here as the work moves along.</p>
+      )}
+    </Card>
   );
 }
 
-/** final — the delivery package (Overview and Work both show it). */
-export async function DeliveryPackage({ projectId, viewer }: Pick<PanelProps, "projectId" | "viewer">) {
+/** final + closed — what was delivered. */
+export async function DeliveryPackageCard({ projectId, viewer }: Omit<PanelProps, "state">) {
   const [assets, lineItems] = await Promise.all([
-    prisma.asset.findMany({ where: { projectId, clientId: viewer.clientId, status: { in: ["APPROVED", "DELIVERED"] } }, orderBy: { createdAt: "asc" } }),
+    prisma.asset.findMany({
+      where: { projectId, clientId: viewer.clientId, status: { in: ["APPROVED", "DELIVERED"] } },
+      orderBy: { createdAt: "asc" },
+    }),
     prisma.estimateLineItem.findMany({ where: { estimate: { projectId } }, orderBy: { order: "asc" } }),
   ]);
   return (
-    <div className="flex flex-col gap-3">
-      <SectionLabel>Delivery package</SectionLabel>
+    <Card aria-label="Delivery package">
+      <CardHeader title="Delivery package" meta={<StatusPill>{assets.length} {assets.length === 1 ? "file" : "files"}</StatusPill>} />
       {lineItems.length > 0 && (
-        <Card className="flex flex-col gap-2.5 p-5">
+        <ul className="m-0 flex list-none flex-col gap-2.5 border-b border-ds-divider px-6 py-4">
           {lineItems.map((li) => (
-            <div key={li.id} className="flex items-start gap-3 text-sm">
-              <span className="mt-1.5 size-2 shrink-0 rounded-full bg-success" />
-              <div>
-                <p className="font-medium">{li.deliverable}</p>
-                <p className="text-xs text-muted-foreground">{li.detail}</p>
-              </div>
-            </div>
+            <li key={li.id} className="flex items-start gap-3 text-[14px]">
+              <Check className="mt-0.5 size-4 shrink-0 text-ds-check" strokeWidth={2} />
+              <span>
+                <span className="font-medium text-ds-text">{li.deliverable}</span>
+                {li.detail && <span className="text-ds-text-2"> · {li.detail}</span>}
+              </span>
+            </li>
           ))}
-        </Card>
+        </ul>
       )}
-      {assets.length > 0 && (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      {assets.length > 0 ? (
+        <div className="grid grid-cols-2 gap-4 p-6 sm:grid-cols-3">
           {assets.map((a) => (
             <div key={a.id} className="flex flex-col gap-1.5">
-              <div className="relative flex aspect-square items-start rounded-xl p-2" style={{ backgroundColor: a.thumbnailColor }}>
-                <StatusBadge status={a.status === "DELIVERED" ? "Delivered" : "Approved"} />
+              <div
+                className="relative flex aspect-[4/3] items-center justify-center rounded-[8px] border border-ds-divider"
+                style={{ backgroundColor: `color-mix(in srgb, ${a.thumbnailColor} 16%, white)` }}
+              >
+                <StatusPill tone="success" className="absolute left-2 top-2">
+                  {a.status === "DELIVERED" ? "Delivered" : "Approved"}
+                </StatusPill>
+                {a.type === "VIDEO" ? (
+                  <Play className="size-6 text-ds-text/35" strokeWidth={1.5} />
+                ) : (
+                  <ImageIcon className="size-6 text-ds-text/35" strokeWidth={1.5} />
+                )}
               </div>
-              <p className="truncate text-xs text-muted-foreground">{a.name}</p>
+              <span className="text-[14px] font-semibold text-ds-text">{a.name}</span>
+              <span className="text-[12px] text-ds-text-2">{a.format}</span>
             </div>
           ))}
         </div>
+      ) : (
+        <EmptyState title="Files arrive here with the final delivery" />
       )}
-    </div>
+    </Card>
   );
 }
 
-/** closed — what was delivered, plus a way to ask for more. */
-export function ClosedPanel({ projectId, state, deliveredAt }: Pick<PanelProps, "projectId" | "state"> & { deliveredAt: Date | null }) {
+function SignOffButton({ projectId }: { projectId: string }) {
   return (
-    <Card className="flex flex-wrap items-center justify-between gap-4 p-5">
-      <div>
-        <p className="text-sm font-semibold">{state.archived ? "Archived" : "Delivered and signed off"}</p>
-        <p className="text-sm text-muted-foreground">
-          {deliveredAt ? `Closed ${formatDate(deliveredAt)}. ` : ""}Need changes or more of the same? Start a change request.
-        </p>
-      </div>
-      <Button asChild variant="secondary" size="sm">
-        <Link href={`/projects/${projectId}/change-request`}>Request changes</Link>
+    <form action={signOffProjectAction}>
+      <input type="hidden" name="projectId" value={projectId} />
+      <input type="hidden" name="rating" value={5} />
+      <Button type="submit" variant="primary" size="lg">
+        Sign off
       </Button>
+    </form>
+  );
+}
+
+/** final — sign-off on the Work tab (Overview carries it in the Next step card). Only rendered when it's the client's turn. */
+export function SignOffCard({ projectId }: { projectId: string }) {
+  return (
+    <Card aria-label="Sign off">
+      <div className="flex flex-col items-start gap-4 px-6 py-5 md:flex-row md:items-center">
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <h2 className="m-0 text-[15px] font-semibold text-ds-text">Sign off and close the project</h2>
+          <p className="text-[14px] text-ds-text-2">Files move to your archive and you get a full project report.</p>
+        </div>
+        <SignOffButton projectId={projectId} />
+      </div>
+    </Card>
+  );
+}
+
+export function RatingCard({ projectId }: { projectId: string }) {
+  return (
+    <Card aria-label="Rate this project">
+      <CardHeader title="How did we do?" />
+      <form action={rateProjectAction} className="flex flex-wrap items-center gap-4 px-6 pb-5 pt-4">
+        <input type="hidden" name="projectId" value={projectId} />
+        <RatingStars name="rating" />
+        <label htmlFor="rating-feedback" className="sr-only">
+          Comment for the team
+        </label>
+        <input
+          id="rating-feedback"
+          name="feedback"
+          placeholder="Leave a comment for the team (optional)"
+          className="h-10 min-w-48 flex-1 rounded-[8px] border border-ds-control-border bg-white px-3 text-[14px] outline-none placeholder:text-ds-text-3 focus:border-ds-text-3"
+        />
+        <Button type="submit" variant="secondary" size="lg">
+          Rate this project
+        </Button>
+      </form>
     </Card>
   );
 }

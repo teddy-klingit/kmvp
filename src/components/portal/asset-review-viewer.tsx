@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { ChevronLeft, ChevronRight, X, MessageSquarePlus, Play, Pause } from "lucide-react";
-import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/badge";
 import { PersonAvatar } from "@/components/ui/avatar";
@@ -106,33 +106,54 @@ export function AssetReviewGrid({
         })}
       </div>
 
-      <Dialog open={openIndex !== null} onOpenChange={(v) => !v && setOpenIndex(null)}>
-        <DialogContent className="max-w-4xl p-0">
-          {openIndex !== null &&
-            (assets[openIndex].type === "VIDEO" ? (
-              <VideoViewer
-                asset={assets[openIndex]}
-                projectId={projectId}
-                index={openIndex}
-                total={assets.length}
-                onPrev={() => setOpenIndex((i) => (i !== null ? (i - 1 + assets.length) % assets.length : i))}
-                onNext={() => setOpenIndex((i) => (i !== null ? (i + 1) % assets.length : i))}
-                onClose={() => setOpenIndex(null)}
-              />
-            ) : (
-              <AssetViewer
-                asset={assets[openIndex]}
-                projectId={projectId}
-                index={openIndex}
-                total={assets.length}
-                onPrev={() => setOpenIndex((i) => (i !== null ? (i - 1 + assets.length) % assets.length : i))}
-                onNext={() => setOpenIndex((i) => (i !== null ? (i + 1) % assets.length : i))}
-                onClose={() => setOpenIndex(null)}
-              />
-            ))}
-        </DialogContent>
-      </Dialog>
+      <AssetViewerDialog assets={assets} projectId={projectId} openIndex={openIndex} onOpenIndexChange={setOpenIndex} />
     </>
+  );
+}
+
+/** The full-size viewer (pin / region / timestamp comments), opened on one asset of a list. */
+export function AssetViewerDialog({
+  assets,
+  projectId,
+  openIndex,
+  onOpenIndexChange,
+}: {
+  assets: ReviewAsset[];
+  projectId: string;
+  openIndex: number | null;
+  onOpenIndexChange: (index: number | null) => void;
+}) {
+  const step = (delta: number) =>
+    onOpenIndexChange(openIndex !== null ? (openIndex + delta + assets.length) % assets.length : openIndex);
+  const current = openIndex !== null ? assets[openIndex] : null;
+  return (
+    <Dialog open={current !== null} onOpenChange={(v) => !v && onOpenIndexChange(null)}>
+      <DialogContent className="max-w-4xl p-0">
+        {current &&
+          openIndex !== null &&
+          (current.type === "VIDEO" ? (
+            <VideoViewer
+              asset={current}
+              projectId={projectId}
+              index={openIndex}
+              total={assets.length}
+              onPrev={() => step(-1)}
+              onNext={() => step(1)}
+              onClose={() => onOpenIndexChange(null)}
+            />
+          ) : (
+            <AssetViewer
+              asset={current}
+              projectId={projectId}
+              index={openIndex}
+              total={assets.length}
+              onPrev={() => step(-1)}
+              onNext={() => step(1)}
+              onClose={() => onOpenIndexChange(null)}
+            />
+          ))}
+      </DialogContent>
+    </Dialog>
   );
 }
 

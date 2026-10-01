@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Share2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ds/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 /** Header "Share" button. Opens on its own when arriving from the old /team URL (?share=1). */
@@ -14,8 +14,8 @@ export function ShareDialog({ projectName, children }: { projectName: string; ch
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="secondary" size="sm" className="gap-1.5">
-          <Share2 className="size-3.5" />
+        <Button variant="secondary" size="md">
+          <Share2 strokeWidth={1.75} />
           Share
         </Button>
       </DialogTrigger>

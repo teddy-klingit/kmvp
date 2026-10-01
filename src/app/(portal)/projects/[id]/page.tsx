@@ -1,15 +1,13 @@
 import { notFound } from "next/navigation";
 import { getPortalViewer } from "@/lib/current-viewer";
-import { NextStepCard } from "@/components/portal/next-step-card";
 import { BriefConversation } from "@/components/portal/project/brief-conversation";
 import {
-  ClosedPanel,
-  DeliveryPackage,
-  EstimateApprovalPanel,
-  EstimatingPanel,
-  ProgressPanel,
-  ReviewPanel,
-  SignOffPanel,
+  BriefAndNextStepsRow,
+  DeliveryPackageCard,
+  EstimateCard,
+  OverviewNextStep,
+  RatingCard,
+  WhatsHappeningCard,
 } from "@/components/portal/project/stage-panels";
 import { loadProjectState } from "@/lib/project-state-loader";
 import type { ProjectState } from "@/lib/project-state";
@@ -20,48 +18,46 @@ export default async function ProjectOverviewPage({ params }: { params: Promise<
   const viewer = await getPortalViewer();
   const loaded = await loadProjectState(id, viewer.clientId, viewer.id);
   if (!loaded) notFound();
-  const { project, state } = loaded;
+  const { state } = loaded;
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* The action itself lives right below, so the card only needs a button when paused. */}
-      <NextStepCard state={state} projectId={id} showCta={false} />
-      <StageContent projectId={id} viewer={viewer} state={state} deliveredAt={project.deliveredAt} />
+    <div className="flex flex-col gap-5">
+      <OverviewNextStep projectId={id} viewer={viewer} state={state} />
+      <StageContent projectId={id} viewer={viewer} state={state} />
     </div>
   );
 }
 
-/** Only the current stage's content renders. */
-async function StageContent(props: { projectId: string; viewer: PortalViewer; state: ProjectState; deliveredAt: Date | null }) {
+/** Only the current stage's content renders under the Next step card. */
+async function StageContent(props: { projectId: string; viewer: PortalViewer; state: ProjectState }) {
   const { state } = props;
-  if (state.paused) return <ProgressPanel {...props} />;
+  if (state.paused) return <WhatsHappeningCard {...props} />;
   switch (state.stage) {
     case "briefing":
       return <BriefConversation {...props} />;
-    case "estimating":
-      return <EstimatingPanel {...props} />;
     case "awaiting_approval":
-      return <EstimateApprovalPanel {...props} />;
+      return (
+        <>
+          <EstimateCard {...props} />
+          <BriefAndNextStepsRow {...props} />
+        </>
+      );
+    case "estimating":
     case "staffing":
     case "production":
-      return <ProgressPanel {...props} />;
+      return <WhatsHappeningCard {...props} />;
     case "review":
-      return <ReviewPanel {...props} />;
+      return null;
     case "final":
       return state.ballInCourt === "client" ? (
-        <div className="flex flex-col gap-6">
-          <DeliveryPackage {...props} />
-          <SignOffPanel {...props} />
-        </div>
+        <>
+          <DeliveryPackageCard {...props} />
+          <RatingCard projectId={props.projectId} />
+        </>
       ) : (
-        <ReviewPanel {...props} />
+        <WhatsHappeningCard {...props} />
       );
     case "closed":
-      return (
-        <div className="flex flex-col gap-6">
-          <ClosedPanel {...props} />
-          <DeliveryPackage {...props} />
-        </div>
-      );
+      return <DeliveryPackageCard {...props} />;
   }
 }

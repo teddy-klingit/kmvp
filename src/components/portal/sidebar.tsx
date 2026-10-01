@@ -18,7 +18,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { PersonAvatar } from "@/components/ui/avatar";
+import { Avatar } from "@/components/ds/avatar";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -62,18 +62,18 @@ export function PortalSidebar({
   // Exposed so viewport-fixed elements (e.g. a bottom action bar) can offset
   // themselves correctly without needing to lift this component's state.
   useEffect(() => {
-    document.documentElement.style.setProperty("--sidebar-width", collapsed ? "4rem" : "14rem");
+    document.documentElement.style.setProperty("--sidebar-width", collapsed ? "4rem" : "14.5rem");
   }, [collapsed]);
 
   return (
     <aside
       className={cn(
-        "flex h-screen shrink-0 flex-col justify-between border-r border-border bg-sidebar py-5 transition-[width] duration-200",
-        collapsed ? "w-16 px-2" : "w-56 px-4"
+        "flex h-screen shrink-0 flex-col justify-between border-r border-ds-border bg-ds-bg py-6 transition-[width] duration-200",
+        collapsed ? "w-16 px-2" : "w-[232px] px-4"
       )}
     >
       <div>
-        <div className={cn("mb-8 flex items-center px-2", collapsed ? "justify-center" : "justify-between")}>
+        <div className={cn("mb-6 flex items-center px-3", collapsed ? "justify-center px-0" : "justify-between")}>
           {!collapsed && (
             <Link href="/dashboard" className="flex items-center text-foreground">
               <Logo className="h-5 w-auto" />
@@ -105,7 +105,7 @@ export function PortalSidebar({
           </DropdownMenu>
         ) : null}
 
-        <nav className="flex flex-col gap-0.5">
+        <nav aria-label="Main" className="flex flex-col gap-1">
           {NAV_ITEMS.map((item) => {
             const active = pathname === item.href || pathname.startsWith(item.href + "/");
             return (
@@ -114,12 +114,12 @@ export function PortalSidebar({
                 href={item.href}
                 title={collapsed ? item.label : undefined}
                 className={cn(
-                  "flex items-center gap-2.5 rounded-full px-3 py-2 text-sm font-medium transition-colors",
+                  "flex items-center gap-3 rounded-[8px] px-3 py-2.5 text-[14px] transition-colors",
                   collapsed && "justify-center",
-                  active ? "bg-eggshell text-ink" : "text-ink/70 hover:bg-eggshell/60"
+                  active ? "bg-ds-nav-active font-medium text-ds-text" : "text-ds-text-2 hover:bg-ds-nav-active/60 hover:text-ds-text"
                 )}
               >
-                <item.icon className="size-4 shrink-0" />
+                <item.icon className="size-[18px] shrink-0" strokeWidth={1.75} />
                 {!collapsed && item.label}
               </Link>
             );
@@ -127,18 +127,18 @@ export function PortalSidebar({
         </nav>
       </div>
 
-      <div className="flex flex-col gap-0.5">
+      <div className="flex flex-col gap-1">
         <PersonaSwitcher currentEmail={userEmail} compact={collapsed} />
         <Link
           href="/notifications"
           title={collapsed ? "Notifications" : undefined}
           className={cn(
-            "flex items-center gap-2.5 rounded-full px-3 py-2 text-sm font-medium text-ink/70 hover:bg-eggshell/60",
+            "flex items-center gap-3 rounded-[8px] px-3 py-2.5 text-[14px] text-ds-text-2 hover:bg-ds-nav-active/60 hover:text-ds-text",
             collapsed && "justify-center"
           )}
         >
           <span className="relative">
-            <Bell className="size-4" />
+            <Bell className="size-[18px]" strokeWidth={1.75} />
             {unreadCount > 0 && <span className="absolute -right-1 -top-1 size-1.5 rounded-full bg-orange" />}
           </span>
           {!collapsed && "Notifications"}
@@ -147,25 +147,25 @@ export function PortalSidebar({
           href="/help"
           title={collapsed ? "Help" : undefined}
           className={cn(
-            "flex items-center gap-2.5 rounded-full px-3 py-2 text-sm font-medium text-ink/70 hover:bg-eggshell/60",
+            "flex items-center gap-3 rounded-[8px] px-3 py-2.5 text-[14px] text-ds-text-2 hover:bg-ds-nav-active/60 hover:text-ds-text",
             collapsed && "justify-center"
           )}
         >
-          <HelpCircle className="size-4" />
+          <HelpCircle className="size-[18px]" strokeWidth={1.75} />
           {!collapsed && "Help"}
         </Link>
         <Link
           href="/account"
           className={cn(
-            "mt-2 flex items-center gap-2.5 rounded-full px-3 py-2 hover:bg-eggshell/60",
-            collapsed && "justify-center"
+            "mt-2 flex items-center gap-3 border-t border-ds-border px-3 pt-4 no-underline",
+            collapsed && "justify-center px-0"
           )}
         >
-          <PersonAvatar name={userName} size="md" />
+          <Avatar name={userName} size={32} />
           {!collapsed && (
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium">{userName}</p>
-              <p className="truncate text-xs text-muted-foreground">{clientName}</p>
+            <div className="flex min-w-0 flex-col">
+              <span className="truncate text-[14px] font-medium text-ds-text">{userName}</span>
+              <span className="truncate text-[12px] text-ds-text-2">{clientName}</span>
             </div>
           )}
         </Link>

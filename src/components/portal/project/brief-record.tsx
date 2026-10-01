@@ -1,19 +1,23 @@
-import { Check } from "lucide-react";
+import { Check, FileText } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { Card, SectionLabel } from "@/components/ui/card";
+import { Card, CardHeader } from "@/components/ds/card";
+import { StatusPill } from "@/components/ds/status-pill";
+import { EmptyState } from "@/components/ds/empty-state";
 import { AcceptedBriefView } from "@/components/portal/accepted-brief-view";
 import { jsonArray } from "@/lib/utils";
 import type { PortalViewer } from "@/lib/brief-intake";
 
 type TranscriptTurn = { question: string; answer: string };
 
-/** "What was asked for": the full brief record — editable with version history once accepted. */
+/** "What you asked for": the full brief record — editable with version history once accepted. */
 export async function BriefRecord({ projectId, projectName, viewer, sent }: { projectId: string; projectName: string; viewer: PortalViewer; sent?: boolean }) {
   const brief = await prisma.brief.findFirst({ where: { projectId, project: { clientId: viewer.clientId } } });
 
   if (!brief) {
     return (
-      <Card className="p-5 text-sm text-muted-foreground">Nothing written yet — the brief starts on the Overview tab.</Card>
+      <Card>
+        <EmptyState icon={FileText} title="Nothing written yet" description="The brief starts on the Overview tab." />
+      </Card>
     );
   }
 
@@ -24,12 +28,9 @@ export async function BriefRecord({ projectId, projectName, viewer, sent }: { pr
     ]);
     return (
       <div className="flex flex-col gap-3">
-        <p className="text-sm text-muted-foreground">
-          Accepted by your account lead. You can still update it — they&apos;ll confirm if it changes scope.
-        </p>
         {sent && (
-          <Card className="flex items-center gap-2 border-l-4 border-l-success p-3 text-sm">
-            <Check className="size-4 text-success-foreground" />
+          <Card className="flex items-center gap-2 px-6 py-3 text-[14px]">
+            <Check className="size-4 text-ds-check" />
             Sent — your team will find it in the channel you picked.
           </Card>
         )}
@@ -68,50 +69,30 @@ export async function BriefRecord({ projectId, projectName, viewer, sent }: { pr
   const gaps = jsonArray<string>(brief.gapsFlagged);
 
   return (
-    <div className="flex flex-col gap-3">
-      {brief.rawIntake && (
-        <Card className="p-5">
-          <SectionLabel>In your words</SectionLabel>
-          <p className="mt-2 whitespace-pre-line text-sm">{brief.rawIntake}</p>
-          {(brief.sourceLink || brief.sourceFileName) && (
-            <p className="mt-2 text-xs text-muted-foreground">
-              {[brief.sourceLink, brief.sourceFileName].filter(Boolean).join(" · ")}
-            </p>
-          )}
-        </Card>
-      )}
-      {(fields.length > 0 || transcript.length > 0) && (
-        <Card className="divide-y divide-border p-0">
-          {fields.map((f) => (
-            <div key={f.label} className="flex gap-4 px-5 py-3 text-sm">
-              <span className="w-32 shrink-0 text-muted-foreground">{f.label}</span>
-              <span>{f.value}</span>
-            </div>
-          ))}
-          {transcript.map((t, i) => (
-            <div key={i} className="px-5 py-3 text-sm">
-              <p className="text-muted-foreground">{t.question}</p>
-              <p>{t.answer}</p>
-            </div>
-          ))}
-        </Card>
-      )}
-      {brief.aiSummary && (
-        <Card className="p-5">
-          <SectionLabel>Brief agent summary</SectionLabel>
-          <p className="mt-2 text-sm">{brief.aiSummary}</p>
-        </Card>
-      )}
-      {gaps.length > 0 && (
-        <Card className="p-5">
-          <SectionLabel>Still missing</SectionLabel>
-          <ul className="mt-2 list-disc pl-5 text-sm">
-            {gaps.map((g) => (
-              <li key={g}>{g}</li>
-            ))}
-          </ul>
-        </Card>
-      )}
+    <Card aria-label="Brief">
+      <CardHeader title="Brief" meta={<StatusPill tone={gaps.length ? "turn" : "neutral"}>{gaps.length ? `${gaps.length} missing` : "In progress"}</StatusPill>} />
+      <div className="divide-y divide-ds-divider">
+        {brief.rawIntake && (
+          <Row label="In your words" value={brief.rawIntake} />
+        )}
+        {fields.map((f) => (
+          <Row key={f.label} label={f.label} value={f.value} />
+        ))}
+        {transcript.map((t, i) => (
+          <Row key={i} label={t.question} value={t.answer} />
+        ))}
+        {brief.aiSummary && <Row label="Brief agent summary" value={brief.aiSummary} />}
+        {gaps.length > 0 && <Row label="Still missing" value={gaps.join(" · ")} />}
+      </div>
+    </Card>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col gap-0.5 px-6 py-4">
+      <span className="text-[13px] text-ds-text-2">{label}</span>
+      <span className="whitespace-pre-line text-[14px] text-ds-text">{value}</span>
     </div>
   );
 }

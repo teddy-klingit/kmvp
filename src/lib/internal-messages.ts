@@ -27,6 +27,7 @@ export type InternalMessage = {
   body: string;
   createdAt: Date;
   authorName: string;
+  authorRole: string | null;
   authorClientUserId: string;
 };
 
@@ -44,6 +45,7 @@ export async function listInternalMessages(projectId: string): Promise<InternalM
     body: m.body,
     createdAt: m.createdAt,
     authorName: m.author.user.name,
+    authorRole: m.author.jobTitle,
     authorClientUserId: m.authorClientUserId,
   }));
 }

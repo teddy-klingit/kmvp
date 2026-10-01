@@ -574,3 +574,100 @@ export function legacyTabRedirect(tab: LegacyTab, projectId: string, state: Pick
       return `${base}?share=1`;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Client milestones — the 5-step timeline in the client project header.
+// ---------------------------------------------------------------------------
+
+export type MilestoneStatus = "done" | "current" | "upcoming";
+export type Milestone = { key: string; label: string; status: MilestoneStatus; caption?: string };
+
+const MILESTONES: { key: string; label: string; stages: ProjectStage[] }[] = [
+  { key: "brief", label: "Brief", stages: ["briefing"] },
+  { key: "estimate", label: "Estimate", stages: ["estimating", "awaiting_approval"] },
+  { key: "production", label: "Production", stages: ["staffing", "production"] },
+  { key: "review", label: "Review", stages: ["review", "final"] },
+  { key: "delivered", label: "Delivered", stages: ["closed"] },
+];
+
+/** Short date like "1 Oct" / "30 Sept" — the timeline's caption format. */
+export function shortDate(d: Date) {
+  return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(d);
+}
+
+function nowCaption(state: ProjectState): string {
+  const { stage, ballInCourt, brief, nextAction, keyFacts } = state;
+  switch (stage) {
+    case "briefing":
+      if (ballInCourt !== "client") return "Now · Klingit reviewing";
+      if (brief.mode !== "intake" && brief.next) {
+        const left = brief.total - brief.answered;
+        return `Now · ${left} question${left === 1 ? "" : "s"}`;
+      }
+      return state.draft ? "Now · ready to start" : "Now · your input needed";
+    case "estimating":
+      return "Now · Klingit pricing";
+    case "awaiting_approval":
+      return nextAction.dueAt ? `Now · approve by ${shortDate(nextAction.dueAt)}` : "Now · your approval";
+    case "staffing":
+      return "Now · staffing your team";
+    case "production":
+      return keyFacts.firstDraftEta ? `Now · first draft ${shortDate(keyFacts.firstDraftEta)}` : "Now · in production";
+    case "review":
+      return state.assetsAwaitingReview > 0
+        ? `Now · ${state.assetsAwaitingReview} to review`
+        : "Now · Klingit revising";
+    case "final":
+      return ballInCourt === "client" ? "Now · your sign-off" : "Now · final files";
+    case "closed":
+      return "Delivered";
+  }
+}
+
+/** The 8 internal stages folded into the 5 milestones a client cares about. */
+export function clientMilestones(state: ProjectState): Milestone[] {
+  const byStage = new Map(state.timeline.map((t) => [t.stage, t]));
+  const currentIndex = MILESTONES.findIndex((m) => m.stages.includes(state.stage));
+  const closed = state.stage === "closed";
+
+  return MILESTONES.map((m, i) => {
+    const status: MilestoneStatus = closed || i < currentIndex ? "done" : i === currentIndex ? "current" : "upcoming";
+    const last = byStage.get(m.stages[m.stages.length - 1]);
+    const first = byStage.get(m.stages[0]);
+    let caption: string | undefined;
+    if (status === "done") {
+      const d = last?.date ?? first?.date;
+      const verb = { brief: "Done", estimate: "Approved", production: "First draft", review: "Signed off", delivered: "Delivered" }[m.key];
+      caption = d ? `${verb} ${shortDate(d)}` : undefined;
+    } else if (status === "current") {
+      caption = nowCaption(state);
+    } else if (m.key === "production") {
+      caption = state.keyFacts.firstDraftEta
+        ? `Est. ${shortDate(state.keyFacts.firstDraftEta)}`
+        : `First draft ≤ ${FIRST_DRAFT_BUSINESS_DAYS} days`;
+    } else if (m.key === "review") {
+      const eta = byStage.get("review")?.date;
+      caption = eta ? `Est. ${shortDate(eta)}` : undefined;
+    } else if (m.key === "delivered") {
+      caption = state.keyFacts.dueDate ? `Due ${shortDate(state.keyFacts.dueDate)}` : undefined;
+    }
+    return { key: m.key, label: m.label, status, ...(caption ? { caption } : {}) };
+  });
+}
+
+/** The header pill text + whether it's the client's turn (turn tone) — one place for both portal and tests. */
+export function clientStatusPill(state: ProjectState): { label: string; tone: "turn" | "neutral" | "success" | "watch" } {
+  if (state.archived) return { label: "Archived", tone: "neutral" };
+  if (state.paused) return { label: "Paused", tone: "watch" };
+  if (state.stage === "closed") return { label: "Delivered", tone: "success" };
+  if (state.ballInCourt === "client") {
+    const label = {
+      briefing: "Waiting for your answers",
+      awaiting_approval: "Awaiting your approval",
+      review: "Ready for your review",
+      final: "Ready for sign-off",
+    }[state.stage as "briefing" | "awaiting_approval" | "review" | "final"];
+    return { label: label ?? "Your turn", tone: "turn" };
+  }
+  return { label: stageStatusText(state), tone: "neutral" };
+}

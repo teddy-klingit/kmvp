@@ -4,17 +4,17 @@
 :root {
   /* Base surfaces — a light gray canvas behind white cards, so boxes read
      as distinct surfaces instead of blending into the page. */
-  --background: #f5f6f7;
-  --foreground: #1e1e1e;
+  --background: #f4f5f7;
+  --foreground: #15171a;
   --card: #ffffff;
-  --card-foreground: #1e1e1e;
-  --sidebar: #f5f6f7;
-  --sidebar-foreground: #1e1e1e;
+  --card-foreground: #15171a;
+  --sidebar: #f4f5f7;
+  --sidebar-foreground: #15171a;
 
   /* Direct brand tokens, for call sites that want the palette by name
      rather than through a semantic slot below. */
   --paper: #ffffff;
-  --ink: #1e1e1e;
+  --ink: #15171a;
   --surface: #dee1e6;
   --eggshell: #dee1e6;
   --fantasy: #f9f5ec;
@@ -22,18 +22,18 @@
 
   /* Borders / inputs — ink at ~15% opacity over white, flattened to a hex
      so the existing single-class `border-border` pattern keeps working. */
-  --border: #dddddd;
-  --input: #dddddd;
-  --ring: #1e1e1e;
+  --border: #e4e6ea;
+  --input: #d5d8dd;
+  --ring: #15171a;
 
   /* Text — `muted` is a background in some existing call sites (bg-muted)
      and a text color in others (text-muted-foreground); both keep working,
      now pointing at eggshell and the new mid-gray text respectively. */
   --muted: #dee1e6;
-  --muted-foreground: #7f828c;
+  --muted-foreground: #5b616b;
 
   /* Brand / primary — ink is the fill, never a hue. */
-  --primary: #1e1e1e;
+  --primary: #15171a;
   --primary-foreground: #ffffff;
   --primary-hover: #000000;
 
@@ -101,6 +101,38 @@
 
   /* No card shadow — the border does the job. */
   --shadow-card: none;
+
+  /* Design system (docs/design-system.md). Values come from
+     screenshots/design-reference — use these on redesigned screens. */
+  --ds-bg: #f4f5f7;
+  --ds-card: #ffffff;
+  --ds-border: #e4e6ea;
+  --ds-divider: #eef0f2;
+  --ds-control-border: #d5d8dd;
+  --ds-subtle: #f1f2f4;
+  --ds-subtle-2: #fafafb;
+  --ds-nav-active: #e9ebee;
+  --ds-text: #15171a;
+  --ds-text-2: #5b616b;
+  --ds-text-3: #6b7280;
+  --ds-text-body: #3f444c;
+  --ds-turn: #e2561b;
+  --ds-turn-tint: #fdebdd;
+  --ds-turn-text: #8a3a0e;
+  --ds-turn-strong: #b8460f;
+  --ds-turn-border: #f3c9ae;
+  --ds-success-tint: #e3f0d2;
+  --ds-success-text: #2e5a1c;
+  --ds-check: #3f7a2b;
+  --ds-changes-tint: #fbe3f1;
+  --ds-changes-text: #8c1d5e;
+  --ds-watch-tint: #fdf3d6;
+  --ds-watch-text: #7a5a06;
+  --ds-danger-tint: #fde7e7;
+  --ds-danger-text: #9b1c1c;
+  --ds-info-tint: #eef0fb;
+  --ds-info-text: #2c3a8c;
+  --ds-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
 }
 
 @theme inline {
@@ -169,6 +201,37 @@
   --radius-lg: var(--radius-lg);
   --radius-xl: var(--radius-xl);
 
+
+  --color-ds-bg: var(--ds-bg);
+  --color-ds-card: var(--ds-card);
+  --color-ds-border: var(--ds-border);
+  --color-ds-divider: var(--ds-divider);
+  --color-ds-control-border: var(--ds-control-border);
+  --color-ds-subtle: var(--ds-subtle);
+  --color-ds-subtle-2: var(--ds-subtle-2);
+  --color-ds-nav-active: var(--ds-nav-active);
+  --color-ds-text: var(--ds-text);
+  --color-ds-text-2: var(--ds-text-2);
+  --color-ds-text-3: var(--ds-text-3);
+  --color-ds-text-body: var(--ds-text-body);
+  --color-ds-turn: var(--ds-turn);
+  --color-ds-turn-tint: var(--ds-turn-tint);
+  --color-ds-turn-text: var(--ds-turn-text);
+  --color-ds-turn-strong: var(--ds-turn-strong);
+  --color-ds-turn-border: var(--ds-turn-border);
+  --color-ds-success-tint: var(--ds-success-tint);
+  --color-ds-success-text: var(--ds-success-text);
+  --color-ds-check: var(--ds-check);
+  --color-ds-changes-tint: var(--ds-changes-tint);
+  --color-ds-changes-text: var(--ds-changes-text);
+  --color-ds-watch-tint: var(--ds-watch-tint);
+  --color-ds-watch-text: var(--ds-watch-text);
+  --color-ds-danger-tint: var(--ds-danger-tint);
+  --color-ds-danger-text: var(--ds-danger-text);
+  --color-ds-info-tint: var(--ds-info-tint);
+  --color-ds-info-text: var(--ds-info-text);
+  --shadow-ds: var(--ds-shadow);
+
   --font-sans: var(--font-inter);
   --font-display: var(--font-inter);
 }
@@ -179,8 +242,11 @@ body {
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
-* {
-  border-color: var(--border);
+/* In the base layer so `border-<colour>` utilities can override it (unlayered, it beat every one of them). */
+@layer base {
+  * {
+    border-color: var(--border);
+  }
 }
 
 .bg-fade-purple-green {

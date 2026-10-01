@@ -1,16 +1,34 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ImageIcon } from "lucide-react";
 import { getPortalViewer } from "@/lib/current-viewer";
-import { Card, SectionLabel } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { AssetReviewGrid } from "@/components/portal/asset-review-viewer";
-import { DeliveryPackage, SignOffPanel } from "@/components/portal/project/stage-panels";
+import { Card } from "@/components/ds/card";
+import { Button } from "@/components/ds/button";
+import { EmptyState } from "@/components/ds/empty-state";
+import { DeliveryPackageCard, SignOffCard } from "@/components/portal/project/stage-panels";
+import { WorkGrid } from "@/components/portal/project/work-grid";
 import { approveAllAssetsAction } from "@/lib/actions/project-actions";
 import { loadProjectState } from "@/lib/project-state-loader";
 import { loadReviewAssets } from "@/lib/review-assets";
+import { cn } from "@/lib/utils";
 
-/** Work = the old Assets + Delivery + Final tabs. Becomes the delivery package once the work is final. */
-export default async function ProjectWorkPage({ params }: { params: Promise<{ id: string }> }) {
+const FILTERS = [
+  { key: "all", label: "All", match: () => true },
+  { key: "review", label: "Needs your review", match: (s: string) => s === "IN_REVIEW" },
+  { key: "changes", label: "Changes asked", match: (s: string) => s === "CHANGES_REQUESTED" },
+  { key: "approved", label: "Approved", match: (s: string) => s === "APPROVED" || s === "DELIVERED" },
+] as const;
+
+/** Work = every asset with its review status and comments. Becomes the delivery package once the work is final. */
+export default async function ProjectWorkPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ filter?: string; asset?: string }>;
+}) {
   const { id } = await params;
+  const { filter = "all", asset } = await searchParams;
   const viewer = await getPortalViewer();
   const loaded = await loadProjectState(id, viewer.clientId, viewer.id);
   if (!loaded) notFound();
@@ -18,9 +36,9 @@ export default async function ProjectWorkPage({ params }: { params: Promise<{ id
 
   if ((state.stage === "final" && state.ballInCourt === "client") || state.stage === "closed") {
     return (
-      <div className="flex flex-col gap-6">
-        <DeliveryPackage projectId={id} viewer={viewer} />
-        <SignOffPanel projectId={id} state={state} />
+      <div className="flex flex-col gap-5">
+        <DeliveryPackageCard projectId={id} viewer={viewer} />
+        {state.stage === "final" && <SignOffCard projectId={id} />}
       </div>
     );
   }
@@ -28,33 +46,61 @@ export default async function ProjectWorkPage({ params }: { params: Promise<{ id
   const assets = await loadReviewAssets(id, viewer.clientId);
   if (assets.length === 0) {
     return (
-      <Card className="flex flex-col gap-1 p-6">
-        <p className="text-sm font-medium">Nothing produced yet</p>
-        <p className="text-sm text-muted-foreground">Assets show up here as Klingit delivers them. Right now: {state.nextAction.label}.</p>
+      <Card>
+        <EmptyState
+          icon={ImageIcon}
+          title="Nothing to review yet"
+          description={`Your assets appear here as Klingit delivers them. Right now: ${state.nextAction.label}.`}
+        />
       </Card>
     );
   }
 
   const canReview = state.assetsAwaitingReview > 0;
+  // Empty filters are noise; "All" always shows. "Needs your review" only exists once the work is delivered to the client.
+  const filters = FILTERS.filter(
+    (f) => f.key === "all" || (assets.some((a) => f.match(a.status)) && (canReview || f.key !== "review"))
+  );
+  const active = filters.find((f) => f.key === filter) ?? filters[0];
+  const shown = assets.filter((a) => active.match(a.status));
+
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <SectionLabel>All assets</SectionLabel>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {canReview ? "Open an asset to comment on it or request changes." : "Open an asset to see its comments."}
-          </p>
-        </div>
-        {canReview && (
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-wrap items-center gap-2">
+        {filters.map((f) => {
+          const count = assets.filter((a) => f.match(a.status)).length;
+          const on = f.key === active.key;
+          return (
+            <Link
+              key={f.key}
+              href={f.key === "all" ? `/projects/${id}/work` : `/projects/${id}/work?filter=${f.key}`}
+              aria-current={on ? "true" : undefined}
+              className={cn(
+                "inline-flex h-11 items-center rounded-full sm:h-8 border px-3 text-[13px] font-medium no-underline",
+                on ? "border-ds-text bg-ds-text text-white" : "border-ds-control-border bg-white text-ds-text hover:border-ds-text-3"
+              )}
+            >
+              {f.label} · {count}
+            </Link>
+          );
+        })}
+        <span className="flex-1" />
+        {canReview && state.assetsAwaitingReview >= 2 && (
           <form action={approveAllAssetsAction}>
             <input type="hidden" name="projectId" value={id} />
-            <Button type="submit" size="sm">
-              Approve all
+            <Button type="submit" variant="secondary" size="md">
+              Approve {state.assetsAwaitingReview} in review
             </Button>
           </form>
         )}
       </div>
-      <AssetReviewGrid assets={assets} projectId={id} canReview={canReview} />
+      {shown.length > 0 ? (
+        <WorkGrid assets={shown} projectId={id} canReview={canReview} openAssetId={asset} />
+      ) : (
+        <Card>
+          <EmptyState title={`Nothing under “${active.label}”`} />
+        </Card>
+      )}
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { jsonArray } from "@/lib/utils";
 import { getEffectiveBriefQuestions, type BriefQuestionKey } from "@/lib/brief-questions";
 import { analyzeBrief } from "@/lib/ai/agents/brief-agent";
 import { loadProjectState } from "@/lib/project-state-loader";
+import { postProjectEvent } from "@/lib/project-events";
 
 type EmptyState = Record<string, never>;
 const EMPTY: EmptyState = {};
@@ -167,6 +168,7 @@ export async function approveEstimateAction(formData: FormData) {
     where: { id: estimate.projectId },
     data: { status: "STAFFING" },
   });
+  await postProjectEvent(estimate.projectId, "Estimate approved");
 
   revalidatePath(`/projects/${estimate.projectId}`, "layout");
   revalidatePath("/dashboard");
@@ -194,16 +196,37 @@ export async function approveAllAssetsAction(formData: FormData) {
   const viewer = await getPortalViewer();
   const projectId = String(formData.get("projectId") ?? "");
 
-  const project = await prisma.project.findFirst({ where: { id: projectId, clientId: viewer.clientId } });
+  // Only once the work is delivered: before that, IN_REVIEW is Klingit's internal QA.
+  const project = await prisma.project.findFirst({ where: { id: projectId, clientId: viewer.clientId, status: "AWAITING_REVIEW" } });
   if (!project) return;
 
-  await prisma.asset.updateMany({
-    where: { projectId, status: { in: ["IN_REVIEW", "CHANGES_REQUESTED"] } },
-    data: { status: "APPROVED" },
-  });
-  await prisma.project.update({ where: { id: projectId }, data: { status: "IN_FEEDBACK" } });
+  // "Approve N in review" — assets the client asked to change stay with Klingit.
+  await prisma.asset.updateMany({ where: { projectId, status: "IN_REVIEW" }, data: { status: "APPROVED" } });
+  await settleReviewRound(projectId);
 
   revalidatePath(`/projects/${projectId}`, "layout");
+}
+
+export async function approveAssetAction(formData: FormData) {
+  const viewer = await getPortalViewer();
+  const assetId = String(formData.get("assetId") ?? "");
+
+  const asset = await prisma.asset.findFirst({
+    where: { id: assetId, status: "IN_REVIEW", client: { id: viewer.clientId }, project: { status: "AWAITING_REVIEW" } },
+  });
+  if (!asset) return;
+
+  await prisma.asset.update({ where: { id: assetId }, data: { status: "APPROVED" } });
+  await settleReviewRound(asset.projectId);
+  revalidatePath(`/projects/${asset.projectId}`, "layout");
+}
+
+/** Once every asset is approved, the project moves on to final delivery. */
+async function settleReviewRound(projectId: string) {
+  const open = await prisma.asset.count({ where: { projectId, status: { in: ["IN_REVIEW", "CHANGES_REQUESTED"] } } });
+  if (open > 0) return;
+  const moved = await prisma.project.updateMany({ where: { id: projectId, status: "AWAITING_REVIEW" }, data: { status: "IN_FEEDBACK" } });
+  if (moved.count > 0) await postProjectEvent(projectId, "All assets approved");
 }
 
 export async function requestAssetChangesAction(formData: FormData) {
@@ -229,11 +252,36 @@ export async function postCommentAction(formData: FormData) {
   const project = await prisma.project.findFirst({ where: { id: projectId, clientId: viewer.clientId } });
   if (!project) return;
 
+  const context = await messageContext(projectId, formData);
   await prisma.comment.create({
-    data: { projectId, assetId, authorClientUserId: viewer.id, body },
+    data: { projectId, assetId: context.assetId ?? assetId, authorClientUserId: viewer.id, body, ...context.fields },
   });
 
   revalidatePath(`/projects/${projectId}`, "layout");
+}
+
+/**
+ * Optional "what this message is about" chip. Only kinds we can link back to
+ * are accepted, and the referenced row must belong to this project.
+ */
+async function messageContext(projectId: string, formData: FormData) {
+  const kind = String(formData.get("contextKind") ?? "");
+  const ref = String(formData.get("contextRef") ?? "");
+  const label = String(formData.get("contextLabel") ?? "").trim().slice(0, 120);
+  if (!label) return { fields: {} };
+
+  if (kind === "asset") {
+    const asset = await prisma.asset.findFirst({ where: { id: ref, projectId }, select: { id: true } });
+    return asset ? { assetId: asset.id, fields: { contextKind: kind, contextRef: asset.id, contextLabel: label } } : { fields: {} };
+  }
+  if (kind === "estimate_line") {
+    const line = await prisma.estimateLineItem.findFirst({ where: { id: ref, estimate: { projectId } }, select: { id: true } });
+    return line ? { fields: { contextKind: kind, contextRef: line.id, contextLabel: label } } : { fields: {} };
+  }
+  if (kind === "estimate" || kind === "brief") {
+    return { fields: { contextKind: kind, contextRef: null, contextLabel: label } };
+  }
+  return { fields: {} };
 }
 
 export async function postPinCommentAction(_prev: EmptyState, formData: FormData): Promise<EmptyState> {

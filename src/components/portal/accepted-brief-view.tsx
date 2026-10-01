@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { Pencil, X, AlertTriangle, History, ChevronDown } from "lucide-react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardHeader } from "@/components/ds/card";
+import { Button } from "@/components/ds/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { updateAcceptedBriefAction } from "@/lib/actions/brief-revision-actions";
@@ -30,12 +30,14 @@ const FIELD_META: { key: keyof BriefFields; label: string; placeholder: string }
 ];
 
 function BriefFieldRows({ brief }: { brief: BriefFields }) {
+  const filled = FIELD_META.filter((f) => brief[f.key]);
+  if (filled.length === 0) return <p className="text-[14px] text-ds-text-2">Nothing written in this version.</p>;
   return (
-    <dl className="flex flex-col gap-3 text-sm">
-      {FIELD_META.map((f) => (
-        <div key={f.key} className="flex gap-4">
-          <dt className="w-32 shrink-0 text-muted-foreground">{f.label}</dt>
-          <dd className="whitespace-pre-wrap">{brief[f.key] || "—"}</dd>
+    <dl className="m-0 grid grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-[120px_1fr] sm:gap-y-3 text-[14px]">
+      {filled.map((f) => (
+        <div key={f.key} className="contents">
+          <dt className="text-ds-text-2">{f.label}</dt>
+          <dd className="m-0 whitespace-pre-wrap text-ds-text">{brief[f.key]}</dd>
         </div>
       ))}
     </dl>
@@ -77,10 +79,11 @@ export function AcceptedBriefView({
 
   return (
     <div className="flex flex-col gap-4">
-      <Card className="p-5">
-        <div className="mb-3 flex items-center justify-between">
-          <p className="text-sm font-semibold">Current brief</p>
-          {!editing && (
+      <Card>
+        <CardHeader
+          title="Current brief"
+          action={
+            !editing && (
             <div className="flex items-center gap-2">
               {channels && (
                 <SendToChannelDialog
@@ -90,26 +93,27 @@ export function AcceptedBriefView({
                   returnTo={returnTo ?? "/"}
                 />
               )}
-              <Button size="sm" variant="secondary" className="gap-1.5" onClick={() => setEditing(true)}>
-                <Pencil className="size-3.5" />
+              <Button size="sm" variant="secondary" onClick={() => setEditing(true)}>
+                <Pencil />
                 Edit brief
               </Button>
             </div>
-          )}
-        </div>
-
+            )
+          }
+        />
+        <div className="px-6 pb-5 pt-4">
         {!editing ? (
           <BriefFieldRows brief={brief} />
         ) : (
           <form
             action={handleSubmit}
-            className="flex animate-in fade-in flex-col gap-4 duration-200"
+            className="flex flex-col gap-4"
           >
             <input type="hidden" name="briefId" value={briefId} />
 
-            <div className="flex items-start gap-2.5 rounded-lg border border-warning bg-warning-soft p-3">
-              <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning-foreground" />
-              <p className="text-xs text-warning-foreground">
+            <div className="flex items-start gap-2.5 rounded-[8px] border border-ds-turn-border bg-ds-turn-tint p-3">
+              <AlertTriangle className="mt-0.5 size-4 shrink-0 text-ds-turn-text" />
+              <p className="text-[13px] text-ds-turn-text">
                 This project has already been scoped and is underway. Changing the brief now may change the
                 estimate and delivery timeline — your account lead will review and confirm any impact.
               </p>
@@ -117,7 +121,7 @@ export function AcceptedBriefView({
 
             {FIELD_META.map((f) => (
               <div key={f.key} className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-muted-foreground">{f.label}</label>
+                <label className="text-[12px] font-medium text-ds-text-2">{f.label}</label>
                 <Textarea
                   name={f.key}
                   defaultValue={brief[f.key] ?? ""}
@@ -128,7 +132,7 @@ export function AcceptedBriefView({
               </div>
             ))}
 
-            <label className="flex items-start gap-2 text-xs text-muted-foreground">
+            <label className="flex items-start gap-2 text-[13px] text-ds-text-2">
               <input type="checkbox" name="acknowledged" required disabled={pending} className="mt-0.5" />
               I understand this may affect the estimate and delivery timeline.
             </label>
@@ -136,26 +140,25 @@ export function AcceptedBriefView({
             {error && <p className="text-sm text-danger-foreground">{error}</p>}
 
             <div className="flex gap-2">
-              <Button type="submit" size="sm" disabled={pending}>
+              <Button type="submit" variant="primary" size="md" disabled={pending}>
                 {pending ? "Saving…" : "Save changes"}
               </Button>
               <Button
-                type="button"
-                size="sm"
+                size="md"
                 variant="secondary"
                 onClick={() => {
                   setEditing(false);
                   setError(undefined);
                 }}
                 disabled={pending}
-                className="gap-1.5"
               >
-                <X className="size-3.5" />
+                <X />
                 Cancel
               </Button>
             </div>
           </form>
         )}
+        </div>
       </Card>
 
       {revisions.length > 0 && (
@@ -163,7 +166,7 @@ export function AcceptedBriefView({
           <button
             type="button"
             onClick={() => setHistoryOpen((v) => !v)}
-            className="flex items-center gap-1.5 self-start text-xs font-medium text-muted-foreground hover:text-foreground"
+            className="flex items-center gap-1.5 self-start text-[13px] font-medium text-ds-text-2 hover:text-ds-text"
           >
             <History className="size-3.5" />
             {revisions.length} earlier version{revisions.length === 1 ? "" : "s"}
@@ -172,19 +175,19 @@ export function AcceptedBriefView({
           {historyOpen && (
             <div className="flex flex-col gap-2">
               {revisions.map((r) => (
-                <Card key={r.id} className="p-4">
+                <Card key={r.id} className="px-6 py-4">
                   <button
                     type="button"
                     onClick={() => setExpandedRevision(expandedRevision === r.id ? null : r.id)}
                     className="flex w-full items-center justify-between text-left"
                   >
-                    <p className="text-xs font-medium">
+                    <p className="text-[13px] font-medium text-ds-text">
                       Edited by {r.changedByName} · {new Date(r.createdAt).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                     </p>
                     <ChevronDown className={cn("size-3.5 shrink-0 transition-transform", expandedRevision === r.id && "rotate-180")} />
                   </button>
                   {expandedRevision === r.id && (
-                    <div className="mt-3 border-t border-border pt-3">
+                    <div className="mt-3 border-t border-ds-divider pt-3">
                       <BriefFieldRows brief={r} />
                     </div>
                   )}

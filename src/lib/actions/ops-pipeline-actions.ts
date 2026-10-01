@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireOpsRole } from "@/lib/authz";
+import { postProjectEvent } from "@/lib/project-events";
+import { addBusinessDays, formatDay, FIRST_DRAFT_BUSINESS_DAYS } from "@/lib/project-state";
 
 async function completeStage(projectId: string, name: string) {
   await prisma.pipelineStage.updateMany({
@@ -80,6 +82,7 @@ export async function sendEstimateToClientAction(formData: FormData) {
     });
   }
 
+  await postProjectEvent(estimate.projectId, "Estimate v1 sent");
   revalidateClient(clientId);
 }
 
@@ -97,6 +100,10 @@ export async function confirmTeamAction(formData: FormData) {
   await activateStage(projectId, "PRODUCTION");
   await prisma.project.update({ where: { id: projectId }, data: { status: "IN_PRODUCTION", startedAt: new Date() } });
 
+  const members = await prisma.teamMember.findMany({ where: { teamId }, include: { staffMember: { include: { user: true } } } });
+  const names = members.map((m) => m.staffMember.user.name).join(", ");
+  const eta = formatDay(addBusinessDays(new Date(), FIRST_DRAFT_BUSINESS_DAYS));
+  await postProjectEvent(projectId, `Your team is confirmed${names ? `: ${names}` : ""} · first draft by ${eta}`);
   revalidateClient(clientId);
 }
 
@@ -163,6 +170,7 @@ export async function sendDeliveryToClientAction(formData: FormData) {
   await activateStage(projectId, "FEEDBACK");
   await prisma.project.update({ where: { id: projectId }, data: { status: "AWAITING_REVIEW", deliveredAt: new Date() } });
 
+  await postProjectEvent(projectId, "First draft delivered");
   revalidateClient(clientId);
 }
 

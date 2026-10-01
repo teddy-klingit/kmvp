@@ -1,18 +1,21 @@
 import { notFound } from "next/navigation";
-import { AlertTriangle, Check } from "lucide-react";
+import { AlertTriangle, ReceiptText } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
-import { Card, SectionLabel } from "@/components/ui/card";
-import { StatusBadge } from "@/components/ui/badge";
+import { Card, CardHeader } from "@/components/ds/card";
+import { StatusPill, type PillTone } from "@/components/ds/status-pill";
+import { EmptyState } from "@/components/ds/empty-state";
 import { BriefRecord } from "@/components/portal/project/brief-record";
+import { EstimateTable, Inclusions } from "@/components/portal/project/stage-panels";
 import { loadProjectState } from "@/lib/project-state-loader";
-import { formatDate, jsonArray } from "@/lib/utils";
+import { shortDate } from "@/lib/project-state";
+import { jsonArray } from "@/lib/utils";
 
-const ESTIMATE_BADGE: Record<string, string> = {
-  SENT: "Awaiting your approval",
-  APPROVED: "Approved",
-  CHANGES_REQUESTED: "Changes asked",
-  EXPIRED: "Expired",
+const ESTIMATE_PILL: Record<string, { label: string; tone: PillTone }> = {
+  SENT: { label: "Awaiting your approval", tone: "turn" },
+  APPROVED: { label: "Approved", tone: "success" },
+  CHANGES_REQUESTED: { label: "Changes asked", tone: "changes" },
+  EXPIRED: { label: "Expired", tone: "watch" },
 };
 
 type UnresolvedNeed = { description: string; reason?: string };
@@ -39,87 +42,64 @@ export default async function ProjectScopePage({
   });
   const inclusions = jsonArray<string>(estimate?.inclusions);
   const unresolved = jsonArray<UnresolvedNeed>(estimate?.unresolvedNeeds);
+  const pill = estimate ? ESTIMATE_PILL[estimate.status] : null;
 
   return (
-    <div className="flex flex-col gap-8">
-      <section className="flex flex-col gap-3">
-        <SectionLabel>What you asked for</SectionLabel>
-        <BriefRecord projectId={id} projectName={project.name} viewer={viewer} sent={sent === "1"} />
-      </section>
+    <div className="flex flex-col gap-5">
+      <BriefRecord projectId={id} projectName={project.name} viewer={viewer} sent={sent === "1"} />
 
-      <section id="estimate" className="flex flex-col gap-3">
-        <div className="flex items-center justify-between gap-4">
-          <SectionLabel>What was agreed</SectionLabel>
-          {estimate && <StatusBadge status={ESTIMATE_BADGE[estimate.status] ?? estimate.status} />}
-        </div>
-        {!estimate ? (
-          <Card className="p-5 text-sm text-muted-foreground">No estimate yet. {state.nextAction.label}.</Card>
-        ) : (
+      <Card aria-label="What was agreed" id="estimate" className="overflow-hidden">
+        <CardHeader
+          title="What was agreed"
+          meta={
+            estimate && pill ? (
+              <>
+                <StatusPill>v1</StatusPill>
+                <StatusPill tone={pill.tone}>{pill.label}</StatusPill>
+              </>
+            ) : undefined
+          }
+          action={
+            estimate?.sentAt ? (
+              <span className="text-[12px] text-ds-text-2">
+                Sent by {estimate.sentByStaff?.user.name ?? "Klingit"} · {shortDate(estimate.sentAt)}
+                {estimate.status === "APPROVED" && estimate.respondedAt ? ` · approved ${shortDate(estimate.respondedAt)}` : ""}
+              </span>
+            ) : undefined
+          }
+        />
+        {estimate ? (
           <>
-            <Card className="overflow-hidden p-0">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/60 text-xs uppercase tracking-wide text-muted-foreground">
-                  <tr>
-                    <th className="px-5 py-3 text-left font-medium">Deliverable</th>
-                    <th className="px-5 py-3 text-left font-medium">Detail</th>
-                    <th className="px-5 py-3 text-right font-medium">Credits</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {estimate.lineItems.map((li) => (
-                    <tr key={li.id} className="border-t border-border">
-                      <td className="px-5 py-3 font-medium">{li.deliverable}</td>
-                      <td className="px-5 py-3 text-muted-foreground">{li.detail}</td>
-                      <td className="px-5 py-3 text-right">{li.credits}c</td>
-                    </tr>
-                  ))}
-                  <tr className="border-t border-border font-semibold">
-                    <td className="px-5 py-3">Total</td>
-                    <td />
-                    <td className="px-5 py-3 text-right">{estimate.totalCredits}c</td>
-                  </tr>
-                </tbody>
-              </table>
-              <p className="border-t border-border px-5 py-3 text-xs text-muted-foreground">
-                Priced from the Klingit price list · sent by {estimate.sentByStaff?.user.name ?? "Klingit"}
-                {estimate.sentAt && ` on ${formatDate(estimate.sentAt)}`}
-                {estimate.respondedAt && estimate.status === "APPROVED" && ` · approved ${formatDate(estimate.respondedAt)}`}
-              </p>
-            </Card>
-
-            {inclusions.length > 0 && (
-              <Card className="flex flex-col gap-2 p-5">
-                {inclusions.map((item) => (
-                  <div key={item} className="flex items-center gap-2 text-sm">
-                    <Check className="size-3.5 shrink-0" />
-                    {item}
-                  </div>
-                ))}
-              </Card>
-            )}
-
-            {unresolved.length > 0 && (
-              <Card className="flex flex-col gap-3 border border-border p-5">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="size-4" />
-                  <p className="text-sm font-semibold">Out of scope — flagged by the Estimate agent</p>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Not on the price list, so not included above. Your account lead will price these separately.
-                </p>
-                <ul className="flex flex-col gap-1.5 text-sm">
-                  {unresolved.map((need) => (
-                    <li key={need.description}>
-                      <span className="font-medium">{need.description}</span>
-                      {need.reason && <span className="text-muted-foreground"> — {need.reason}</span>}
-                    </li>
-                  ))}
-                </ul>
-              </Card>
-            )}
+            <EstimateTable lines={estimate.lineItems} total={estimate.totalCredits} />
+            {inclusions.length > 0 && <Inclusions items={inclusions} />}
           </>
+        ) : (
+          <EmptyState icon={ReceiptText} title="No estimate yet" description={state.nextAction.label} />
         )}
-      </section>
+      </Card>
+
+      {unresolved.length > 0 && (
+        <Card aria-label="Out of scope">
+          <CardHeader
+            title="Out of scope"
+            meta={<StatusPill tone="watch">Flagged by the Estimate agent</StatusPill>}
+          />
+          <div className="flex flex-col gap-3 px-6 pb-5 pt-4">
+            <p className="flex items-center gap-2 text-[13px] text-ds-text-2">
+              <AlertTriangle className="size-4" />
+              Not on the price list, so not included above. Your account lead prices these separately.
+            </p>
+            <ul className="m-0 flex list-none flex-col gap-2 p-0 text-[14px]">
+              {unresolved.map((need) => (
+                <li key={need.description}>
+                  <span className="font-medium text-ds-text">{need.description}</span>
+                  {need.reason && <span className="text-ds-text-2"> — {need.reason}</span>}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

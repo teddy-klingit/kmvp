@@ -14,7 +14,9 @@ export async function postInternalMessageAction(formData: FormData) {
   if (created) revalidatePath(`/projects/${projectId}`, "layout");
 }
 
-export async function markChannelReadAction(projectId: string, channel: "KLINGIT" | "INTERNAL") {
+export async function markChannelReadAction(projectId: string, readKey: string) {
+  if (readKey !== "KLINGIT" && readKey !== "INTERNAL") return;
+  const channel = readKey;
   const viewer = await getPortalViewer();
   const project = await prisma.project.findFirst({
     where: { id: projectId, clientId: viewer.clientId, ...projectVisibilityWhere(viewer.id) },

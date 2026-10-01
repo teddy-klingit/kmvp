@@ -148,6 +148,31 @@ async function main() {
     },
   });
 
+  // System events + a context-tagged message, so the conversation panel shows its chips.
+  const ago = (h: number) => new Date(Date.now() - h * 3600000);
+  await prisma.comment.createMany({
+    data: [
+      { projectId: investor.id, kind: "SYSTEM", body: "Estimate v1 sent", createdAt: ago(5) },
+      { projectId: investor.id, authorUserId: teddy.userId, body: "Hi Jack, here's the estimate for the Q4 deck. Two of the slides need custom charts, so they're priced as High.", createdAt: ago(4.9) },
+      { projectId: summer.id, kind: "SYSTEM", body: "Your team is confirmed: Sara, Marcus · first draft by Fri", createdAt: ago(80) },
+      { projectId: summer.id, kind: "SYSTEM", body: "First draft delivered", createdAt: ago(3.1) },
+    ],
+  });
+  const summerAsset = await prisma.asset.findFirst({ where: { projectId: summer.id }, orderBy: { createdAt: "asc" } });
+  if (summerAsset) {
+    await prisma.comment.create({
+      data: {
+        projectId: summer.id,
+        authorClientUserId: jack.id,
+        body: "Can the headline be a touch bigger on this one?",
+        contextKind: "asset",
+        contextRef: summerAsset.id,
+        contextLabel: `On ${summerAsset.name}`,
+        createdAt: ago(1.5),
+      },
+    });
+  }
+
   console.log("Stage demo projects:", { briefing: deck.id, awaiting_approval: investor.id, production: q3.id, final: holiday.id });
 }
 

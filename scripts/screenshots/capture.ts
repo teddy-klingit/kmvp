@@ -4,6 +4,7 @@
  *
  *   npx tsx scripts/screenshots/capture.ts f1
  *   npx tsx scripts/screenshots/capture.ts f2 --widths=1440,390
+ *   npx tsx scripts/screenshots/capture.ts h --widths=1440,1280,390
  *
  * Output: screenshots/<phase>/...png
  */
@@ -41,20 +42,29 @@ const F2_TABS: Record<string, string> = { overview: "", work: "/work", scope: "/
 async function shot(page: Page, path: string, name: string, outDir: string, width: number) {
   await page.goto(`${BASE}${path}`, { waitUntil: "networkidle" });
   await page.waitForTimeout(400);
+  // The portal scrolls inside <main>, not the document, so fullPage alone stops at the fold:
+  // grow the viewport to the content height instead (full-height panels then stretch with it).
+  const height = await page.evaluate(() => Math.max(document.querySelector("main")?.scrollHeight ?? 0, window.innerHeight));
+  await page.setViewportSize({ width, height });
+  await page.waitForTimeout(250);
   await page.screenshot({ path: `${outDir}/${name}-${width}.png`, fullPage: true });
+  await page.setViewportSize({ width, height: 900 });
   console.log(`  ${name}-${width}.png`);
 }
 
 async function main() {
   const prisma = new PrismaClient({ datasourceUrl: "file:./prisma/screens.db" });
   const projects = await prisma.project.findMany({ where: { name: { in: Object.values(STAGE_PROJECTS) } }, select: { id: true, name: true } });
+  const jack = await prisma.user.findUniqueOrThrow({ where: { email: "jack.ross@klarna.com" }, select: { id: true } });
   await prisma.$disconnect();
+  const panelKey = `klingit.conversation.${jack.id}`;
+  const setPanel = (page: Page, pref: "open" | "folded") => page.evaluate(([k, v]) => localStorage.setItem(k, v), [panelKey, pref]);
   const idFor = (stage: string) => projects.find((p) => p.name === STAGE_PROJECTS[stage])?.id;
 
   const outDir = `screenshots/${phase}`;
   mkdirSync(outDir, { recursive: true });
-  const tabs = phase === "f2" ? F2_TABS : F1_TABS;
-  const stages = Object.keys(STAGE_PROJECTS).filter((s) => (stageFilter ? stageFilter.includes(s) : phase === "f2" || s !== "review"));
+  const tabs = phase === "f1" ? F1_TABS : F2_TABS;
+  const stages = Object.keys(STAGE_PROJECTS).filter((s) => (stageFilter ? stageFilter.includes(s) : phase !== "f1" || s !== "review"));
 
   const browser = await chromium.launch();
   for (const width of widths) {
@@ -67,6 +77,11 @@ async function main() {
     await page.waitForURL((url) => url.pathname === "/dashboard", { timeout: 60_000 });
 
     console.log(`width ${width}`);
+    if (phase === "h") {
+      await phaseH(page, outDir, width, stages, idFor, setPanel);
+      await context.close();
+      continue;
+    }
     await shot(page, "/projects", "board", outDir, width);
     // The board scrolls sideways — capture the right-hand columns too.
     await page.locator("[data-column]").first().locator("..").evaluate((el) => el.scrollTo({ left: el.scrollWidth }));
@@ -91,6 +106,44 @@ async function main() {
     await context.close();
   }
   await browser.close();
+}
+
+/** Phase H: every stage × tab, plus the conversation panel open and folded at 1280 and the mobile sheet. */
+async function phaseH(
+  page: Page,
+  outDir: string,
+  width: number,
+  stages: string[],
+  idFor: (s: string) => string | undefined,
+  setPanel: (page: Page, pref: "open" | "folded") => Promise<void>
+) {
+  await page.goto(`${BASE}/dashboard`, { waitUntil: "networkidle" });
+  // Default per width: docked open from 1440, folded below.
+  await setPanel(page, width >= 1440 ? "open" : "folded");
+  for (const stage of stages) {
+    const id = idFor(stage);
+    if (!id) throw new Error(`Missing demo project for ${stage} — run seed-stages.ts`);
+    for (const [tab, suffix] of Object.entries(F2_TABS)) {
+      await shot(page, `/projects/${id}${suffix}`, `${stage}-${tab}`, outDir, width);
+    }
+  }
+  const review = idFor("review")!;
+  if (width === 1280) {
+    await setPanel(page, "open");
+    await shot(page, `/projects/${review}`, "review-panel-open", outDir, width);
+    await setPanel(page, "folded");
+    await shot(page, `/projects/${review}`, "review-panel-folded", outDir, width);
+  }
+  if (width < 768) {
+    await page.goto(`${BASE}/projects/${review}`, { waitUntil: "networkidle" });
+    await page.getByRole("button", { name: /chat/i }).first().click();
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: `${outDir}/review-chat-sheet-${width}.png`, fullPage: false });
+    console.log(`  review-chat-sheet-${width}.png`);
+    // No horizontal scroll on any phone-width page.
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    if (overflow > 0) console.warn(`  ! horizontal overflow ${overflow}px on review overview`);
+  }
 }
 
 main().catch((err) => {

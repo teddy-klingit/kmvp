@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { PortalSidebar } from "@/components/portal/sidebar";
-import { PageTransition } from "@/components/shared/page-transition";
+import { PortalMain } from "@/components/portal/portal-main";
 import { getPortalViewer } from "@/lib/current-viewer";
 import { prisma } from "@/lib/prisma";
 
@@ -22,11 +22,7 @@ export default async function PortalLayout({ children }: { children: React.React
         brands={brands.map((b) => ({ id: b.id, name: b.name }))}
         unreadCount={unreadCount}
       />
-      <main className="min-w-0 flex-1 overflow-y-auto px-4 py-6 md:px-10 md:py-8">
-        <div className="mx-auto max-w-6xl">
-          <PageTransition>{children}</PageTransition>
-        </div>
-      </main>
+      <PortalMain>{children}</PortalMain>
     </div>
   );
 }

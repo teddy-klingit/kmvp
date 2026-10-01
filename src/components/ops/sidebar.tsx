@@ -16,7 +16,7 @@ import {
   Settings,
   Tag,
 } from "lucide-react";
-import { PersonAvatar } from "@/components/ui/avatar";
+import { Avatar } from "@/components/ds/avatar";
 import { PersonaSwitcher } from "@/components/shared/persona-switcher";
 import { Logo } from "@/components/ui/logo";
 import { cn } from "@/lib/utils";
@@ -56,12 +56,12 @@ export function OpsSidebar({
   const agencyItems = AGENCY_NAV_ITEMS.filter((i) => (i.tiers as RoleTier[]).includes(tier));
 
   return (
-    <aside className="flex h-screen w-56 shrink-0 flex-col justify-between border-r border-border bg-sidebar px-4 py-5">
+    <aside className="flex h-screen w-[232px] shrink-0 flex-col justify-between border-r border-ds-border bg-ds-bg px-4 py-6">
       <div>
-        <Link href="/ops" className="mb-8 flex px-2 text-foreground">
+        <Link href="/ops" className="mb-6 flex px-3 text-ds-text">
           <Logo className="h-5 w-auto" />
         </Link>
-        <nav className="flex flex-col gap-0.5">
+        <nav aria-label="Main" className="flex flex-col gap-1">
           {navItems.map((item) => {
             const active =
               item.href === "/ops"
@@ -72,11 +72,11 @@ export function OpsSidebar({
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-2.5 rounded-full px-3 py-2 text-sm font-medium transition-colors",
-                  active ? "bg-eggshell text-ink" : "text-ink/70 hover:bg-eggshell/60"
+                  "flex items-center gap-3 rounded-[8px] px-3 py-2.5 text-[14px] transition-colors",
+                  active ? "bg-ds-nav-active font-medium text-ds-text" : "text-ds-text-2 hover:bg-ds-nav-active/60 hover:text-ds-text"
                 )}
               >
-                <item.icon className="size-4" />
+                <item.icon className="size-[18px] shrink-0" strokeWidth={1.75} />
                 {item.label}
               </Link>
             );
@@ -85,10 +85,10 @@ export function OpsSidebar({
 
         {agencyItems.length > 0 && (
           <>
-            <p className="mb-1 mt-6 px-2.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+            <p className="mb-1 mt-6 px-3 text-[12px] font-medium uppercase tracking-wider text-ds-text-3">
               Agency
             </p>
-            <nav className="flex flex-col gap-0.5">
+            <nav aria-label="Agency" className="flex flex-col gap-1">
               {agencyItems.map((item) => {
                 const active = pathname.startsWith(item.href);
                 return (
@@ -96,11 +96,11 @@ export function OpsSidebar({
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "flex items-center gap-2.5 rounded-full px-3 py-2 text-sm font-medium transition-colors",
-                      active ? "bg-eggshell text-ink" : "text-ink/70 hover:bg-eggshell/60"
+                      "flex items-center gap-3 rounded-[8px] px-3 py-2.5 text-[14px] transition-colors",
+                      active ? "bg-ds-nav-active font-medium text-ds-text" : "text-ds-text-2 hover:bg-ds-nav-active/60 hover:text-ds-text"
                     )}
                   >
-                    <item.icon className="size-4" />
+                    <item.icon className="size-[18px] shrink-0" strokeWidth={1.75} />
                     {item.label}
                   </Link>
                 );
@@ -109,13 +109,13 @@ export function OpsSidebar({
           </>
         )}
       </div>
-      <div className="flex flex-col gap-0.5">
+      <div className="flex flex-col gap-1">
         <PersonaSwitcher currentEmail={userEmail} />
-        <Link href="/ops/account" className="flex items-center gap-2.5 rounded-full px-3 py-2 hover:bg-eggshell/60">
-          <PersonAvatar name={userName} size="md" />
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium">{userName}</p>
-            <p className="truncate text-xs text-muted-foreground">{userTitle}</p>
+        <Link href="/ops/account" className="mt-2 flex items-center gap-3 border-t border-ds-border px-3 pt-4 no-underline">
+          <Avatar name={userName} size={32} />
+          <div className="flex min-w-0 flex-col">
+            <span className="truncate text-[14px] font-medium text-ds-text">{userName}</span>
+            <span className="truncate text-[12px] text-ds-text-2">{userTitle}</span>
           </div>
         </Link>
       </div>

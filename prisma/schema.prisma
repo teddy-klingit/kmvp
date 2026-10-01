@@ -1030,6 +1030,11 @@ model Asset {
   comments Comment[]
 }
 
+enum CommentKind {
+  MESSAGE
+  SYSTEM
+}
+
 model Comment {
   id                 String   @id @default(cuid())
   projectId          String
@@ -1046,6 +1051,13 @@ model Comment {
   heightPercent      Float?
   timestampSeconds   Float? // set only for a video/motion asset comment — the moment in playback being referenced
   archivedAt         DateTime? // soft delete — archived comments are hidden everywhere but kept for restore
+  // SYSTEM rows are project events shown as centred chips ("Estimate v1 sent").
+  kind               CommentKind @default(MESSAGE)
+  // What the message is about, for the context chip: e.g. contextKind
+  // "estimate_line", contextRef = line item id, contextLabel shown verbatim.
+  contextKind        String?
+  contextRef         String?
+  contextLabel       String?
   createdAt          DateTime @default(now())
 
   project      Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)

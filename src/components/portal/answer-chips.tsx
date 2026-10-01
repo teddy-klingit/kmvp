@@ -1,8 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ds/button";
 import { ThinkingBubble } from "@/components/portal/thinking-bubble";
 
 type EmptyState = Record<string, never>;
@@ -10,11 +9,14 @@ type AnswerAction = (prev: EmptyState, formData: FormData) => Promise<EmptyState
 
 function useCyclingLabel(active: boolean, steps: string[], intervalMs = 1700) {
   const [i, setI] = useState(0);
+  // Restart from the first label each time it becomes active.
+  const [wasActive, setWasActive] = useState(active);
+  if (active !== wasActive) {
+    setWasActive(active);
+    if (!active) setI(0);
+  }
   useEffect(() => {
-    if (!active) {
-      setI(0);
-      return;
-    }
+    if (!active) return;
     const id = setInterval(() => setI((v) => (v + 1) % steps.length), intervalMs);
     return () => clearInterval(id);
   }, [active, steps, intervalMs]);
@@ -51,7 +53,7 @@ export function AnswerChips({
             <input type="hidden" name="answer" value={preset} />
             <button
               type="submit"
-              className="rounded-full border border-border bg-card px-3 py-1.5 text-sm font-medium text-foreground transition-[color,border-color,background-color,transform] duration-100 ease-out hover:border-primary hover:text-primary active:scale-95"
+              className="h-11 rounded-full sm:h-9 border border-ds-control-border bg-white px-3.5 text-[13px] font-medium text-ds-text transition-colors hover:border-ds-text active:scale-[0.98]"
             >
               {preset}
             </button>
@@ -63,8 +65,19 @@ export function AnswerChips({
         {Object.entries(hidden).map(([k, v]) => (
           <input key={k} type="hidden" name={k} value={v} />
         ))}
-        <Input name="answer" placeholder={customPlaceholder} required className="flex-1" />
-        <Button type="submit">Send</Button>
+        <label className="sr-only" htmlFor="brief-answer">
+          Your answer
+        </label>
+        <input
+          id="brief-answer"
+          name="answer"
+          placeholder={customPlaceholder}
+          required
+          className="h-10 min-w-0 flex-1 rounded-[8px] border border-ds-control-border bg-white px-3 text-[14px] text-ds-text outline-none placeholder:text-ds-text-3 focus:border-ds-text-3"
+        />
+        <Button type="submit" variant="primary" size="lg">
+          Send
+        </Button>
       </form>
     </div>
   );

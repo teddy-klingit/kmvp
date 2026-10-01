@@ -26,11 +26,11 @@ export function PersonaSwitcher({ currentEmail, compact = false }: { currentEmai
         <button
           title="Switch view"
           className={cn(
-            "flex items-center gap-2.5 rounded-md py-2 text-sm font-medium text-foreground/80 hover:bg-muted",
-            compact ? "justify-center px-2" : "px-2.5"
+            "flex w-full items-center gap-3 rounded-[8px] py-2.5 text-[14px] text-ds-text-2 hover:bg-ds-nav-active/60 hover:text-ds-text",
+            compact ? "justify-center px-2" : "px-3"
           )}
         >
-          <Repeat className="size-4" />
+          <Repeat className="size-[18px]" strokeWidth={1.75} />
           {!compact && "Switch view"}
         </button>
       </DropdownMenuTrigger>
