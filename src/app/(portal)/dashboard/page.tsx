@@ -55,7 +55,7 @@ function projectStatus(state: ProjectState, now: Date): { label: string; dot: st
 function CardTitle({ title, children }: { title: string; children?: React.ReactNode }) {
   return (
     <div className="flex items-center gap-2.5 border-b border-brand-line px-6 py-5">
-      <h2 className="m-0 flex-1 text-[18px] font-normal leading-[1.3]">{title}</h2>
+      <h2 className="m-0 flex-1 text-[18px] font-normal leading-[1.45]">{title}</h2>
       {children}
     </div>
   );
@@ -132,7 +132,7 @@ export default async function DashboardPage() {
                   <li key={t.id} className="flex flex-wrap items-center gap-x-4 gap-y-3 border-t border-brand-line px-6 py-5 first:border-t-0">
                     <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-orange font-brand-mono text-[13px] text-brand-ink">{i + 1}</span>
                     <div className="flex min-w-0 flex-1 basis-[calc(100%-48px)] flex-col gap-0.5 @min-[600px]/col:basis-0">
-                      <span className="text-[17px] leading-[1.35]">{t.title}</span>
+                      <span className="text-[17px] leading-[1.45]">{t.title}</span>
                       <span className="line-clamp-2 text-[14px] text-brand-ink-2 @min-[600px]/col:line-clamp-1" title={t.context}>
                         {t.context}
                       </span>
@@ -301,7 +301,7 @@ function Credits({ credits }: { credits: CreditSummary }) {
   return (
     <section aria-label="Credits" className="flex flex-col gap-3 rounded-[12px] bg-white px-6 py-5">
       <div className="flex items-baseline gap-3">
-        <h2 className="m-0 flex-1 text-[18px] font-normal leading-[1.3]">Credits</h2>
+        <h2 className="m-0 flex-1 text-[18px] font-normal leading-[1.45]">Credits</h2>
         {total !== null && credits.free !== null ? (
           <span className="text-[14px]">
             <span className="tabular-nums">{credits.free}</span>
