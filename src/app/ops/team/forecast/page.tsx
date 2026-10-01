@@ -1,3 +1,4 @@
+import { requireOpsPage } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { OpsPage } from "@/components/ops/ops-page";
 import { PageHeader } from "@/components/shared/page-header";
@@ -7,6 +8,7 @@ import { CapacityForecastChart } from "@/components/ops/capacity-forecast-chart"
 const WEEKS = 6;
 
 export default async function CapacityForecastPage() {
+  await requireOpsPage(["ADMIN", "PM"]);
   const [staff, teamMembers] = await Promise.all([
     prisma.staffMember.findMany(),
     prisma.teamMember.findMany({

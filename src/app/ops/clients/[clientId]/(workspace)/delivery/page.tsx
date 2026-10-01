@@ -1,18 +1,10 @@
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/prisma";
-import { stageSlugForName } from "@/lib/pipeline-tabs";
+import { getOpsViewer } from "@/lib/current-viewer";
+import { resolveLegacyDelivery } from "@/lib/ops-routes";
 
-export default async function DeliveryIndexPage({ params }: { params: Promise<{ clientId: string }> }) {
+export default async function LegacyDeliveryIndexPage({ params, searchParams }: { params: Promise<{ clientId: string }>; searchParams: Promise<{ project?: string }> }) {
+  await getOpsViewer();
   const { clientId } = await params;
-
-  const project = await prisma.project.findFirst({
-    where: { clientId, status: { notIn: ["ARCHIVED", "DELIVERED"] } },
-    orderBy: { updatedAt: "desc" },
-    include: { pipelineStages: true },
-  });
-
-  const activeStage = project?.pipelineStages.find((s) => s.status === "ACTIVE");
-  const slug = activeStage ? stageSlugForName(activeStage.name) : "foundation";
-
-  redirect(`/ops/clients/${clientId}/delivery/${slug}`);
+  const { project } = await searchParams;
+  redirect(await resolveLegacyDelivery(clientId, undefined, project));
 }

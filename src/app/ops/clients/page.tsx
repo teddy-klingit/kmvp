@@ -1,3 +1,4 @@
+import { requireOpsPage } from "@/lib/authz";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { OpsPage } from "@/components/ops/ops-page";
@@ -11,6 +12,7 @@ import { PLAN_TIER_LABEL } from "@/lib/labels";
 const STATUS_TONE = { ACTIVE: "success", ONBOARDING: "info", PAUSED: "warning", OFFBOARDED: "neutral" } as const;
 
 export default async function ClientsDirectoryPage() {
+  await requireOpsPage(["ADMIN", "PM"]);
   const clients = await prisma.client.findMany({
     include: { accountLead: { include: { user: true } }, projects: { where: { status: { notIn: ["ARCHIVED", "DELIVERED"] } } } },
     orderBy: { name: "asc" },

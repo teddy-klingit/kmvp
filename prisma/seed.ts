@@ -405,14 +405,7 @@ async function main() {
   await syncAsset(q3.id, "App hero", "Story 9:16", "var(--avatar-2)", "IN_REVIEW", 6.8);
   await syncAsset(q3.id, "Feature highlight", "Static 1:1", "var(--avatar-3)", "IN_REVIEW", null);
 
-  for (const run of [
-    { agentId: agents.ad_gen.id, status: "SUCCESS" as const, decision: "Social formats 14/18 complete", output: { completed: 14, total: 18 } },
-    { agentId: agents.copy.id, status: "SUCCESS" as const, decision: "EN done · SE in progress", output: { en: "done", se: "in_progress" } },
-    { agentId: agents.motion.id, status: "FLAGGED" as const, decision: "Waiting — starts after statics approved", output: {} },
-    { agentId: agents.brand_compliance.id, status: "SUCCESS" as const, decision: "Checking vs. Klarna brand OS", output: {} },
-  ]) {
-    await sync(prisma.agentRun, { projectId: q3.id, agentId: run.agentId, decision: run.decision }, { projectId: q3.id, clientId: klarna.id, ...run });
-  }
+  // No production-agent runs are seeded: no agent produces work today (production is the team's).
 
   // 2) Summer social pack — AWAITING_REVIEW (first draft delivered today, client reviewing)
   const summer = await sync(prisma.project, { clientId: klarna.id, name: "Summer social pack" }, {

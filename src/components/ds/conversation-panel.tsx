@@ -386,12 +386,12 @@ function MessageList({ messages }: { messages: ChatMessage[] }) {
           prev.authorKey === m.authorKey &&
           new Date(m.createdAt).getTime() - new Date(prev.createdAt).getTime() < GROUP_MS;
         return (
-          <div key={m.id} className={cn("flex gap-2.5", m.mine && "flex-row-reverse", grouped && "-mt-3")}>
+          <div key={m.id} className={cn("flex gap-2.5", m.mine && m.tone !== "note" && "flex-row-reverse", grouped && "-mt-3")}>
             {grouped ? <span className="w-7 shrink-0" /> : <Avatar name={m.authorName} size={28} />}
-            <div className={cn("flex min-w-0 flex-col gap-1", m.mine && "items-end")}>
+            <div className={cn("flex min-w-0 flex-col gap-1", m.mine && m.tone !== "note" && "items-end")}>
               {!grouped && (
                 <div className="text-[12px]">
-                  {m.mine ? (
+                  {m.mine && m.tone !== "note" ? (
                     <span className="text-ds-text-2">You · {formatStamp(m.createdAt)}</span>
                   ) : (
                     <>
@@ -406,7 +406,11 @@ function MessageList({ messages }: { messages: ChatMessage[] }) {
               <div
                 className={cn(
                   "whitespace-pre-line px-3 py-2.5 text-[14px]",
-                  m.mine ? "rounded-[12px_4px_12px_12px] bg-ds-text text-white" : "rounded-[4px_12px_12px_12px] bg-ds-bg text-ds-text"
+                  m.tone === "note"
+                    ? "rounded-[4px_12px_12px_12px] border border-ds-note-border bg-ds-note text-ds-text"
+                    : m.mine
+                      ? "rounded-[12px_4px_12px_12px] bg-ds-text text-white"
+                      : "rounded-[4px_12px_12px_12px] bg-ds-bg text-ds-text"
                 )}
               >
                 {m.context && (

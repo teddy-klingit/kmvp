@@ -132,6 +132,10 @@
   --ds-danger-text: #9b1c1c;
   --ds-info-tint: #eef0fb;
   --ds-info-text: #2c3a8c;
+  --ds-note: #fffbef;
+  --ds-watch-border: #c9a227;
+  --ds-dashed: #b9bdc4;
+  --ds-note-border: #f4e3a6;
   --ds-star: #e5a50a;
   --ds-star-stroke: #c98e00;
   --ds-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
@@ -232,6 +236,10 @@
   --color-ds-danger-text: var(--ds-danger-text);
   --color-ds-info-tint: var(--ds-info-tint);
   --color-ds-info-text: var(--ds-info-text);
+  --color-ds-note: var(--ds-note);
+  --color-ds-watch-border: var(--ds-watch-border);
+  --color-ds-dashed: var(--ds-dashed);
+  --color-ds-note-border: var(--ds-note-border);
   --color-ds-star: var(--ds-star);
   --color-ds-star-stroke: var(--ds-star-stroke);
   --shadow-ds: var(--ds-shadow);

@@ -1,14 +1,14 @@
 import { getOpsViewer } from "@/lib/current-viewer";
 import { roleTierFor } from "@/lib/role-tier";
-import { AdminHome } from "@/components/ops/home/admin-home";
-import { PmHome } from "@/components/ops/home/pm-home";
+import { NeedsYouHome } from "@/components/ops/home/needs-you-home";
 import { CreatorHome } from "@/components/ops/home/creator-home";
+import { scheduleAutopilot } from "@/lib/autopilot-schedule";
 
+/** PM and Admin home is "Needs you": only the exceptions, plus what's running on its own. Creators keep their assignments view. */
 export default async function OpsHomePage() {
   const viewer = await getOpsViewer();
   const tier = roleTierFor(viewer.title);
-
-  if (tier === "PM") return <PmHome viewer={viewer} />;
   if (tier === "CREATOR") return <CreatorHome viewer={viewer} />;
-  return <AdminHome viewer={viewer} />;
+  scheduleAutopilot();
+  return <NeedsYouHome viewer={viewer} />;
 }

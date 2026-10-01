@@ -1,3 +1,4 @@
+import { requireOpsPage } from "@/lib/authz";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { OpsPage } from "@/components/ops/ops-page";
@@ -10,6 +11,7 @@ import { AGENT_CATEGORY_LABEL } from "@/lib/labels";
 const STATUS_TONE = { LIVE: "success", SANDBOX: "warning", DISABLED: "neutral", ERROR: "danger" } as const;
 
 export default async function AgentsLibraryPage() {
+  await requireOpsPage(["ADMIN"]);
   const agents = await prisma.agent.findMany({
     include: { runs: true },
     orderBy: { category: "asc" },

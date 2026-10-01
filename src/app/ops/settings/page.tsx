@@ -1,3 +1,4 @@
+import { requireOpsPage } from "@/lib/authz";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { OpsPage } from "@/components/ops/ops-page";
@@ -27,6 +28,7 @@ export default async function WorkspaceSettingsPage({
 }: {
   searchParams: Promise<{ linkedin?: string; google?: string }>;
 }) {
+  await requireOpsPage(["ADMIN"]);
   const { linkedin, google } = await searchParams;
   const linkedInConnection = await prisma.integrationConnection.findUnique({ where: { provider: "linkedin" } });
   const googleAdsConnection = await prisma.integrationConnection.findUnique({ where: { provider: "google-ads" } });

@@ -31,7 +31,7 @@ export async function getAgencyAttentionItems(accountLeadId?: string): Promise<A
   const items: AttentionItem[] = [];
 
   for (const p of projects) {
-    const href = `/ops/clients/${p.clientId}/delivery`;
+    const href = `/ops/projects/${p.id}`;
     if (p.brief?.status === "GAPS_FLAGGED") {
       items.push({
         id: `${p.id}-brief`,

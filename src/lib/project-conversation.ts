@@ -17,6 +17,8 @@ export type ChatMessage = {
   mine: boolean;
   fromKlingit: boolean;
   context?: { label: string; href: string };
+  /** Staff notes render as a pale-yellow note, never a chat bubble. */
+  tone?: "note";
 };
 
 export type ConversationParticipant = { name: string };

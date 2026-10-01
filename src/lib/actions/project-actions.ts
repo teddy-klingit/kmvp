@@ -9,6 +9,8 @@ import { getEffectiveBriefQuestions, type BriefQuestionKey } from "@/lib/brief-q
 import { analyzeBrief } from "@/lib/ai/agents/brief-agent";
 import { loadProjectState } from "@/lib/project-state-loader";
 import { onLabel } from "@/lib/context-label";
+import { runAutopilot } from "@/lib/autopilot-runner";
+import type { SnapshotLine } from "@/lib/estimate-diff";
 import { postProjectEvent } from "@/lib/project-events";
 
 type EmptyState = Record<string, never>;
@@ -158,23 +160,34 @@ export async function approveEstimateAction(formData: FormData) {
 
   const estimate = await prisma.estimate.findFirst({
     where: { id: estimateId, status: "SENT", project: { clientId: viewer.clientId } },
+    include: { project: true },
   });
   if (!estimate) return;
 
   await prisma.estimate.update({
     where: { id: estimateId },
-    data: { status: "APPROVED", respondedAt: new Date() },
+    data: { status: "APPROVED", respondedAt: new Date(), approvedVersion: estimate.version },
   });
-  await prisma.project.update({
-    where: { id: estimate.projectId },
-    data: { status: "STAFFING" },
-  });
-  await postProjectEvent(estimate.projectId, "Estimate approved");
+  await prisma.estimateRevision.updateMany({ where: { estimateId, version: estimate.version }, data: { status: "APPROVED", respondedAt: new Date() } });
+
+  // A revision approved after the first approval: the work continues, the stage never moves back.
+  const isRevision = estimate.approvedVersion !== null || !["ESTIMATING", "BRIEFING"].includes(estimate.project.status);
+  if (!isRevision) {
+    await prisma.project.update({ where: { id: estimate.projectId }, data: { status: "STAFFING" } });
+  }
+  await postProjectEvent(estimate.projectId, estimate.version > 1 ? `Estimate v${estimate.version} approved` : "Estimate approved");
+  // Autopilot: auto-staff on approval when every role has a strong match.
+  if (!isRevision) await runAutopilot(estimate.projectId);
 
   revalidatePath(`/projects/${estimate.projectId}`, "layout");
+  revalidatePath(`/ops/projects/${estimate.projectId}`);
   revalidatePath("/dashboard");
 }
 
+/**
+ * The client asks for changes. On a revision of an estimate they'd already approved, this declines it:
+ * the last approved version is restored and stays in force.
+ */
 export async function requestEstimateChangesAction(formData: FormData) {
   const viewer = await getPortalViewer();
   const estimateId = String(formData.get("estimateId") ?? "");
@@ -185,12 +198,45 @@ export async function requestEstimateChangesAction(formData: FormData) {
   });
   if (!estimate) return;
 
+  if (estimate.approvedVersion !== null) {
+    const approved = await prisma.estimateRevision.findUnique({ where: { estimateId_version: { estimateId, version: estimate.approvedVersion } } });
+    if (approved) {
+      const lines = jsonArray<SnapshotLine & { customReason?: string | null }>(approved.lineItems);
+      await prisma.$transaction([
+        prisma.estimateLineItem.deleteMany({ where: { estimateId } }),
+        prisma.estimateLineItem.createMany({
+          data: lines.map((l, order) => ({
+            estimateId,
+            deliverable: l.deliverable,
+            detail: l.detail ?? "",
+            quantity: l.quantity,
+            complexityTier: l.complexityTier,
+            priceListItemId: l.priceListItemId ?? null,
+            isCustom: Boolean(l.isCustom),
+            customReason: l.customReason ?? null,
+            credits: l.credits,
+            hours: l.credits,
+            order,
+          })),
+        }),
+        prisma.estimate.update({ where: { id: estimateId }, data: { status: "APPROVED", totalCredits: approved.totalCredits, respondedAt: new Date() } }),
+        prisma.estimateRevision.updateMany({ where: { estimateId, version: estimate.version }, data: { status: "DECLINED", respondedAt: new Date() } }),
+      ]);
+      await postProjectEvent(estimate.projectId, `Estimate v${estimate.version} declined · v${estimate.approvedVersion} stays in force`);
+      revalidatePath(`/projects/${estimate.projectId}`, "layout");
+      revalidatePath(`/ops/projects/${estimate.projectId}`);
+      return;
+    }
+  }
+
   await prisma.estimate.update({
     where: { id: estimateId },
     data: { status: "CHANGES_REQUESTED", respondedAt: new Date(), notes: note || estimate.notes },
   });
+  await prisma.estimateRevision.updateMany({ where: { estimateId, version: estimate.version }, data: { status: "DECLINED", respondedAt: new Date() } });
 
   revalidatePath(`/projects/${estimate.projectId}`, "layout");
+  revalidatePath(`/ops/projects/${estimate.projectId}`);
 }
 
 export async function approveAllAssetsAction(formData: FormData) {
@@ -239,7 +285,8 @@ export async function requestAssetChangesAction(formData: FormData) {
   });
   if (!asset) return;
 
-  await prisma.asset.update({ where: { id: assetId }, data: { status: "CHANGES_REQUESTED" } });
+  // Counted per asset: the second request on the same asset becomes a PM exception.
+  await prisma.asset.update({ where: { id: assetId }, data: { status: "CHANGES_REQUESTED", changeRequestCount: { increment: 1 } } });
   revalidatePath(`/projects/${asset.projectId}`, "layout");
 }
 

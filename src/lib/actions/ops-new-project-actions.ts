@@ -42,5 +42,5 @@ export async function createOpsProjectAction(formData: FormData) {
 
   await prisma.brief.create({ data: { projectId: project.id, status: "DRAFT" } });
 
-  redirect(`/ops/clients/${clientId}/delivery/brief`);
+  redirect(`/ops/projects/${project.id}#brief`);
 }

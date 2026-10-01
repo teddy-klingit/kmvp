@@ -1,3 +1,4 @@
+import { requireOpsPage } from "@/lib/authz";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { OpsPage } from "@/components/ops/ops-page";
@@ -12,6 +13,7 @@ import { updateAgentStatusAction, updateAgentSelfServiceAction } from "@/lib/act
 const STATUS_TONE = { LIVE: "success", SANDBOX: "warning", DISABLED: "neutral", ERROR: "danger" } as const;
 
 export default async function AgentDetailPage({ params }: { params: Promise<{ agentId: string }> }) {
+  await requireOpsPage(["ADMIN"]);
   const { agentId } = await params;
   const agent = await prisma.agent.findUnique({
     where: { id: agentId },

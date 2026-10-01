@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
 import { BriefConversation } from "@/components/portal/project/brief-conversation";
 import {
@@ -22,9 +23,15 @@ export default async function ProjectOverviewPage({ params }: { params: Promise<
   if (!loaded) notFound();
   const { state } = loaded;
 
+  // A revised estimate after the client already approved one: their turn, while the work carries on.
+  const revision =
+    state.stage !== "awaiting_approval" &&
+    (await prisma.estimate.findFirst({ where: { projectId: id, status: "SENT", approvedVersion: { not: null }, project: { clientId: viewer.clientId } }, select: { id: true } }));
+
   return (
     <div className="flex flex-col gap-5">
       <OverviewNextStep projectId={id} viewer={viewer} state={state} />
+      {revision && <EstimateCard projectId={id} viewer={viewer} revision />}
       <StageContent projectId={id} viewer={viewer} state={state} />
     </div>
   );

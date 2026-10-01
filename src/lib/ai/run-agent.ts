@@ -42,6 +42,10 @@ export async function runAgentTask<T>({
   if (!agent) {
     return { ok: false, error: `Unknown agent key "${agentKey}"` };
   }
+  // Kill switch: an Admin set this agent to Disabled, so nothing may run it (no call, no run logged).
+  if (agent.status === "DISABLED") {
+    return { ok: false, error: `${agent.name} is disabled. An Admin can turn it back on in Agents.` };
+  }
 
   const startedAt = Date.now();
 

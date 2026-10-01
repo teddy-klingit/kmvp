@@ -5,6 +5,7 @@
  *   npx tsx scripts/screenshots/capture.ts f1
  *   npx tsx scripts/screenshots/capture.ts f2 --widths=1440,390
  *   npx tsx scripts/screenshots/capture.ts h --widths=1440,1280,390
+ *   npx tsx scripts/screenshots/capture.ts i
  *
  * Output: screenshots/<phase>/...png
  */
@@ -52,7 +53,69 @@ async function shot(page: Page, path: string, name: string, outDir: string, widt
   console.log(`  ${name}-${width}.png`);
 }
 
+/** Phase I: PM home, the cockpit in each stage, each edit flow open, at 1440 (signed in as the PM). */
+const I_PROJECTS: Record<string, string> = {
+  briefing: "Autumn brand refresh",
+  estimating: "Good Boy “5:47” Awareness Campaign",
+  awaiting_approval: "Klarna Q4 Investor Update Deck",
+  staffing: "Checkout-Moment Story Ads",
+  production: "Q3 App install campaign",
+  review: "Summer social pack",
+  final: "Klarna Holiday Social Pack",
+};
+
+async function phaseI() {
+  const prisma = new PrismaClient({ datasourceUrl: "file:./prisma/screens.db" });
+  const rows = await prisma.project.findMany({ where: { name: { in: Object.values(I_PROJECTS) } }, select: { id: true, name: true } });
+  await prisma.$disconnect();
+  const id = (stage: string) => {
+    const r = rows.find((p) => p.name === I_PROJECTS[stage]);
+    if (!r) throw new Error(`Missing demo project for ${stage}`);
+    return r.id;
+  };
+  const outDir = "screenshots/i";
+  mkdirSync(outDir, { recursive: true });
+  const browser = await chromium.launch();
+  const width = 1440;
+  const signIn = async (email: string) => {
+    const context = await browser.newContext({ viewport: { width, height: 900 }, deviceScaleFactor: 1 });
+    const page = await context.newPage();
+    await page.goto(`${BASE}/sign-in`, { waitUntil: "networkidle" });
+    await page.fill('input[name="email"]', email);
+    await page.fill('input[name="password"]', DEMO_PASSWORD);
+    await page.click('button[type="submit"]');
+    await page.waitForURL((url) => !url.pathname.startsWith("/sign-in"), { timeout: 60_000 });
+    return { context, page };
+  };
+
+  const pm = await signIn("teddy@klingit.com");
+  await shot(pm.page, "/ops", "01-pm-home", outDir, width);
+  for (const [i, stage] of Object.keys(I_PROJECTS).entries()) {
+    await shot(pm.page, `/ops/projects/${id(stage)}`, `${String(i + 2).padStart(2, "0")}-cockpit-${stage}`, outDir, width);
+  }
+  const flows: [string, string, string][] = [
+    ["10-edit-brief", "briefing", "?edit=brief#brief"],
+    ["11-edit-estimate-v2", "awaiting_approval", "?edit=estimate#estimate"],
+    ["12-edit-estimate-out-of-scope", "estimating", "?edit=estimate#estimate"],
+    ["13-edit-staffing", "staffing", "?edit=staffing#staffing"],
+    ["14-edit-dates", "production", "?edit=dates#production"],
+    ["15-feed-client", "awaiting_approval", "?feed=client"],
+    ["16-feed-staff-notes", "awaiting_approval", "?feed=notes"],
+  ];
+  for (const [name, stage, suffix] of flows) await shot(pm.page, `/ops/projects/${id(stage)}${suffix}`, name, outDir, width);
+  // The legacy URL lands on the cockpit.
+  await pm.page.goto(`${BASE}/ops/projects/${id("awaiting_approval")}`, { waitUntil: "networkidle" });
+  await pm.context.close();
+
+  // What the client sees of a revised estimate (v2 after approving v1).
+  const client = await signIn("jack.ross@klarna.com");
+  await shot(client.page, `/projects/${id("production")}`, "20-client-revised-estimate", outDir, width);
+  await client.context.close();
+  await browser.close();
+}
+
 async function main() {
+  if (phase === "i") return phaseI();
   const prisma = new PrismaClient({ datasourceUrl: "file:./prisma/screens.db" });
   const projects = await prisma.project.findMany({ where: { name: { in: Object.values(STAGE_PROJECTS) } }, select: { id: true, name: true } });
   const jack = await prisma.user.findUniqueOrThrow({ where: { email: "jack.ross@klarna.com" }, select: { id: true } });

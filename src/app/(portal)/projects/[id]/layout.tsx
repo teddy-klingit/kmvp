@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
+import { scheduleAutopilot } from "@/lib/autopilot-schedule";
 import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
@@ -28,6 +29,7 @@ export default async function ProjectLayout({
   if (!loaded) notFound();
   const { project, state } = loaded;
 
+  scheduleAutopilot(id);
   const [conversation, assetCounts] = await Promise.all([
     loadProjectConversation(id, viewer, state.keyFacts.staffedTeam),
     prisma.asset.groupBy({ by: ["status"], where: { projectId: id }, _count: true }),

@@ -1,3 +1,4 @@
+import { requireOpsPage } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { OpsPage } from "@/components/ops/ops-page";
 import { PageHeader } from "@/components/shared/page-header";
@@ -6,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { RevenueByClientChart } from "@/components/ops/revenue-by-client-chart";
 
 export default async function AnalyticsPage() {
+  await requireOpsPage(["ADMIN"]);
   const clients = await prisma.client.findMany({
     include: { projects: { include: { assets: true } } },
   });

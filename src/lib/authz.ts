@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getOpsViewer } from "@/lib/current-viewer";
 import { roleTierFor, type RoleTier } from "@/lib/role-tier";
@@ -17,6 +18,13 @@ export async function requireOpsRole(allowed: RoleTier[]) {
   const viewer = await getOpsViewer();
   const tier = roleTierFor(viewer.title);
   if (!allowed.includes(tier)) throw new ForbiddenError();
+  return viewer;
+}
+
+/** Page-level twin of requireOpsRole: a tier that can't use this page is sent home instead of seeing it by URL. */
+export async function requireOpsPage(allowed: RoleTier[]) {
+  const viewer = await getOpsViewer();
+  if (!allowed.includes(roleTierFor(viewer.title))) redirect("/ops");
   return viewer;
 }
 

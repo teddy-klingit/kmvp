@@ -1,3 +1,4 @@
+import { requireOpsPage } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { OpsPage } from "@/components/ops/ops-page";
 import { PageHeader } from "@/components/shared/page-header";
@@ -16,6 +17,7 @@ const PLAN_PRICING = [
 ];
 
 export default async function BillingPage() {
+  await requireOpsPage(["ADMIN"]);
   const [invoices, uninvoicedProjects] = await Promise.all([
     prisma.invoice.findMany({ include: { client: true }, orderBy: { issuedAt: "desc" } }),
     prisma.project.findMany({

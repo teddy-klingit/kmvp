@@ -45,7 +45,7 @@ export default async function ClientOpsDashboardPage({ params }: { params: Promi
           {projects.map((p) => (
             <Link
               key={p.id}
-              href={`/ops/clients/${clientId}/delivery`}
+              href={p.status === "DRAFT" ? `/ops/clients/${clientId}` : `/ops/projects/${p.id}`}
               className="flex items-center justify-between px-5 py-3.5 hover:bg-muted/50"
             >
               <div>

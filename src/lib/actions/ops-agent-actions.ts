@@ -25,8 +25,9 @@ export async function updateAgentSelfServiceAction(formData: FormData) {
   revalidatePath("/ops/agents");
 }
 
+/** Admins and PMs may override (the form is only shown to them). Brief/estimate/staffing runs are overridden by editing in the cockpit. */
 export async function overrideAgentRunAction(formData: FormData) {
-  const viewer = await requireOpsRole(["ADMIN"]);
+  const viewer = await requireOpsRole(["ADMIN", "PM"]);
   const runId = String(formData.get("runId") ?? "");
   const reason = String(formData.get("reason") ?? "").trim();
   if (!reason) return;

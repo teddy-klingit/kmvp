@@ -8,9 +8,10 @@ import { NextStepCard } from "@/components/ds/next-step-card";
 import { AskButton } from "@/components/ds/ask-button";
 import { EmptyState } from "@/components/ds/empty-state";
 import { RatingStars } from "@/components/portal/rating-stars";
-import { approveEstimateAction, rateProjectAction, signOffProjectAction } from "@/lib/actions/project-actions";
+import { approveEstimateAction, rateProjectAction, requestEstimateChangesAction, signOffProjectAction } from "@/lib/actions/project-actions";
 import { resumeProjectAction } from "@/lib/actions/project-lifecycle-actions";
-import { jsonArray } from "@/lib/utils";
+import { cn, jsonArray } from "@/lib/utils";
+import { diffEstimate, type LineChange, type SnapshotLine } from "@/lib/estimate-diff";
 import { loadReviewAssets } from "@/lib/review-assets";
 import { COMPLEXITY_LABEL, lineName } from "@/lib/estimate-display";
 import type { ComplexityTier } from "@/generated/prisma";
@@ -133,22 +134,56 @@ export async function OverviewNextStep({ projectId, viewer, state }: PanelProps)
 }
 
 /** awaiting_approval — the estimate as sent: version + validity, line items, total, inclusions. */
-export async function EstimateCard({ projectId, viewer }: Omit<PanelProps, "state">) {
+/** The version the client is comparing against: the last one they approved, else the previous one sent. */
+async function estimateBaseline(estimate: { id: string; version: number; approvedVersion: number | null }) {
+  if (estimate.version <= 1) return null;
+  const baseVersion = estimate.approvedVersion && estimate.approvedVersion < estimate.version ? estimate.approvedVersion : estimate.version - 1;
+  const base = await prisma.estimateRevision.findUnique({ where: { estimateId_version: { estimateId: estimate.id, version: baseVersion } } });
+  return base ? { version: baseVersion, total: base.totalCredits, lines: jsonArray<SnapshotLine>(base.lineItems) } : null;
+}
+
+/** awaiting_approval (or a revision after approval) — the estimate as sent, with changes highlighted on v2+. */
+export async function EstimateCard({ projectId, viewer, revision = false }: Omit<PanelProps, "state"> & { revision?: boolean }) {
   const estimate = await prisma.estimate.findFirst({
     where: { projectId, status: "SENT", project: { clientId: viewer.clientId } },
     include: { lineItems: { orderBy: { order: "asc" }, include: { priceListItem: true } } },
   });
   if (!estimate) return null;
   const inclusions = jsonArray<string>(estimate.inclusions);
+  const base = await estimateBaseline(estimate);
+  const diff = base ? diffEstimate(base.lines, estimate.lineItems.map((l) => ({ ...l, deliverable: lineName(l) }))) : null;
   return (
-    <Card aria-label="Estimate" className="overflow-hidden" id="estimate">
+    <Card aria-label={revision ? "Revised estimate" : "Estimate"} className="overflow-hidden" id="estimate" tone={revision ? "turn" : "default"}>
       <CardHeader
-        title="Estimate"
+        title={revision ? `Revised estimate v${estimate.version}` : "Estimate"}
         meta={<StatusPill>v{estimate.version}{estimate.expiresAt ? ` · valid until ${shortDate(estimate.expiresAt)}` : ""}</StatusPill>}
         action={<span className="text-[12px] text-ds-text-2">Priced from the Klingit price list</span>}
       />
-      <EstimateTable lines={estimate.lineItems} total={estimate.totalCredits} />
+      {base && (
+        <div className="flex flex-col gap-0.5 border-b border-ds-divider bg-ds-watch-tint px-6 py-3 text-[13px] text-ds-watch-text">
+          <span className="font-medium">Changed since v{base.version}{estimate.revisionReason ? `: ${estimate.revisionReason}` : ""}</span>
+          {diff && diff.removed.length > 0 && <span>Removed: {diff.removed.map((r) => r.deliverable).join(", ")}</span>}
+          {estimate.approvedVersion && revision && <span>If you decline, v{estimate.approvedVersion} ({base.total} credits) stays in force and the work carries on.</span>}
+        </div>
+      )}
+      <EstimateTable lines={estimate.lineItems} total={estimate.totalCredits} changes={diff?.changes} prevTotal={base?.total} />
       {inclusions.length > 0 && <Inclusions items={inclusions} />}
+      {revision && (
+        <div className="flex flex-col-reverse gap-2 border-t border-ds-divider px-6 py-4 sm:flex-row sm:justify-end">
+          <form action={requestEstimateChangesAction}>
+            <input type="hidden" name="estimateId" value={estimate.id} />
+            <Button type="submit" variant="secondary" size="lg" className="w-full sm:w-auto">
+              Decline · keep v{estimate.approvedVersion}
+            </Button>
+          </form>
+          <form action={approveEstimateAction}>
+            <input type="hidden" name="estimateId" value={estimate.id} />
+            <Button type="submit" variant="primary" size="lg" className="w-full sm:w-auto">
+              Approve v{estimate.version} · {estimate.totalCredits} credits
+            </Button>
+          </form>
+        </div>
+      )}
     </Card>
   );
 }
@@ -158,12 +193,23 @@ export type EstimateTableLine = {
   deliverable: string;
   detail: string | null;
   credits: number;
+  quantity?: number;
   complexityTier: ComplexityTier | null;
   priceListItem?: { displayName: string | null } | null;
 };
 
-/** Deliverable · Details · Complexity · Credits, with the total row — as in Main.dc.html. */
-export function EstimateTable({ lines, total }: { lines: EstimateTableLine[]; total: number }) {
+/** Deliverable · Details · Complexity · Credits, with the total row — as in Main.dc.html. `changes` highlights a revision. */
+export function EstimateTable({
+  lines,
+  total,
+  changes,
+  prevTotal,
+}: {
+  lines: EstimateTableLine[];
+  total: number;
+  changes?: (LineChange | null)[];
+  prevTotal?: number;
+}) {
   return (
     <table className="w-full border-collapse text-[14px]">
       <thead>
@@ -175,10 +221,26 @@ export function EstimateTable({ lines, total }: { lines: EstimateTableLine[]; to
         </tr>
       </thead>
       <tbody>
-        {lines.map((li) => (
-          <tr key={li.id} id={`line-${li.id}`} className="border-t border-ds-divider">
+        {lines.map((li, i) => {
+          const change = changes?.[i];
+          return (
+          <tr key={li.id} id={`line-${li.id}`} className={cn("border-t border-ds-divider", change && "bg-ds-watch-tint/60")}>
             <td className="px-6 py-3.5 font-medium text-ds-text">
               {lineName(li)}
+              {change && (
+                <span className="mt-0.5 block text-[12px] font-normal text-ds-watch-text">
+                  {change.isNew
+                    ? "New in this version"
+                    : [
+                        change.prevQuantity !== undefined && change.prevQuantity !== li.quantity ? `Quantity ${change.prevQuantity} → ${li.quantity}` : null,
+                        change.prevTier && change.prevTier !== li.complexityTier && li.complexityTier
+                          ? `${COMPLEXITY_LABEL[change.prevTier]} → ${COMPLEXITY_LABEL[li.complexityTier]}`
+                          : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ") || "Changed"}
+                </span>
+              )}
               {/* Phones: details and complexity move under the name. */}
               <span className="mt-1 flex flex-wrap items-center gap-2 font-normal text-ds-text-2 sm:hidden">
                 {li.detail}
@@ -189,14 +251,23 @@ export function EstimateTable({ lines, total }: { lines: EstimateTableLine[]; to
             <td className="hidden px-3 py-3.5 sm:table-cell">
               {li.complexityTier && <StatusPill>{COMPLEXITY_LABEL[li.complexityTier]}</StatusPill>}
             </td>
-            <td className="px-6 py-3.5 text-right tabular-nums text-ds-text">{li.credits}</td>
+            <td className="px-6 py-3.5 text-right tabular-nums text-ds-text">
+              {change?.prevCredits !== undefined && change.prevCredits !== li.credits && (
+                <span className="mr-1.5 text-ds-text-3 line-through">{change.prevCredits}</span>
+              )}
+              {li.credits}
+            </td>
           </tr>
-        ))}
+          );
+        })}
         <tr className="border-t border-ds-border bg-ds-subtle-2">
           <td className="px-6 py-3.5 font-semibold text-ds-text">Total</td>
           <td className="hidden sm:table-cell" />
           <td className="hidden sm:table-cell" />
-          <td className="whitespace-nowrap px-6 py-3.5 text-right font-semibold tabular-nums text-ds-text">{total} credits</td>
+          <td className="whitespace-nowrap px-6 py-3.5 text-right font-semibold tabular-nums text-ds-text">
+            {prevTotal !== undefined && prevTotal !== total && <span className="mr-1.5 font-medium text-ds-text-3 line-through">{prevTotal}</span>}
+            {total} credits
+          </td>
         </tr>
       </tbody>
     </table>

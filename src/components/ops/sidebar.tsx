@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import {
   Home,
   FolderKanban,
-  PackageCheck,
   Bot,
   Users,
   Archive,
@@ -23,11 +22,10 @@ import { cn } from "@/lib/utils";
 import type { RoleTier } from "@/lib/role-tier";
 
 const NAV_ITEMS = [
-  { label: "Home", href: "/ops", icon: Home, tiers: ["ADMIN", "PM", "CREATOR"] },
+  { label: "Needs you", href: "/ops", icon: Home, tiers: ["ADMIN", "PM", "CREATOR"] },
   { label: "Projects", href: "/ops/projects", icon: FolderKanban, tiers: ["ADMIN", "PM"] },
-  { label: "Delivery", href: "/ops/delivery", icon: PackageCheck, tiers: ["ADMIN", "PM", "CREATOR"] },
+  { label: "Team & capacity", href: "/ops/team", icon: Users, tiers: ["ADMIN", "PM"] },
   { label: "Agents", href: "/ops/agents", icon: Bot, tiers: ["ADMIN"] },
-  { label: "Team", href: "/ops/team", icon: Users, tiers: ["ADMIN", "PM"] },
   { label: "Archive", href: "/ops/archive", icon: Archive, tiers: ["ADMIN", "PM", "CREATOR"] },
 ] satisfies { label: string; href: string; icon: typeof Home; tiers: RoleTier[] }[];
 
@@ -45,11 +43,14 @@ export function OpsSidebar({
   userTitle,
   userEmail,
   tier,
+  needsCount = 0,
 }: {
   userName: string;
   userTitle: string;
   userEmail: string;
   tier: RoleTier;
+  /** Open "Needs you" exceptions (Admin/PM), shown as a badge on the home item. */
+  needsCount?: number;
 }) {
   const pathname = usePathname();
   const navItems = NAV_ITEMS.filter((i) => (i.tiers as RoleTier[]).includes(tier));
@@ -58,8 +59,9 @@ export function OpsSidebar({
   return (
     <aside className="flex h-screen w-[232px] shrink-0 flex-col justify-between border-r border-ds-border bg-ds-bg px-4 py-6">
       <div>
-        <Link href="/ops" className="mb-6 flex px-3 text-ds-text">
+        <Link href="/ops" className="mb-6 flex items-center gap-2 px-3 text-ds-text no-underline">
           <Logo className="h-5 w-auto" />
+          <span className="rounded-[6px] bg-ds-text px-1.5 py-0.5 text-[11px] font-semibold text-white">OPS</span>
         </Link>
         <nav aria-label="Main" className="flex flex-col gap-1">
           {navItems.map((item) => {
@@ -77,7 +79,12 @@ export function OpsSidebar({
                 )}
               >
                 <item.icon className="size-[18px] shrink-0" strokeWidth={1.75} />
-                {item.label}
+                <span className="flex-1">{item.href === "/ops" && tier === "CREATOR" ? "Home" : item.label}</span>
+                {item.href === "/ops" && tier !== "CREATOR" && needsCount > 0 && (
+                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-ds-turn px-1.5 text-[11px] font-semibold text-white" aria-label={`${needsCount} open`}>
+                    {needsCount}
+                  </span>
+                )}
               </Link>
             );
           })}

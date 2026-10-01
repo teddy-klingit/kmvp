@@ -167,8 +167,8 @@ async function main() {
   const ago = (h: number) => new Date(Date.now() - h * 3600000);
   await prisma.comment.createMany({
     data: [
-      { projectId: investor.id, kind: "SYSTEM", body: "Estimate v1 sent", createdAt: ago(5) },
-      { projectId: investor.id, authorUserId: teddy.userId, body: "Hi Jack, here's the estimate for the Q4 deck. Two of the slides need custom charts, so they're priced as High.", createdAt: ago(4.9) },
+      { projectId: investor.id, kind: "SYSTEM", body: "Estimate v1 sent", createdAt: ago(53) },
+      { projectId: investor.id, authorUserId: teddy.userId, body: "Hi Jack, here's the estimate for the Q4 deck. Two of the slides need custom charts, so they're priced as High.", createdAt: ago(52.9) },
       { projectId: summer.id, kind: "SYSTEM", body: "Your team is confirmed: Sara, Marcus · first draft by Fri", createdAt: ago(80) },
       { projectId: summer.id, kind: "SYSTEM", body: "First draft delivered", createdAt: ago(3.1) },
     ],
@@ -186,6 +186,102 @@ async function main() {
         createdAt: ago(1.5),
       },
     });
+  }
+
+  // ── Phase I (PM cockpit) demo states ──────────────────────────────────────
+  const agentId = async (key: string) => (await prisma.agent.findUniqueOrThrow({ where: { key } })).id;
+  const hoursAgo = (h: number) => new Date(Date.now() - h * 3600000);
+
+  // Investor deck: the agent priced it, Jack asked a question two days ago (> 4 working hours), Sara left a note.
+  await prisma.estimateRevision.create({
+    data: {
+      estimateId: est.id,
+      version: 1,
+      totalCredits: 28,
+      status: "SENT",
+      createdByUserId: teddy.userId,
+      lineItems: [
+        { deliverable: "Presentation slides", detail: "10 slides · text on your existing template", quantity: 10, complexityTier: "MEDIUM", credits: 20, priceListItemId: slideMed.id },
+        { deliverable: "Data visualisation slides", detail: "2 slides · custom charts", quantity: 2, complexityTier: "HIGH", credits: 8, priceListItemId: slideHigh.id },
+      ],
+    },
+  });
+  await prisma.agentRun.createMany({
+    data: [
+      { agentId: await agentId("brief_agent"), projectId: investor.id, clientId: klarna.id, status: "SUCCESS", decision: "Brief complete: 0 gaps. Audience taken from Brand OS personas.", createdAt: hoursAgo(50) },
+      { agentId: await agentId("estimate_agent"), projectId: investor.id, clientId: klarna.id, status: "SUCCESS", decision: "Priced 2 line items from the price list", output: { notes: "Two chart slides need custom data visualisation, so they're High." }, createdAt: hoursAgo(5.2) },
+    ],
+  });
+  await prisma.comment.create({
+    data: { projectId: investor.id, authorClientUserId: jack.id, body: "Can we reuse the Q3 charts instead of custom ones? Would like to keep cost down.", createdAt: hoursAgo(49) },
+  });
+  await prisma.projectStaffNote.create({
+    data: { projectId: investor.id, authorUserId: sara.userId, body: "The Q3 charts are in the brand library and on-template. Reusing them is fine with me.", createdAt: hoursAgo(30) },
+  });
+
+  // Staffing: approved, waiting for a team. A campaign needs a motion designer.
+  const checkout = await prisma.project.create({
+    data: { clientId: klarna.id, name: "Checkout-Moment Story Ads", type: "CAMPAIGN", status: "STAFFING", createdByClientUserId: jack.id, dueDate: day(16) },
+  });
+  await stages(checkout.id, 3);
+  await prisma.brief.create({ data: { projectId: checkout.id, submittedByUserId: jack.id, status: "ACCEPTED", goals: "Story ads for the moment of checkout.", targetAudience: "Klarna app users aged 20–35.", acceptedAt: day(-4) } });
+  const checkoutEst = await prisma.estimate.create({
+    data: { projectId: checkout.id, sentByStaffId: teddy.id, status: "APPROVED", approvedVersion: 1, totalCredits: 33, sentAt: day(-3), respondedAt: day(-1) },
+  });
+  const cutMed = await price("Video cutdown (<30s)", "MEDIUM");
+  await prisma.estimateLineItem.createMany({
+    data: [
+      { estimateId: checkoutEst.id, deliverable: "Video cutdown (<30s)", detail: "3 story cutdowns", quantity: 3, complexityTier: "MEDIUM", priceListItemId: cutMed.id, credits: 27, hours: 27, order: 0 },
+      { estimateId: checkoutEst.id, deliverable: "Social post (static)", detail: "Static end frames", quantity: 1, complexityTier: "MEDIUM", priceListItemId: postMed.id, credits: 4, hours: 4, order: 1 },
+    ],
+  });
+  await prisma.estimateLineItem.create({
+    data: { estimateId: checkoutEst.id, deliverable: "Email copy", detail: "Launch email", quantity: 1, complexityTier: "LOW", priceListItemId: (await price("Email copy", "LOW")).id, credits: 2, hours: 2, order: 2 },
+  });
+
+  // Estimating: the agent couldn't price two items, so the draft waits for a PM.
+  const goodBoy = await prisma.project.create({
+    data: { clientId: klarna.id, name: "Good Boy “5:47” Awareness Campaign", type: "CAMPAIGN", status: "ESTIMATING", createdByClientUserId: jack.id, dueDate: day(25) },
+  });
+  await stages(goodBoy.id, 2);
+  await prisma.brief.create({ data: { projectId: goodBoy.id, submittedByUserId: jack.id, status: "ACCEPTED", goals: "Awareness push around the 5:47 pm commute.", targetAudience: "Commuters in Stockholm and Berlin.", acceptedAt: day(-1) } });
+  const goodBoyEst = await prisma.estimate.create({
+    data: {
+      projectId: goodBoy.id,
+      status: "DRAFT",
+      totalCredits: 31,
+      unresolvedNeeds: [
+        { description: "Ad copywriting (6 variants)", reason: "No copywriting row for paid ads on the price list." },
+        { description: "Paid media setup", reason: "Media buying isn't on the price list." },
+      ],
+    },
+  });
+  await prisma.estimateLineItem.createMany({
+    data: [
+      { estimateId: goodBoyEst.id, deliverable: "Social post (static)", detail: "Commute posters, 4 formats", quantity: 4, complexityTier: "MEDIUM", priceListItemId: postMed.id, credits: 16, hours: 16, order: 0 },
+      { estimateId: goodBoyEst.id, deliverable: "Video cutdown (<30s)", detail: "15s commute spot", quantity: 1, complexityTier: "HIGH", priceListItemId: (await price("Video cutdown (<30s)", "HIGH")).id, credits: 15, hours: 15, order: 1 },
+    ],
+  });
+  await prisma.agentRun.create({
+    data: { agentId: await agentId("estimate_agent"), projectId: goodBoy.id, clientId: klarna.id, status: "SUCCESS", decision: "Priced 2 line items — 2 need manual pricing", createdAt: hoursAgo(1.5) },
+  });
+
+  // Production: a revised estimate (v2) after the client approved v1 — the client sees the changes.
+  const q3Estimate = await prisma.estimate.findUniqueOrThrow({ where: { projectId: q3.id }, include: { lineItems: { orderBy: { order: "asc" } } } });
+  const snap = (lines: typeof q3Estimate.lineItems) => lines.map((l) => ({ deliverable: l.deliverable, detail: l.detail, quantity: l.quantity, complexityTier: l.complexityTier, credits: l.credits, isCustom: l.isCustom, customReason: l.customReason, priceListItemId: l.priceListItemId }));
+  await prisma.estimateRevision.create({ data: { estimateId: q3Estimate.id, version: 1, totalCredits: q3Estimate.totalCredits, status: "APPROVED", lineItems: snap(q3Estimate.lineItems), respondedAt: day(-4) } });
+  const banners = q3Estimate.lineItems.find((l) => l.deliverable === "Display banners");
+  if (banners) {
+    await prisma.estimateLineItem.update({ where: { id: banners.id }, data: { quantity: 6, credits: 15, hours: 15, detail: "6 sizes · HTML5 + static fallback" } });
+    const v2Lines = await prisma.estimateLineItem.findMany({ where: { estimateId: q3Estimate.id }, orderBy: { order: "asc" } });
+    const total = v2Lines.reduce((n, l) => n + l.credits, 0);
+    const reason = "Two extra banner sizes for the app store placements you asked for.";
+    await prisma.estimate.update({ where: { id: q3Estimate.id }, data: { status: "SENT", version: 2, approvedVersion: 1, totalCredits: total, revisionReason: reason, sentAt: hoursAgo(3), expiresAt: day(4) } });
+    await prisma.estimateRevision.create({ data: { estimateId: q3Estimate.id, version: 2, totalCredits: total, status: "SENT", reason, createdByUserId: teddy.userId, lineItems: snap(v2Lines) } });
+    await prisma.decisionLog.create({
+      data: { projectId: q3.id, actorUserId: teddy.userId, area: "estimate", action: "Sent estimate v2", reason, before: { total: q3Estimate.totalCredits }, after: { total }, createdAt: hoursAgo(3) },
+    });
+    await prisma.comment.create({ data: { projectId: q3.id, kind: "SYSTEM", body: `Estimate v2 sent: ${reason}`, createdAt: hoursAgo(3) } });
   }
 
   console.log("Stage demo projects:", { briefing: deck.id, awaiting_approval: investor.id, production: q3.id, final: holiday.id });

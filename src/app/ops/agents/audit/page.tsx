@@ -1,3 +1,4 @@
+import { requireOpsPage } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { OpsPage } from "@/components/ops/ops-page";
 import { PageHeader } from "@/components/shared/page-header";
@@ -8,8 +9,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/utils";
 import { overrideAgentRunAction } from "@/lib/actions/ops-agent-actions";
+import Link from "next/link";
+
+const EDIT_FOR_AGENT: Record<string, "brief" | "estimate" | "staffing"> = { brief_agent: "brief", estimate_agent: "estimate", staffing_agent: "staffing" };
 
 export default async function AgentAuditLogPage({ searchParams }: { searchParams: Promise<{ projectId?: string }> }) {
+  await requireOpsPage(["ADMIN", "PM"]);
   const { projectId } = await searchParams;
 
   const [runs, project] = await Promise.all([
@@ -33,9 +38,9 @@ export default async function AgentAuditLogPage({ searchParams }: { searchParams
             <p className="text-sm text-ink">
               Filtered to <strong>{project?.name ?? "this project"}</strong> only.
             </p>
-            <a href="/ops/agents/audit" className="text-xs font-medium text-primary hover:underline">
+            <Link href="/ops/agents/audit" className="text-xs font-medium text-primary hover:underline">
               Clear filter
-            </a>
+            </Link>
           </Card>
         )}
 
@@ -58,6 +63,15 @@ export default async function AgentAuditLogPage({ searchParams }: { searchParams
                 <Badge tone={r.status === "SUCCESS" ? "success" : r.status === "FLAGGED" ? "warning" : "danger"}>{r.status}</Badge>
                 {r.overridden ? (
                   <Badge tone="warning">Overridden by {r.overriddenByUser?.name ?? "staff"} — {r.overrideReason}</Badge>
+                ) : r.projectId && EDIT_FOR_AGENT[r.agent.key] ? (
+                  // Overriding these agents means changing what they decided: that happens in the cockpit,
+                  // where the edit changes the data and marks this run overridden with the PM's reason.
+                  <Link
+                    href={`/ops/projects/${r.projectId}?edit=${EDIT_FOR_AGENT[r.agent.key]}#${EDIT_FOR_AGENT[r.agent.key]}`}
+                    className="text-xs font-medium text-ink underline"
+                  >
+                    Change it in the project cockpit
+                  </Link>
                 ) : (
                   <form action={overrideAgentRunAction} className="flex flex-1 gap-2">
                     <input type="hidden" name="runId" value={r.id} />

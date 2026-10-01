@@ -64,7 +64,7 @@ export async function CreatorHome({ viewer }: { viewer: StaffMember & { user: Us
               {memberships.map((m) => (
                 <Link
                   key={m.id}
-                  href={`/ops/clients/${m.team.project.clientId}/delivery/production`}
+                  href={`/ops/projects/${m.team.project.id}#production`}
                   className="flex items-center justify-between gap-4 px-5 py-3.5 hover:bg-muted/50"
                 >
                   <div>

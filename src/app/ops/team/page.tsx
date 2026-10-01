@@ -1,3 +1,4 @@
+import { requireOpsPage } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { OpsPage } from "@/components/ops/ops-page";
 import { PageHeader } from "@/components/shared/page-header";
@@ -9,6 +10,7 @@ import { jsonArray } from "@/lib/utils";
 import { INTERNAL_ROLE_LABEL } from "@/lib/labels";
 
 export default async function TeamRosterPage() {
+  await requireOpsPage(["ADMIN", "PM"]);
   const staff = await prisma.staffMember.findMany({
     include: {
       user: true,

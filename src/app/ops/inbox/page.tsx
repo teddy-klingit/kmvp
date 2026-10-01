@@ -1,3 +1,4 @@
+import { requireOpsPage } from "@/lib/authz";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { OpsPage } from "@/components/ops/ops-page";
@@ -8,6 +9,7 @@ import { formatDate } from "@/lib/utils";
 import { getAgencyAttentionItems } from "@/lib/data/agency-attention";
 
 export default async function OpsInboxPage() {
+  await requireOpsPage(["ADMIN", "PM"]);
   const [attention, flaggedRuns] = await Promise.all([
     getAgencyAttentionItems(),
     prisma.agentRun.findMany({
@@ -27,7 +29,7 @@ export default async function OpsInboxPage() {
           {flaggedRuns.map((r) => (
             <Link
               key={r.id}
-              href={r.project ? `/ops/clients/${r.clientId}/delivery` : `/ops/agents/${r.agentId}`}
+              href={r.project ? `/ops/projects/${r.project.id}?feed=activity` : `/ops/agents/${r.agentId}`}
               className="flex items-center justify-between gap-4 px-5 py-3.5 hover:bg-muted/50"
             >
               <div>

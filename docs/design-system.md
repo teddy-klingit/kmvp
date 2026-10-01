@@ -100,3 +100,18 @@ Messages:
 ## Gotcha
 
 The base `* { border-color }` rule lives in `@layer base`. Unlayered, it beat every `border-<colour>` utility, which is why coloured borders across the app (accent rules, the Next step card) used to render grey.
+
+## PM cockpit (Phase I)
+
+Built from the same `ds` parts, following `PMHome.dc.html` and `PMCockpit.dc.html`.
+
+| Piece | Where | Notes |
+|---|---|---|
+| PM home "Needs you" | `src/components/ops/home/needs-you-home.tsx` | Greeting, 4 tiles, the ranked exception list (`src/lib/ops-exceptions.ts`), and the "Running automatically" table. Each exception row has one primary button that deep-links into the cockpit. |
+| `StepCard` | `src/components/ops/cockpit/step-card.tsx` | One step: a 32px status dot, a 15/600 title, who-did-it pills (`STEP_PILL`), a one-line summary, Why (the agent run) and Edit. In edit mode the card gets an ink border and a lifted shadow. |
+| `EstimateEditor` | `src/components/ops/cockpit/estimate-editor.tsx` | Quantity and complexity per line, add from the price list or a custom line, remove, out-of-scope rows, a live total with old values struck through, and a required "Reason for the client" once the client has a version. |
+| Brief, dates and upload forms | `src/components/ops/cockpit/cockpit-forms.tsx` | Each form shows its own result line and a footer: note, Cancel, primary. |
+| Project feed | `ConversationPanel` | Three tabs: Client (PM replies, shown to the client under the staff name), Staff notes (`tone: "note"` → `ds-note` bubble) and Activity (agent runs, decisions and client messages as a timeline). |
+| Internal timeline | `ProjectTimeline variant="internal"` | 8 stages from `internalTimeline()` in `src/lib/ops-cockpit.ts`. |
+
+Extra tokens: `ds-note` / `ds-note-border` (staff notes, changed estimate rows), `ds-watch-border` (a changed complexity select), `ds-dashed` ("Add line" button), `ds-star` / `ds-star-stroke` (rating).
