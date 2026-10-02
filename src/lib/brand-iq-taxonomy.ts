@@ -11,7 +11,7 @@ export const VISUAL_IDENTITY_FOLDERS = [
 ];
 
 export const BRAND_PLATFORM_DOCS = [
-  { slug: "our-brand", label: "Our Brand" },
+  { slug: "our-brand", label: "Our brand" },
   { slug: "vision", label: "Vision" },
   { slug: "mission", label: "Mission" },
   { slug: "core-values", label: "Core values" },

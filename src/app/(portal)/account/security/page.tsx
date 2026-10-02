@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
-import { Card, SectionLabel } from "@/components/ui/card";
+import { SectionCard } from "@/components/ds/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -13,15 +13,13 @@ export default async function AccountSecurityPage() {
   const prefs = await prisma.notificationPreference.findUnique({ where: { userId: viewer.userId } });
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3">
-        <SectionLabel>Two-factor authentication</SectionLabel>
+    <div className="flex max-w-[760px] flex-col gap-6">
+      <SectionCard title="Two-factor authentication">
         <TwoFactorCard enabled={viewer.user.twoFactorEnabled} path="/account/security" />
-      </div>
+      </SectionCard>
 
-      <div className="flex flex-col gap-3">
-        <SectionLabel>Notification preferences</SectionLabel>
-        <Card className="p-5">
+      <SectionCard title="Notification preferences">
+        <div className="px-6 py-5">
           <form action={updateNotificationPrefsAction} className="flex flex-col gap-4">
             <label className="flex items-center gap-2.5 text-sm">
               <Checkbox name="emailEnabled" defaultChecked={prefs?.emailEnabled ?? true} />
@@ -40,7 +38,7 @@ export default async function AccountSecurityPage() {
               <select
                 name="frequency"
                 defaultValue={prefs?.frequency ?? "INSTANT"}
-                className="h-9 w-48 rounded-md border border-input bg-card px-3 text-sm"
+                className="h-11 w-48 rounded-[8px] border border-brand-outline bg-white px-3 text-[14px] sm:h-10"
               >
                 <option value="INSTANT">Instant</option>
                 <option value="DAILY_DIGEST">Daily digest</option>
@@ -51,12 +49,11 @@ export default async function AccountSecurityPage() {
               Save preferences
             </Button>
           </form>
-        </Card>
-      </div>
+        </div>
+      </SectionCard>
 
-      <div className="flex flex-col gap-3">
-        <SectionLabel>Slack workspace</SectionLabel>
-        <Card className="p-5">
+      <SectionCard title="Slack workspace">
+        <div className="px-6 py-5">
           {prefs?.slackWorkspace ? (
             <p className="text-sm text-muted-foreground">
               Connected to <span className="font-medium text-foreground">{prefs.slackWorkspace}</span>.
@@ -69,8 +66,8 @@ export default async function AccountSecurityPage() {
               </Button>
             </form>
           )}
-        </Card>
-      </div>
+        </div>
+      </SectionCard>
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { Badge, STATUS_TONE } from "@/components/ui/badge";
 import { PersonAvatar } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { formatDate } from "@/lib/utils";
+import { platformStatus } from "@/lib/brand-completeness";
 import { PROJECT_STATUS_LABEL } from "@/lib/labels";
 import type { ClientWorkspace } from "@/lib/data/ops-client-workspace";
 
@@ -32,19 +33,20 @@ export function IntelligenceRail({ client, activeProject }: ClientWorkspace) {
         </div>
       )}
 
-      {client.brandOS && (
-        <div>
-          <SectionLabel>Foundation</SectionLabel>
-          <p className="mt-1 text-sm font-medium text-primary underline underline-offset-2">
-            Brand OS {client.brandOS.foundationPct}% complete
-          </p>
-          <Progress value={client.brandOS.foundationPct} className="mt-1.5" />
-          <p className="mt-1 text-xs text-muted-foreground">
-            {client.brandOS.indexedAssetsCount} assets · synced{" "}
-            {client.brandOS.lastSyncedAt ? formatDate(client.brandOS.lastSyncedAt, { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "—"}
-          </p>
-        </div>
-      )}
+      {(() => {
+        // Computed from what's written (Brand IQ), never the stored percentage.
+        const brand = platformStatus({ brandSummary: client.brandSummary, brandOS: client.brandOS });
+        return (
+          <div>
+            <SectionLabel>Foundation</SectionLabel>
+            <p className="mt-1 text-sm font-medium">
+              Brand OS: {brand.done} of {brand.total} sections written
+            </p>
+            <Progress value={(brand.done / brand.total) * 100} className="mt-1.5" />
+            {client.brandOS?.lastSyncedAt && <p className="mt-1 text-xs text-muted-foreground">Synced {formatDate(client.brandOS.lastSyncedAt, { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</p>}
+          </div>
+        );
+      })()}
 
       {activeProject && activeProject.agentRuns.length > 0 && (
         <div>

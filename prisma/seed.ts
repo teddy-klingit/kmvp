@@ -273,10 +273,7 @@ async function main() {
       donts: ["Never use bank/finance clichés", "Avoid dense legal-style copy in ads", "No stock photography"],
       approvedColors: ["#FFB3C7", "#0A0A0A", "#FFFFFF"],
       approvedTypography: ["Klarna Text", "Klarna Headline"],
-      foundationPct: 94,
-      indexedAssetsCount: 312,
-      brandOsRulesCount: 6,
-      toneGuidelinesCount: 3,
+      // No stored brand-health percentages or counts: Brand IQ computes health from what's written (Phase J).
       lastSyncedAt: days(0),
   });
 
@@ -287,10 +284,6 @@ async function main() {
       donts: ["No studio backdrops"],
       approvedColors: ["#2B3A2E", "#EDE6D6"],
       approvedTypography: ["Nordlys Serif"],
-      foundationPct: 61,
-      indexedAssetsCount: 118,
-      brandOsRulesCount: 4,
-      toneGuidelinesCount: 2,
       lastSyncedAt: days(-1),
   });
 

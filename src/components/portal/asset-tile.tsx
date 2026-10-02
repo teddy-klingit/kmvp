@@ -1,6 +1,10 @@
-import { Badge } from "@/components/ui/badge";
+import { StatusPill, type PillTone } from "@/components/ds/status-pill";
 import { performanceTierFor } from "@/lib/asset-performance";
+import { assetTitle, formatLabel } from "@/lib/asset-display";
 
+const TIER_TONE: Record<string, PillTone> = { success: "success", info: "neutral", warning: "watch", danger: "danger", neutral: "neutral" };
+
+/** A delivered asset: its real name (assetTitle(), never "Static 1:1 / Static 1:1"), format and project, plus its measured CTR when there is one. */
 export function AssetTile({
   name,
   format,
@@ -18,26 +22,25 @@ export function AssetTile({
 }) {
   const tier = performanceTierFor(ctr);
   return (
-    <div className="flex flex-col gap-2">
-      <div className="relative flex aspect-square flex-col justify-between overflow-hidden rounded-xl p-3" style={fileUrl ? undefined : { backgroundColor: color }}>
+    <div className="flex min-w-0 flex-col gap-2">
+      <div className="relative flex aspect-square flex-col justify-between overflow-hidden rounded-[12px] p-3" style={fileUrl ? undefined : { backgroundColor: `color-mix(in srgb, ${color} 18%, white)` }}>
         {fileUrl && (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={fileUrl} alt="" className="absolute inset-0 size-full object-cover" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/30" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
           </>
         )}
-        <div className="relative flex items-start justify-between">
-          <Badge tone={tier.tone}>{tier.label}</Badge>
-          {ctr !== null && (
-            <span className="rounded-full bg-black/40 px-2 py-0.5 text-xs font-semibold text-white">{ctr}% CTR</span>
-          )}
-        </div>
-        <span className="relative text-xs font-medium text-white/90">{format}</span>
+        {ctr !== null && (
+          <div className="relative flex items-start justify-between gap-2">
+            <StatusPill tone={TIER_TONE[tier.tone]}>{tier.label}</StatusPill>
+            <span className="rounded-full bg-white/85 px-2 py-0.5 text-[12px] tabular-nums text-brand-ink">{ctr}% CTR</span>
+          </div>
+        )}
       </div>
-      <div>
-        <p className="truncate text-sm font-medium">{format}</p>
-        {campaign && <p className="truncate text-xs text-muted-foreground">{campaign}</p>}
+      <div className="min-w-0">
+        <p className="m-0 truncate text-[15px]">{assetTitle(name, format)}</p>
+        <p className="m-0 truncate text-[12px] text-brand-ink-2">{[formatLabel(format), campaign].filter(Boolean).join(" · ")}</p>
       </div>
     </div>
   );

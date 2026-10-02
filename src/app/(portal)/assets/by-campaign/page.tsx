@@ -1,3 +1,4 @@
+import { LibraryChips } from "@/components/portal/library-chips";
 import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
 import { SectionLabel } from "@/components/ui/card";
@@ -19,6 +20,8 @@ export default async function AssetsByCampaignPage() {
   }
 
   return (
+    <div className="flex flex-col gap-4">
+      <LibraryChips />
     <div className="flex flex-col gap-8">
       {Array.from(byCampaign.entries()).map(([campaign, items]) => (
         <div key={campaign} className="flex flex-col gap-3">
@@ -30,6 +33,7 @@ export default async function AssetsByCampaignPage() {
           </div>
         </div>
       ))}
+    </div>
     </div>
   );
 }

@@ -1,268 +1,154 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
-import { Card, SectionLabel } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { jsonArray, initialsFor } from "@/lib/utils";
-import { DownloadBrandButton } from "@/components/portal/download-brand-button";
-import { SourcesSummaryCard } from "@/components/portal/brand-sources/sources-summary-card";
+import { jsonArray } from "@/lib/utils";
+import { platformStatus } from "@/lib/brand-completeness";
+import { appMeta } from "@/lib/brand-sources";
 import { listBrandConnections, listBrandSources } from "@/lib/brand-sources-data";
+import { draftEmptySectionsAction } from "@/lib/actions/brand-draft-actions";
+import { PageGrid } from "@/components/ds/page-grid";
+import { SectionCard, Card, CardRows } from "@/components/ds/card";
+import { Meter } from "@/components/ds/stats";
+import { monoLink } from "@/components/ds/pill-link";
+import { DownloadBrandButton } from "@/components/portal/download-brand-button";
+import { AppIcon } from "@/components/portal/brand-sources/app-icon";
+import { AgentButton } from "@/components/portal/insights/agent-button";
+import { PlatformList } from "@/components/portal/platform-list";
 
-type Persona = { name: string; ageRange: string; description: string; traits: string[] };
-type VoiceAttribute = { label: string; leftLabel: string; rightLabel: string; value: number };
-
-export default async function BrandOSOverviewPage() {
+/**
+ * Brand IQ overview (BrandIQ.dc.html): the brand card, a "Draft with AI" card while platform sections are
+ * empty, the platform list with done / not-written per section, and on the side the linked sources and
+ * brand health, computed from what's written (never a stored score).
+ */
+export default async function BrandIqOverviewPage() {
   const viewer = await getPortalViewer();
-  const [client, brandOS, brandAssets, sources, connections] = await Promise.all([
-    prisma.client.findUniqueOrThrow({ where: { id: viewer.clientId } }),
-    prisma.brandOS.findUnique({ where: { clientId: viewer.clientId } }),
-    prisma.brandAsset.findMany({ where: { clientId: viewer.clientId } }),
-    listBrandSources(viewer.clientId),
-    listBrandConnections(viewer.clientId),
+  const clientId = viewer.clientId;
+  const [client, brandOS, sources, connections, drafts] = await Promise.all([
+    prisma.client.findUniqueOrThrow({ where: { id: clientId } }),
+    prisma.brandOS.findUnique({ where: { clientId } }),
+    listBrandSources(clientId),
+    listBrandConnections(clientId),
+    prisma.brandSectionDraft.findMany({ where: { clientId, status: "PENDING" }, select: { section: true } }),
   ]);
-
-  const personas = jsonArray<Persona>(brandOS?.audiencePersonas);
-  const voiceAttributes = jsonArray<VoiceAttribute>(brandOS?.voiceAttributes);
-  const keyProducts = jsonArray<string>(brandOS?.keyProducts);
+  const status = platformStatus({ brandSummary: client.brandSummary, brandOS });
+  const drafted = new Set(drafts.map((d) => d.section));
   const colors = jsonArray<string>(brandOS?.approvedColors);
-  const photography = brandAssets.filter((a) => a.category === "PHOTOGRAPHY");
-  const illustrations = brandAssets.filter((a) => a.category === "ILLUSTRATION");
-  const primaryColor = colors[0] ?? "var(--primary)";
-  const secondaryColor = colors[1] ?? "var(--accent)";
+  const typefaces = jsonArray<unknown>(brandOS?.approvedTypography).length;
+  const emptyNotDrafted = status.empty.filter((s) => !drafted.has(s.slug));
 
-  const voicePersonality = voiceAttributes
-    .map((v) => (v.value >= 55 ? v.rightLabel : v.leftLabel))
-    .filter(Boolean);
+  // Sources side card: connected apps, then apps that only have pasted links, then the website.
+  const linkCount = new Map<string, number>();
+  for (const s of sources) linkCount.set(s.app, (linkCount.get(s.app) ?? 0) + 1);
+  const sourceRows = [
+    ...connections.map((c) => ({ app: c.app, name: appMeta(c.app).name, note: c.isDemo ? "Connected · demo" : "Connected" })),
+    ...[...linkCount].filter(([app]) => app !== "web" && !connections.some((c) => c.app === app)).map(([app, n]) => ({ app, name: appMeta(app).name, note: `${n} link${n === 1 ? "" : "s"}` })),
+    ...(client.website ? [{ app: "web", name: "Website", note: client.website.replace(/^https?:\/\//, "").replace(/\/$/, "") }] : []),
+  ];
 
   return (
-    <div className="flex flex-col gap-8">
-      <Card
-        className="relative overflow-hidden p-6"
-        style={{ background: `linear-gradient(135deg, ${primaryColor}1a, ${secondaryColor}0d)` }}
-      >
-        <div className="flex items-start justify-between gap-6">
-          <div className="flex items-center gap-4">
+    <PageGrid
+      main={
+        <>
+          <Card className="flex flex-wrap items-center gap-5 px-6 py-6 @min-[600px]/col:px-8">
             <span
-              className="flex size-14 shrink-0 items-center justify-center rounded-2xl text-lg font-bold text-white shadow-sm"
-              style={{ backgroundColor: primaryColor }}
+              aria-hidden
+              className="flex size-[72px] shrink-0 items-center justify-center rounded-[10px] text-[28px] font-light text-brand-ink"
+              style={{ backgroundColor: colors[0] ? `color-mix(in srgb, ${colors[0]} 45%, white)` : "var(--brand-pink)" }}
             >
-              {initialsFor(client.name)}
+              {client.name.charAt(0)}
             </span>
-            <div>
-              <h2 className="font-display text-xl font-light">{client.name}</h2>
-              <p className="max-w-xl text-sm text-muted-foreground">
-                {client.brandSummary ?? brandOS?.valueProposition ?? "Brand profile being built out."}
-              </p>
-            </div>
-          </div>
-          <div className="flex shrink-0 items-center gap-3">
-            {colors.length > 0 && (
-              <div className="flex -space-x-2">
-                {colors.slice(0, 5).map((c) => (
-                  <span
-                    key={c}
-                    className="size-8 rounded-full border-2 border-card shadow-sm"
-                    style={{ backgroundColor: c }}
-                    title={c}
-                  />
-                ))}
-              </div>
-            )}
-            <DownloadBrandButton clientName={client.name} />
-          </div>
-        </div>
-        {voicePersonality.length > 0 && (
-          <div className="mt-4 flex flex-wrap gap-1.5">
-            {voicePersonality.map((label) => (
-              <Badge key={label} tone="accent">
-                {label}
-              </Badge>
-            ))}
-          </div>
-        )}
-      </Card>
-
-      <p className="-mt-4 text-sm text-muted-foreground">
-        Everything every Klingit agent reads before producing a single asset — product, audience, voice, and visual
-        style.
-      </p>
-
-      <SourcesSummaryCard
-        apps={[...new Set([...connections.map((c) => c.app), ...sources.filter((x) => !x.isDemo).map((x) => x.app)])]}
-        linkedFiles={sources.length}
-        demo={connections.some((c) => c.isDemo)}
-      />
-
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="flex flex-col gap-3">
-          <SectionLabel>Company &amp; product</SectionLabel>
-          <Card className="flex flex-col gap-3 p-5">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Industry</p>
-              <p className="text-sm">{client.industry ?? "—"}</p>
-            </div>
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Value proposition</p>
-              <p className="text-sm">{brandOS?.valueProposition ?? "Not documented yet."}</p>
-            </div>
-            {keyProducts.length > 0 && (
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Key products</p>
-                <div className="mt-1 flex flex-wrap gap-1.5">
-                  {keyProducts.map((p) => (
-                    <Badge key={p} tone="neutral">
-                      {p}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-          </Card>
-        </div>
-
-        <div className="flex flex-col gap-3">
-          <SectionLabel>Voice &amp; tone</SectionLabel>
-          <Card className="flex flex-col gap-4 p-5">
-            {voiceAttributes.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Not documented yet.</p>
-            ) : (
-              voiceAttributes.map((v) => (
-                <div key={v.label} className="flex flex-col gap-1">
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span className={v.value < 45 ? "font-semibold text-foreground" : ""}>{v.leftLabel}</span>
-                    <span className={v.value >= 55 ? "font-semibold text-foreground" : ""}>{v.rightLabel}</span>
-                  </div>
-                  <div className="relative h-1.5 w-full rounded-full bg-eggshell">
-                    <div
-                      className="absolute top-1/2 size-3 -translate-y-1/2 rounded-full border-2 border-paper bg-ink transition-all"
-                      style={{ left: `calc(${v.value}% - 6px)` }}
-                    />
-                  </div>
-                </div>
-              ))
-            )}
-          </Card>
-        </div>
-      </div>
-
-      {personas.length > 0 && (
-        <div className="flex flex-col gap-3">
-          <SectionLabel>Audience personas</SectionLabel>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {personas.map((p, i) => (
-              <Card
-                key={p.name}
-                className="flex flex-col gap-2 overflow-hidden p-0 transition-colors hover:border-ink/30"
-              >
-                <div
-                  className="h-16"
-                  style={{
-                    background: `linear-gradient(135deg, ${colors[i % Math.max(colors.length, 1)] ?? primaryColor}, ${colors[(i + 1) % Math.max(colors.length, 1)] ?? secondaryColor})`,
-                  }}
-                />
-                <div className="flex flex-col gap-2 p-5 pt-0">
-                  <div className="-mt-6 flex items-center justify-between">
-                    <span className="flex size-10 items-center justify-center rounded-full border-2 border-card bg-card text-sm font-semibold shadow-sm">
-                      {initialsFor(p.name)}
-                    </span>
-                    <Badge tone="info">{p.ageRange}</Badge>
-                  </div>
-                  <p className="text-sm font-semibold">{p.name}</p>
-                  <p className="text-sm text-muted-foreground">{p.description}</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {p.traits.map((t) => (
-                      <Badge key={t} tone="neutral">
-                        {t}
-                      </Badge>
+            <div className="flex min-w-0 flex-1 basis-[260px] flex-col gap-1.5">
+              <h2 className="m-0 text-[24px] font-normal leading-[1.25]">{client.name}</h2>
+              <p className="m-0 text-[15px] text-brand-ink-2">{client.brandSummary ?? "No brand summary yet."}</p>
+              {(colors.length > 0 || typefaces > 0) && (
+                <div className="mt-1 flex items-center gap-3">
+                  <span className="flex gap-1.5">
+                    {colors.slice(0, 6).map((c) => (
+                      <span key={c} title={c} className="size-7 rounded-full border border-brand-line" style={{ backgroundColor: c }} />
                     ))}
-                  </div>
+                  </span>
+                  <span className="text-[13px] text-brand-ink-2">
+                    {[colors.length && `${colors.length} colour${colors.length === 1 ? "" : "s"}`, typefaces && `${typefaces} typeface${typefaces === 1 ? "" : "s"}`].filter(Boolean).join(" · ")}
+                  </span>
                 </div>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <StyleCard
-          title="Imagery style"
-          description={brandOS?.imageryStyle}
-          assets={photography}
-          colors={colors}
-          variant="photo"
-        />
-        <StyleCard
-          title="Illustration style"
-          description={brandOS?.illustrationStyle}
-          assets={illustrations}
-          colors={colors}
-          variant="illustration"
-        />
-      </div>
-
-      {brandOS?.competitiveNote && (
-        <div className="flex flex-col gap-3">
-          <SectionLabel>Market position</SectionLabel>
-          <Card className="p-5">
-            <p className="text-sm text-muted-foreground">{brandOS.competitiveNote}</p>
+              )}
+            </div>
+            <DownloadBrandButton clientName={client.name} />
           </Card>
-        </div>
-      )}
-    </div>
-  );
-}
 
-function StyleCard({
-  title,
-  description,
-  assets,
-  colors,
-  variant,
-}: {
-  title: string;
-  description: string | null | undefined;
-  assets: { id: string; previewColor: string; name: string; fileUrl?: string | null }[];
-  colors: string[];
-  variant: "photo" | "illustration";
-}) {
-  const tileCount = 6;
-  return (
-    <div className="flex flex-col gap-3">
-      <SectionLabel>{title}</SectionLabel>
-      <Card className="flex flex-col gap-3 p-5">
-        <p className="text-sm text-muted-foreground">{description ?? "Not documented yet."}</p>
-        <div className="grid grid-cols-3 gap-2">
-          {Array.from({ length: tileCount }).map((_, i) => {
-            const asset = assets[i];
-            const base = asset?.previewColor ?? colors[i % Math.max(colors.length, 1)] ?? "var(--muted)";
-            const next = colors[(i + 2) % Math.max(colors.length, 1)] ?? base;
-            if (asset?.fileUrl) {
-              return (
-                <div key={asset.id} className="aspect-square overflow-hidden rounded-lg bg-muted" title={asset.name}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={asset.fileUrl} alt={asset.name} className="size-full object-cover" />
-                </div>
-              );
+          {status.empty.length > 0 && (
+            <section aria-label="Draft with AI" className="flex flex-wrap items-center gap-x-6 gap-y-4 rounded-[12px] bg-brand-ink px-6 py-6 text-white @min-[600px]/col:px-8">
+              <div className="flex min-w-0 flex-1 basis-[300px] flex-col gap-1.5">
+                <span className="font-brand-mono text-[12px] text-brand-lime">
+                  {status.empty.length} SECTION{status.empty.length === 1 ? "" : "S"} EMPTY
+                </span>
+                {emptyNotDrafted.length > 0 ? (
+                  <>
+                    <span className="text-[21px] leading-[1.35]">
+                      Let the brand agent draft {emptyNotDrafted.length === 1 ? "it" : "them"} from {sources.length > 0 ? `your ${sources.length} linked source${sources.length === 1 ? "" : "s"}` : "your website and summary"}
+                    </span>
+                    <span className="text-[14px] text-brand-cream/80">You review every section before it is saved.</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-[21px] leading-[1.35]">Drafts are ready for your review</span>
+                    <span className="text-[14px] text-brand-cream/80">Open a section to use, edit or discard its draft. Nothing is saved until you do.</span>
+                  </>
+                )}
+              </div>
+              {emptyNotDrafted.length > 0 ? (
+                <AgentButton action={draftEmptySectionsAction} label="Draft with AI" pendingLabel="Drafting…" variant="action" />
+              ) : (
+                <Link href={`/assets/brand-platform/${status.empty[0].slug}`} className="inline-flex h-11 items-center rounded-full bg-brand-orange px-5 font-brand-mono text-[12px] text-brand-ink no-underline sm:h-10">
+                  Review drafts
+                </Link>
+              )}
+            </section>
+          )}
+
+          <SectionCard title="Brand & message platform" action={<span className="font-brand-mono text-[12px] text-brand-ink-2">{status.done} OF {status.total} DONE</span>}>
+            <PlatformList sections={status.sections} drafted={drafted} />
+          </SectionCard>
+        </>
+      }
+      side={
+        <>
+          <SectionCard
+            title="Sources"
+            action={
+              <Link href="/assets/sources" className={monoLink}>
+                MANAGE
+              </Link>
             }
-            return (
-              <div
-                key={asset?.id ?? i}
-                className="aspect-square overflow-hidden rounded-lg"
-                style={
-                  variant === "photo"
-                    ? { background: `linear-gradient(160deg, ${base}, ${next})` }
-                    : {
-                        backgroundColor: base,
-                        backgroundImage: `radial-gradient(${next} 22%, transparent 23%), radial-gradient(${next} 22%, transparent 23%)`,
-                        backgroundPosition: "0 0, 50% 50%",
-                        backgroundSize: "18px 18px",
-                      }
-                }
-              />
-            );
-          })}
-        </div>
-      </Card>
-    </div>
+          >
+            {sourceRows.length === 0 ? (
+              <p className="m-0 px-6 py-5 text-[14px] text-brand-ink-2">No sources linked yet. Link your Drive, Figma or any page your brand lives on.</p>
+            ) : (
+              <CardRows>
+                {sourceRows.map((r) => (
+                  <li key={`${r.app}-${r.name}`} className="flex items-center gap-3 px-6 py-3.5">
+                    <AppIcon app={r.app} size={16} tile />
+                    <span className="min-w-0 flex-1 truncate text-[15px]">{r.name}</span>
+                    <span className="truncate text-[13px] text-brand-ink-2">{r.note}</span>
+                  </li>
+                ))}
+              </CardRows>
+            )}
+          </SectionCard>
+          <SectionCard title="Brand health">
+            <div className="flex flex-col gap-3 px-6 py-5">
+              <div className="flex items-baseline gap-2.5">
+                <span className="text-[34px] font-light leading-none tabular-nums">
+                  {status.done} of {status.total}
+                </span>
+                <span className="text-[15px]">platform sections done</span>
+              </div>
+              <Meter value={status.done} max={status.total} label={`${status.done} of ${status.total} platform sections done`} />
+              <span className="text-[13px] leading-[1.5] text-brand-ink-2">Agents write better briefs the more is filled in. Computed from Brand OS, not a stored score.</span>
+            </div>
+          </SectionCard>
+        </>
+      }
+    />
   );
 }

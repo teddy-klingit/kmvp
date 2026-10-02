@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getBrandExportText } from "@/lib/actions/brand-export-actions";
 
@@ -27,9 +26,8 @@ export function DownloadBrandButton({ clientName }: { clientName: string }) {
   }
 
   return (
-    <Button size="sm" variant="secondary" className="gap-1.5" onClick={handleDownload} disabled={pending}>
-      <Download className="size-3.5" />
-      {pending ? "Preparing…" : "Download brand"}
+    <Button size="lg" variant="secondary" onClick={handleDownload} disabled={pending}>
+      {pending ? "Preparing…" : "Download brand kit"}
     </Button>
   );
 }

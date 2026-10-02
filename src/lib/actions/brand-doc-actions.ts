@@ -14,6 +14,16 @@ const TEXT_FIELD_FOR: Record<string, "vision" | "mission" | "competitiveNote" | 
   "services-products": "servicesNote",
 };
 
+/** The client saved a section: if they started from the brand agent's draft, that draft is now used. */
+async function closeDraft(clientId: string, formData: FormData) {
+  const draftId = String(formData.get("draftId") ?? "");
+  if (draftId) await prisma.brandSectionDraft.updateMany({ where: { id: draftId, clientId, status: "PENDING" }, data: { status: "USED", resolvedAt: new Date() } });
+}
+
+function saveBrandOS(clientId: string, data: Record<string, unknown>) {
+  return prisma.brandOS.upsert({ where: { clientId }, update: data, create: { clientId, ...data } });
+}
+
 function revalidateDoc(doc: string) {
   revalidatePath(`/assets/brand-platform/${doc}`);
   revalidatePath("/assets/brand-platform");
@@ -28,13 +38,11 @@ export async function updateBrandTextDocAction(_prev: EmptyState, formData: Form
   if (doc === "our-brand") {
     await prisma.client.update({ where: { id: viewer.clientId }, data: { brandSummary: value || null } });
   } else if (TEXT_FIELD_FOR[doc]) {
-    await prisma.brandOS.update({
-      where: { clientId: viewer.clientId },
-      data: { [TEXT_FIELD_FOR[doc]]: value || null },
-    });
+    await saveBrandOS(viewer.clientId, { [TEXT_FIELD_FOR[doc]]: value || null });
   } else {
     return EMPTY;
   }
+  await closeDraft(viewer.clientId, formData);
 
   revalidateDoc(doc);
   return EMPTY;
@@ -48,7 +56,8 @@ export async function updateUspsAction(_prev: EmptyState, formData: FormData): P
     .map((l) => l.trim())
     .filter(Boolean);
 
-  await prisma.brandOS.update({ where: { clientId: viewer.clientId }, data: { usps } });
+  await saveBrandOS(viewer.clientId, { usps });
+  await closeDraft(viewer.clientId, formData);
   revalidateDoc("usps");
   return EMPTY;
 }
@@ -73,7 +82,8 @@ export async function updatePersonasAction(_prev: EmptyState, formData: FormData
       };
     });
 
-  await prisma.brandOS.update({ where: { clientId: viewer.clientId }, data: { audiencePersonas } });
+  await saveBrandOS(viewer.clientId, { audiencePersonas });
+  await closeDraft(viewer.clientId, formData);
   revalidateDoc("target-audience");
   return EMPTY;
 }
@@ -90,7 +100,8 @@ export async function updateCoreValuesAction(_prev: EmptyState, formData: FormDa
       return { title: title.trim(), description: rest.join("|").trim() };
     });
 
-  await prisma.brandOS.update({ where: { clientId: viewer.clientId }, data: { coreValues } });
+  await saveBrandOS(viewer.clientId, { coreValues });
+  await closeDraft(viewer.clientId, formData);
   revalidateDoc("core-values");
   return EMPTY;
 }

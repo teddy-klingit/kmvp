@@ -176,6 +176,7 @@ model Client {
   reportingConfig              ClientReportingConfig?
   savedReports                 SavedReport[]
   generatedReports             GeneratedReport[]
+  brandSectionDrafts           BrandSectionDraft[]
   sampleAdCampaigns            SampleAdCampaign[]
   communityManagementSnapshots CommunityManagementSnapshot[]
   internalMessages             ClientInternalMessage[]
@@ -593,6 +594,23 @@ model GeneratedReport {
 
   @@unique([clientId, kind, periodStart])
   @@index([clientId, kind, periodStart])
+}
+
+/// A brand agent's draft of one Brand IQ platform section ("Draft with AI" / "Rewrite with AI"). Never written
+/// to Brand OS by itself: the client opens it in the editor and saves it (USED), or discards it.
+model BrandSectionDraft {
+  id         String    @id @default(cuid())
+  clientId   String
+  section    String // BRAND_PLATFORM_DOCS slug
+  content    String // in the section editor's format (e.g. "Title | description" lines)
+  basis      String? // what the agent based it on, shown with the draft
+  status     String    @default("PENDING") // PENDING | USED | DISCARDED
+  createdAt  DateTime  @default(now())
+  resolvedAt DateTime?
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, section, status])
 }
 
 model SavedReport {
@@ -1285,6 +1303,8 @@ model BrandOS {
   approvedColors       Json?
   approvedTypography   Json?
   figmaSyncConfig      Json?
+  /// Deprecated (Phase J): stored brand-health numbers. Not read or seeded any more; Brand IQ computes
+  /// health from what's written (src/lib/brand-completeness.ts). Kept so no data is deleted.
   foundationPct        Int       @default(0)
   figmaLibraryPct      Int       @default(0)
   assetArchivePct      Int       @default(0)

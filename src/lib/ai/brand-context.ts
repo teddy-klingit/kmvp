@@ -16,6 +16,17 @@ export function buildBrandContext(client: Pick<Client, "name" | "industry" | "br
 
   lines.push(`Brand summary: ${client.brandSummary ?? "No summary documented yet."}`);
 
+  // The brand & message platform (Brand IQ). Every section an agent can use is listed in SECTION_READERS.
+  if (brandOS?.vision) lines.push(`Vision: ${brandOS.vision}`);
+  if (brandOS?.mission) lines.push(`Mission: ${brandOS.mission}`);
+  const coreValues = jsonArray<{ title: string; description: string }>(brandOS?.coreValues);
+  if (coreValues.length > 0) lines.push("Core values: " + coreValues.map((v) => `${v.title} (${v.description})`).join("; "));
+  const usps = jsonArray<string>(brandOS?.usps);
+  if (usps.length > 0) lines.push("USPs: " + usps.join("; "));
+  if (brandOS?.competitiveNote) lines.push(`Market position: ${brandOS.competitiveNote}`);
+  const products = jsonArray<string>(brandOS?.keyProducts);
+  if (brandOS?.servicesNote || products.length > 0) lines.push(`Services & products: ${[brandOS?.servicesNote, products.join(", ")].filter(Boolean).join(" · ")}`);
+
   const audiencePersonas = jsonArray<AudiencePersona>(brandOS?.audiencePersonas);
   if (audiencePersonas.length > 0) {
     lines.push(

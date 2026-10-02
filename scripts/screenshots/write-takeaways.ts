@@ -4,12 +4,14 @@
  * (INSIGHTS_AGENT_ON_PAGE_LOAD=0), so run this first:
  *   DATABASE_URL=file:./prisma/screens.db npx tsx --env-file=.env scripts/screenshots/write-takeaways.ts [--suggestions]
  * --suggestions also has the content plan agent write dated calendar suggestions.
+ * --brand-drafts has the Brand OS agent draft the empty Brand IQ sections (held for review).
  * --reports has the performance agent write the latest weekly and monthly reports (and the week before).
  */
 import { prisma } from "../../src/lib/prisma";
 import { generatePerformanceBrief } from "../../src/lib/insights-brief";
 import { writePlanSuggestions } from "../../src/lib/content-plan-suggestions";
 import { lastClosed, weekOf, writeReport } from "../../src/lib/report-data";
+import { draftSections } from "../../src/lib/brand-drafts";
 
 const args = process.argv.slice(2);
 
@@ -27,6 +29,11 @@ async function main() {
         const r = await writeReport(c.id, p);
         console.log("report", p.label, r.ok ? "ok" : r.error);
       }
+    }
+    if (args.includes("--brand-drafts")) {
+      const r = await draftSections(c.id);
+      const rows = await prisma.brandSectionDraft.findMany({ where: { clientId: c.id, status: "PENDING" } });
+      console.log("brand drafts", r.error ?? "ok", rows.map((d) => [d.section, d.content.slice(0, 80), d.basis]));
     }
     if (args.includes("--suggestions")) {
       const s = await writePlanSuggestions({ clientId: c.id, client: { name: c.name } });

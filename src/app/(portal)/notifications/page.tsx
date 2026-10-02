@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
 import { PageHeader } from "@/components/shared/page-header";
+import { FilterChips } from "@/components/ds/filter-chips";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -51,32 +52,8 @@ export default async function NotificationsPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        title={
-          <span className="flex items-center gap-2">
-            Notifications
-            {unreadCount > 0 && (
-              <span className="flex size-5 items-center justify-center rounded-full bg-accent text-xs font-semibold text-ink">
-                {unreadCount}
-              </span>
-            )}
-          </span>
-        }
-      />
-
-      <div className="flex flex-wrap gap-2">
-        {FILTERS.map((f) => (
-          <Link key={f.key} href={f.key === "all" ? "/notifications" : `/notifications?filter=${f.key}`}>
-            <span
-              className={`inline-block rounded-full px-3 py-1.5 text-sm font-medium ${
-                filter === f.key ? "bg-foreground text-background" : "bg-muted text-muted-foreground hover:bg-muted/70"
-              }`}
-            >
-              {f.label}
-            </span>
-          </Link>
-        ))}
-      </div>
+      <PageHeader eyebrow={unreadCount > 0 ? `${unreadCount} unread` : "All read"} title="Notifications" />
+      <FilterChips label="Filter notifications" items={FILTERS.map((f) => ({ label: f.label, href: f.key === "all" ? "/notifications" : `/notifications?filter=${f.key}`, active: filter === f.key }))} />
 
       <div className="flex flex-col gap-3">
         {filtered.length === 0 ? (

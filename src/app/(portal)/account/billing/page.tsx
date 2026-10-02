@@ -1,89 +1,65 @@
 import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
-import { Card, SectionLabel } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { formatDate } from "@/lib/utils";
 import { PLAN_TIER_LABEL } from "@/lib/labels";
-import { CreditCard } from "lucide-react";
+import { klingitChatHref } from "@/lib/client-home";
+import { PageGrid } from "@/components/ds/page-grid";
+import { SectionCard, CardNote } from "@/components/ds/card";
+import { DataTable } from "@/components/ds/data-table";
+import { StatusPill, type PillTone } from "@/components/ds/status-pill";
+import { PillLink } from "@/components/ds/pill-link";
 
-const INVOICE_TONE: Record<string, "success" | "info" | "warning" | "neutral"> = {
-  PAID: "success",
-  SENT: "info",
-  OVERDUE: "warning",
-  DRAFT: "neutral",
-};
+const INVOICE_TONE: Record<string, PillTone> = { PAID: "success", SENT: "neutral", OVERDUE: "danger", DRAFT: "neutral" };
+const INVOICE_LABEL: Record<string, string> = { PAID: "Paid", SENT: "Sent", OVERDUE: "Overdue", DRAFT: "Draft" };
 
+/** Account → Billing: the plan and every invoice. No card details are shown: we don't store any. */
 export default async function AccountBillingPage() {
   const viewer = await getPortalViewer();
-  const [client, invoices] = await Promise.all([
+  const [client, invoices, chat] = await Promise.all([
     prisma.client.findUniqueOrThrow({ where: { id: viewer.clientId } }),
     prisma.invoice.findMany({ where: { clientId: viewer.clientId }, orderBy: { issuedAt: "desc" } }),
+    klingitChatHref(viewer.clientId),
   ]);
-
   return (
-    <div className="flex flex-col gap-6">
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="flex flex-col gap-3">
-          <SectionLabel>Plan</SectionLabel>
-          <Card className="flex items-center justify-between p-5">
-            <div>
-              <p className="text-sm font-semibold">{PLAN_TIER_LABEL[client.planTier]}</p>
-              <p className="text-sm text-muted-foreground">{client.monthlyCreditAllowance} credits / month</p>
-            </div>
-            <Button variant="secondary" size="sm">
-              Upgrade plan
-            </Button>
-          </Card>
-        </div>
-
-        <div className="flex flex-col gap-3">
-          <SectionLabel>Payment method</SectionLabel>
-          <Card className="flex items-center justify-between p-5">
-            <div className="flex items-center gap-3">
-              <CreditCard className="size-5 text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium">Visa •••• 4242</p>
-                <p className="text-xs text-muted-foreground">Expires 04/28</p>
-              </div>
-            </div>
-            <Button variant="secondary" size="sm">
-              Update
-            </Button>
-          </Card>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-3">
-        <SectionLabel>Invoice history</SectionLabel>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Invoice</TableHead>
-              <TableHead>Issued</TableHead>
-              <TableHead>Due</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Status</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {invoices.map((inv) => (
-              <TableRow key={inv.id}>
-                <TableCell className="font-medium">{inv.number}</TableCell>
-                <TableCell className="text-muted-foreground">{inv.issuedAt && formatDate(inv.issuedAt)}</TableCell>
-                <TableCell className="text-muted-foreground">{inv.dueAt && formatDate(inv.dueAt)}</TableCell>
-                <TableCell>
-                  {inv.currency} {inv.amount.toLocaleString()}
-                </TableCell>
-                <TableCell>
-                  <Badge tone={INVOICE_TONE[inv.status]}>{inv.status}</Badge>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
+    <PageGrid
+      main={
+        <SectionCard title="Invoices" action={<span className="font-brand-mono text-[12px] text-brand-ink-2">{invoices.length} IN TOTAL</span>}>
+          <DataTable
+            label="Invoices"
+            empty={<CardNote>No invoices yet.</CardNote>}
+            columns={[
+              { key: "number", label: "Invoice" },
+              { key: "issued", label: "Issued" },
+              { key: "due", label: "Due" },
+              { key: "amount", label: "Amount", align: "right" },
+              { key: "status", label: "Status" },
+            ]}
+            rows={invoices.map((inv) => ({
+              id: inv.id,
+              cells: {
+                number: inv.number,
+                issued: inv.issuedAt ? formatDate(inv.issuedAt, { day: "numeric", month: "short", year: "numeric" }) : "",
+                due: inv.dueAt ? formatDate(inv.dueAt, { day: "numeric", month: "short", year: "numeric" }) : "",
+                amount: `${inv.currency} ${inv.amount.toLocaleString("en-GB")}`,
+                status: <StatusPill tone={INVOICE_TONE[inv.status]}>{INVOICE_LABEL[inv.status] ?? inv.status}</StatusPill>,
+              },
+            }))}
+          />
+        </SectionCard>
+      }
+      side={
+        <SectionCard title="Plan">
+          <div className="flex flex-col gap-3 px-6 py-5">
+            <span className="text-[28px] font-light leading-none">{PLAN_TIER_LABEL[client.planTier] ?? client.planTier}</span>
+            <span className="text-[14px] text-brand-ink-2">
+              {client.monthlyCreditAllowance} credits a month{client.renewalDate ? ` · renews ${formatDate(client.renewalDate, { day: "numeric", month: "short" })}` : ""}
+            </span>
+            <PillLink href={chat} className="self-start">
+              Ask about upgrading
+            </PillLink>
+          </div>
+        </SectionCard>
+      }
+    />
   );
 }

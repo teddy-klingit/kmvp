@@ -14,9 +14,9 @@ export type ConnectedApp = { app: string; files: DemoFile[] };
 /** A linked source: app icon, name, external-link icon. Clicking opens it in a new tab; × archives it. */
 export function SourceChip({ source, removable = true }: { source: SourceChipData; removable?: boolean }) {
   return (
-    <span className="group inline-flex h-8 max-w-full items-center gap-1.5 rounded-full border border-ds-control-border bg-white pl-2.5 pr-1 text-[13px] text-ds-text">
-      <a href={source.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-w-0 items-center gap-1.5 text-ds-text no-underline hover:underline" title={source.url}>
-        <AppIcon app={source.app} size={14} />
+    <span className="group inline-flex h-11 max-w-full items-center gap-2 rounded-full border border-brand-outline bg-white pl-1.5 pr-1 text-[14px] text-brand-ink sm:h-10">
+      <a href={source.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-w-0 items-center gap-2 text-brand-ink no-underline hover:underline" title={source.url}>
+        <AppIcon app={source.app} size={13} tile />
         <span className="truncate">{source.title}</span>
         {source.isDemo && <span className="rounded-full bg-ds-subtle px-1.5 text-[11px] text-ds-text-2">demo</span>}
         <ExternalLink className="size-3 shrink-0 text-ds-text-3" strokeWidth={1.75} />
@@ -38,8 +38,8 @@ export function SourceChip({ source, removable = true }: { source: SourceChipDat
 /** The "Sources" row under each Brand OS section: chips plus "+ Add source". */
 export function SourcesRow({ section, sources, connected, divider = true }: { section: string; sources: SourceChipData[]; connected: ConnectedApp[]; divider?: boolean }) {
   return (
-    <div className={cn("flex flex-col gap-2", divider && "border-t border-ds-divider pt-4")}>
-      <span className="text-[12px] font-medium text-ds-text-2">Sources</span>
+    <div className={cn("flex flex-col gap-3", divider && "border-t border-brand-line pt-5")}>
+      <span className="font-brand-mono text-[11px] text-brand-ink-2">SOURCES FOR THIS SECTION</span>
       <div className="flex flex-wrap items-center gap-2">
         {sources.map((s) => (
           <SourceChip key={s.id} source={s} />
@@ -80,7 +80,7 @@ export function AddSourcePopover({ section, connected, label = "Add source" }: {
           setOpen((o) => !o);
         }}
         aria-expanded={open}
-        className="inline-flex h-8 items-center gap-1 rounded-full border border-dashed border-ds-dashed bg-white px-3 text-[13px] font-medium text-ds-text hover:border-ds-text-3"
+        className="inline-flex h-11 items-center gap-1 rounded-full border border-dashed border-brand-lime-strong bg-[#F1F7E1] px-4 text-[14px] text-brand-ink hover:brightness-[0.98] sm:h-10"
       >
         <Plus className="size-3.5" strokeWidth={2} />
         {label}

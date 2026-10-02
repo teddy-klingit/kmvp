@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
 import { projectVisibilityWhere } from "@/lib/project-visibility";
-import { Card, SectionLabel } from "@/components/ui/card";
+import { SectionCard } from "@/components/ds/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { formatDate } from "@/lib/utils";
 
@@ -29,15 +29,14 @@ export default async function AccountUsagePage() {
   const maxAbs = Math.max(1, ...months.map(([, v]) => Math.abs(v)));
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3">
-        <SectionLabel>Credit burn-down by month</SectionLabel>
-        <Card className="flex items-end gap-4 p-5" style={{ height: 180 }}>
+    <div className="flex max-w-[760px] flex-col gap-6">
+      <SectionCard title="Credit burn-down by month">
+        <div className="flex items-end gap-4 px-6 py-5" style={{ height: 180 }}>
           {months.map(([label, value]) => (
             <div key={label} className="flex flex-1 flex-col items-center gap-2">
               <div className="flex h-32 w-full items-end">
                 <div
-                  className={`w-full rounded-t-sm ${value < 0 ? "bg-primary" : "bg-success"}`}
+                  className={`w-full rounded-t-sm ${value < 0 ? "bg-brand-ink" : "bg-brand-lime-strong"}`}
                   style={{ height: `${(Math.abs(value) / maxAbs) * 100}%` }}
                 />
               </div>
@@ -45,11 +44,10 @@ export default async function AccountUsagePage() {
               <p className="text-xs font-medium">{value > 0 ? `+${value}c` : `${value}c`}</p>
             </div>
           ))}
-        </Card>
-      </div>
+        </div>
+      </SectionCard>
 
-      <div className="flex flex-col gap-3">
-        <SectionLabel>Credit burn-down by project</SectionLabel>
+      <SectionCard title="Credit burn-down by project">
         <Table>
           <TableHeader>
             <TableRow>
@@ -68,11 +66,10 @@ export default async function AccountUsagePage() {
             ))}
           </TableBody>
         </Table>
-      </div>
+      </SectionCard>
 
-      <div className="flex flex-col gap-3">
-        <SectionLabel>Ledger</SectionLabel>
-        <Card className="divide-y divide-border p-0">
+      <SectionCard title="Ledger">
+        <div className="divide-y divide-border ">
           {entries.map((e) => (
             <div key={e.id} className="flex items-center justify-between px-5 py-3 text-sm">
               <div>
@@ -84,8 +81,8 @@ export default async function AccountUsagePage() {
               </p>
             </div>
           ))}
-        </Card>
-      </div>
+        </div>
+      </SectionCard>
     </div>
   );
 }

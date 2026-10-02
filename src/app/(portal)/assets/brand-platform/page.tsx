@@ -1,56 +1,51 @@
-import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
-import { Card } from "@/components/ui/card";
-import { BRAND_PLATFORM_DOCS } from "@/lib/brand-iq-taxonomy";
-import { FileText } from "lucide-react";
+import { platformStatus } from "@/lib/brand-completeness";
+import { draftEmptySectionsAction } from "@/lib/actions/brand-draft-actions";
+import { PageGrid } from "@/components/ds/page-grid";
+import { SectionCard, Card } from "@/components/ds/card";
+import { Meter } from "@/components/ds/stats";
+import { AgentButton } from "@/components/portal/insights/agent-button";
+import { PlatformList } from "@/components/portal/platform-list";
 
+/** Brand IQ → Platform: the eight brand & message sections, each opening its editor. */
 export default async function BrandPlatformPage() {
   const viewer = await getPortalViewer();
-  const [client, brandOS] = await Promise.all([
+  const [client, brandOS, drafts] = await Promise.all([
     prisma.client.findUniqueOrThrow({ where: { id: viewer.clientId } }),
     prisma.brandOS.findUnique({ where: { clientId: viewer.clientId } }),
+    prisma.brandSectionDraft.findMany({ where: { clientId: viewer.clientId, status: "PENDING" }, select: { section: true } }),
   ]);
-
-  const teaserFor: Record<string, string | null | undefined> = {
-    "our-brand": client.brandSummary ?? brandOS?.valueProposition,
-    vision: brandOS?.vision,
-    mission: brandOS?.mission,
-    "core-values": brandOS?.coreValues ? "The principles behind every decision" : null,
-    usps: brandOS?.usps ? "What sets us apart" : null,
-    "market-position": brandOS?.competitiveNote,
-    "target-audience": brandOS?.audiencePersonas ? "Who we're building and speaking for" : null,
-    "services-products": brandOS?.servicesNote,
-  };
-
+  const status = platformStatus({ brandSummary: client.brandSummary, brandOS });
+  const drafted = new Set(drafts.map((d) => d.section));
+  const undrafted = status.empty.filter((s) => !drafted.has(s.slug));
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h2 className="text-lg font-semibold">Brand &amp; Message platform</h2>
-        <p className="text-sm text-muted-foreground">
-          The story behind {client.name} — what it stands for, who it's for, and what it offers.
-        </p>
-      </div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {BRAND_PLATFORM_DOCS.map((doc, i) => (
-          <Link
-            key={doc.slug}
-            href={`/assets/brand-platform/${doc.slug}`}
-            className="animate-in fade-in slide-in-from-bottom-1 duration-300"
-            style={{ animationDelay: `${i * 40}ms`, animationFillMode: "backwards" }}
-          >
-            <Card className="flex h-full flex-col gap-2 p-5 transition-colors hover:border-ink/30">
-              <span className="flex size-9 items-center justify-center rounded-lg bg-muted text-foreground">
-                <FileText className="size-4" />
+    <PageGrid
+      main={
+        <SectionCard title="Brand & message platform" action={<span className="font-brand-mono text-[12px] text-brand-ink-2">{status.done} OF {status.total} DONE</span>}>
+          <PlatformList sections={status.sections} drafted={drafted} />
+        </SectionCard>
+      }
+      side={
+        <>
+          <SectionCard title="Brand health">
+            <div className="flex flex-col gap-3 px-6 py-5">
+              <span className="text-[15px]">
+                <span className="text-[28px] font-light tabular-nums">{status.done}</span> of {status.total} sections done
               </span>
-              <p className="text-sm font-semibold">{doc.label}</p>
-              <p className="line-clamp-2 text-xs text-muted-foreground">
-                {teaserFor[doc.slug] ?? "Not documented yet."}
-              </p>
+              <Meter value={status.done} max={status.total} label={`${status.done} of ${status.total} sections done`} />
+              <span className="text-[13px] text-brand-ink-2">Computed from Brand OS, not a stored score.</span>
+            </div>
+          </SectionCard>
+          {undrafted.length > 0 && (
+            <Card tone="muted" aria-label="Draft with AI" className="flex flex-col gap-3 px-6 py-5">
+              <span className="text-[16px]">Draft the {undrafted.length} empty section{undrafted.length === 1 ? "" : "s"} with AI</span>
+              <span className="text-[13px] leading-[1.5] text-brand-ink-2">The brand agent drafts from your website, summary and linked sources. You review every section before it&apos;s saved.</span>
+              <AgentButton action={draftEmptySectionsAction} label="Draft with AI" pendingLabel="Drafting…" variant="action" align="start" />
             </Card>
-          </Link>
-        ))}
-      </div>
-    </div>
+          )}
+        </>
+      }
+    />
   );
 }

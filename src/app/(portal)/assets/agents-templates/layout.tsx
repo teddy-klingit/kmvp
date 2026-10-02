@@ -1,14 +1,15 @@
-import { NavTabs } from "@/components/ui/nav-tabs";
+import { RouteChips } from "@/components/ds/route-chips";
 
+/** Brand IQ → Agents: Agents · Templates · Brand OS rules as filter chips (never a second tab bar). */
 export default function AgentsTemplatesLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-6">
-      <NavTabs
-        size="sm"
+      <RouteChips
+        label="Agents views"
         items={[
-          { label: "Agents", href: "/assets/agents-templates" },
-          { label: "Templates", href: "/assets/agents-templates/templates" },
-          { label: "Brand OS", href: "/assets/agents-templates/brand-os" },
+          { label: "Agents", href: "/assets/agents-templates", also: ["/assets/agents-templates/agent"] },
+          { label: "Templates", href: "/assets/agents-templates/templates", also: ["/assets/agents-templates/templates", "/assets/templates"] },
+          { label: "Brand OS rules", href: "/assets/agents-templates/brand-os" },
         ]}
       />
       {children}

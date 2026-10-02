@@ -15,6 +15,9 @@ const nextConfig: NextConfig = {
       { source: "/insights/market-intelligence", destination: "/insights/market", permanent: true },
       { source: "/insights/community", destination: "/insights/audience#community", permanent: true },
       { source: "/insights/website", destination: "/insights/audience#website", permanent: true },
+      // Brand IQ (Phase J): brand health is computed on the overview; its asset list is the Library.
+      { source: "/assets/brand-health/assets", destination: "/assets/library", permanent: true },
+      { source: "/assets/brand-health/:rest*", destination: "/assets", permanent: true },
     ];
   },
   experimental: {

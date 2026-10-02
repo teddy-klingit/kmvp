@@ -250,6 +250,23 @@ const J2_PAGES: [string, string][] = [
   ["reports-full-weekly", "/reports/weekly"],
   ["reports-monthly", "/reports/monthly"],
   ["reports-custom", "/reports/custom"],
+  ["brand-overview", "/assets"],
+  ["brand-platform", "/assets/brand-platform"],
+  ["brand-section-our-brand", "/assets/brand-platform/our-brand"],
+  ["brand-section-services", "/assets/brand-platform/services-products"],
+  ["brand-section-vision", "/assets/brand-platform/vision"],
+  ["brand-visual-identity", "/assets/visual-identity"],
+  ["brand-sources", "/assets/sources"],
+  ["brand-library", "/assets/library"],
+  ["brand-agents", "/assets/agents-templates"],
+  ["account-overview", "/account"],
+  ["account-usage", "/account/usage"],
+  ["account-billing", "/account/billing"],
+  ["account-team", "/account/team"],
+  ["account-security", "/account/security"],
+  ["misc-notifications", "/notifications"],
+  ["misc-help", "/help"],
+  ["misc-custom-apps", "/apps"],
 ];
 const pageFilter = args.find((a) => a.startsWith("--pages="))?.split("=")[1]?.split(",");
 

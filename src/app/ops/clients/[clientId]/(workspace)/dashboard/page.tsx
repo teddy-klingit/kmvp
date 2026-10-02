@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { platformStatus } from "@/lib/brand-completeness";
 import { Card, SectionLabel } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
@@ -30,8 +31,10 @@ export default async function ClientOpsDashboardPage({ params }: { params: Promi
           <p className="text-xs text-muted-foreground">Credits remaining</p>
         </Card>
         <Card className="border border-border bg-paper p-4">
-          <p className="font-display text-2xl font-light">{client.brandOS?.foundationPct ?? 0}%</p>
-          <p className="text-xs text-muted-foreground">Foundation health</p>
+          <p className="font-display text-2xl font-light">
+            {platformStatus({ brandSummary: client.brandSummary, brandOS: client.brandOS }).done} of 8
+          </p>
+          <p className="text-xs text-muted-foreground">Brand OS sections written</p>
         </Card>
         <Card className="border border-border bg-paper p-4">
           <p className="font-display text-2xl font-light">{client.healthScore}</p>

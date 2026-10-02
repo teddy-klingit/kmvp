@@ -1,24 +1,11 @@
-import { prisma } from "@/lib/prisma";
-import { getPortalViewer } from "@/lib/current-viewer";
-import { PageHeader } from "@/components/shared/page-header";
-import { BrandIqSidebar } from "@/components/portal/brand-iq-sidebar";
+import { BrandIqHeader } from "@/components/portal/brand-iq-header";
 
-export default async function AssetsLayout({ children }: { children: React.ReactNode }) {
-  const viewer = await getPortalViewer();
-  const categories = await prisma.template.findMany({
-    where: { OR: [{ clientId: viewer.clientId }, { clientId: null }] },
-    select: { category: true },
-    distinct: ["category"],
-    orderBy: { category: "asc" },
-  });
-
+/** Brand IQ: one header with Overview · Platform · Visual identity · Sources · Library · Agents. */
+export default function BrandIqLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Brand OS" />
-      <div className="flex gap-6">
-        <BrandIqSidebar templateCategories={categories.map((c) => c.category)} />
-        <div className="min-w-0 flex-1">{children}</div>
-      </div>
+      <BrandIqHeader />
+      {children}
     </div>
   );
 }

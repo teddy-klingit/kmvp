@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
 import { AssetTile } from "@/components/portal/asset-tile";
 import { EmptyState } from "@/components/shared/empty-state";
+import { LibraryChips } from "@/components/portal/library-chips";
 
 export default async function AssetsAllPage() {
   const viewer = await getPortalViewer();
@@ -26,9 +27,9 @@ export default async function AssetsAllPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">All assets</h2>
-        <p className="text-sm text-muted-foreground">{assets.length} assets</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <LibraryChips />
+        <span className="font-brand-mono text-[12px] text-brand-ink-2">{assets.length} ASSETS</span>
       </div>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
         {assets.map((a) => (

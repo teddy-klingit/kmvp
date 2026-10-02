@@ -1,101 +1,112 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
-import { projectVisibilityWhere } from "@/lib/project-visibility";
-import { Card, SectionLabel } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { formatDate } from "@/lib/utils";
 import { PLAN_TIER_LABEL } from "@/lib/labels";
-import { StageBadge } from "@/components/portal/stage-badge";
-import { loadProjectStateMap } from "@/lib/project-state-loader";
+import { creditSummary, klingitChatHref } from "@/lib/client-home";
+import { toggleTwoFactorAction } from "@/lib/actions/two-factor-actions";
+import { PageGrid } from "@/components/ds/page-grid";
+import { SectionCard } from "@/components/ds/card";
+import { Meter } from "@/components/ds/stats";
+import { StatusPill } from "@/components/ds/status-pill";
+import { PillLink, monoLink } from "@/components/ds/pill-link";
+import { pillClass } from "@/components/ds/button";
+import { TeamRows } from "@/components/portal/team-rows";
 
+/**
+ * Account overview (Account.dc.html): the plan with this month's credits, the team with permission pills,
+ * and billing and security as side cards. Only real data: no card details (we don't store any), no stored scores.
+ */
 export default async function AccountOverviewPage() {
   const viewer = await getPortalViewer();
-  const client = await prisma.client.findUniqueOrThrow({
-    where: { id: viewer.clientId },
-    include: { brandOS: true },
-  });
-
-  const [projects, projectCountThisYear] = await Promise.all([
-    prisma.project.findMany({
-      where: { clientId: client.id, ...projectVisibilityWhere(viewer.id) },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-      include: { assets: true },
-    }),
-    prisma.project.count({ where: { clientId: client.id, ...projectVisibilityWhere(viewer.id) } }),
+  const now = new Date();
+  const [client, credits, lastInvoice, chat] = await Promise.all([
+    prisma.client.findUniqueOrThrow({ where: { id: viewer.clientId } }),
+    creditSummary(viewer.clientId, now),
+    prisma.invoice.findFirst({ where: { clientId: viewer.clientId, issuedAt: { not: null } }, orderBy: { issuedAt: "desc" } }),
+    klingitChatHref(viewer.clientId),
   ]);
-
-  const stateById = await loadProjectStateMap(projects.map((p) => p.id), client.id);
-  const used = client.monthlyCreditAllowance - client.creditBalance;
-  const usedPct = client.monthlyCreditAllowance > 0 ? Math.round((used / client.monthlyCreditAllowance) * 100) : 0;
-  const assetsInArchive = await prisma.asset.count({ where: { clientId: client.id } });
+  const twoFactor = viewer.user.twoFactorEnabled;
+  const approves = viewer.permission === "OWNER" || viewer.permission === "APPROVER";
 
   return (
-    <div className="flex flex-col gap-6">
-      <p className="-mt-2 text-sm text-muted-foreground">
-        {PLAN_TIER_LABEL[client.planTier]} · {client.monthlyCreditAllowance}c/mo
-        {client.renewalDate && ` · Renews ${formatDate(client.renewalDate)}`}
-      </p>
-
-      <div className="flex flex-col gap-3">
-        <SectionLabel>Credits this month</SectionLabel>
-        <Card className="p-5">
-          <div className="flex items-baseline gap-2">
-            <span className="font-display text-2xl font-light">{used}c</span>
-            <span className="text-sm text-muted-foreground">of {client.monthlyCreditAllowance}c used</span>
-          </div>
-          <Progress value={usedPct} className="mt-3" />
-          <p className="mt-2 text-xs text-muted-foreground">{client.creditBalance}c remaining</p>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <Card className="border border-border bg-paper p-4">
-          <p className="font-display text-xl font-light">{projectCountThisYear}</p>
-          <p className="text-xs text-muted-foreground">Projects this year</p>
-        </Card>
-        <Card className="border border-border bg-paper p-4">
-          <p className="font-display text-xl font-light">{assetsInArchive}</p>
-          <p className="text-xs text-muted-foreground">Assets in archive</p>
-        </Card>
-        <Card className="border border-border bg-paper p-4">
-          <p className="font-display text-xl font-light">{client.brandOS?.foundationPct ?? 0}%</p>
-          <p className="text-xs text-muted-foreground">Brand maturity</p>
-        </Card>
-        <Card className="border border-border bg-paper p-4">
-          <p className="font-display text-xl font-light">{client.healthScore}</p>
-          <p className="text-xs text-muted-foreground">Account health</p>
-        </Card>
-      </div>
-
-      <div className="flex flex-col gap-3">
-        <SectionLabel>Recent projects</SectionLabel>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Project</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Assets</TableHead>
-              <TableHead>Delivered</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {projects.map((p) => (
-              <TableRow key={p.id}>
-                <TableCell className="font-medium">{p.name}</TableCell>
-                <TableCell>
-                  {stateById.get(p.id) && <StageBadge state={stateById.get(p.id)!} />}
-                </TableCell>
-                <TableCell>{p.assets.length}</TableCell>
-                <TableCell className="text-muted-foreground">
-                  {p.deliveredAt ? formatDate(p.deliveredAt) : "—"}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
+    <PageGrid
+      main={
+        <>
+          <SectionCard title="Plan">
+            <div className="flex flex-col gap-4 px-6 py-6">
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <span className="text-[36px] font-light leading-none">{PLAN_TIER_LABEL[client.planTier] ?? client.planTier}</span>
+                <span className="text-[16px] text-brand-ink-2">
+                  {client.monthlyCreditAllowance} credits a month{client.renewalDate ? ` · renews ${formatDate(client.renewalDate, { day: "numeric", month: "short" })}` : ""}
+                </span>
+              </div>
+              {credits.available !== null && (
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-baseline justify-between gap-3 text-[15px]">
+                    <span>Credits this month</span>
+                    <span className="tabular-nums">
+                      {credits.used} of {credits.available} used
+                    </span>
+                  </div>
+                  <Meter value={credits.used} max={credits.available} label={`${credits.used} of ${credits.available} credits used`} />
+                </div>
+              )}
+              <div className="flex flex-wrap gap-2">
+                <PillLink href={chat}>Ask about upgrading</PillLink>
+                <PillLink href="/account/usage">See usage</PillLink>
+              </div>
+            </div>
+          </SectionCard>
+          <SectionCard
+            title="Team"
+            action={
+              <Link href="/account/team#invite" className={monoLink}>
+                + INVITE
+              </Link>
+            }
+          >
+            <TeamRows clientId={viewer.clientId} viewer={viewer} />
+          </SectionCard>
+        </>
+      }
+      side={
+        <>
+          <SectionCard title="Billing">
+            <dl className="m-0 flex flex-col gap-3 px-6 py-5 text-[15px]">
+              {lastInvoice ? (
+                <div className="flex items-baseline justify-between gap-3">
+                  <dt className="text-brand-ink-2">Last invoice</dt>
+                  <dd className="m-0 text-right">
+                    {lastInvoice.number} · {lastInvoice.status.toLowerCase()}
+                  </dd>
+                </div>
+              ) : (
+                <dd className="m-0 text-brand-ink-2">No invoices yet.</dd>
+              )}
+              <Link href="/account/billing" className={`${monoLink} self-start`}>
+                ALL INVOICES
+              </Link>
+            </dl>
+          </SectionCard>
+          <SectionCard title="Security">
+            <div className="flex flex-col gap-3 px-6 py-5">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[15px]">Two-factor sign-in</span>
+                <StatusPill tone={twoFactor ? "success" : "changes"}>{twoFactor ? "On" : "Off"}</StatusPill>
+              </div>
+              {!twoFactor && approves && <span className="text-[13px] text-brand-ink-2">Recommended for anyone who approves estimates.</span>}
+              <form action={toggleTwoFactorAction}>
+                <input type="hidden" name="enable" value={(!twoFactor).toString()} />
+                <input type="hidden" name="path" value="/account" />
+                <button type="submit" className={pillClass("secondary")}>
+                  {twoFactor ? "Turn off" : "Turn on"}
+                </button>
+              </form>
+            </div>
+          </SectionCard>
+        </>
+      }
+    />
   );
 }

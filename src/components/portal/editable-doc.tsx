@@ -1,91 +1,154 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Pencil, Check, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { CardHeader } from "@/components/ds/card";
+import { pillClass } from "@/components/ds/button";
+import { discardDraftAction } from "@/lib/actions/brand-draft-actions";
 
 type EmptyState = Record<string, never>;
 type DocAction = (prev: EmptyState, formData: FormData) => Promise<EmptyState>;
+type Draft = { id: string; content: string; basis: string | null };
 
+/**
+ * A Brand IQ section in its card (BrandSection.dc.html): view mode with Edit, or edit mode with the prompt,
+ * the standard textarea (1px border, soft focus ring, writing-assistant extensions opted out), Save /
+ * Cancel and Rewrite with AI. A pending agent draft shows on top: "Use draft" opens it in the editor (the
+ * client still saves), "Discard" drops it. Nothing reaches Brand OS without the client's Save.
+ */
 export function EditableDoc({
+  title,
   action,
   hidden,
   initialValue,
   placeholder,
   helperText,
+  draft,
+  rewrite,
+  footer,
   children,
 }: {
+  title: string;
   action: DocAction;
   hidden: Record<string, string>;
   initialValue: string;
   placeholder?: string;
+  /** The section's question, shown above the field. */
   helperText?: string;
+  draft?: Draft | null;
+  /** The "Rewrite with AI" control (a server-action form). */
+  rewrite?: React.ReactNode;
+  /** Under the editor: the section's source chips. */
+  footer?: React.ReactNode;
   children: React.ReactNode;
 }) {
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(!initialValue && !draft);
+  const [value, setValue] = useState(initialValue);
+  const [fromDraft, setFromDraft] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  if (!editing) {
-    return (
-      <div className="group relative">
-        <button
-          type="button"
-          onClick={() => setEditing(true)}
-          className="absolute right-0 top-0 flex items-center gap-1 rounded-md border border-border bg-card px-2 py-1 text-xs font-medium text-muted-foreground opacity-0 transition-opacity duration-150 hover:text-foreground group-hover:opacity-100"
-        >
-          <Pencil className="size-3" />
-          Edit
-        </button>
-        {children}
-      </div>
-    );
-  }
+  const edit = (v: string, draftId: string | null) => {
+    setValue(v);
+    setFromDraft(draftId);
+    setEditing(true);
+  };
 
   return (
-    <form
-      action={(formData) => {
-        startTransition(async () => {
-          await action({}, formData);
-          setEditing(false);
-        });
-      }}
-      className="flex flex-col gap-3"
-    >
-      {Object.entries(hidden).map(([k, v]) => (
-        <input key={k} type="hidden" name={k} value={v} />
-      ))}
-      {helperText && <p className="text-xs text-muted-foreground">{helperText}</p>}
-      {/* Standard input style: 1px border and a soft focus ring (not the 2px ink ring). Writing-assistant
-          extensions (Grammarly, LanguageTool) are opted out so their floating bubble doesn't sit inside the field. */}
-      <textarea
-        name="value"
-        defaultValue={initialValue}
-        placeholder={placeholder}
-        autoFocus
-        disabled={pending}
-        data-gramm="false"
-        data-gramm_editor="false"
-        data-enable-grammarly="false"
-        data-lt-active="false"
-        className="min-h-32 w-full resize-y rounded-[8px] border border-ds-control-border bg-white px-3 py-2.5 text-[14px] leading-relaxed text-ds-text outline-none transition-[border-color,box-shadow] placeholder:text-ds-text-3 focus:border-ds-text-3 focus:ring-4 focus:ring-ds-text/5 disabled:opacity-60"
+    <>
+      <CardHeader
+        title={title}
+        action={
+          editing ? (
+            <span className="font-brand-mono text-[12px] text-brand-ink-2">EDITING</span>
+          ) : (
+            <button type="button" onClick={() => edit(initialValue, null)} className={pillClass("secondary", "sm")}>
+              Edit
+            </button>
+          )
+        }
       />
-      <div className="flex gap-2">
-        <Button type="submit" size="sm" disabled={pending} className="gap-1.5">
-          <Check className="size-3.5" />
-          {pending ? "Saving…" : "Save"}
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="secondary"
-          onClick={() => setEditing(false)}
-          disabled={pending}
-          className="gap-1.5"
-        >
-          <X className="size-3.5" />
-          Cancel
-        </Button>
+      <div className="flex flex-col gap-5 px-6 pb-6 pt-5">
+        {draft && fromDraft !== draft.id && (
+          <div className="flex flex-col gap-3 rounded-[10px] border border-dashed border-brand-lime-strong bg-[#F1F7E1] p-4">
+            <span className="font-brand-mono text-[11px] text-brand-ink-2">DRAFT BY THE BRAND AGENT{draft.basis ? ` · ${draft.basis.toUpperCase()}` : ""}</span>
+            <p className="m-0 whitespace-pre-line text-[14px] leading-[1.55]">{draft.content}</p>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => edit(draft.content, draft.id)} className={pillClass("primary", "sm")}>
+                Use draft
+              </button>
+              <form action={discardDraftAction}>
+                <input type="hidden" name="draftId" value={draft.id} />
+                <button type="submit" className={pillClass("secondary", "sm")}>
+                  Discard
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {editing ? (
+          <form
+            action={(formData) => {
+              startTransition(async () => {
+                await action({}, formData);
+                setEditing(false);
+                setFromDraft(null);
+              });
+            }}
+            className="flex flex-col gap-4"
+          >
+            {Object.entries(hidden).map(([k, v]) => (
+              <input key={k} type="hidden" name={k} value={v} />
+            ))}
+            {fromDraft && <input type="hidden" name="draftId" value={fromDraft} />}
+            {helperText && (
+              <label htmlFor={`doc-${title}`} className="text-[14px] text-brand-ink-2">
+                {helperText}
+              </label>
+            )}
+            <textarea
+              id={`doc-${title}`}
+              name="value"
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              placeholder={placeholder}
+              autoFocus={Boolean(initialValue) || Boolean(fromDraft)}
+              disabled={pending}
+              data-gramm="false"
+              data-gramm_editor="false"
+              data-enable-grammarly="false"
+              data-lt-active="false"
+              className="min-h-40 w-full resize-y rounded-[10px] border border-brand-outline bg-white px-4 py-3.5 text-[16px] leading-relaxed text-brand-ink outline-none transition-[border-color,box-shadow] placeholder:text-brand-ink-2/70 focus:border-brand-lime-strong focus:ring-4 focus:ring-brand-lime/60 disabled:opacity-60"
+            />
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="submit" disabled={pending} className={pillClass("primary")}>
+                {pending ? "Saving…" : "Save"}
+              </button>
+              {(initialValue || draft) && (
+                <button
+                  type="button"
+                  disabled={pending}
+                  onClick={() => {
+                    setEditing(false);
+                    setFromDraft(null);
+                    setValue(initialValue);
+                  }}
+                  className={pillClass("secondary")}
+                >
+                  Cancel
+                </button>
+              )}
+              <span className="flex-1" />
+              {rewrite}
+            </div>
+          </form>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {children}
+            {rewrite && <div className="flex justify-end">{rewrite}</div>}
+          </div>
+        )}
+        {footer}
       </div>
-    </form>
+    </>
   );
 }
