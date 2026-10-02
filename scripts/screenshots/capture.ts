@@ -7,6 +7,8 @@
  *   npx tsx scripts/screenshots/capture.ts h --widths=1440,1280,390
  *   npx tsx scripts/screenshots/capture.ts i
  *   npx tsx scripts/screenshots/capture.ts home
+ *   npx tsx scripts/screenshots/capture.ts insights   (every Insights tab, 1440 + 390)
+ *   npx tsx scripts/screenshots/capture.ts j1         (theme sweep: client + ops pages, 1440 + 390)
  *
  * Output: screenshots/<phase>/...png
  */
@@ -191,7 +193,79 @@ async function phaseSources() {
   await browser.close();
 }
 
+async function signInAs(browser: Awaited<ReturnType<typeof chromium.launch>>, email: string, width: number) {
+  const context = await browser.newContext({ viewport: { width, height: 900 }, deviceScaleFactor: 1 });
+  const page = await context.newPage();
+  await page.goto(`${BASE}/sign-in`, { waitUntil: "networkidle" });
+  await page.fill('input[name="email"]', email);
+  await page.fill('input[name="password"]', DEMO_PASSWORD);
+  await page.click('button[type="submit"]');
+  await page.waitForURL((url) => !url.pathname.startsWith("/sign-in"), { timeout: 60_000 });
+  return { context, page };
+}
+
+async function warnOverflow(page: Page, name: string) {
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+  if (overflow > 0) console.warn(`  ! ${name}: horizontal overflow ${overflow}px`);
+}
+
+/** Insights (Insights.dc.html): every tab and Market view, at 1440 and 390. */
+const INSIGHTS_PAGES: [string, string][] = [
+  ["01-overview", "/insights"],
+  ["02-performance", "/insights/performance"],
+  ["03-market-feed", "/insights/market"],
+  ["04-market-competitors", "/insights/market/competitors"],
+  ["05-market-trends", "/insights/market/trends"],
+  ["06-market-ideas", "/insights/market/ideas"],
+  ["07-audience", "/insights/audience"],
+  ["08-seo", "/insights/seo"],
+];
+
+/** Phase J1: the theme switch on a sweep of client and ops pages, to catch anything the tokens broke. */
+const J1_CLIENT: [string, string][] = [
+  ["c01-home", "/dashboard"],
+  ["c02-projects", "/projects"],
+  ["c03-brand-iq", "/assets"],
+  ["c04-calendar", "/calendar"],
+  ["c05-reports", "/reports"],
+  ["c06-account", "/account"],
+  ["c07-notifications", "/notifications"],
+];
+const J1_OPS: [string, string][] = [
+  ["o01-needs-you", "/ops"],
+  ["o02-projects", "/ops/projects"],
+  ["o03-clients", "/ops/clients"],
+  ["o04-team", "/ops/team"],
+  ["o05-account", "/ops/account"],
+];
+
+async function phaseList(outDir: string, client: [string, string][], ops: [string, string][] = []) {
+  mkdirSync(outDir, { recursive: true });
+  const browser = await chromium.launch();
+  for (const width of widths.length > 1 || args.some((a) => a.startsWith("--widths=")) ? widths : [1440, 390]) {
+    if (client.length) {
+      const { context, page } = await signInAs(browser, "jack.ross@klarna.com", width);
+      for (const [name, path] of client) {
+        await shot(page, path, name, outDir, width);
+        if (width < 768) await warnOverflow(page, name);
+      }
+      await context.close();
+    }
+    if (ops.length) {
+      const { context, page } = await signInAs(browser, "teddy@klingit.com", width);
+      for (const [name, path] of ops) {
+        await shot(page, path, name, outDir, width);
+        if (width < 768) await warnOverflow(page, name);
+      }
+      await context.close();
+    }
+  }
+  await browser.close();
+}
+
 async function main() {
+  if (phase === "insights") return phaseList("screenshots/insights", INSIGHTS_PAGES);
+  if (phase === "j1") return phaseList("screenshots/j1", J1_CLIENT, J1_OPS);
   if (phase === "i") return phaseI();
   if (phase === "sources") return phaseSources();
   if (phase === "home") return phaseHome();

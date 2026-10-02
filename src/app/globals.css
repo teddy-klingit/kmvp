@@ -2,38 +2,38 @@
 @import "tw-animate-css";
 
 :root {
-  /* Base surfaces — a light gray canvas behind white cards, so boxes read
-     as distinct surfaces instead of blending into the page. */
-  --background: #f4f5f7;
-  --foreground: #15171a;
+  /* Klingit brand theme, app-wide (Phase J): cream page, white cards without borders, ink text.
+     Orange (#FF5D02) only ever means "your action"; errors are red and warnings amber. */
+  --background: #f9f5ec;
+  --foreground: #1e1e1e;
   --card: #ffffff;
-  --card-foreground: #15171a;
-  --sidebar: #f4f5f7;
-  --sidebar-foreground: #15171a;
+  --card-foreground: #1e1e1e;
+  --sidebar: #f9f5ec;
+  --sidebar-foreground: #1e1e1e;
 
   /* Direct brand tokens, for call sites that want the palette by name
      rather than through a semantic slot below. */
   --paper: #ffffff;
-  --ink: #15171a;
-  --surface: #dee1e6;
-  --eggshell: #dee1e6;
+  --ink: #1e1e1e;
+  --surface: #efebe2;
+  --eggshell: #efebe2;
   --fantasy: #f9f5ec;
-  --faint: #b9b6ae;
+  --faint: #c2c3c5;
 
   /* Borders / inputs — ink at ~15% opacity over white, flattened to a hex
      so the existing single-class `border-border` pattern keeps working. */
-  --border: #e4e6ea;
-  --input: #d5d8dd;
-  --ring: #15171a;
+  --border: #efebe2;
+  --input: #c2c3c5;
+  --ring: #1e1e1e;
 
   /* Text — `muted` is a background in some existing call sites (bg-muted)
      and a text color in others (text-muted-foreground); both keep working,
      now pointing at eggshell and the new mid-gray text respectively. */
-  --muted: #dee1e6;
-  --muted-foreground: #5b616b;
+  --muted: #f7f5f0;
+  --muted-foreground: #4f4f50;
 
   /* Brand / primary — ink is the fill, never a hue. */
-  --primary: #15171a;
+  --primary: #1e1e1e;
   --primary-foreground: #ffffff;
   --primary-hover: #000000;
 
@@ -45,30 +45,30 @@
   --secondary: #ffffff;
   --secondary-foreground: #1e1e1e;
 
-  --destructive: #ff5d02;
-  --destructive-foreground: #1e1e1e;
+  --destructive: #b42318;
+  --destructive-foreground: #ffffff;
 
   /* Status semantics collapse onto the three accent hues — green (won/live),
      purple (ongoing), orange (urgent/error) — per the design system's rule
      that only these three accents exist and text is never colored by them. */
   --success: #e4f2b3;
   --success-soft: #eff7d6;
-  --success-foreground: #1e1e1e;
+  --success-foreground: #3f4d12;
 
   --info: #f8dcf9;
   --info-soft: #fceefd;
   --info-foreground: #1e1e1e;
 
-  --warning: #ff5d02;
-  --warning-soft: #ffe4d6;
-  --warning-foreground: #1e1e1e;
+  --warning: #c98e00;
+  --warning-soft: #fdf3d6;
+  --warning-foreground: #7a5a06;
 
-  --danger: #ff5d02;
-  --danger-soft: #ffe4d6;
-  --danger-foreground: #1e1e1e;
+  --danger: #b42318;
+  --danger-soft: #fdecea;
+  --danger-foreground: #b42318;
 
-  --neutral-soft: #dee1e6;
-  --neutral-foreground: #7f828c;
+  --neutral-soft: #efebe2;
+  --neutral-foreground: #4f4f50;
 
   /* Raw accent hues + soft tints, for direct tone-system use. */
   --orange: #ff5d02;
@@ -85,7 +85,7 @@
   /* Avatar palette (deterministic per-person) — a small decorative
      exception to the strict 3-accent rule, kept varied on purpose. */
   --avatar-1: #e0447a;
-  --avatar-2: #d9772a;
+  --avatar-2: #6b7a2e;
   --avatar-3: #2f5fe3;
   --avatar-4: #2f9e6b;
   --avatar-5: #8447c9;
@@ -104,34 +104,34 @@
 
   /* Design system (docs/design-system.md). Values come from
      screenshots/design-reference — use these on redesigned screens. */
-  --ds-bg: #f4f5f7;
+  --ds-bg: #f9f5ec;
   --ds-card: #ffffff;
-  --ds-border: #e4e6ea;
-  --ds-divider: #eef0f2;
-  --ds-control-border: #d5d8dd;
-  --ds-subtle: #f1f2f4;
-  --ds-subtle-2: #fafafb;
-  --ds-nav-active: #e9ebee;
-  --ds-text: #15171a;
-  --ds-text-2: #5b616b;
-  --ds-text-3: #6b7280;
-  --ds-text-body: #3f444c;
-  --ds-turn: #e2561b;
-  --ds-turn-tint: #fdebdd;
+  --ds-border: #efebe2;
+  --ds-divider: #efebe2;
+  --ds-control-border: #c2c3c5;
+  --ds-subtle: #f7f5f0;
+  --ds-subtle-2: #fbf9f4;
+  --ds-nav-active: #efebe2;
+  --ds-text: #1e1e1e;
+  --ds-text-2: #4f4f50;
+  --ds-text-3: #6b6b6d;
+  --ds-text-body: #2e2e2f;
+  --ds-turn: #ff5d02;
+  --ds-turn-tint: #feece5;
   --ds-turn-text: #8a3a0e;
-  --ds-turn-strong: #b8460f;
-  --ds-turn-border: #f3c9ae;
-  --ds-success-tint: #e3f0d2;
-  --ds-success-text: #2e5a1c;
-  --ds-check: #3f7a2b;
-  --ds-changes-tint: #fbe3f1;
+  --ds-turn-strong: #c94a02;
+  --ds-turn-border: #f7c9b0;
+  --ds-success-tint: #e4f2b3;
+  --ds-success-text: #3f4d12;
+  --ds-check: #8d9e47;
+  --ds-changes-tint: #f8dcf9;
   --ds-changes-text: #8c1d5e;
   --ds-watch-tint: #fdf3d6;
   --ds-watch-text: #7a5a06;
-  --ds-danger-tint: #fde7e7;
-  --ds-danger-text: #9b1c1c;
-  --ds-info-tint: #eef0fb;
-  --ds-info-text: #2c3a8c;
+  --ds-danger-tint: #fdecea;
+  --ds-danger-text: #b42318;
+  --ds-info-tint: #f7f5f0;
+  --ds-info-text: #1e1e1e;
   --ds-credit-pending: #9aa0a8;
   /* Brand theme (Klingit website look). Used on the client Dashboard only for now — see docs/design-system.md. */
   --brand-cream: #f9f5ec; /* text on dark surfaces only */
@@ -149,13 +149,17 @@
   --brand-chip: #f7f5f0; /* date chips in Next 7 days */
   --brand-rule: #e6e0d2; /* nav user-block rule */
   --brand-outline: #c2c3c5;
+  /* Pill tabs (SegmentedControl / SegmentedNav): grey track on product pages, warm on brand pages. */
+  --seg-track: var(--ds-subtle);
+  --seg-active: var(--ds-text);
+  --seg-text: var(--ds-text);
   --ds-note: #fffbef;
   --ds-watch-border: #c9a227;
   --ds-dashed: #b9bdc4;
   --ds-note-border: #f4e3a6;
   --ds-star: #e5a50a;
   --ds-star-stroke: #c98e00;
-  --ds-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+  --ds-shadow: none;
 }
 
 @theme inline {
@@ -280,14 +284,20 @@
   --color-ds-star-stroke: var(--ds-star-stroke);
   --shadow-ds: var(--ds-shadow);
 
-  --font-sans: var(--font-inter);
-  --font-display: var(--font-inter);
+  --font-sans: var(--font-albert);
+  --font-display: var(--font-albert);
+  --font-mono: var(--font-azeret);
 }
 
 body {
+  --seg-track: var(--brand-line);
+  --seg-active: var(--brand-ink);
+  --seg-text: var(--brand-ink);
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-sans), "Helvetica Neue", Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.45;
 }
 
 /* In the base layer so `border-<colour>` utilities can override it (unlayered, it beat every one of them). */
@@ -316,6 +326,9 @@ body {
 
 /* The brand theme: warm cream page, Albert Sans text. Scope it with class="theme-brand". */
 .theme-brand {
+  --seg-track: var(--brand-line);
+  --seg-active: var(--brand-ink);
+  --seg-text: var(--brand-ink);
   background: var(--brand-page);
   color: var(--brand-ink);
   font-family: var(--font-albert), "Helvetica Neue", Arial, sans-serif;

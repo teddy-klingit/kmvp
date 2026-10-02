@@ -9,6 +9,8 @@ import { creditSummary, inProgress, marketThisWeek, nextSevenDays, yourTurn, typ
 import { PROJECT_TYPE_LABEL } from "@/lib/labels";
 import { WORK_TZ } from "@/lib/working-hours";
 import { Avatar, AvatarStack } from "@/components/ds/avatar";
+import { CardHeader } from "@/components/ds/card";
+import { monoLink } from "@/components/ds/pill-link";
 import { cn } from "@/lib/utils";
 
 /** "Do this next" shows at most this many rows; the rest are behind "See all". */
@@ -51,18 +53,7 @@ function projectStatus(state: ProjectState, now: Date): { label: string; dot: st
   return { label: "Klingit working", dot: "bg-brand-ink", late: false };
 }
 
-/** Every section is a white card with this title row. */
-function CardTitle({ title, children }: { title: string; children?: React.ReactNode }) {
-  return (
-    <div className="flex items-center gap-2.5 border-b border-brand-line px-6 py-5">
-      <h2 className="m-0 flex-1 text-[18px] font-normal leading-[1.45]">{title}</h2>
-      {children}
-    </div>
-  );
-}
-
 const card = "overflow-hidden rounded-[12px] bg-white";
-const monoLink = "font-brand-mono text-[12px] text-brand-ink underline underline-offset-4 hover:no-underline";
 
 /**
  * The calm client home (ClientHomeV2.dc.html): a photo banner with the 12-column grid overlapping its
@@ -118,12 +109,12 @@ export default async function DashboardPage() {
         </Link>
       </header>
 
-      <div className="relative grid grid-cols-1 items-start gap-6 px-4 @min-[960px]/dash:grid-cols-12">
-        <div className="@container/col flex min-w-0 flex-col gap-6 @min-[960px]/dash:col-span-8">
+      <div className="relative grid grid-cols-1 items-start gap-6 px-4 min-[1000px]:grid-cols-12">
+        <div className="@container/col flex min-w-0 flex-col gap-6 min-[1000px]:col-span-8">
           <section aria-label="Do this next" className={card} data-list="your-turn">
-            <CardTitle title="Do this next">
+            <CardHeader title="Do this next" action={
               <span className="font-brand-mono text-[12px] text-brand-ink-2">{turns.length} OPEN</span>
-            </CardTitle>
+            } />
             {turns.length === 0 ? (
               <p className="m-0 px-6 py-5 text-[15px] text-brand-ink-2">Nothing needs you. Klingit is on everything.</p>
             ) : (
@@ -166,11 +157,14 @@ export default async function DashboardPage() {
           </section>
 
           <section aria-label="Your projects" className={card}>
-            <CardTitle title="Your projects">
-              <Link href="/projects" className={monoLink}>
-                ALL PROJECTS
-              </Link>
-            </CardTitle>
+            <CardHeader
+              title="Your projects"
+              action={
+                <Link href="/projects" className={monoLink}>
+                  ALL PROJECTS
+                </Link>
+              }
+            />
             {progress.length === 0 ? (
               <p className="m-0 px-6 py-5 text-[15px] text-brand-ink-2">No projects yet. Start one with “New project”.</p>
             ) : (
@@ -218,9 +212,9 @@ export default async function DashboardPage() {
           </section>
         </div>
 
-        <aside className="flex min-w-0 flex-col gap-6 @min-[960px]/dash:col-span-4">
+        <aside className="flex min-w-0 flex-col gap-6 min-[1000px]:col-span-4">
           <section aria-label="Next 7 days" className={card}>
-            <CardTitle title="Next 7 days" />
+            <CardHeader title="Next 7 days" />
             {upcoming.length === 0 ? (
               <p className="m-0 px-6 py-5 text-[14px] text-brand-ink-2">Nothing scheduled this week.</p>
             ) : (

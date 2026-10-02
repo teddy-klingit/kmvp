@@ -123,6 +123,7 @@ export async function generateSeoReportAction(
     create: { clientId: client.id, summary: result.data.summary, recommendations: result.data.recommendations },
   });
 
-  revalidatePath("/insights/market-intelligence/seo");
+  revalidatePath("/insights/seo");
+  revalidatePath("/insights");
   return { error: null };
 }

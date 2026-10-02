@@ -1,58 +1,39 @@
-import Link from "next/link";
-import { Plus, Search } from "lucide-react";
-import { NavTabs, type NavTabItem } from "@/components/ui/nav-tabs";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Plus } from "lucide-react";
+import type { NavTabItem } from "@/components/ui/nav-tabs";
+import { PageHeader as DsPageHeader } from "@/components/ds/page-header";
+import { PillLink } from "@/components/ds/pill-link";
 
 /**
- * Title + search/add utility row shared by every page, matching the mockups
- * where "<Title>" and "Search  [+]" always sit on the same header line.
- * Optional breadcrumb above and NavTabs below.
+ * Older call sites' header, now drawn by the ds PageHeader (mono eyebrow, 36px weight-300 title, actions on
+ * the right, one pill SegmentedNav). New pages should import components/ds/page-header directly.
+ * `addHref` renders a "+ New" pill when a page passes one; there's no header search box any more.
  */
 function PageHeader({
   title,
+  eyebrow,
   breadcrumb,
   tabs,
   actions,
-  addHref = "/projects/new",
+  addHref,
+  addLabel = "New",
   className,
 }: {
   title: React.ReactNode;
+  eyebrow?: React.ReactNode;
   breadcrumb?: { label: string; href: string };
   tabs?: NavTabItem[];
   actions?: React.ReactNode;
   addHref?: string;
+  addLabel?: string;
   className?: string;
 }) {
-  return (
-    <div className={cn("flex flex-col gap-4", className)}>
-      {breadcrumb && (
-        <Link href={breadcrumb.href} className="text-sm text-primary hover:underline">
-          &lt; {breadcrumb.label}
-        </Link>
-      )}
-      <div className="flex items-center justify-between gap-4">
-        <h1 className="font-display text-[28px] font-light leading-none tracking-tight text-ink">{title}</h1>
-        <div className="flex items-center gap-2">
-          {actions ?? (
-            <>
-              <form action="/search" method="GET" className="relative">
-                <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input name="q" placeholder="Search" className="h-9 w-48 rounded-full bg-card pl-8" />
-              </form>
-              <Button size="icon" className="rounded-full" asChild>
-                <Link href={addHref}>
-                  <Plus className="size-4" />
-                </Link>
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
-      {tabs && <NavTabs items={tabs} />}
-    </div>
-  );
+  const fallback = addHref ? (
+    <PillLink href={addHref} variant="primary">
+      <Plus className="size-3.5" strokeWidth={1.75} />
+      {addLabel}
+    </PillLink>
+  ) : null;
+  return <DsPageHeader title={title} eyebrow={eyebrow} back={breadcrumb} tabs={tabs} actions={actions ?? fallback} className={className} />;
 }
 
 export { PageHeader };

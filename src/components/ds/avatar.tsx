@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
-/** No orange: orange is reserved for "your action" (calm dashboard). */
-const PALETTE = ["#6B7A2E", "#2F7F7A", "#B98A16", "#B0384C", "#6D5BD0", "#3B6FB6"];
+/** No orange (reserved for "your action"), and every colour keeps white initials readable (≥ 4.5:1). */
+const PALETTE = ["#6B7A2E", "#2F7F7A", "#8F6C0F", "#B0384C", "#6D5BD0", "#3B6FB6"];
 
 function initials(name: string) {
   return name

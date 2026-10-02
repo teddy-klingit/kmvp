@@ -66,7 +66,7 @@ export async function computeUrgentMatters(clientId: string, userId: string): Pr
       kind: "escalation" as const,
       title: `Negative comment on ${e.platform} — no response yet`,
       detail: e.snippet,
-      href: "/insights/community",
+      href: "/insights/audience#community",
       actionLabel: "Respond",
       createdAt: e.createdAt,
     })),

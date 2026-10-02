@@ -319,6 +319,8 @@ model PerformanceBrief {
   clientId        String   @unique
   summary         String
   recommendations Json // { title: string; detail: string }[]
+  /// Insights Overview "This week's takeaways": { title, detail, action: { label, kind: "brief" | "view", view } }[], max 3. Null until the agent has written them.
+  takeaways       Json?
   generatedAt     DateTime @default(now())
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)

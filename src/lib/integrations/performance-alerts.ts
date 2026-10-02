@@ -18,7 +18,7 @@ async function notifyClientOwner(clientId: string, title: string, body: string) 
   const owner = await prisma.clientUser.findFirst({ where: { clientId, permission: "OWNER" } });
   if (!owner) return;
   await prisma.notification.create({
-    data: { userId: owner.userId, clientId, type: "SYSTEM", title, body, actionUrl: "/insights", actionLabel: "View" },
+    data: { userId: owner.userId, clientId, type: "SYSTEM", title, body, actionUrl: "/insights/performance", actionLabel: "View" },
   });
 }
 

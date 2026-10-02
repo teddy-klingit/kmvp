@@ -21,12 +21,7 @@ import {
   estimateCategoryBenchmark,
 } from "@/lib/ai/agents/market-intelligence-agent";
 
-const MARKET_INTEL_PATHS = [
-  "/insights/market-intelligence",
-  "/insights/market-intelligence/competitors",
-  "/insights/market-intelligence/trends",
-  "/insights/market-intelligence/ideas",
-];
+const MARKET_INTEL_PATHS = ["/insights", "/insights/market", "/insights/market/competitors", "/insights/market/trends", "/insights/market/ideas"];
 
 async function findOwnTopFormat(clientId: string) {
   const topAsset = await prisma.asset.findFirst({
@@ -232,7 +227,7 @@ export async function startBriefFromIdeaAction(formData: FormData) {
   redirect(`/projects/new?${params.toString()}`);
 }
 
-export type AskQuestionState = { error?: string | null };
+export type AskQuestionState = { error?: string | null; question?: string; answer?: string };
 
 export async function askMarketIntelligenceQuestionAction(
   _prev: AskQuestionState,
@@ -281,7 +276,7 @@ export async function askMarketIntelligenceQuestionAction(
   });
 
   revalidateAllTabs();
-  return { error: null };
+  return { error: null, question, answer: result.data.answer };
 }
 
 export async function addSuggestedCompetitorAction(formData: FormData) {

@@ -3,25 +3,26 @@ import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
-/** Everything clickable is a pill — see DESIGN.md "Knappar och menyer". */
+/** Everything clickable is a pill with a mono label (brand theme): black primary, outlined secondary. */
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-[13px] font-medium transition-colors disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full font-brand-mono text-[12px] transition-colors disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
   {
     variants: {
       variant: {
-        primary: "bg-ink text-paper hover:bg-[var(--primary-hover)]",
-        secondary: "border border-surface bg-paper text-ink hover:border-ink/20",
-        ghost: "text-ink hover:bg-muted",
-        outline: "border border-surface bg-transparent text-ink hover:border-ink/20",
-        destructive: "bg-orange-soft text-ink hover:opacity-90",
-        accent: "bg-fade-purple-green text-ink hover:opacity-90",
-        link: "rounded-none text-ink underline underline-offset-4 hover:no-underline",
+        primary: "bg-brand-ink text-white hover:bg-black",
+        secondary: "border border-brand-outline bg-white text-brand-ink hover:border-brand-ink",
+        ghost: "font-sans text-[13px] text-brand-ink hover:bg-brand-ink/5",
+        outline: "border border-brand-outline bg-transparent text-brand-ink hover:border-brand-ink",
+        destructive: "border border-ds-danger-text/30 bg-white text-ds-danger-text hover:bg-ds-danger-tint",
+        // Agent actions ("Generate insights"): black pill like primary. The old purple-green fade is retired.
+        accent: "bg-brand-ink text-white hover:bg-black",
+        link: "rounded-none font-sans text-[13px] text-brand-ink underline underline-offset-4 hover:no-underline",
       },
       size: {
-        sm: "h-8 px-3",
-        md: "h-9 px-4",
-        lg: "h-10 px-5",
-        icon: "h-9 w-9 shrink-0 rounded-full",
+        sm: "h-11 px-3.5 sm:h-8",
+        md: "h-11 px-4 sm:h-9",
+        lg: "h-11 px-5 sm:h-10",
+        icon: "size-11 shrink-0 rounded-full font-sans sm:size-9",
       },
     },
     defaultVariants: {

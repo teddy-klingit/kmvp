@@ -1,78 +1,61 @@
 # Klingit design system
 
-The visual spec is `screenshots/design-reference/*.dc.html` (approved 2026-10-01). This doc maps those designs to code. **When the design and this doc disagree, the design wins.** Fix this doc to match.
+The visual spec is `screenshots/design-reference/` (README + `X.dc.html` with `X-target-1440.png`). This doc maps those designs to code. **When the design and this doc disagree, the design wins.** Fix this doc to match.
 
-Scope: the tokens apply across the app. The components in `src/components/ds/` are used on the redesigned screens (the client project page with its three tabs, and the conversation panel) and in both sidebars. Other screens still use `src/components/ui/` and get moved over as they're redesigned.
+Since Phase J the **Klingit brand theme is the whole app**: one shell, one set of tokens, one component kit in `src/components/ds/`. The older `src/components/ui/` primitives (Card, Badge, Button) are restyled through the same tokens, so pages that haven't been rebuilt yet still look on-brand. New and rebuilt pages use `ds`.
 
-## Tokens
+## Tokens (`src/app/globals.css`)
 
-Defined in `src/app/globals.css` as `--ds-*` variables and exposed to Tailwind as `ds-*` colours (`bg-ds-card`, `text-ds-text-2`, `border-ds-border`, `shadow-ds`, …).
+Both older token sets (`--background`, `--card`, `--muted-foreground`… and `--ds-*`) now carry the brand values. The brand set is also exposed directly as Tailwind `brand-*` colours.
 
 | Token | Value | Use |
 |---|---|---|
-| `ds-bg` | #F4F5F7 | Page background, sidebars, other people's chat bubbles |
-| `ds-card` | #FFFFFF | Cards, conversation panel |
-| `ds-border` | #E4E6EA | Card borders, tab rail, panel edge |
-| `ds-divider` | #EEF0F2 | Hairlines inside a card (header rule, table rows, summary bar) |
-| `ds-control-border` | #D5D8DD | Secondary buttons, inputs, chips, upcoming timeline dots |
-| `ds-subtle` / `ds-subtle-2` | #F1F2F4 / #FAFAFB | Neutral pill and segmented-control track / table total row |
-| `ds-nav-active` | #E9EBEE | Active nav item |
-| `ds-text` | #15171A | Primary text, primary button, done timeline dots |
-| `ds-text-2` | #5B616B | Secondary text, labels, inactive nav and tabs |
-| `ds-text-3` | #6B7280 | Tertiary text: upcoming captions, placeholders |
-| `ds-text-body` | #3F444C | Inclusion lists, neutral pill text |
-| `ds-turn` / `-tint` / `-text` / `-strong` / `-border` | #E2561B / #FDEBDD / #8A3A0E / #B8460F / #F3C9AE | "Your turn": current timeline dot and halo, turn pills, the Next step card |
-| `ds-success-tint` / `-text`, `ds-check` | #E3F0D2 / #2E5A1C, #3F7A2B | Approved pills, inclusion checks |
-| `ds-changes-*` | #FBE3F1 / #8C1D5E | "Changes asked" |
-| `ds-watch-*` | #FDF3D6 / #7A5A06 | Paused, out of scope |
-| `ds-danger-*` | #FDE7E7 / #9B1C1C | Errors, overdue |
-| `ds-info-*` | #EEF0FB / #2C3A8C | Informational |
-| `shadow-ds` | 0 1px 2px rgba(16,24,40,.04) | Every card |
+| `brand-page` (= `background`, `ds-bg`) | #F9F5EC | Page and nav background (cream) |
+| white (`card`, `ds-card`) | #FFFFFF | Cards: radius 12, no border, no shadow |
+| `brand-line` (= `border`, `ds-divider`) | #EFEBE2 | Card title rule, row dividers, segmented-control track |
+| `brand-track` | #EFEBE2 | Progress bar track |
+| `brand-chip` (= `muted`, `ds-subtle`) | #F7F5F0 | Date chips, quiet boxes, muted cards (Connect accounts), row hover |
+| `brand-rule` | #E6E0D2 | Nav user-block rule, Ask pill border |
+| `brand-outline` (= `input`, `ds-control-border`) | #C2C3C5 | Outlined (secondary) pills, inputs |
+| `brand-ink` / `brand-ink-2` | #1E1E1E / #4F4F50 | Text, primary pills, bars and progress fills / secondary text |
+| `brand-orange` (= `ds-turn`) | #FF5D02 | **Your action only**: "Do this next" markers, "Waiting on you" dots, the Needs-you badge, today on the calendar |
+| `brand-lime` / `brand-lime-strong` | #E4F2B3 / #8D9E47 | Agent takeaway markers, success pills / done dots, market-signal squares |
+| `brand-pink` / `brand-peach` | #F8DCF9 / #FEECE5 | "Your plan" on the calendar / your-turn tint |
+| `ds-danger-*` (= `danger`, `destructive`) | #FDECEA / #B42318 | Errors, overdue. Red, never orange. |
+| `ds-watch-*` (= `warning`) | #FDF3D6 / #7A5A06 | Paused, at risk, AI estimate |
 
-Radii: card 12, button and nav item 8, segmented track 8 (its buttons 6), pills and chips 999.
+Charts (`src/lib/chart-theme.ts`): ink bars; series ink, olive #8D9E47, plum #9C5A9F, grey. Never orange.
 
-Type (Inter): 12 / 13 / 14 / 15 / 16 / 24, weights 400 / 500 / 600.
-- Page title: 24/600, −0.015em.
-- Card title: 15/600.
-- Next step title: 16/600.
-- Body: 14.
-- Meta: 13.
-- Labels and pills: 12/500.
-
-### Where the design overrides the spacing scale
-
-Our scale is 4 / 8 / 12 / 16 / 24 / 32 / 48. The designs also use these values, and the components follow the design:
-
-| Value | Where |
-|---|---|
-| 18px | Card header vertical padding (`py-[18px]`) |
-| 14px | Summary bar cell padding (`py-3.5`), table cell padding, asset card title padding |
-| 20px | Gap between page sections (`gap-5`), Next step card padding, panel padding |
-| 10px | Nav item vertical padding, tab padding, chat bubble padding |
-| 3px / 2px | Pill padding |
-| 11px | Avatar initials and unread badges. These are the only text under 12px, and they come from the design. |
+**Type**: Albert Sans 300 / 400 / 600 (stand-in for the licensed PolySans) for text, base 15px / 1.45; Azeret Mono for eyebrows, buttons, counts, table headings and small labels. Both load app-wide in the root layout.
+- Page title: 36px weight 300 (30px on phones), with a 12px mono eyebrow above.
+- Card title: 18px weight 400.
+- Row title: 15–17px. Body 14, meta 12–13, mono labels 11–12.
+- Big numbers: 24px (stat rows) / 28px (tiles) at weight 300, tabular.
 
 ### Tap targets (phones)
 
-Below 640px, buttons, chips, segmented controls and tabs grow to 44px tall. From `sm` up they use the design heights (32 / 36 / 40).
+Below 640px, buttons, chips, pills and nav rows grow to 44px tall. From `sm` up they use the design heights (32 / 36 / 40).
 
 ## Components (`src/components/ds/`)
 
 | Component | What it is |
 |---|---|
-| `Card`, `CardHeader`, `CardBody` | The only section container. `tone="turn"` gives the orange border used by the Next step card. `CardHeader` takes `title` (15/600), `meta` (pills next to the title) and `action` (pushed right), with a divider below. |
-| `StatusPill` | Tones: neutral, turn, success, changes, watch, danger, info. `dot` adds the leading dot, which the header uses. There is one pill style; don't make others. |
-| `Button` | Variants primary, secondary, ghost. Sizes sm (32), md (36), lg (40), icon. `asChild` for links. **One primary button per page.** |
-| `Avatar`, `AvatarStack` | Initials on a deterministic palette colour (FNV-1a of the display name), never orange. Within a stack, no two avatars share a colour. `overlap` (default 6px) sets how far each one tucks under the last. |
-| `SummaryBar` | The facts row in the header card. A flex row when the card is at least 640px wide, a 2×2 grid when narrower. This is a container query, so it reacts to the docked panel as well as the viewport. Pass only facts that have a value; never "—" or TBD. |
-| `ProjectTimeline` | One continuous track. Done is a dark dot with a check; current is an orange ring with a halo and a "Now · …" caption; upcoming is a grey ring. On phones it renders vertically. Variant `internal` (8 stages, 20px dots) is for the PM cockpit. |
-| `PageTabs` | Underline tabs (gap 24, active 600 with a 2px ink underline). |
-| `NextStepCard` | The single "what happens now" card: eyebrow (YOUR TURN / KLINGIT IS ON IT / custom), title, description, actions. It holds the page's primary action. |
-| `SegmentedControl` | Two-up track used for the panel's channels, with optional badges. |
-| `EmptyState` | Icon, title and description for an empty section, inside a `Card`. |
-| `ConversationProvider` / `useConversation` | Shared state for the panel: the active channel, a context chip, and an `open()` signal. |
-| `AskButton` | "Ask a question". Opens the panel, optionally with a context chip. |
-| `ConversationPanel` | The right-hand conversation panel; see below. |
+| `PageHeader` | Mono eyebrow, 36px/300 title, actions on the right, optional breadcrumb (`back`) and the page's one `SegmentedNav` (`tabs`). `shared/page-header.tsx` wraps it for older call sites. |
+| `SegmentedControl` / `SegmentedNav` | **The only tab style.** Pills on a #EFEBE2 track, ink active pill, 36px (44 on phones). `SegmentedNav` is route-driven (most specific href wins; `active` overrides for query views) and scrolls sideways on phones with the active pill kept in view. `PageTabs` and `ui/NavTabs` render it. Never two tab bars on one page: a second level is `FilterChips`. |
+| `FilterChips` | Link chips with optional counts: ink when active, outlined otherwise. |
+| `Card`, `CardHeader`, `CardBody`, `SectionCard`, `CardRows`, `CardNote` | White card (radius 12, no border). `CardHeader`: 18px/400 title, 20px 24px padding, #EFEBE2 rule, `meta` beside the title, `action` on the right. `SectionCard` = card + header. `CardRows` = divided rows. `CardNote` = one quiet line when a section has nothing yet. `tone="muted"` (cream-grey) and `tone="turn"` (peach ring). |
+| `Button`, `pillClass`, `PillLink`, `monoLink` | Pills with a mono label: black primary, outlined secondary, ghost. `pillClass` styles a form submit or plain link; `PillLink` is a link-as-button; `monoLink` is the underlined mono link for title rows ("ALL PROJECTS"). |
+| `StatusDot`, `DotLegend` | A status in plain words with its dot: orange = waiting on you, ink = Klingit working, green = done, grey = paused. |
+| `StatusPill` | Pill labels (tones neutral, turn, success, changes, watch, danger, info). |
+| `NumberedRow` | Marker + title + one-line detail + optional meta + one action. `marker="you"` is the orange circle (your action); `marker="agent"` the lime square (agent takeaways). Meta and action move under the text on narrow cards. |
+| `StatRows`, `StatTiles`, `HBars`, `Meter` | Numbers. **Pass only metrics with data**: never a "—" tile. `change` only when a real previous period exists. |
+| `DataTable`, `HealthDot` | The ops list table (OpsClients.dc.html): mono 11px headings, rows with #EFEBE2 rules, the first cell links the row. Scrolls inside its card on phones. |
+| `EmptyState` | Dashed card, one line, one action (`inline` inside a card). |
+| `PageGrid`, `Page` | 12 columns, main 8 / side 4, 24px gap; one column under 1000px (side goes under main). The main column is `@container/col`. |
+| `Avatar`, `AvatarStack` | Initials on a deterministic palette colour. No orange, and every colour keeps white initials readable (≥ 4.5:1). `overlap` defaults to 6px; the calm screens use 4px, with a 2px white ring. |
+| `SummaryBar`, `ProjectTimeline`, `NextStepCard`, `ConversationPanel`, `AskButton` | Project page parts (Phase H/I), restyled through the tokens. |
+
+Insights-only parts live in `src/components/portal/insights/`: `AskPill` (header Ask), `AgentButton` (Generate / Refresh as a pill), `ConnectCard` (the one place missing data sources are explained), `MarketChips`.
 
 ### Conversation panel modes
 
@@ -92,10 +75,13 @@ Messages:
 
 ## Layout
 
-- Project pages render full-bleed inside the portal's `<main>` (`PortalMain`). The content column is max 1040px, centred, with 20px gaps; the panel runs down the full height of the right edge.
-- Every other portal page keeps the padded `max-w-6xl` layout with its page transition.
-- Nav (portal and ops): 232px wide, 24px × 16px padding, items 10px × 12px with radius 8 and 18px icons (stroke 1.75). Active items use `ds-nav-active` with 500 weight. The user block sits at the bottom above a top border. The portal sidebar's collapse-to-rail behaviour is unchanged.
-- Asset grids use container queries: 1 column, 2 from a 520px container, 3 from 880px. With the panel docked at 1440 the Work tab shows 2 columns; folded it shows 3, as in `ClientReview.dc.html`.
+- **Shell** (`shared/app-nav.tsx`, both apps): 240px cream nav with the real logo SVG, pill rows (ink active), 18px icons, a mono section label ("AGENCY" in ops), Notifications and the user block (Account) at the bottom. Under 900px it's a top bar with a menu sheet.
+  - Client: Home, Projects, Brand IQ, Insights, Calendar, Reports, Custom apps · Notifications, Account. Help is linked from Account.
+  - Ops: Needs you (orange count), Projects, Team, Agents · Agency: Clients, Price list, Archive · Notifications, Account (Billing, Analytics and Settings are in Account).
+  - "Switch view" (demo persona switcher) sits above Notifications.
+- **Page padding**: 24px top on Home, 40px elsewhere; 40 right, 56 bottom, 16 left next to the nav; 16px gutters on phones. Content max 1120px. `PortalMain` does this for the client; `OpsPage` for ops.
+- Project pages render full-bleed (they own their column and the docked panel).
+- Responsive: one column under 1000px; top bar under 900px; no horizontal page scroll (tables and boards scroll inside their card).
 
 ## Gotcha
 
@@ -116,25 +102,7 @@ Built from the same `ds` parts, following `PMHome.dc.html` and `PMCockpit.dc.htm
 
 Extra tokens: `ds-note` / `ds-note-border` (staff notes, changed estimate rows), `ds-watch-border` (a changed complexity select), `ds-dashed` ("Add line" button), `ds-star` / `ds-star-stroke` (rating).
 
-## Brand theme (client Dashboard only, for now)
-
-The calm dashboard (`ClientHomeV2.dc.html`, target `dashboard-target-1440.png`) uses the Klingit website brand. It replaces `ClientHome.dc.html` and its tiles. It's a separate theme. Scope it with `className="theme-brand"`, which sets the cream background, ink text and Albert Sans. Today only `/dashboard` uses it: `PortalMain` wraps that page in it, and the portal sidebar switches to brand styling on that route.
-
-| Token | Value | Use |
-|---|---|---|
-| `brand-page` | #F9F5EC | Page background, nav (warm cream, as in ClientHomeV2) |
-| `brand-cream` | #F9F5EC | Text on the photo banner, the "New project" pill |
-| `brand-ink` / `brand-ink-2` | #1E1E1E / #4F4F50 | Text, primary buttons, progress fill; secondary text |
-| `brand-orange` | #FF5D02 | **Your action only:** the numbered "Do this next" markers and "Waiting on you" dots |
-| `brand-lime-strong` | #8D9E47 | The market-insight square |
-| `brand-line` / `brand-track` | #EFEBE2 | Card title rules and row dividers / progress track |
-| `brand-chip` | #F7F5F0 | Date chips in Next 7 days |
-| `brand-rule` | #E6E0D2 | Nav user-block rule |
-| `brand-outline` | #C2C3C5 | Secondary (outlined) pill border |
-| `brand-lime` / `brand-pink` / `brand-peach` / `brand-grey` | #E4F2B3 / #F8DCF9 / #FEECE5 / #F7F7F8 | Kept as tokens; not used on the calm dashboard |
-| `font-brand` | Albert Sans 300/400/600 | Text (stand-in for the licensed PolySans) |
-| `font-brand-mono` | Azeret Mono 400 | Eyebrows, counts, stage labels, button text |
-| `rounded-pill` | 999px | Buttons and nav items |
+## Home (ClientHomeV2)
 
 Rules:
 - A 12-column grid: main column 8, side column 4, 24px gap. It sits 16px in from the banner edges.
@@ -144,7 +112,15 @@ Rules:
 - Orange means "your action" and appears nowhere else. The ds avatar palette has no orange for this reason.
 - Project names never wrap (ellipsis). AvatarStack uses `overlap={4}` here, with the 2px white ring.
 
-Breakpoints on this screen (container queries):
-- **`@container/dash` under 960px:** one column; the side cards follow the main ones.
+Breakpoints on this screen:
+- **Under 1000px viewport:** one column; the side cards follow the main ones.
 - **`@container/col` under 600px:** "Do this next" puts the due date and button on a second line; project rows stack (name and avatars, status, then the stage bar).
 - **Under 900px viewport:** the nav becomes a top bar. The 900px top-bar breakpoint applies to the whole portal.
+
+## Insights (Phase J)
+
+`Insights.dc.html`. One header (eyebrow "UPDATED TODAY 09:00 · META CONNECTED", title, `AskPill`) and one `SegmentedNav`: Overview · Performance · Market · Audience · SEO & AI visibility. Market's views are `FilterChips` (Feed · Competitors · Trends · Ideas). Community and Website are one Audience page (`#community`, `#website`). Old URLs redirect (`next.config.ts`).
+
+- Overview takeaways are written by the performance agent (`PerformanceBrief.takeaways`, max 3, each with one action: start a brief or open a view, `takeawayHref`). They are rewritten after a week, on the next visit, after the response (`scheduleTakeaways`; `INSIGHTS_AGENT_ON_PAGE_LOAD=0` freezes it for screenshots).
+- Data loaders in `src/lib/insights-data.ts` are cached per request, so the header and the tab share one read of each ad account.
+- No "—" tiles anywhere; `insightSources()` decides which sources are missing because a metric is hidden.

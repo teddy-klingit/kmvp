@@ -5,7 +5,7 @@
 
 export const CHART_GRID = { stroke: "var(--eggshell)", strokeDasharray: "4 6" };
 
-export const CHART_AXIS_TICK = { fontSize: 10, fill: "var(--faint)" };
+export const CHART_AXIS_TICK = { fontSize: 11, fill: "var(--brand-ink-2)" };
 
 export const CHART_TOOLTIP_STYLE = {
   background: "var(--paper)",
@@ -14,17 +14,17 @@ export const CHART_TOOLTIP_STYLE = {
   fontSize: 12,
 };
 
-/** Purple, green, orange, then ink for a 4th+ series — the three accent
- * hues carry chart lines/bars, cycling in this order for consistency. */
-export const CHART_SERIES_COLORS = ["var(--purple)", "var(--green)", "var(--orange)", "var(--ink)"];
+/** Brand theme: ink, olive, plum, then grey. Never orange — orange only ever means "your action". */
+export const CHART_SERIES_COLORS = ["var(--brand-ink)", "var(--brand-lime-strong)", "#9C5A9F", "var(--brand-outline)"];
 
 /** A chart point: 4px radius, white fill, the series color as the outline. */
 export function chartDot(color: string) {
   return { r: 4, fill: "var(--paper)", stroke: color, strokeWidth: 2 };
 }
 
-const FADE_ORANGE: [number, number, number] = [255, 93, 2];
-const FADE_GREEN: [number, number, number] = [228, 242, 179];
+// Brand theme: bars are ink (the old orange→green fade is retired); taller bars stay ink, shorter ones lighten slightly.
+const FADE_ORANGE: [number, number, number] = [30, 30, 30];
+const FADE_GREEN: [number, number, number] = [30, 30, 30];
 
 function mixRgb(a: [number, number, number], b: [number, number, number], t: number) {
   return a.map((c, i) => Math.round(c + (b[i] - c) * t)) as [number, number, number];
@@ -40,4 +40,4 @@ export function diagramFadeEnd(fraction: number) {
   return `rgb(${r}, ${g}, ${b})`;
 }
 
-export const DIAGRAM_FADE_START = "#FF5D02";
+export const DIAGRAM_FADE_START = "#1E1E1E";

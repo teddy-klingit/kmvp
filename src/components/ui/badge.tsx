@@ -9,16 +9,16 @@ import { cn } from "@/lib/utils";
  * inside a pill is always ink — the tone lives entirely in the fill.
  */
 const badgeVariants = cva(
-  "inline-flex h-[20px] items-center justify-center gap-1 rounded-full px-2.5 text-[10px] font-medium text-ink",
+  "inline-flex h-[22px] items-center justify-center gap-1 whitespace-nowrap rounded-full px-2.5 text-[12px] text-ink",
   {
     variants: {
       tone: {
         neutral: "bg-neutral-soft",
-        info: "bg-info-soft",
-        success: "bg-success-soft",
-        warning: "bg-warning-soft",
-        danger: "bg-danger-soft",
-        accent: "bg-accent-soft",
+        info: "bg-brand-chip",
+        success: "bg-brand-lime",
+        warning: "bg-ds-watch-tint text-ds-watch-text",
+        danger: "bg-ds-danger-tint text-ds-danger-text",
+        accent: "bg-brand-pink",
       },
     },
     defaultVariants: {

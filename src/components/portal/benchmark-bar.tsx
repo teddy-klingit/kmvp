@@ -26,7 +26,7 @@ export function BenchmarkBar({
         />
         <div className="relative h-4 w-full overflow-hidden rounded-full bg-eggshell">
           <div
-            className="absolute inset-y-0 rounded-full bg-orange-soft"
+            className="absolute inset-y-0 rounded-full bg-brand-lime"
             style={{ left: pct(estimatedLow, max), width: `calc(${pct(estimatedHigh, max)} - ${pct(estimatedLow, max)})` }}
           />
         </div>
@@ -41,7 +41,7 @@ export function BenchmarkBar({
           Your CTR: <strong className="font-semibold text-foreground">{ownCtr}%</strong>
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="size-2 rounded-full bg-orange-soft" />
+          <span className="size-2 rounded-full bg-brand-lime" />
           Est. category range: <strong className="font-semibold text-foreground">{estimatedLow}–{estimatedHigh}%</strong>
         </span>
       </div>

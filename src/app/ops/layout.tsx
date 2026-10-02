@@ -11,7 +11,7 @@ export default async function OpsLayout({ children }: { children: React.ReactNod
   const needsCount = tier === "CREATOR" ? 0 : rankExceptions(await loadOpsProjects()).length;
 
   return (
-    <div className="flex h-screen w-full bg-background">
+    <div className="flex h-screen w-full flex-col bg-brand-page min-[900px]:flex-row">
       <OpsSidebar
         userName={viewer.user.name}
         userTitle={INTERNAL_ROLE_LABEL[viewer.title]}
@@ -19,7 +19,7 @@ export default async function OpsLayout({ children }: { children: React.ReactNod
         tier={tier}
         needsCount={needsCount}
       />
-      <main className="flex-1 overflow-y-auto">
+      <main className="min-w-0 flex-1 overflow-y-auto">
         <PageTransition>{children}</PageTransition>
       </main>
     </div>

@@ -18,6 +18,7 @@ import { SmartCalendarBanner } from "@/components/portal/smart-calendar-banner";
 import { AddPlanItemDialog } from "@/components/portal/add-plan-item-dialog";
 import { InspirationExploreButton } from "@/components/portal/inspiration-explore-button";
 import { GenerateContentPlanSuggestionsButton } from "@/components/portal/generate-content-plan-suggestions-button";
+import { SegmentedNav } from "@/components/ds/segmented-control";
 import { Lightbulb, Users, Heart, Video, MousePointerClick, Check, List, CalendarDays, Sparkles, X, ArrowRight } from "lucide-react";
 import { cn, formatDate, jsonArray, kpiToneVsTarget } from "@/lib/utils";
 import { sampleImageUrl } from "@/lib/sample-image";
@@ -195,28 +196,13 @@ export default async function CalendarPage({
         </p>
         <div className="flex items-center gap-2">
           <AddPlanItemDialog />
-          <div className="flex items-center gap-1.5 rounded-full border border-border bg-card p-0.5">
-            <Link
-              href={qs({ view: undefined })}
-              className={cn(
-                "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
-                !isCalendarView ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <List className="size-3.5" />
-              List
-            </Link>
-            <Link
-              href={qs({ view: "calendar" })}
-              className={cn(
-                "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
-                isCalendarView ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <CalendarDays className="size-3.5" />
-              Calendar
-            </Link>
-          </div>
+          <SegmentedNav
+            label="Calendar view"
+            items={[
+              { label: "List", href: qs({ view: undefined }), icon: <List className="size-3.5" />, active: !isCalendarView },
+              { label: "Calendar", href: qs({ view: "calendar" }), icon: <CalendarDays className="size-3.5" />, active: isCalendarView },
+            ]}
+          />
           <div className="flex items-center gap-1.5 rounded-full border border-border bg-card p-0.5">
             <Link
               href={qs({ platform: undefined })}

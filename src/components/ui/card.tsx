@@ -1,12 +1,12 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-/** `bg-paper border border-ink/15 rounded-2xl` — no shadow, the outline does the job. */
+/** Brand card: white, radius 12, no border, no shadow (the cream page does the separating). Prefer ds/card on new screens. */
 function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       data-slot="card"
-      className={cn("rounded-2xl border border-border bg-card text-card-foreground", className)}
+      className={cn("rounded-[12px] bg-card text-card-foreground", className)}
       {...props}
     />
   );
@@ -17,11 +17,11 @@ function CardHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement
 }
 
 function CardTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
-  return <h3 className={cn("font-display text-sm text-ink", className)} {...props} />;
+  return <h3 className={cn("text-[18px] font-normal text-ink", className)} {...props} />;
 }
 
 function CardDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
-  return <p className={cn("text-[10px] text-muted-foreground", className)} {...props} />;
+  return <p className={cn("text-[12px] text-muted-foreground", className)} {...props} />;
 }
 
 function CardContent({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
@@ -32,11 +32,11 @@ function CardFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement
   return <div className={cn("flex items-center p-5 pt-0", className)} {...props} />;
 }
 
-/** Small uppercase label above a card group, e.g. "WAITING FOR YOU". */
+/** Mono eyebrow above a card group, e.g. "WAITING FOR YOU". */
 function SectionLabel({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
   return (
     <p
-      className={cn("text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground", className)}
+      className={cn("font-brand-mono text-[12px] uppercase text-muted-foreground", className)}
       {...props}
     />
   );

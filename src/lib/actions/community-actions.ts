@@ -8,5 +8,5 @@ export async function resolveCommunityEscalationAction(formData: FormData) {
   const viewer = await getPortalViewer();
   const id = String(formData.get("id") ?? "");
   await prisma.communityEscalation.updateMany({ where: { id, clientId: viewer.clientId }, data: { status: "RESOLVED" } });
-  revalidatePath("/insights/community");
+  revalidatePath("/insights/audience");
 }
