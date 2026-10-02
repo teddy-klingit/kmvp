@@ -90,8 +90,13 @@ export type MissingSource = { name: string; unlocks: string[] };
  * What's connected, and which sources are missing *because a metric is hidden*. A metric with no data is
  * never shown as "—"; the gap is explained once, in the Connect accounts card.
  */
+export const loadDemoSources = cache(async (clientId: string) => {
+  const c = await prisma.client.findUnique({ where: { id: clientId }, select: { demoSources: true } });
+  return jsonArray<string>(c?.demoSources);
+});
+
 export async function insightSources(clientId: string) {
-  const [paid, kpis, audience] = await Promise.all([loadPaidMedia(clientId), loadContentKpis(clientId), loadAudienceData(clientId)]);
+  const [paid, kpis, audience, demo] = await Promise.all([loadPaidMedia(clientId), loadContentKpis(clientId), loadAudienceData(clientId), loadDemoSources(clientId)]);
   const hasFollowers = kpis.blendedFollowerGrowthPct !== null;
   const hasCommunity = audience.community.length > 0;
   const hasWebsite = audience.website.length > 0;
@@ -101,8 +106,12 @@ export async function insightSources(clientId: string) {
   if (social.length) missing.push({ name: "LinkedIn", unlocks: social });
   if (!hasWebsite) missing.push({ name: "Google Analytics", unlocks: ["website"] });
 
-  const connected = [...paid.connected.map((p) => (p === "Google" ? "Google Ads" : p)), ...(hasWebsite ? ["Google Analytics"] : [])];
-  return { connected, missing };
+  // Sources filled with dummy data (Client.demoSources) are named as such, never as real connections.
+  const connected = [
+    ...paid.connected.map((p) => (p === "Google" ? "Google Ads" : p)),
+    ...(hasWebsite && !demo.includes("Google Analytics") ? ["Google Analytics"] : []),
+  ];
+  return { connected, missing, demo };
 }
 
 /** "follower growth, website and community numbers" — in the design's order: social, then website. */

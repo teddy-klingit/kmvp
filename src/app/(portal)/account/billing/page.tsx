@@ -58,6 +58,18 @@ export default async function AccountBillingPage() {
               Ask about upgrading
             </PillLink>
           </div>
+          {client.cardLast4 && (
+            <div className="flex flex-col gap-1 border-t border-brand-line px-6 py-5">
+              <span className="flex items-center gap-2 text-[15px]">
+                {client.cardBrand ?? "Card"} •••• {client.cardLast4}
+                {client.cardIsDemo && <StatusPill tone="watch">Demo</StatusPill>}
+              </span>
+              <span className="text-[13px] text-brand-ink-2">
+                {client.cardExpiry ? `Expires ${client.cardExpiry}. ` : ""}
+                {client.cardIsDemo ? "A dummy card for the demo: no payment details are stored." : "Your Klingit team updates the card on file."}
+              </span>
+            </div>
+          )}
         </SectionCard>
       }
     />

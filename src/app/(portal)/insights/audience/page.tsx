@@ -79,7 +79,12 @@ export default async function AudiencePage() {
     <PageGrid
       main={
         <>
-          <SectionCard id="community" title="Community" action={latestC ? <span className="text-[13px] text-brand-ink-2">Period ending {short(latestC.periodEnd)}</span> : undefined}>
+          <SectionCard
+            id="community"
+            title="Community"
+            meta={sources.demo.includes("LinkedIn") && latestC ? <StatusPill tone="watch">Demo data</StatusPill> : undefined}
+            action={latestC ? <span className="text-[13px] text-brand-ink-2">Period ending {short(latestC.periodEnd)}</span> : undefined}
+          >
             {latestC ? (
               <>
                 <StatTiles tiles={communityTiles} />
@@ -152,7 +157,16 @@ export default async function AudiencePage() {
             </SectionCard>
           )}
 
-          <SectionCard id="website" title="Website" meta={viewer.client.website ? <span className="text-[13px] text-brand-ink-2">{viewer.client.website}</span> : undefined}>
+          <SectionCard
+            id="website"
+            title="Website"
+            meta={
+              <>
+                {viewer.client.website && <span className="text-[13px] text-brand-ink-2">{viewer.client.website}</span>}
+                {sources.demo.includes("Google Analytics") && latestW && <StatusPill tone="watch">Demo data</StatusPill>}
+              </>
+            }
+          >
             {latestW ? (
               <>
                 <StatTiles tiles={websiteTiles} />
@@ -185,7 +199,9 @@ export default async function AudiencePage() {
                       </span>
                     </div>
                   )}
-                  <span className="text-[12px] text-brand-ink-2">Reported per period by your Klingit team, not yet pulled from an analytics tool.</span>
+                  <span className="text-[12px] text-brand-ink-2">
+                    {sources.demo.includes("Google Analytics") ? "Dummy numbers for the demo: no analytics tool is connected." : "Reported per period by your Klingit team, not yet pulled from an analytics tool."}
+                  </span>
                 </div>
               </>
             ) : (
@@ -198,7 +214,7 @@ export default async function AudiencePage() {
         <>
           <ConnectCard missing={sources.missing} connected={sources.connected} href={chatProject ? `/projects/${chatProject.id}?channel=klingit` : "/help"} />
           {followers.length > 0 && (
-            <SectionCard title="Followers">
+            <SectionCard title="Followers" meta={sources.demo.includes("LinkedIn") ? <StatusPill tone="watch">Demo data</StatusPill> : undefined}>
               {followerChart.length > 1 && (
                 <CardBody className="border-b border-brand-line">
                   <FollowerGrowthChart data={followerChart} platforms={followers.map((f) => f.platform)} />

@@ -129,6 +129,13 @@ model Client {
   monthlyCreditAllowance Int          @default(0)
   creditBalance          Int          @default(0)
   healthScore            Int          @default(80) // 0-100
+  /// Data sources filled with dummy data for the demo (e.g. ["LinkedIn", "Google Analytics"]). The UI labels them "demo"; there is no real connection.
+  demoSources        Json?
+  /// Card on file, as shown in Account. Dummy for the demo when cardIsDemo; no real payment data is ever stored.
+  cardBrand          String?
+  cardLast4          String?
+  cardExpiry         String?
+  cardIsDemo         Boolean  @default(false)
   isSampleAccount        Boolean      @default(false) // pitch/demo client — Insights shows seeded sample data styled as this client, never Klingit's own real connected ad accounts
   paidMediaInScope       Boolean      @default(true) // false = this client's engagement is contractually organic-only — Performance/Reports hide all paid-ad sections rather than showing irrelevant spend/CTR data
   accountLeadId          String?
