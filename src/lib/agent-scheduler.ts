@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { generatePerformanceBrief } from "@/lib/insights-brief";
 import { loadTakeaways } from "@/lib/insights-data";
 import { lastClosed, writeReport } from "@/lib/report-data";
+import { syncDailyAdMetrics } from "@/lib/integrations/ad-daily";
 
 /**
  * Scheduled agent work (replaces the old page-load runs): for every active client, this week's Insights
@@ -16,6 +17,9 @@ export async function runScheduledAgents(now = new Date()) {
   const done: string[] = [];
   for (const c of clients) {
     try {
+      // Real per-day ad metrics first (every 6 hours), so the takeaways and charts read today's numbers.
+      const daily = await syncDailyAdMetrics(c.id).catch((e: unknown) => ({ synced: [], skipped: e instanceof Error ? e.message : "failed" }));
+      if (daily.synced.length) done.push(`${c.name}: daily ${daily.synced.join(", ")}`);
       // Don't pile up runs: skip a client whose performance agent ran in the last half hour.
       const recent = await prisma.agentRun.findFirst({ where: { clientId: c.id, agent: { key: "performance_agent" }, createdAt: { gte: new Date(now.getTime() - RETRY_AFTER_MS) } }, select: { id: true } });
       if (recent) continue;

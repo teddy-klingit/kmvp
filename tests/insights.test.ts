@@ -69,51 +69,53 @@ afterAll(async () => {
 });
 
 describe("insights overview", () => {
-  it("a brief action starts a project with the takeaway; a view action opens the evidence", () => {
-    const brief = takeawayHref({ title: "Stories win", detail: "6.0% vs 2.1%", action: { kind: "brief", label: "Brief more stories", view: null } });
-    expect(brief).toBe(`/projects/new?${new URLSearchParams({ idea: "Stories win", detail: "6.0% vs 2.1%" })}`);
-    expect(takeawayHref({ title: "t", detail: "d", action: { kind: "view", label: "See their ads", view: "competitors" } })).toBe("/insights/market/competitors");
-    expect(takeawayHref({ title: "t", detail: "d", action: { kind: "view", label: "See", view: "creative" } })).toBe("/insights/performance#creative");
+  it("a brief action opens the brief studio with the takeaway; a view action opens the evidence", () => {
+    const brief = takeawayHref({ headline: "Stories win", why: "6.0% vs 2.1%", action: { kind: "brief", label: "Brief more stories", view: null } });
+    expect(brief).toBe(`/brief/new?${new URLSearchParams({ q: "Stories win. 6.0% vs 2.1%" })}`);
+    expect(takeawayHref({ headline: "t", why: "d", action: { kind: "view", label: "See their ads", view: "competitors" } })).toBe("/insights/market/competitors");
+    expect(takeawayHref({ headline: "t", why: "d", action: { kind: "view", label: "See", view: "creative" } })).toBe("/insights/performance#creative");
   });
 
   it("explains missing sources in one sentence, in the design's order", () => {
     expect(unlockSentence([{ name: "LinkedIn", unlocks: ["follower growth", "community"] }, { name: "Google Analytics", unlocks: ["website"] }])).toBe("follower growth, website and community numbers");
   });
 
-  it("shows max 3 takeaways, real asset names, and never a '—' tile", async () => {
+  it("shows max 3 takeaways (older ones read as headline + Why?), real asset names, and never a '—' tile", async () => {
     setMockSession({ user: { id: fx.userA.id, role: "CLIENT" } });
-    const raw = await html(OverviewPage());
+    const raw = await html(OverviewPage({ searchParams: Promise.resolve({}) }));
     expect(raw).not.toMatch(/>\s*—\s*</);
     const page = text(raw);
     expect(page).toContain("Stories beat statics A-secret");
     expect(page).toContain("Third");
     expect(page).not.toContain("A fourth one is never shown");
-    // Best and weakest use assetTitle(): "Beach hero", not "Story 9:16 — Beach hero".
+    // The reasoning is only behind "Why?", never a paragraph on the page.
+    expect(page).not.toContain("Story 9:16 averages 7.4% against 2.1%.");
+    expect(page).toContain("Why?");
+    // The leaderboard uses assetTitle(): "Beach hero", not "Story 9:16 — Beach hero", against the real average.
+    expect(page).toContain("Creative leaderboard");
     expect(page).toContain("Beach hero");
     expect(page).toContain("Product shot");
     expect(page).not.toContain("Story 9:16 — Beach hero");
-    // CTR by format from delivered work, and the ratio line.
-    expect(page).toContain("Click-through rate by format");
-    expect(page).toContain("Story 9:16 gets 3.5× the click-through rate of Static 1:1");
-    // Organic-only client: no paid numbers, and no "—" anywhere.
+    expect(page).toContain("Your average 4.8%");
+    // Organic-only client: no paid numbers; missing sources are a skeleton with Connect.
     expect(page).not.toContain("Ad spend");
     expect(page).toContain("Connect LinkedIn and Google Analytics");
-    expect(page).toContain("can't be shown yet");
+    expect(page).toContain("Data sources");
   });
 
   it("client B never sees client A's takeaways or creative", async () => {
     setMockSession({ user: { id: fx.userB.id, role: "CLIENT" } });
-    const page = text(await html(OverviewPage()));
+    const page = text(await html(OverviewPage({ searchParams: Promise.resolve({}) })));
     expect(page).not.toContain("A-secret");
     expect(page).not.toContain("Beach hero");
     // B has no data at all: no number cards, just the honest empty states.
     expect(page).not.toContain("Last 30 days");
-    expect(page).toContain("writes this week");
+    expect(page).toContain("writes three takeaways");
   });
 
   it("Audience hides metrics without data instead of showing '—'", async () => {
     setMockSession({ user: { id: fx.userB.id, role: "CLIENT" } });
-    const raw = await html(AudiencePage());
+    const raw = await html(AudiencePage({ searchParams: Promise.resolve({}) }));
     expect(raw).not.toMatch(/>\s*—\s*</);
     const page = text(raw);
     expect(page).not.toContain("Comments, latest period");
@@ -125,9 +127,9 @@ describe("insights overview", () => {
 describe("every insights tab renders", () => {
   it.each([
     ["Performance", () => PerformancePage({ searchParams: Promise.resolve({}) })],
-    ["Market feed", () => FeedPage()],
-    ["Competitors", () => CompetitorsPage()],
-    ["Trends", () => TrendsPage()],
+    ["Market feed", () => FeedPage({ searchParams: Promise.resolve({}) })],
+    ["Competitors", () => CompetitorsPage({ searchParams: Promise.resolve({ range: "7" }) })],
+    ["Trends", () => TrendsPage({ searchParams: Promise.resolve({ range: "90" }) })],
     ["Ideas", () => IdeasPage()],
     ["SEO", () => SeoPage()],
   ] as [string, () => Promise<ReactNode>][])("%s, without a '—' tile", async (_name, page) => {

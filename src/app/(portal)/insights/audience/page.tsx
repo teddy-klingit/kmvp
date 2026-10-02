@@ -1,259 +1,190 @@
-import { prisma } from "@/lib/prisma";
+import { Suspense } from "react";
 import { getPortalViewer } from "@/lib/current-viewer";
-import { insightSources, loadAudienceData, loadContentKpis } from "@/lib/insights-data";
-import { pctChange } from "@/lib/report-filters";
-import { resolveCommunityEscalationAction } from "@/lib/actions/community-actions";
-import { formatDate } from "@/lib/utils";
+import { connectHref, insightSources, loadAudienceData, loadContentKpis } from "@/lib/insights-data";
+import { contentFormatPerformance } from "@/lib/content-calendar-metrics";
+import { compact, dayLabel, parseRange, pct, sinceDays } from "@/lib/insights/daily";
 import { PageGrid } from "@/components/ds/page-grid";
-import { SectionCard, CardBody, CardNote, CardRows } from "@/components/ds/card";
-import { StatTiles, Meter, type Stat } from "@/components/ds/stats";
-import { StatusPill } from "@/components/ds/status-pill";
+import { FilterChips } from "@/components/ds/filter-chips";
+import { PillLink } from "@/components/ds/pill-link";
 import { pillClass } from "@/components/ds/button";
-import { PlatformBadge } from "@/components/portal/platform-icon";
-import { FollowerGrowthChart } from "@/components/portal/follower-growth-chart";
-import { DiscreteMetricBars } from "@/components/portal/discrete-metric-bars";
+import { resolveCommunityEscalationAction } from "@/lib/actions/community-actions";
 import { ConnectCard } from "@/components/portal/insights/connect-card";
+import { ChartCard, SkeletonChart, StatTile } from "@/components/insights/cards";
+import { BarList, Legend, LineChart, StackBar } from "@/components/insights/charts";
+import { SERIES } from "@/components/insights/tokens";
+import { SubBar } from "@/components/insights/toolbar";
 
-const SENTIMENT = { POSITIVE: "success", NEUTRAL: "neutral", NEGATIVE: "danger" } as const;
-
-/** A change only when there's a real previous period. */
-function change(current: number | null, previous: number | null) {
-  const pct = pctChange(current, previous);
-  return pct === null ? null : { pct, vs: "previous period" };
-}
+const iso = (d: Date) => d.toISOString().slice(0, 10);
+const Demo = () => <span className="rounded-full bg-brand-peach-pale px-2.5 py-0.5 text-[12px] text-brand-orange-text">Demo data</span>;
 
 /**
- * Insights → Audience: Community (comments, DMs, sentiment, escalations) and Website (visits, conversions,
- * what drives traffic) on one page, plus follower growth. Sections without data are left out; the missing
- * sources are explained in one Connect accounts card.
+ * Insights → Audience (InsightsAudience.dc.html): tiles, follower growth, from visit to purchase, what people
+ * say and engagement by post type. Each block is a grey skeleton with Connect until its source has data, and
+ * every block filled from a demo source says so.
  */
-export default async function AudiencePage() {
+export default async function AudiencePage({ searchParams }: { searchParams: Promise<{ range?: string; platform?: string }> }) {
+  const { range, platform } = await searchParams;
+  const days = parseRange(range);
   const viewer = await getPortalViewer();
   const clientId = viewer.clientId;
-  const [{ community, escalations, website }, kpis, sources, chatProject] = await Promise.all([
-    loadAudienceData(clientId),
-    loadContentKpis(clientId),
-    insightSources(clientId),
-    prisma.project.findFirst({ where: { clientId, status: { notIn: ["ARCHIVED", "DRAFT"] } }, orderBy: { updatedAt: "desc" }, select: { id: true } }),
-  ]);
+  const [{ community, website, escalations }, kpis, sources, connect] = await Promise.all([loadAudienceData(clientId), loadContentKpis(clientId), insightSources(clientId), connectHref(clientId)]);
+  const since = sinceDays(days);
+  const socialDemo = sources.demo.includes("LinkedIn");
+  const siteDemo = sources.demo.includes("Google Analytics");
 
-  const latestC = community[community.length - 1] ?? null;
-  const open = escalations.filter((e) => e.status === "OPEN");
-  const resolved = escalations.filter((e) => e.status === "RESOLVED");
-  const communityTiles: Stat[] = latestC
-    ? [
-        { label: "Comments, latest period", value: latestC.commentVolume.toLocaleString("en-GB") },
-        { label: "DMs, latest period", value: latestC.dmVolume.toLocaleString("en-GB") },
-        { label: "Positive sentiment", value: `${latestC.sentimentPositivePct}%` },
-        { label: "Open escalations", value: String(open.length) },
-      ]
-    : [];
+  const socialPlatforms = [...new Set([...kpis.followerGrowth.map((f) => f.platform), ...kpis.publishedPosts.map((p) => p.platform)])];
+  const showWebsite = !platform || platform === "Website";
+  const showSocial = platform !== "Website";
+  const href = (p?: string) => {
+    const q = new URLSearchParams();
+    if (p) q.set("platform", p);
+    if (range) q.set("range", range);
+    return `/insights/audience${q.size ? `?${q}` : ""}`;
+  };
+  const chips = [{ label: "All", href: href(), active: !platform }, ...socialPlatforms.map((p) => ({ label: p, href: href(p), active: platform === p })), ...(website.length ? [{ label: "Website", href: href("Website"), active: platform === "Website" }] : [])];
 
-  const latestW = website[website.length - 1] ?? null;
-  const prevW = website.length > 1 ? website[website.length - 2] : null;
-  const websiteTiles: Stat[] = latestW
-    ? [
-        { label: "Visits", value: latestW.visits.toLocaleString("en-GB"), change: change(latestW.visits, prevW?.visits ?? null) },
-        { label: "Unique visitors", value: latestW.uniqueVisitors.toLocaleString("en-GB"), change: change(latestW.uniqueVisitors, prevW?.uniqueVisitors ?? null) },
-        { label: "Conversions", value: latestW.conversions.toLocaleString("en-GB"), change: change(latestW.conversions, prevW?.conversions ?? null) },
-        { label: "Conversion rate", value: `${latestW.conversionRate}%`, change: change(latestW.conversionRate, prevW?.conversionRate ?? null) },
-      ]
-    : [];
-  const socialShare = latestW && latestW.visits > 0 && latestW.socialReferralVisits !== null ? Math.round((latestW.socialReferralVisits / latestW.visits) * 100) : null;
-  const drivers = [...kpis.publishedPosts].filter((p) => (p.websiteClicks ?? 0) > 0).sort((a, b) => (b.websiteClicks ?? 0) - (a.websiteClicks ?? 0)).slice(0, 3);
-  const followers = kpis.followerGrowth.filter((f) => f.followerCount !== null);
-  // Follower growth over time (moved here from the Calendar): one row per capture date, one column per platform.
-  const followerDates = [...new Set(followers.flatMap((f) => f.series.map((s) => s.capturedAt.getTime())))].sort((a, b) => a - b);
-  const followerChart = followerDates.map((ts) => {
-    const row: Record<string, string | number> = { date: formatDate(new Date(ts), { day: "numeric", month: "short" }) };
-    for (const f of followers) {
-      const point = f.series.find((s) => s.capturedAt.getTime() === ts);
-      if (point) row[f.platform] = point.followerCount;
-    }
-    return row;
-  });
+  // Followers: the weekly snapshots inside the range, one line per platform.
+  const followers = kpis.followerGrowth.filter((f) => showSocial && (!platform || f.platform === platform));
+  const snapDates = [...new Set(followers.flatMap((f) => f.series.filter((s) => s.capturedAt.getTime() >= since).map((s) => iso(s.capturedAt))))].sort();
+  const followerSeries = followers.map((f, i) => ({ name: f.platform, color: SERIES[i % SERIES.length], values: snapDates.map((d) => f.series.find((s) => iso(s.capturedAt) === d)?.followerCount ?? null) }));
+  const totalFollowers = followers.reduce((a, f) => a + f.followerCount, 0);
+  const followerSpark = snapDates.map((d) => followers.reduce((a, f) => a + (f.series.find((s) => iso(s.capturedAt) === d)?.followerCount ?? 0), 0));
 
-  const short = (d: Date) => formatDate(d, { day: "numeric", month: "short" });
+  const posts = kpis.publishedPosts.filter((p) => showSocial && (!platform || p.platform === platform) && p.publishedDate && p.publishedDate.getTime() >= since);
+  const rated = posts.filter((p) => p.engagementRate !== null);
+  const engagement = rated.length ? rated.reduce((a, p) => a + p.engagementRate!, 0) / rated.length : null;
+  const byType = contentFormatPerformance(posts);
+  const typeAvg = byType.length ? byType.reduce((a, t) => a + t.ctr, 0) / byType.length : 0;
+
+  const latestC = showSocial ? (community[community.length - 1] ?? null) : null;
+  const latestW = showWebsite ? (website[website.length - 1] ?? null) : null;
+  const period = (s: { periodStart: Date; periodEnd: Date }) => `${dayLabel(iso(s.periodStart))} – ${dayLabel(iso(s.periodEnd))}`;
 
   return (
-    <PageGrid
-      main={
-        <>
-          <SectionCard
-            id="community"
-            title="Community"
-            meta={sources.demo.includes("LinkedIn") && latestC ? <StatusPill tone="watch">Demo data</StatusPill> : undefined}
-            action={latestC ? <span className="text-[13px] text-brand-ink-2">Period ending {short(latestC.periodEnd)}</span> : undefined}
-          >
-            {latestC ? (
-              <>
-                <StatTiles tiles={communityTiles} />
-                {community.length > 1 && (
-                  <CardBody className="flex flex-col gap-6 border-t border-brand-line">
-                    <div className="flex flex-col gap-2">
-                      <span className="text-[12px] text-brand-ink-2">Sentiment</span>
-                      <FollowerGrowthChart
-                        data={community.map((s) => ({ date: short(s.periodEnd), Positive: s.sentimentPositivePct, Neutral: s.sentimentNeutralPct, Negative: s.sentimentNegativePct }))}
-                        platforms={["Positive", "Neutral", "Negative"]}
-                      />
-                    </div>
-                    <div className="grid grid-cols-1 gap-6 @min-[600px]/col:grid-cols-2">
-                      <div className="flex flex-col gap-2">
-                        <span className="text-[12px] text-brand-ink-2">Comments</span>
-                        <DiscreteMetricBars data={community.map((s) => ({ period: short(s.periodEnd), value: s.commentVolume }))} label="Comments" />
-                      </div>
-                      <div className="flex flex-col gap-2">
-                        <span className="text-[12px] text-brand-ink-2">DMs</span>
-                        <DiscreteMetricBars data={community.map((s) => ({ period: short(s.periodEnd), value: s.dmVolume }))} label="DMs" />
-                      </div>
-                    </div>
-                  </CardBody>
-                )}
-              </>
-            ) : (
-              <CardNote>Comment, DM and sentiment numbers appear once your social accounts are connected.</CardNote>
-            )}
-          </SectionCard>
+    <div className="flex flex-col gap-6">
+      <Suspense>
+        <SubBar chips={chips.length > 1 ? <FilterChips label="Audience source" items={chips} /> : null} />
+      </Suspense>
 
-          {escalations.length > 0 && (
-            <SectionCard title="Needs a response" action={<span className="text-[12px] text-brand-ink-2">{open.length} open</span>}>
-              {open.length === 0 ? (
-                <CardNote>Nothing flagged for escalation right now.</CardNote>
-              ) : (
-                <CardRows>
-                  {open.map((e) => (
-                    <li key={e.id} className="flex flex-wrap items-start gap-x-4 gap-y-3 px-6 py-4">
-                      <PlatformBadge platform={e.platform} className="size-8" />
-                      <span className="flex min-w-0 flex-1 basis-[240px] flex-col gap-1">
-                        <span className="flex items-center gap-2">
-                          <StatusPill tone={SENTIMENT[e.sentiment]}>{e.sentiment.charAt(0) + e.sentiment.slice(1).toLowerCase()}</StatusPill>
-                          <span className="text-[12px] text-brand-ink-2">{short(e.createdAt)}</span>
+      <div className="grid grid-cols-2 gap-4 min-[1000px]:grid-cols-4">
+        {followers.length > 0 && <StatTile icon="followers" label="Followers" value={compact(totalFollowers)} context={`${followers.map((f) => f.platform).join(" + ")}${socialDemo ? " · demo" : ""}`} spark={followerSpark.length > 1 ? followerSpark : undefined} />}
+        {engagement !== null && <StatTile icon="engagement" label="Engagement rate" value={pct(engagement)} context={`${rated.length} organic post${rated.length === 1 ? "" : "s"} · ${days} days`} />}
+        {latestC && <StatTile icon="comments" label="Comments" value={latestC.commentVolume.toLocaleString("en-GB")} context={`${period(latestC)}${socialDemo ? " · demo" : ""}`} />}
+        {latestW && <StatTile icon="visits" label="Site visits" value={compact(latestW.visits)} context={`${period(latestW)}${siteDemo ? " · demo" : ""}`} />}
+      </div>
+
+      <PageGrid
+        main={
+          <>
+            {showSocial && (
+              <ChartCard
+                title="Follower growth"
+                meta={followers.length > 0 && socialDemo ? <Demo /> : undefined}
+                table={{ columns: ["Week", ...followerSeries.map((s) => s.name)], rows: snapDates.map((d, i) => [dayLabel(d), ...followerSeries.map((s) => s.values[i] ?? "")]) }}
+              >
+                {snapDates.length > 1 ? (
+                  <>
+                    <Legend items={followerSeries.map((s) => ({ label: s.name, color: s.color, line: true }))} />
+                    <LineChart x={snapDates.map(dayLabel)} series={followerSeries} height={220} format={{ kind: "compact" }} />
+                  </>
+                ) : followers.length > 0 ? (
+                  <SkeletonChart shape="line" line="Followers are counted weekly: pick 30 or 90 days to see a trend." action={<PillLink href={`/insights/audience?${new URLSearchParams({ range: "90", ...(platform ? { platform } : {}) })}`} size="sm">90 days</PillLink>} />
+                ) : (
+                  <SkeletonChart shape="line" line="Connect your social accounts to see follower growth." action={<PillLink href={connect} size="sm">Connect</PillLink>} />
+                )}
+              </ChartCard>
+            )}
+
+            {showWebsite && (
+              <ChartCard
+                title="From visit to purchase"
+                meta={latestW ? siteDemo ? <Demo /> : <span className="font-brand-mono text-[12px] text-brand-ink">GOOGLE ANALYTICS</span> : undefined}
+                table={latestW ? { columns: ["Step", "People"], rows: [["Visits", latestW.visits], ...(latestW.socialReferralVisits !== null ? [["Visits from social", latestW.socialReferralVisits] as (string | number)[]] : []), ["Conversions", latestW.conversions]] } : undefined}
+              >
+                {latestW ? (
+                  <>
+                    <BarList
+                      rows={[
+                        { label: "Visits", value: latestW.visits, display: latestW.visits.toLocaleString("en-GB"), tone: "ink" },
+                        ...(latestW.socialReferralVisits !== null ? [{ label: "From social", value: latestW.socialReferralVisits, display: latestW.socialReferralVisits.toLocaleString("en-GB"), color: "#4A4A4A" }] : []),
+                        { label: "Conversions", value: latestW.conversions, display: latestW.conversions.toLocaleString("en-GB"), tone: "grey" },
+                      ]}
+                      labelWidth={130}
+                    />
+                    <span className="text-[14px] text-brand-ink-2">
+                      {pct(latestW.conversionRate)} of visits convert · {period(latestW)}
+                    </span>
+                  </>
+                ) : (
+                  <SkeletonChart line="Connect Google Analytics to follow visits through to purchases." action={<PillLink href={connect} size="sm">Connect</PillLink>} />
+                )}
+              </ChartCard>
+            )}
+
+            {showSocial && escalations.some((e) => e.status === "OPEN") && (
+              <ChartCard flush title="Needs a response" meta={<span className="font-brand-mono text-[12px] text-brand-ink">{escalations.filter((e) => e.status === "OPEN").length} OPEN</span>}>
+                <ul className="m-0 list-none p-0">
+                  {escalations
+                    .filter((e) => e.status === "OPEN")
+                    .map((e) => (
+                      <li key={e.id} className="flex items-center gap-3 border-b border-brand-line px-6 py-3.5 last:border-b-0">
+                        <span className="flex min-w-0 flex-1 flex-col">
+                          <span className="truncate text-[15px]">&ldquo;{e.snippet}&rdquo;</span>
+                          <span className="text-[13px] text-brand-mute">
+                            {e.platform} · {e.sentiment.charAt(0) + e.sentiment.slice(1).toLowerCase()} · {dayLabel(iso(e.createdAt))}
+                          </span>
                         </span>
-                        <span className="text-[14px] leading-[1.5]">&ldquo;{e.snippet}&rdquo;</span>
-                      </span>
-                      <form action={resolveCommunityEscalationAction}>
-                        <input type="hidden" name="id" value={e.id} />
-                        <button type="submit" className={pillClass("secondary", "sm")}>
-                          Mark resolved
-                        </button>
-                      </form>
-                    </li>
-                  ))}
-                </CardRows>
-              )}
-              {resolved.length > 0 && (
-                <details className="border-t border-brand-line">
-                  <summary className="cursor-pointer px-6 py-3 font-brand-mono text-[12px] text-brand-ink">{resolved.length} RESOLVED</summary>
-                  <CardRows>
-                    {resolved.map((e) => (
-                      <li key={e.id} className="flex items-center gap-3 px-6 py-3">
-                        <PlatformBadge platform={e.platform} className="size-5" />
-                        <span className="min-w-0 flex-1 truncate text-[13px] text-brand-ink-2">&ldquo;{e.snippet}&rdquo;</span>
+                        <form action={resolveCommunityEscalationAction}>
+                          <input type="hidden" name="id" value={e.id} />
+                          <button type="submit" className={pillClass("secondary", "sm")}>
+                            Mark resolved
+                          </button>
+                        </form>
                       </li>
                     ))}
-                  </CardRows>
-                </details>
-              )}
-            </SectionCard>
-          )}
-
-          <SectionCard
-            id="website"
-            title="Website"
-            meta={
-              <>
-                {viewer.client.website && <span className="text-[13px] text-brand-ink-2">{viewer.client.website}</span>}
-                {sources.demo.includes("Google Analytics") && latestW && <StatusPill tone="watch">Demo data</StatusPill>}
-              </>
-            }
-          >
-            {latestW ? (
-              <>
-                <StatTiles tiles={websiteTiles} />
-                {website.length > 1 && (
-                  <CardBody className="border-t border-brand-line">
-                    <FollowerGrowthChart data={website.map((s) => ({ date: short(s.periodEnd), Visits: s.visits, "Social referrals": s.socialReferralVisits ?? 0 }))} platforms={["Visits", "Social referrals"]} />
-                  </CardBody>
-                )}
-                <div className="flex flex-col gap-3 border-t border-brand-line px-6 py-5">
-                  {latestW.topSource && (
-                    <div className="flex items-baseline justify-between gap-3 text-[14px]">
-                      <span className="text-brand-ink-2">Top source</span>
-                      <span>{latestW.topSource}</span>
-                    </div>
-                  )}
-                  {socialShare !== null && (
-                    <div className="flex flex-col gap-1.5">
-                      <div className="flex items-baseline justify-between gap-3 text-[14px]">
-                        <span className="text-brand-ink-2">Traffic from social</span>
-                        <span className="tabular-nums">{socialShare}%</span>
-                      </div>
-                      <Meter value={socialShare} max={100} label={`${socialShare}% of traffic from social`} />
-                    </div>
-                  )}
-                  {latestW.avgSessionSeconds !== null && (
-                    <div className="flex items-baseline justify-between gap-3 text-[14px]">
-                      <span className="text-brand-ink-2">Average session</span>
-                      <span className="tabular-nums">
-                        {Math.floor(latestW.avgSessionSeconds / 60)}m {latestW.avgSessionSeconds % 60}s
-                      </span>
-                    </div>
-                  )}
-                  <span className="text-[12px] text-brand-ink-2">
-                    {sources.demo.includes("Google Analytics") ? "Dummy numbers for the demo: no analytics tool is connected." : "Reported per period by your Klingit team, not yet pulled from an analytics tool."}
-                  </span>
-                </div>
-              </>
-            ) : (
-              <CardNote>Visits and conversions appear once Google Analytics is connected.</CardNote>
+                </ul>
+              </ChartCard>
             )}
-          </SectionCard>
-        </>
-      }
-      side={
-        <>
-          <ConnectCard missing={sources.missing} connected={sources.connected} href={chatProject ? `/projects/${chatProject.id}?channel=klingit` : "/help"} />
-          {followers.length > 0 && (
-            <SectionCard title="Followers" meta={sources.demo.includes("LinkedIn") ? <StatusPill tone="watch">Demo data</StatusPill> : undefined}>
-              {followerChart.length > 1 && (
-                <CardBody className="border-b border-brand-line">
-                  <FollowerGrowthChart data={followerChart} platforms={followers.map((f) => f.platform)} />
-                </CardBody>
-              )}
-              <CardRows>
-                {followers.map((f) => (
-                  <li key={f.platform} className="flex items-center gap-3 px-6 py-3.5">
-                    <PlatformBadge platform={f.platform} className="size-6" />
-                    <span className="min-w-0 flex-1 text-[15px]">{f.platform}</span>
-                    <span className="flex flex-col items-end">
-                      <span className="text-[15px] tabular-nums">{f.followerCount.toLocaleString("en-GB")}</span>
-                      {f.growthPct !== null && (
-                        <span className="text-[12px] text-brand-ink-2">
-                          {f.growthPct >= 0 ? "+" : ""}
-                          {f.growthPct}% in 30 days
-                        </span>
-                      )}
+          </>
+        }
+        side={
+          <>
+            {showSocial && (
+              <ChartCard title="What people say" meta={latestC && socialDemo ? <Demo /> : undefined} table={latestC ? { columns: ["Sentiment", "Share"], rows: [["Positive", `${latestC.sentimentPositivePct}%`], ["Neutral", `${latestC.sentimentNeutralPct}%`], ["Negative", `${latestC.sentimentNegativePct}%`]] } : undefined}>
+                {latestC ? (
+                  <>
+                    <span className="text-[16px]">Comment sentiment, {period(latestC)}</span>
+                    <StackBar
+                      segments={[
+                        { label: "Positive", value: latestC.sentimentPositivePct, display: `${latestC.sentimentPositivePct}%`, color: SERIES[1] },
+                        { label: "Neutral", value: latestC.sentimentNeutralPct, display: `${latestC.sentimentNeutralPct}%`, color: "#C2C3C5" },
+                        { label: "Negative", value: latestC.sentimentNegativePct, display: `${latestC.sentimentNegativePct}%`, color: SERIES[2] },
+                      ]}
+                    />
+                    <span className="text-[13px] text-brand-mute">
+                      {latestC.commentVolume.toLocaleString("en-GB")} comments · {latestC.dmVolume.toLocaleString("en-GB")} DMs
                     </span>
-                  </li>
-                ))}
-              </CardRows>
-            </SectionCard>
-          )}
-          {drivers.length > 0 && (
-            <SectionCard title="Posts that drive visits">
-              <CardRows>
-                {drivers.map((p) => (
-                  <li key={p.id} className="flex items-center gap-3 px-6 py-3.5">
-                    <PlatformBadge platform={p.platform} className="size-6" />
-                    <span className="min-w-0 flex-1 truncate text-[14px]">{p.title}</span>
-                    <span className="text-[13px] tabular-nums text-brand-ink-2">{p.websiteClicks} clicks</span>
-                  </li>
-                ))}
-              </CardRows>
-            </SectionCard>
-          )}
-        </>
-      }
-    />
+                  </>
+                ) : (
+                  <SkeletonChart line="Comment sentiment appears once your social accounts are connected." action={<PillLink href={connect} size="sm">Connect</PillLink>} />
+                )}
+              </ChartCard>
+            )}
+
+            {showSocial && (
+              <ChartCard title="Engagement by post type" table={{ columns: ["Post type", "Engagement", "Posts"], rows: byType.map((t) => [t.key, `${t.ctr}%`, t.count]) }}>
+                {byType.length > 0 ? (
+                  <BarList rows={byType.map((t) => ({ label: t.key, value: t.ctr, display: `${t.ctr}%`, tone: t.ctr >= typeAvg ? "ink" : "grey" }))} labelWidth={110} compact />
+                ) : (
+                  <SkeletonChart line={`No published posts with engagement in the last ${days} days.`} />
+                )}
+              </ChartCard>
+            )}
+
+            <ConnectCard missing={sources.missing} connected={sources.connected} href={connect} />
+          </>
+        }
+      />
+    </div>
   );
 }

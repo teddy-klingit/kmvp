@@ -11,7 +11,7 @@ import { resolveDateRange } from "@/lib/report-filters";
 import { computeContentKpis } from "@/lib/content-calendar-metrics";
 import { assetTitle } from "@/lib/asset-display";
 import { jsonArray } from "@/lib/utils";
-import type { Takeaway } from "@/lib/ai/agents/performance-agent";
+import type { PerformanceAction, Takeaway } from "@/lib/ai/agents/performance-agent";
 
 /**
  * Data shared by the Insights header and tabs. Each loader is cached per request (React cache), so the
@@ -144,11 +144,20 @@ export const TAKEAWAYS_MAX = 3;
 /** "This week's": older takeaways are rewritten on the next visit. */
 export const TAKEAWAYS_STALE_MS = 7 * 24 * 60 * 60 * 1000;
 
+type OldTakeaway = { title: string; detail: string; action: Takeaway["action"] };
+
+/** Takeaways written before Insights v2 (title + detail) read as the new shape, without a made-up number. */
+function normalizeTakeaway(t: Takeaway | OldTakeaway): Takeaway {
+  if ("headline" in t) return t;
+  return { tag: "Performance", metric: "", headline: t.title, compare: [], action: t.action, why: t.detail };
+}
+
 export async function loadTakeaways(clientId: string) {
   const brief = await prisma.performanceBrief.findUnique({ where: { clientId } });
-  const takeaways = brief?.takeaways ? jsonArray<Takeaway>(brief.takeaways).slice(0, TAKEAWAYS_MAX) : [];
-  const stale = !brief?.takeaways || Date.now() - brief.generatedAt.getTime() > TAKEAWAYS_STALE_MS;
-  return { takeaways, generatedAt: brief?.generatedAt ?? null, stale };
+  const takeaways = brief?.takeaways ? jsonArray<Takeaway | OldTakeaway>(brief.takeaways).map(normalizeTakeaway).slice(0, TAKEAWAYS_MAX) : [];
+  const actions = brief?.actions ? jsonArray<PerformanceAction>(brief.actions).slice(0, 3) : [];
+  const stale = !brief?.takeaways || !brief.actions || Date.now() - brief.generatedAt.getTime() > TAKEAWAYS_STALE_MS;
+  return { takeaways, actions, generatedAt: brief?.generatedAt ?? null, stale };
 }
 
 const VIEW_HREF: Record<NonNullable<Takeaway["action"]["view"]>, string> = {
@@ -162,7 +171,42 @@ const VIEW_HREF: Record<NonNullable<Takeaway["action"]["view"]>, string> = {
 };
 
 /** A brief action starts a project with the takeaway as its idea; a view action opens the evidence. */
-export function takeawayHref(t: Takeaway) {
-  if (t.action.kind === "brief" || !t.action.view) return `/projects/new?${new URLSearchParams({ idea: t.title, detail: t.detail })}`;
+export function takeawayHref(t: Pick<Takeaway, "headline" | "why" | "action">) {
+  if (t.action.kind === "brief" || !t.action.view) return `/brief/new?${new URLSearchParams({ q: `${t.headline}. ${t.why}` })}`;
   return VIEW_HREF[t.action.view] ?? "/insights/performance";
+}
+
+// ─── Insights v2 helpers ───────────────────────────────────────────────────
+
+/** Connecting a source is done by the client's Klingit team: Connect opens that chat. */
+export async function connectHref(clientId: string) {
+  const p = await prisma.project.findFirst({ where: { clientId, status: { notIn: ["ARCHIVED", "DRAFT"] } }, orderBy: { updatedAt: "desc" }, select: { id: true } });
+  return p ? `/projects/${p.id}?channel=klingit` : "/help";
+}
+
+export type SourceState = "live" | "sample" | "demo" | "connect";
+
+/** Every source Insights reads, with its real state. Demo-filled sources say "Demo", never "Live". */
+export async function dataSources(clientId: string) {
+  const [paid, audience, demo, kpis] = await Promise.all([loadPaidMedia(clientId), loadAudienceData(clientId), loadDemoSources(clientId), loadContentKpis(clientId)]);
+  const ad = (platform: string, name: string): { name: string; state: SourceState } => ({
+    name,
+    state: paid.connected.includes(platform) ? (paid.isSample ? "sample" : "live") : demo.includes(platform) ? "demo" : "connect",
+  });
+  const social = kpis.followerGrowth.some((f) => f.followerCount !== null);
+  const sources: { name: string; state: SourceState }[] = [
+    ...(paid.inScope ? [ad("Meta", "Meta Ads"), ad("LinkedIn", "LinkedIn"), ad("Google", "Google Ads")] : [{ name: "LinkedIn", state: (demo.includes("LinkedIn") ? "demo" : social ? "live" : "connect") as SourceState }]),
+    { name: "Google Analytics", state: demo.includes("Google Analytics") ? "demo" : audience.website.length ? "live" : "connect" },
+  ];
+  return sources;
+}
+
+/** Delivered creative's average CTR per format ("Story 9:16", "Carousel"), best first. */
+export function ctrByFormat(measured: { format: string; ctr: number }[]) {
+  const groups = new Map<string, number[]>();
+  for (const a of measured) {
+    const key = a.format.split(" · ")[0];
+    groups.set(key, [...(groups.get(key) ?? []), a.ctr]);
+  }
+  return [...groups].map(([label, v]) => ({ label, value: Math.round((v.reduce((x, y) => x + y, 0) / v.length) * 10) / 10, count: v.length })).sort((a, b) => b.value - a.value);
 }

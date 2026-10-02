@@ -1,16 +1,15 @@
-import { CheckCircle2, XCircle } from "lucide-react";
+import { Check, Minus } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
-import { formatDate, jsonArray } from "@/lib/utils";
+import { jsonArray } from "@/lib/utils";
 import { generateSeoReportAction } from "@/lib/actions/seo-actions";
 import { PageGrid } from "@/components/ds/page-grid";
-import { SectionCard, CardBody, CardNote, CardRows } from "@/components/ds/card";
-import { StatusPill, type PillTone } from "@/components/ds/status-pill";
-import { NumberedRow } from "@/components/ds/numbered-row";
 import { PillLink } from "@/components/ds/pill-link";
 import { AgentButton } from "@/components/portal/insights/agent-button";
+import { ChartCard, SkeletonChart, StatTile, WhySheet } from "@/components/insights/cards";
+import { BarList, StackBar } from "@/components/insights/charts";
+import { SERIES } from "@/components/insights/tokens";
 
-type Recommendation = { title: string; detail: string };
 type OnPageChecks = {
   hasTitle: boolean;
   titleLength: number;
@@ -21,222 +20,225 @@ type OnPageChecks = {
   hasSitemap: boolean;
   aiCrawlerAccess: Record<string, "allowed" | "blocked">;
 };
-type Audit = {
-  id: string;
-  subject: string;
-  domain: string;
-  performanceScore: number | null;
-  seoScore: number | null;
-  accessibilityScore: number | null;
-  bestPracticesScore: number | null;
-  onPageChecks: unknown;
-  fetchError: string | null;
-  auditedAt: Date;
-};
+type Fix = { title: string; detail: string; impact?: "High" | "Medium" | "Low" };
+type Result = "pass" | "warn" | "error";
 
+const ENGINE: Record<string, string> = { claude: "Claude", perplexity: "Perplexity", chatgpt: "ChatGPT", gemini: "Gemini" };
+const MATRIX_SHOWN = 5;
 
-function tone(score: number): PillTone {
-  return score >= 90 ? "success" : score >= 50 ? "watch" : "danger";
-}
-
-/** Lighthouse scores; ones without data (no PageSpeed key) are left out, never shown as "—". */
-function Scores({ audit, compact = false }: { audit: Audit; compact?: boolean }) {
-  const scores = [
-    { label: compact ? "Perf" : "Performance", v: audit.performanceScore },
-    { label: "SEO", v: audit.seoScore },
-    { label: compact ? "A11y" : "Accessibility", v: audit.accessibilityScore },
-    { label: compact ? "Best pr." : "Best practices", v: audit.bestPracticesScore },
-  ].filter((x): x is { label: string; v: number } => x.v !== null);
-  if (scores.length === 0) return null;
-  return (
-    <div className="grid grid-cols-2 gap-px overflow-hidden rounded-[10px] bg-brand-line @min-[480px]/col:grid-cols-4">
-      {scores.map((x) => (
-        <div key={x.label} className="flex flex-col items-start gap-1.5 bg-white px-4 py-3">
-          <span className={compact ? "text-[20px] font-light tabular-nums" : "text-[28px] font-light tabular-nums"}>{x.v}</span>
-          <StatusPill tone={tone(x.v)}>{x.label}</StatusPill>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function Checklist({ onPage }: { onPage: OnPageChecks }) {
-  const rows = [
-    { ok: onPage.hasTitle, label: `Title tag ${onPage.hasTitle ? `(${onPage.titleLength} chars)` : "missing"}` },
-    { ok: onPage.hasMetaDescription, label: `Meta description ${onPage.hasMetaDescription ? `(${onPage.metaDescriptionLength} chars)` : "missing"}` },
-    { ok: onPage.h1Count > 0, label: `${onPage.h1Count} H1 heading${onPage.h1Count === 1 ? "" : "s"}` },
-    { ok: onPage.hasSitemap, label: `sitemap.xml ${onPage.hasSitemap ? "found" : "not found"}` },
+/** Every audited check, as passed / warning / error. */
+function auditChecks(onPage: OnPageChecks, scores: (number | null)[]): Result[] {
+  const score = (v: number | null): Result[] => (v === null ? [] : [v >= 90 ? "pass" : v >= 50 ? "warn" : "error"]);
+  return [
+    onPage.hasTitle ? (onPage.titleLength > 60 ? "warn" : "pass") : "error",
+    onPage.hasMetaDescription ? (onPage.metaDescriptionLength > 160 ? "warn" : "pass") : "error",
+    onPage.h1Count === 1 ? "pass" : onPage.h1Count === 0 ? "error" : "warn",
+    onPage.hasSitemap ? "pass" : "warn",
+    onPage.structuredDataTypes.length ? "pass" : "warn",
+    ...Object.values(onPage.aiCrawlerAccess).map((a): Result => (a === "allowed" ? "pass" : "warn")),
+    ...scores.flatMap(score),
   ];
-  return (
-    <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-[13px]">
-      {rows.map((r) => (
-        <li key={r.label} className="flex items-center gap-2">
-          {r.ok ? <CheckCircle2 className="size-4 text-brand-lime-strong" /> : <XCircle className="size-4 text-ds-danger-text" />}
-          <span className="text-brand-ink-2">{r.label}</span>
-        </li>
-      ))}
-    </ul>
-  );
 }
 
-function Crawlers({ onPage }: { onPage: OnPageChecks }) {
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {Object.entries(onPage.aiCrawlerAccess).map(([bot, access]) => (
-        <StatusPill key={bot} tone={access === "allowed" ? "success" : "danger"}>
-          {bot}
-        </StatusPill>
-      ))}
-    </div>
-  );
-}
-
-function Structured({ onPage }: { onPage: OnPageChecks }) {
-  return onPage.structuredDataTypes.length === 0 ? (
-    <span className="text-[13px] text-brand-ink-2">None found</span>
-  ) : (
-    <div className="flex flex-wrap gap-1.5">
-      {onPage.structuredDataTypes.map((t) => (
-        <StatusPill key={t}>{t}</StatusPill>
-      ))}
-    </div>
-  );
-}
-
-/** Insights → SEO & AI visibility: site health for you and tracked competitors, and whether AI assistants mention you. */
+/**
+ * Insights → SEO & AI visibility (InsightsSEO.dc.html): tiles, who AI assistants recommend (share of buyer
+ * questions mentioning each brand), "Are you in the answer?" (question × assistant), the site audit with its
+ * top fixes, and you vs competitors. Before the first audit, each block is a skeleton with "Run audit".
+ */
 export default async function SeoPage() {
   const viewer = await getPortalViewer();
+  const clientId = viewer.clientId;
   const [audits, brief, checks] = await Promise.all([
-    prisma.siteAudit.findMany({ where: { clientId: viewer.clientId } }),
-    prisma.seoBrief.findUnique({ where: { clientId: viewer.clientId } }),
-    prisma.aiVisibilityCheck.findMany({ where: { clientId: viewer.clientId }, orderBy: { checkedAt: "desc" }, take: 6 }),
+    prisma.siteAudit.findMany({ where: { clientId } }),
+    prisma.seoBrief.findUnique({ where: { clientId } }),
+    prisma.aiVisibilityCheck.findMany({ where: { clientId }, orderBy: { checkedAt: "desc" }, take: 200 }),
   ]);
-  const own = audits.find((a) => a.subject === "Own site") ?? null;
-  const competitors = audits.filter((a) => a.subject !== "Own site");
-  const scoresConfigured = own?.performanceScore !== null || competitors.some((a) => a.performanceScore !== null);
+  const runAudit = <AgentButton action={generateSeoReportAction} label="Run audit" pendingLabel="Auditing sites…" />;
 
   if (!viewer.client.website) {
     return (
-      <SectionCard title="SEO & AI visibility">
-        <CardNote>No website on file yet. Your account lead adds it, then audits can run.</CardNote>
-      </SectionCard>
+      <ChartCard title="SEO & AI visibility">
+        <SkeletonChart line="No website on file yet. Your account lead adds it, then audits can run." />
+      </ChartCard>
     );
   }
 
-  const ownOnPage = own && !own.fetchError ? (own.onPageChecks as OnPageChecks) : null;
+  const own = audits.find((a) => a.subject === "Own site") ?? null;
+  const competitors = audits.filter((a) => a.subject !== "Own site");
+  const onPage = own && !own.fetchError ? (own.onPageChecks as OnPageChecks) : null;
+
+  // The latest run: every check within a day of the newest one.
+  const newest = checks[0]?.checkedAt.getTime() ?? 0;
+  const run = checks.filter((c) => newest - c.checkedAt.getTime() < 86400000);
+  const questions = [...new Set(run.map((c) => c.question))];
+  const engines = [...new Set(run.map((c) => c.engine))];
+  const mentions = run.map((c) => ({ ...c, list: jsonArray<{ brand: string; mentioned: boolean }>(c.mentions) }));
+  const isOwn = (b: string) => b.toLowerCase() === viewer.client.name.toLowerCase();
+  const brands = [...new Set(mentions.flatMap((c) => c.list.map((m) => m.brand)))];
+  const share = brands
+    .map((b) => {
+      const asked = mentions.filter((c) => c.list.some((m) => m.brand === b));
+      const hit = asked.filter((c) => c.list.some((m) => m.brand === b && m.mentioned)).length;
+      return { brand: b, value: asked.length ? Math.round((hit / asked.length) * 100) : 0 };
+    })
+    .sort((a, b) => b.value - a.value);
+  const ownHits = mentions.filter((c) => c.list.some((m) => isOwn(m.brand) && m.mentioned)).length;
+  const inAnswer = (q: string, e: string) => mentions.find((c) => c.question === q && c.engine === e)?.list.some((m) => isOwn(m.brand) && m.mentioned);
+  const runDate = newest ? new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(new Date(newest)).toUpperCase() : null;
+
+  const results = onPage ? auditChecks(onPage, [own!.performanceScore, own!.seoScore, own!.accessibilityScore, own!.bestPracticesScore]) : [];
+  const count = (r: Result) => results.filter((x) => x === r).length;
+  const crawlers = onPage ? Object.values(onPage.aiCrawlerAccess) : [];
+  const fixes = jsonArray<Fix>(brief?.recommendations).slice(0, 3);
+  const vs = audits.filter((a) => a.seoScore !== null).sort((a, b) => b.seoScore! - a.seoScore!);
 
   return (
-    <PageGrid
-      main={
-        <>
-          <SectionCard title="What this means for you" action={<AgentButton action={generateSeoReportAction} label={brief ? "Refresh audit" : "Run audit"} pendingLabel="Auditing sites…" />}>
-            {brief ? (
-              <>
-                <p className="m-0 px-6 pt-5 text-[15px] leading-[1.55]">{brief.summary}</p>
-                <CardRows as="ol">
-                  {jsonArray<Recommendation>(brief.recommendations).map((r, i) => (
-                    <NumberedRow
-                      key={i}
-                      n={i + 1}
-                      title={r.title}
-                      detail={r.detail}
-                      action={<PillLink href={`/projects/new?${new URLSearchParams({ idea: r.title, detail: r.detail })}`}>Start a brief</PillLink>}
-                    />
-                  ))}
-                </CardRows>
-                <p className="m-0 border-t border-brand-line px-6 py-3 font-brand-mono text-[11px] text-brand-ink-2">GENERATED {formatDate(brief.generatedAt, { day: "numeric", month: "short" }).toUpperCase()}</p>
-              </>
-            ) : (
-              <CardNote>Audit your site and your tracked competitors&apos; for SEO and AI-crawler readiness, and test whether AI assistants mention your brand.</CardNote>
-            )}
-          </SectionCard>
+    <div className="flex flex-col gap-6">
+      {(run.length > 0 || own) && (
+        <div className="grid grid-cols-2 gap-4 min-[1000px]:grid-cols-4">
+          {run.length > 0 && <StatTile icon="ai" label="Mentioned by AI assistants" value={`${ownHits} of ${run.length}`} context="answers to buyer questions" />}
+          {own?.seoScore != null && <StatTile icon="seo" label="SEO health" value={String(own.seoScore)} context="of 100 · Lighthouse" />}
+          {crawlers.length > 0 && <StatTile icon="crawlers" label="AI crawlers allowed" value={`${crawlers.filter((c) => c === "allowed").length} of ${crawlers.length}`} context="robots.txt" />}
+          {own?.performanceScore != null && <StatTile icon="speed" label="Page speed (mobile)" value={String(own.performanceScore)} context="Lighthouse performance score" />}
+        </div>
+      )}
 
-          <SectionCard title="Your site" meta={<span className="text-[13px] text-brand-ink-2">{own?.domain ?? viewer.client.website}</span>} action={own ? <span className="font-brand-mono text-[11px] text-brand-ink-2">AUDITED {formatDate(own.auditedAt, { day: "numeric", month: "short" }).toUpperCase()}</span> : undefined}>
-            {!own ? (
-              <CardNote>No audit yet. Run one above.</CardNote>
-            ) : own.fetchError ? (
-              <CardNote>Couldn&apos;t reach the site: {own.fetchError}</CardNote>
-            ) : (
-              <CardBody className="flex flex-col gap-5">
-                <Scores audit={own} />
-                {!scoresConfigured && <p className="m-0 text-[12px] text-brand-ink-2">Lighthouse scores need a PageSpeed Insights key. Everything else here is live.</p>}
-                <div className="grid grid-cols-1 gap-5 @min-[600px]/col:grid-cols-2">
-                  <Checklist onPage={ownOnPage!} />
-                  <div className="flex flex-col gap-4">
-                    <div className="flex flex-col gap-1.5">
-                      <span className="text-[12px] text-brand-ink-2">Structured data</span>
-                      <Structured onPage={ownOnPage!} />
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <span className="text-[12px] text-brand-ink-2">AI crawler access</span>
-                      <Crawlers onPage={ownOnPage!} />
-                    </div>
+      <PageGrid
+        main={
+          <>
+            <ChartCard title="Who AI assistants recommend" table={{ columns: ["Brand", "Share of questions"], rows: share.map((s) => [s.brand, `${s.value}%`]) }}>
+              {share.length > 0 ? (
+                <>
+                  <div className="flex flex-col">
+                    <span className="text-[16px]">Share of {questions.length} buyer question{questions.length === 1 ? "" : "s"} where each brand is mentioned</span>
+                    <span className="text-[14px] text-brand-mute">Asked in {engines.map((e) => ENGINE[e] ?? e).join(" and ")}, grounded in a live web search</span>
                   </div>
-                </div>
-              </CardBody>
-            )}
-          </SectionCard>
+                  <BarList rows={share.map((s) => ({ label: s.brand, value: s.value, display: `${s.value}%`, tone: isOwn(s.brand) ? "ink" : "grey" }))} max={100} labelWidth={130} />
+                </>
+              ) : (
+                <SkeletonChart line="No AI answers checked yet." action={runAudit} />
+              )}
+            </ChartCard>
 
-          {checks.length > 0 && (
-            <SectionCard title="AI visibility tests" action={!process.env.PERPLEXITY_API_KEY ? <span className="text-[12px] text-brand-ink-2">Claude only</span> : undefined}>
-              <p className="m-0 px-6 pt-5 text-[13px] leading-[1.55] text-brand-ink-2">
-                Real questions asked to Claude and Perplexity (grounded in a live web search), checked for which tracked brands the answer mentions. A proxy for AI-search visibility, not a direct read of Google AI Overviews or ChatGPT.
-              </p>
-              <CardRows className="mt-3 border-t border-brand-line">
-                {checks.map((c) => (
-                  <li key={c.id} className="flex flex-col gap-2 px-6 py-4">
-                    <div className="flex items-start gap-3">
-                      <span className="min-w-0 flex-1 text-[15px]">&ldquo;{c.question}&rdquo;</span>
-                      <StatusPill className="capitalize">{c.engine}</StatusPill>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {jsonArray<{ brand: string; mentioned: boolean }>(c.mentions).map((m) => (
-                        <StatusPill key={m.brand} tone={m.mentioned ? "success" : "neutral"}>
-                          {m.mentioned ? "✓" : "✕"} {m.brand}
-                        </StatusPill>
+            <ChartCard
+              flush
+              title="Are you in the answer?"
+              meta={runDate ? <span className="font-brand-mono text-[12px] text-brand-ink">RUN {runDate}</span> : undefined}
+              table={{ columns: ["Question", ...engines.map((e) => ENGINE[e] ?? e)], rows: questions.map((q) => [q, ...engines.map((e) => (inAnswer(q, e) === undefined ? "not asked" : inAnswer(q, e) ? "yes" : "no"))]) }}
+            >
+              {questions.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[480px] border-collapse text-[15px]">
+                    <thead>
+                      <tr className="text-[13px] text-brand-mute">
+                        <th className="px-6 py-3 text-left font-normal">Question</th>
+                        {engines.map((e) => (
+                          <th key={e} className="w-24 px-2 py-3 text-center font-normal">
+                            {ENGINE[e] ?? e}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {questions.slice(0, MATRIX_SHOWN).map((q) => (
+                        <MatrixRow key={q} q={q} engines={engines} inAnswer={inAnswer} />
                       ))}
-                    </div>
-                    <p className="m-0 text-[13px] italic leading-[1.5] text-brand-ink-2">
-                      &ldquo;{c.answer.slice(0, 280)}
-                      {c.answer.length > 280 ? "…" : ""}&rdquo;
-                    </p>
-                  </li>
-                ))}
-              </CardRows>
-            </SectionCard>
-          )}
-        </>
-      }
-      side={
-        competitors.length > 0 ? (
-          <SectionCard title="Competitors">
-            <CardRows>
-              {competitors.map((a) => {
-                const onPage = a.fetchError ? null : (a.onPageChecks as OnPageChecks);
-                const blocked = onPage ? Object.entries(onPage.aiCrawlerAccess).filter(([, v]) => v === "blocked") : [];
-                return (
-                  <li key={a.id} className="@container/col flex flex-col gap-3 px-6 py-4">
-                    <span className="flex flex-col">
-                      <span className="text-[15px]">{a.subject}</span>
-                      <span className="text-[12px] text-brand-ink-2">{a.domain}</span>
-                    </span>
-                    {!onPage ? (
-                      <span className="text-[13px] text-ds-danger-text">Couldn&apos;t reach the site</span>
-                    ) : (
-                      <>
-                        <Scores audit={a} compact />
-                        <Checklist onPage={onPage} />
-                        <Structured onPage={onPage} />
-                        {blocked.length > 0 && <span className="text-[12px] text-ds-danger-text">Blocks {blocked.map(([b]) => b).join(", ")}</span>}
-                      </>
-                    )}
-                  </li>
-                );
-              })}
-            </CardRows>
-          </SectionCard>
-        ) : undefined
-      }
-    />
+                    </tbody>
+                  </table>
+                  {questions.length > MATRIX_SHOWN && (
+                    <details>
+                      <summary className="cursor-pointer list-none px-6 py-3 text-[13px] text-brand-ink-2">
+                        <span className="text-brand-ink underline underline-offset-2">see all {questions.length}</span>
+                      </summary>
+                      <table className="w-full min-w-[480px] border-collapse text-[15px]">
+                        <tbody>
+                          {questions.slice(MATRIX_SHOWN).map((q) => (
+                            <MatrixRow key={q} q={q} engines={engines} inAnswer={inAnswer} />
+                          ))}
+                        </tbody>
+                      </table>
+                    </details>
+                  )}
+                </div>
+              ) : (
+                <div className="px-6 py-5">
+                  <SkeletonChart shape="matrix" line="Buyer questions are asked to AI assistants when the audit runs." action={runAudit} />
+                </div>
+              )}
+            </ChartCard>
+          </>
+        }
+        side={
+          <>
+            <ChartCard title="Site audit" meta={results.length ? <span className="font-brand-mono text-[12px] text-brand-ink">{results.length} CHECKS</span> : undefined} table={results.length ? { columns: ["Result", "Checks"], rows: [["Passed", count("pass")], ["Warnings", count("warn")], ["Errors", count("error")]] } : undefined}>
+              {onPage ? (
+                <>
+                  <StackBar
+                    segments={[
+                      { label: "Passed", value: count("pass"), color: SERIES[1] },
+                      { label: "Warnings", value: count("warn"), color: "#C2C3C5" },
+                      { label: "Errors", value: count("error"), color: SERIES[2] },
+                    ]}
+                  />
+                  {fixes.length > 0 && (
+                    <ul className="m-0 flex list-none flex-col p-0">
+                      {fixes.map((f) => (
+                        <li key={f.title} className="flex items-center gap-3 border-t border-brand-line py-3">
+                          <span className="min-w-0 flex-1 text-[15px] leading-[1.4]">{f.title}</span>
+                          {f.impact && <span className="shrink-0 rounded-full bg-brand-chip px-2.5 py-0.5 text-[12px] text-brand-ink-2">{f.impact === "Medium" ? "Medium" : `${f.impact} impact`}</span>}
+                          <WhySheet title={f.title} reasoning={f.detail} />
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {fixes.length > 0 && (
+                    <PillLink href={`/brief/new?${new URLSearchParams({ q: `Website fixes: ${fixes.map((f) => f.title).join("; ")}` })}`} variant="primary" size="sm" className="self-start">
+                      Make these a brief
+                    </PillLink>
+                  )}
+                </>
+              ) : own?.fetchError ? (
+                <SkeletonChart line={`Couldn't reach the site: ${own.fetchError}`} action={runAudit} />
+              ) : (
+                <SkeletonChart line="No audit yet" action={runAudit} />
+              )}
+            </ChartCard>
+
+            <ChartCard title="You vs competitors" table={{ columns: ["Site", "SEO score"], rows: vs.map((a) => [a.subject === "Own site" ? viewer.client.name : a.subject, a.seoScore!]) }}>
+              {own?.seoScore != null && vs.length > 1 ? (
+                <>
+                  <BarList rows={vs.map((a) => ({ label: a.subject === "Own site" ? viewer.client.name : a.subject, value: a.seoScore!, display: String(a.seoScore), tone: a.subject === "Own site" ? "ink" : "grey" }))} max={100} labelWidth={110} compact />
+                  <span className="text-[13px] text-brand-mute">SEO health score</span>
+                </>
+              ) : (
+                <SkeletonChart line={!competitors.length ? "Audit your competitors' sites alongside yours." : own?.seoScore == null ? "Your site has no Lighthouse score yet." : "No competitor scores yet."} action={runAudit} />
+              )}
+            </ChartCard>
+          </>
+        }
+      />
+    </div>
+  );
+}
+
+function MatrixRow({ q, engines, inAnswer }: { q: string; engines: string[]; inAnswer: (q: string, e: string) => boolean | undefined }) {
+  return (
+    <tr className="border-t border-brand-line">
+      <td className="px-6 py-3.5">{q}</td>
+      {engines.map((e) => {
+        const v = inAnswer(q, e);
+        return (
+          <td key={e} className="px-2 py-3.5 text-center">
+            {v === undefined ? (
+              <span className="text-[12px] text-brand-mute">not asked</span>
+            ) : (
+              <span aria-label={v ? "Mentioned" : "Not mentioned"} className={`inline-flex size-6 items-center justify-center rounded-full ${v ? "bg-brand-lime-pale" : "bg-brand-chip"}`}>
+                {v ? <Check className="size-3.5 text-brand-ink" strokeWidth={2} /> : <Minus className="size-3.5 text-brand-mute" strokeWidth={2} />}
+              </span>
+            )}
+          </td>
+        );
+      })}
+    </tr>
   );
 }

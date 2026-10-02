@@ -184,6 +184,7 @@ model Client {
   seoBrief                     SeoBrief?
   performanceSnapshots         PerformanceSnapshot[]
   customApps                   ClientApp[]
+  adDailyMetrics               AdDailyMetric[]
   contentPosts                 ContentPost[]
   followerSnapshots            FollowerSnapshot[]
   businessOutcomes             ClientBusinessOutcome[]
@@ -214,6 +215,8 @@ model MarketIntelligenceBrief {
   summary     String
   assumptions Json // string[]
   generatedAt DateTime @default(now())
+  /// "What this means for you": up to 2 one-liners [{text, type, actionLabel}] (Insights v2).
+  points      Json?
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 }
@@ -237,6 +240,11 @@ model MarketIntelligenceIdea {
   status    IdeaStatus @default(NEW)
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
+  /// Insights v2: a one-line why, evidence chips [{label}], the mini chart's bars [{label, value, unit}] and the formats it'd be made in (for the Price List estimate).
+  why       String?
+  evidence  Json?
+  chart     Json?
+  formats   Json?
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
@@ -340,6 +348,8 @@ model PerformanceBrief {
   /// Insights Overview "This week's takeaways": { title, detail, action: { label, kind: "brief" | "view", view } }[], max 3. Null until the agent has written them.
   takeaways       Json?
   generatedAt     DateTime @default(now())
+  /// "What to do" (Insights v2): up to 3 [{headline, chip, why, brief}].
+  actions         Json?
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 }
@@ -348,6 +358,31 @@ model PerformanceBrief {
 // threshold breach (CTR down vs. its own trailing average) instead of just
 // showing the current number. Written opportunistically alongside the
 // Performance Insights page load, staleness-guarded like CompetitorSnapshot.
+/// One campaign's real activity on one day, fetched day by day from the ad platform (Meta time_increment=1,
+/// Google segments.date, LinkedIn DAILY). The source for every per-day chart and sparkline in Insights; nothing
+/// is ever synthesised into it.
+model AdDailyMetric {
+  id           String   @id @default(cuid())
+  clientId     String
+  platform     String // "Meta" | "LinkedIn" | "Google"
+  accountName  String
+  currency     String
+  campaignId   String
+  campaignName String
+  /// The day, YYYY-MM-DD in the ad account's time zone.
+  date         String
+  impressions  Int
+  clicks       Int
+  spend        Float
+  conversions  Float    @default(0)
+  updatedAt    DateTime @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, platform, campaignId, date])
+  @@index([clientId, date])
+}
+
 model PerformanceSnapshot {
   id           String   @id @default(cuid())
   clientId     String
@@ -1585,6 +1620,8 @@ model MarketSignal {
   // so a still-ongoing condition isn't re-raised on every refresh.
   dedupeKey   String?
   archivedAt  DateTime? // soft delete — hidden from feeds, kept for restore
+  /// Structured numbers behind a signal, e.g. {before, after} CTR for a performance alert (the mini before→after).
+  data        Json?
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 

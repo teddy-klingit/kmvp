@@ -1,396 +1,245 @@
-import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
-import { loadContentKpis, loadMeasuredAssets, loadPaidMedia } from "@/lib/insights-data";
-import { summarizePlatformCampaigns, type PlatformCampaign } from "@/lib/performance";
-import { contentFormatPerformance } from "@/lib/content-calendar-metrics";
-import { DATE_RANGE_PRESETS, resolveDateRange } from "@/lib/report-filters";
-import { performanceTierFor } from "@/lib/asset-performance";
+import { connectHref, ctrByFormat, loadMeasuredAssets, loadPaidMedia, loadTakeaways } from "@/lib/insights-data";
+import { compact, dayLabel, loadDaily, money, parseRange, pct } from "@/lib/insights/daily";
+import { paidTiles } from "@/lib/insights/tiles";
 import { generatePerformanceInsightsAction } from "@/lib/actions/performance-actions";
-import { formatDate, formatMoney, jsonArray } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { PageGrid } from "@/components/ds/page-grid";
-import { SectionCard, CardBody, CardNote, CardRows } from "@/components/ds/card";
 import { FilterChips } from "@/components/ds/filter-chips";
-import { HBars, Meter, StatTiles, type Stat } from "@/components/ds/stats";
-import { DiscreteMetricBars } from "@/components/portal/discrete-metric-bars";
-import { NumberedRow } from "@/components/ds/numbered-row";
-import { StatusPill, type PillTone } from "@/components/ds/status-pill";
-import { CampaignDetailDialog } from "@/components/portal/campaign-detail-dialog";
-import { PostDetailDialog } from "@/components/portal/post-detail-dialog";
-import { PlatformBadge } from "@/components/portal/platform-icon";
-import { MixDonutChart, MIX_DONUT_COLORS } from "@/components/portal/mix-donut-chart";
-import { FollowerGrowthChart } from "@/components/portal/follower-growth-chart";
+import { PillLink } from "@/components/ds/pill-link";
 import { AgentButton } from "@/components/portal/insights/agent-button";
+import { ChartCard, SkeletonChart, StatTile, WhySheet } from "@/components/insights/cards";
+import { BarList, ColumnChart, DumbbellRow, LineChart } from "@/components/insights/charts";
+import { SubBar } from "@/components/insights/toolbar";
+import { Suspense } from "react";
 
-type Recommendation = { title: string; detail: string };
-type KpiTarget = { metric: string; target: string; platform: string | null };
-
-const TIER_TONE: Record<string, PillTone> = { success: "success", info: "neutral", warning: "watch", danger: "danger", neutral: "neutral" };
-
-function average(values: number[]) {
-  return values.length ? values.reduce((s, v) => s + v, 0) / values.length : 0;
-}
-
-function groupAverage<T>(items: T[], keyOf: (item: T) => string, valueOf: (item: T) => number | null) {
-  const map = new Map<string, { total: number; count: number }>();
-  for (const item of items) {
-    const v = valueOf(item);
-    if (v === null) continue;
-    const e = map.get(keyOf(item)) ?? { total: 0, count: 0 };
-    e.total += v;
-    e.count += 1;
-    map.set(keyOf(item), e);
-  }
-  return [...map].map(([key, { total, count }]) => ({ key, value: Math.round((total / count) * 10) / 10, count })).sort((a, b) => b.value - a.value);
-}
-
-/** Strong = CTR at least 20% above the platform's own average; weak = at or below 60% of it. */
-function tierOf(c: PlatformCampaign, avgCtr: number) {
-  if (avgCtr <= 0) return null;
-  return c.ctr >= avgCtr * 1.2 ? "strong" : c.ctr <= avgCtr * 0.6 ? "weak" : null;
-}
+/** A campaign whose CTR is under half the reference (creative average, or the account's own) needs a look. */
+const FAR_BELOW = 0.5;
 
 /**
- * Insights → Performance: paid campaigns, SOW KPIs, the performance agent's read, and every delivered
- * asset's measured CTR. Same data and actions as before; metrics without data are left out.
+ * Insights → Performance (InsightsPerformance.dc.html): five tiles with sparklines, spend per day and clicks
+ * per day as two charts on one x-axis (never a dual axis), the campaigns table and creative effectiveness; on
+ * the side the agent's "What to do", fatigue watch and CTR by format. Daily charts only from stored days.
  */
-export default async function InsightsPerformancePage({ searchParams }: { searchParams: Promise<{ platform?: string; range?: string; tier?: string }> }) {
-  const { platform: selectedPlatform, range: selectedRange, tier: selectedTier } = await searchParams;
+export default async function InsightsPerformancePage({ searchParams }: { searchParams: Promise<{ platform?: string; range?: string }> }) {
+  const { platform, range } = await searchParams;
+  const days = parseRange(range);
   const viewer = await getPortalViewer();
   const clientId = viewer.clientId;
-  const [paid, kpis, { all }, brief, config, outcomes] = await Promise.all([
-    loadPaidMedia(clientId, selectedRange),
-    loadContentKpis(clientId),
+  const [paid, daily, { all, measured }, { actions }, connect] = await Promise.all([
+    loadPaidMedia(clientId),
+    loadDaily(clientId, days, platform ?? null),
     loadMeasuredAssets(clientId),
-    prisma.performanceBrief.findUnique({ where: { clientId } }),
-    prisma.clientReportingConfig.findUnique({ where: { clientId } }),
-    prisma.clientBusinessOutcome.findMany({ where: { clientId }, orderBy: { periodStart: "asc" } }),
+    loadTakeaways(clientId),
+    connectHref(clientId),
   ]);
-  // Business outcomes (moved here from the Calendar): revenue when reported, otherwise leads.
-  const hasRevenue = outcomes.some((o) => o.revenue !== null);
-  const outcomeBars = outcomes
-    .map((o) => ({ period: formatDate(o.periodStart, { month: "short" }), value: hasRevenue ? o.revenue : o.leadsGenerated }))
-    .filter((o): o is { period: string; value: number } => o.value !== null);
-  const kpiTargets = jsonArray<KpiTarget>(config?.kpiTargets);
-  const targetFor = (metric: string) => kpiTargets.find((t) => t.metric === metric)?.target ?? null;
-  const dateRange = resolveDateRange({ preset: selectedRange });
 
-  const href = (o: { platform?: string; range?: string; tier?: string }) => {
+  const platforms = daily.platforms.length ? daily.platforms : [...new Set(paid.campaigns.map((c) => c.platform))];
+  const href = (p?: string) => {
     const q = new URLSearchParams();
-    for (const [k, v] of Object.entries({ platform: selectedPlatform, range: selectedRange, tier: selectedTier, ...o })) if (v) q.set(k, v);
+    if (p) q.set("platform", p);
+    if (range) q.set("range", range);
     return `/insights/performance${q.size ? `?${q}` : ""}`;
   };
+  const fallback = platform ? paid.campaigns.filter((c) => c.platform === platform) : paid.campaigns;
+  const source = platform ?? (daily.has ? daily.platforms.join(" + ") : paid.isSample ? "sample data" : paid.connected.join(" + "));
+  const tiles = paid.inScope ? paidTiles(daily, daily.has ? [] : fallback, days, source) : [];
+  const currency = daily.currency ?? fallback[0]?.currency ?? null;
 
-  const platforms = [...new Set(paid.campaigns.map((c) => c.platform))];
-  const campaigns = selectedPlatform ? paid.campaigns.filter((c) => c.platform === selectedPlatform) : paid.campaigns;
-  const summary = campaigns.length ? summarizePlatformCampaigns(campaigns) : null;
-  const posts = selectedPlatform ? kpis.publishedPosts.filter((p) => p.platform === selectedPlatform) : kpis.publishedPosts;
-  const organicPlatforms = groupAverage(kpis.publishedPosts, (p) => p.platform, (p) => p.engagementRate);
-  const filterPlatforms = paid.inScope ? platforms : organicPlatforms.map((p) => p.key);
+  const avg = measured.length ? measured.reduce((a, m) => a + m.ctr, 0) / measured.length : null;
+  const campaigns = daily.has
+    ? daily.campaigns.map((c) => ({ id: `${c.platform}:${c.campaignId}`, name: c.name, sub: `${c.platform} · ${c.accountName}${c.live ? " · live" : ""}`, spend: c.spend, impressions: c.impressions, clicks: c.clicks, ctr: c.ctr, live: c.live }))
+    : fallback.map((c) => ({ id: `${c.platform}:${c.campaignId}`, name: c.campaignName, sub: `${c.platform} · ${c.accountName}`, spend: c.spend, impressions: c.impressions, clicks: c.clicks, ctr: c.ctr, live: !paid.isSample }));
+  const reference = avg ?? (daily.has ? daily.totals.ctr : null);
+  const maxSpend = Math.max(...campaigns.map((c) => c.spend), 1);
+  const flagged = (ctr: number) => reference !== null && ctr < reference * FAR_BELOW;
 
-  const platformCtr = (selectedPlatform ? [selectedPlatform] : platforms)
-    .map((p) => {
-      const cs = campaigns.filter((c) => c.platform === p);
-      const impressions = cs.reduce((s, c) => s + c.impressions, 0);
-      const clicks = cs.reduce((s, c) => s + c.clicks, 0);
-      const spend = cs.reduce((s, c) => s + c.spend, 0);
-      const conversions = cs.reduce((s, c) => s + c.conversions, 0);
-      return { platform: p, ctr: impressions > 0 ? Math.round((clicks / impressions) * 1000) / 10 : 0, spend, conversions, currency: cs[0]?.currency ?? "USD", count: cs.length, accountName: cs[0]?.accountName ?? p };
-    })
-    .sort((a, b) => b.ctr - a.ctr);
-  const spendByPlatform = platforms.map((p) => ({ name: p, value: Math.round(paid.campaigns.filter((c) => c.platform === p).reduce((s, c) => s + c.spend, 0)) }));
-  const mixedCurrencies = new Set(paid.campaigns.map((c) => c.currency)).size > 1;
-
-  // SOW KPIs: only the ones with data.
-  const target = (m: string) => (targetFor(m) ? `target ${targetFor(m)}` : null);
-  const sow: Stat[] = [
-    ...(kpis.blendedFollowerGrowthPct !== null ? [{ label: "Follower growth, MoM", value: `${kpis.blendedFollowerGrowthPct >= 0 ? "+" : ""}${kpis.blendedFollowerGrowthPct}%`, note: target("Follower Growth") }] : []),
-    ...(kpis.avgEngagementRate !== null ? [{ label: "Engagement rate", value: `${kpis.avgEngagementRate}%`, note: target("Engagement Rate") }] : []),
-    ...(kpis.contentVolumeTarget > 0 ? [{ label: "Content this month", value: `${kpis.contentVolumeThisMonth} of ${kpis.contentVolumeTarget}`, note: "SOW monthly minimum" }] : []),
-    ...(kpis.avgVideoViews !== null ? [{ label: "Video views, average", value: kpis.avgVideoViews.toLocaleString("en-GB"), note: target("Video Views") }] : []),
-  ];
-  const paidTiles: Stat[] = summary
-    ? [
-        { label: `Spend${paid.isSample ? ` · ${dateRange.label}` : ""}`, value: summary.mixedCurrencies ? summary.spendByCurrency.map((s) => formatMoney(s.amount, s.currency)).join(" + ") : formatMoney(summary.totalSpend, summary.currency) },
-        { label: "Blended CTR", value: `${summary.blendedCtr}%` },
-        ...(summary.totalConversions > 0 ? [{ label: "Conversions", value: String(summary.totalConversions) }] : []),
-        ...(summary.blendedCostPerConversion ? [{ label: `Cost per conversion${summary.conversionTrackingIsPartial ? " (tracked)" : ""}`, value: formatMoney(summary.blendedCostPerConversion, summary.currency) }] : []),
-      ]
-    : [];
-
-  const byFormat = groupAverage(all.filter((a) => a.performanceCtr !== null), (a) => a.format, (a) => a.performanceCtr);
-  const contentFormats = contentFormatPerformance(posts);
-  const topPosts = [...posts].filter((p) => p.engagementRate !== null).sort((a, b) => (b.engagementRate ?? 0) - (a.engagementRate ?? 0)).slice(0, 8);
-  const best = platformCtr[0];
-  const worst = platformCtr.length > 1 ? platformCtr[platformCtr.length - 1] : null;
+  const fatigue = daily.campaigns
+    .filter((c): c is typeof c & { ctrLast7: number; ctrTrailing: number } => c.ctrLast7 !== null && c.ctrTrailing !== null && c.ctrTrailing > 0)
+    .map((c) => ({ ...c, change: (c.ctrLast7 - c.ctrTrailing) / c.ctrTrailing }))
+    .sort((a, b) => a.change - b.change)
+    .slice(0, 4);
+  const formats = ctrByFormat(measured);
+  const unmeasured = all.filter((a) => a.performanceCtr === null);
+  const xEvery = days === 7 ? 1 : days === 30 ? 7 : 14;
+  const briefQ = actions.map((a) => a.brief || a.headline).join("; ");
 
   return (
     <div className="flex flex-col gap-6">
-      {(paid.isSample || filterPlatforms.length > 0) && (
-        <div className="flex flex-col gap-3">
-          {paid.isSample && paid.inScope && (
-            <FilterChips label="Date range" items={DATE_RANGE_PRESETS.map((p) => ({ label: p.label, href: href({ range: p.key }), active: (selectedRange ?? "30d") === p.key }))} />
-          )}
-          {filterPlatforms.length > 0 && (
-            <FilterChips
-              label="Platform and tier"
-              items={[
-                { label: "All platforms", href: href({ platform: undefined }), active: !selectedPlatform },
-                ...filterPlatforms.map((p) => ({ label: p, href: href({ platform: p }), active: selectedPlatform === p })),
-                ...(paid.inScope
-                  ? [
-                      { label: "Strong campaigns", href: href({ tier: selectedTier === "strong" ? undefined : "strong" }), active: selectedTier === "strong" },
-                      { label: "Weak campaigns", href: href({ tier: selectedTier === "weak" ? undefined : "weak" }), active: selectedTier === "weak" },
-                    ]
-                  : []),
-              ]}
-            />
-          )}
+      <Suspense>
+        <SubBar
+          chips={
+            platforms.length > 0 ? (
+              <FilterChips label="Platform" items={[{ label: "All platforms", href: href(), active: !platform }, ...platforms.map((p) => ({ label: p, href: href(p), active: platform === p }))]} />
+            ) : null
+          }
+        />
+      </Suspense>
+
+      {tiles.length > 0 && (
+        <div className="grid grid-cols-2 gap-4 min-[700px]:grid-cols-3 min-[1100px]:grid-cols-5">
+          {tiles.map((t) => (
+            <StatTile key={t.key} icon={t.icon} label={t.label === "Ad spend" ? "Spend" : t.label === "Click-through rate" ? "CTR" : t.label} value={t.value} spark={t.spark} delta={t.delta} />
+          ))}
         </div>
       )}
 
       <PageGrid
         main={
           <>
-            <SectionCard
-              title="What this means for you"
-              action={<AgentButton action={generatePerformanceInsightsAction} label={brief ? "Refresh" : "Generate insights"} pendingLabel="Analysing…" />}
-            >
-              {brief ? (
-                <>
-                  <p className="m-0 px-6 pt-5 text-[15px] leading-[1.55]">{brief.summary}</p>
-                  <CardRows as="ol">
-                    {jsonArray<Recommendation>(brief.recommendations).map((r, i) => (
-                      <NumberedRow key={i} n={i + 1} title={r.title} detail={r.detail} />
+            {daily.has ? (
+              <ChartCard
+                title="Spend and clicks per day"
+                table={{ columns: ["Day", `Spend${currency ? `, ${currency}` : ""}`, "Clicks", "Impressions"], rows: daily.days.map((d) => [dayLabel(d.date), Math.round(d.spend), d.clicks, d.impressions]) }}
+              >
+                <span className="text-[16px]">Spend{currency ? `, ${currency}` : ""}</span>
+                <ColumnChart data={daily.days.map((d) => ({ x: dayLabel(d.date), values: [d.spend] }))} series={[{ name: "Spend" }]} height={180} xEvery={xEvery} />
+                <span className="pt-3 text-[16px]">Clicks</span>
+                <LineChart x={daily.days.map((d) => dayLabel(d.date))} series={[{ name: "Clicks", values: daily.days.map((d) => d.clicks) }]} height={140} xEvery={xEvery} />
+              </ChartCard>
+            ) : paid.inScope && !paid.isSample && paid.connected.length === 0 ? (
+              <ChartCard title="Spend and clicks per day">
+                <SkeletonChart line="Connect an ad account to see every day's spend and clicks." action={<PillLink href={connect} size="sm">Connect</PillLink>} />
+              </ChartCard>
+            ) : null}
+
+            {campaigns.length > 0 && (
+              <ChartCard
+                flush
+                title="Campaigns"
+                meta={<span className="font-brand-mono text-[12px] text-brand-ink">{paid.isSample ? `${campaigns.length} SAMPLE` : `${campaigns.filter((c) => c.live).length} LIVE`}</span>}
+                table={{ columns: ["Campaign", "Spend", "Impressions", "Clicks", "CTR"], rows: campaigns.map((c) => [c.name, money(c.spend, currency), c.impressions, c.clicks, `${c.ctr}%`]) }}
+              >
+                <div className="@container/table">
+                  <div className="grid grid-cols-[minmax(0,1fr)_96px_72px] gap-3 border-b border-brand-line px-6 py-3 text-[13px] text-brand-mute @min-[640px]/table:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_80px_64px_72px]">
+                    <span>Campaign</span>
+                    <span>Spend</span>
+                    <span className="hidden @min-[640px]/table:block">Impressions</span>
+                    <span className="hidden @min-[640px]/table:block">Clicks</span>
+                    <span>CTR</span>
+                  </div>
+                  <ul className="m-0 list-none p-0">
+                    {campaigns.map((c) => (
+                      <li key={c.id} className="grid grid-cols-[minmax(0,1fr)_96px_72px] items-center gap-3 border-b border-brand-line px-6 py-3.5 last:border-b-0 @min-[640px]/table:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_80px_64px_72px]">
+                        <span className="flex min-w-0 flex-col">
+                          <span className="truncate text-[15px]">{c.name}</span>
+                          <span className="truncate text-[12px] text-brand-mute">{c.sub}</span>
+                        </span>
+                        <span className="flex min-w-0 items-center gap-2.5">
+                          <span aria-hidden className="hidden h-2 shrink-0 rounded-r-[4px] bg-brand-ink @min-[640px]/table:block" style={{ width: `${Math.max(4, (c.spend / maxSpend) * 72)}px` }} />
+                          <span className="truncate text-[14px] tabular-nums">{money(c.spend, currency)}</span>
+                        </span>
+                        <span className="hidden text-[14px] tabular-nums @min-[640px]/table:block">{compact(c.impressions)}</span>
+                        <span className="hidden text-[14px] tabular-nums @min-[640px]/table:block">{c.clicks.toLocaleString("en-GB")}</span>
+                        <span className="flex items-center gap-1.5 text-[14px] tabular-nums">
+                          {flagged(c.ctr) && <span aria-label="Far below average" className="size-2 rounded-full bg-brand-orange" />}
+                          {pct(c.ctr)}
+                        </span>
+                      </li>
                     ))}
-                  </CardRows>
-                  <p className="m-0 border-t border-brand-line px-6 py-3 font-brand-mono text-[11px] text-brand-ink-2">BY THE PERFORMANCE AGENT · {formatDate(brief.generatedAt, { day: "numeric", month: "short" }).toUpperCase()}</p>
+                  </ul>
+                  {reference !== null && campaigns.some((c) => flagged(c.ctr)) && (
+                    <p className="m-0 flex items-center gap-1.5 border-t border-brand-line px-6 py-3 text-[12px] text-brand-ink-2">
+                      <span aria-hidden className="size-2 rounded-full bg-brand-orange" />
+                      Far below your {avg !== null ? "creative" : "account"} average ({pct(reference)})
+                    </p>
+                  )}
+                </div>
+              </ChartCard>
+            )}
+
+            <ChartCard
+              id="creative"
+              title="Creative effectiveness"
+              meta={all.length > 0 ? <span className="font-brand-mono text-[12px] text-brand-ink">{all.length} ASSETS</span> : undefined}
+              table={{ columns: ["Asset", "Format", "CTR"], rows: [...measured].sort((a, b) => b.ctr - a.ctr).map((a) => [a.title, a.format, `${a.ctr}%`]) }}
+            >
+              {measured.length > 0 ? (
+                <>
+                  <div className="flex flex-col">
+                    <span className="text-[16px]">Click-through rate per asset, delivered work</span>
+                    <span className="text-[14px] text-brand-mute">Ink = above your average · grey = below</span>
+                  </div>
+                  <BarList rows={[...measured].sort((a, b) => b.ctr - a.ctr).map((a) => ({ label: a.title, sub: a.format, value: a.ctr, display: `${a.ctr}%`, thumb: a.thumbnail, thumbColor: a.color }))} reference={avg !== null ? { value: avg, label: `Your average ${avg.toFixed(1)}%` } : undefined} labelWidth={190} />
                 </>
               ) : (
-                <CardNote>The performance agent reads your live campaigns and delivered creative, and tells you what to scale, cut or look into.</CardNote>
+                <SkeletonChart line="Delivered creative gets a CTR here once it has run." action={<PillLink href="/brief/new" size="sm">Start a brief</PillLink>} />
               )}
-            </SectionCard>
-
-            {paidTiles.length > 0 && (
-              <SectionCard title="Paid ads" action={summary && summary.totalConversions === 0 ? <span className="text-[12px] text-brand-ink-2">No conversion tracking yet</span> : undefined}>
-                <StatTiles tiles={paidTiles} />
-              </SectionCard>
-            )}
-
-            {paid.inScope &&
-              platformCtr.map((p) => {
-                const cs = campaigns.filter((c) => c.platform === p.platform);
-                const avgCtr = average(cs.map((c) => c.ctr).filter((v) => v > 0));
-                const costs = cs.map((c) => c.costPerConversion).filter((v): v is number => v !== null && v > 0);
-                const avgCost = costs.length ? average(costs) : null;
-                const visible = [...cs].sort((a, b) => b.spend - a.spend).filter((c) => !selectedTier || tierOf(c, avgCtr) === selectedTier);
-                return (
-                  <SectionCard
-                    key={p.platform}
-                    title={
-                      <span className="flex items-center gap-2.5">
-                        <PlatformBadge platform={p.platform} className="size-6" />
-                        {p.platform}
-                      </span>
-                    }
-                    label={`${p.platform} campaigns`}
-                    meta={<span className="text-[13px] text-brand-ink-2">{p.accountName}{paid.isSample ? "" : " · live"}</span>}
-                  >
-                    {visible.length === 0 ? (
-                      <CardNote>No campaigns match this filter.</CardNote>
-                    ) : (
-                      <CardBody className="grid grid-cols-1 gap-3 @min-[600px]/col:grid-cols-2">
-                        {visible.map((c) => (
-                          <CampaignDetailDialog key={c.campaignId} campaign={c} isStrong={tierOf(c, avgCtr) === "strong"} isWeak={tierOf(c, avgCtr) === "weak"} avgCtr={avgCtr} avgCostPerConversion={avgCost} />
-                        ))}
-                      </CardBody>
-                    )}
-                  </SectionCard>
-                );
-              })}
-
-            {paid.trend && paid.trend.spendData.length > 1 && (
-              <SectionCard title="Weekly spend">
-                <CardBody>
-                  <FollowerGrowthChart data={paid.trend.spendData} platforms={paid.trend.platforms} />
-                </CardBody>
-              </SectionCard>
-            )}
-
-            {(byFormat.length > 0 || contentFormats.length > 0) && (
-              <SectionCard
-                title={byFormat.length > 0 ? "CTR by creative format" : "Engagement by content format"}
-                action={<span className="text-[13px] text-brand-ink-2">{byFormat.length > 0 ? "Delivered work" : "Published posts"}</span>}
-              >
-                <CardBody>
-                  <HBars rows={byFormat.length > 0 ? byFormat.map((f) => ({ label: f.key, value: f.value })) : contentFormats.map((f) => ({ label: f.key, value: f.ctr }))} />
-                </CardBody>
-              </SectionCard>
-            )}
-
-            <SectionCard id="creative" title={all.length > 0 ? "Creative effectiveness" : "Top content"} action={all.length > 0 ? <span className="text-[12px] text-brand-ink-2">{all.length} assets</span> : undefined}>
-              {all.length > 0 ? (
-                <CardRows>
-                  {[...all]
-                    .sort((a, b) => (b.performanceCtr ?? -1) - (a.performanceCtr ?? -1))
-                    .map((a) => {
-                      const tier = performanceTierFor(a.performanceCtr);
-                      return (
-                        <li key={a.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-6 py-3.5">
-                          <span className="flex min-w-0 flex-1 basis-[220px] flex-col">
-                            <span className="truncate text-[15px]">{a.displayTitle}</span>
-                            <span className="truncate text-[12px] text-brand-ink-2">
-                              {a.project.name} · {a.format}
-                            </span>
-                          </span>
-                          {a.performanceCtr !== null ? (
-                            <>
-                              <span className="text-[14px] tabular-nums">{a.performanceCtr}% CTR</span>
-                              <StatusPill tone={TIER_TONE[tier.tone]}>{tier.label}</StatusPill>
-                            </>
-                          ) : (
-                            <span className="text-[13px] text-brand-ink-2">Not measured yet</span>
-                          )}
-                        </li>
-                      );
-                    })}
-                </CardRows>
-              ) : topPosts.length > 0 ? (
-                <CardRows>
-                  {topPosts.map((p) => (
-                    <li key={p.id}>
-                      <PostDetailDialog post={p}>
-                        <div className="flex cursor-pointer items-center gap-3 px-6 py-3.5 hover:bg-brand-chip">
-                          <PlatformBadge platform={p.platform} className="size-8" />
-                          <span className="flex min-w-0 flex-1 flex-col">
-                            <span className="truncate text-[15px]">{p.title}</span>
-                            <span className="text-[12px] text-brand-ink-2">
-                              {p.platform}
-                              {p.contentType ? ` · ${p.contentType}` : ""}
-                            </span>
-                          </span>
-                          {p.engagementRate !== null && <span className="text-[14px] tabular-nums">{p.engagementRate}% eng.</span>}
-                        </div>
-                      </PostDetailDialog>
-                    </li>
-                  ))}
-                </CardRows>
-              ) : (
-                <CardNote>No performance data yet.</CardNote>
+              {unmeasured.length > 0 && (
+                <details className="pt-4 text-[13px] text-brand-ink-2">
+                  <summary className="cursor-pointer list-none">
+                    {unmeasured.length} asset{unmeasured.length === 1 ? "" : "s"} not measured yet · <span className="text-brand-ink underline underline-offset-2">show</span>
+                  </summary>
+                  <ul className="m-0 mt-2 flex list-none flex-col gap-1 p-0">
+                    {unmeasured.map((a) => (
+                      <li key={a.id}>
+                        {a.displayTitle} · {a.format}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
               )}
-            </SectionCard>
+            </ChartCard>
           </>
         }
         side={
           <>
-            {sow.length > 0 && (
-              <SectionCard title="KPIs from your SOW" label="SOW KPIs">
-                <dl className="m-0 py-1">
-                  {sow.map((k) => (
-                    <div key={k.label} className="flex items-baseline gap-3 border-t border-brand-line px-6 py-3.5 first:border-t-0">
-                      <dt className="min-w-0 flex-1 text-[14px] text-brand-ink-2">
-                        {k.label}
-                        {k.note && <span className="block text-[12px]">{k.note}</span>}
-                      </dt>
-                      <dd className="m-0 text-[24px] font-light tabular-nums">{k.value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </SectionCard>
-            )}
-
-            {platformCtr.length > 0 && (
-              <SectionCard title="By platform">
-                <CardRows>
-                  {platformCtr.map((p) => (
-                    <li key={p.platform} className="flex items-center gap-3 px-6 py-3.5">
-                      <PlatformBadge platform={p.platform} className="size-6" />
-                      <span className="min-w-0 flex-1 text-[15px]">{p.platform}</span>
-                      <span className="flex flex-col items-end">
-                        <span className="text-[15px] tabular-nums">{p.ctr}% CTR</span>
-                        <span className="text-[12px] text-brand-ink-2">
-                          {formatMoney(p.spend, p.currency)}
-                          {p.conversions > 0 ? ` · ${p.conversions} conv.` : ""}
-                        </span>
-                      </span>
-                    </li>
-                  ))}
-                </CardRows>
-                {best && worst && best.platform !== worst.platform && (
-                  <p className="m-0 border-t border-brand-line px-6 py-4 text-[13px] leading-[1.5] text-brand-ink-2">
-                    {best.platform} runs at {best.ctr}% CTR across {best.count} campaign{best.count === 1 ? "" : "s"}, ahead of {worst.platform} at {worst.ctr}%.
-                  </p>
-                )}
-              </SectionCard>
-            )}
-
-            {!paid.inScope && organicPlatforms.length > 0 && (
-              <SectionCard title="By platform" label="Organic platforms">
-                <CardRows>
-                  {organicPlatforms.map((p) => (
-                    <li key={p.key} className="flex items-center gap-3 px-6 py-3.5">
-                      <PlatformBadge platform={p.key} className="size-6" />
-                      <span className="min-w-0 flex-1 text-[15px]">{p.key}</span>
-                      <span className="text-[15px] tabular-nums">{p.value}% eng.</span>
-                    </li>
-                  ))}
-                </CardRows>
-              </SectionCard>
-            )}
-
-            {kpis.volumeByPlatform.some((v) => v.target > 0) && (
-              <SectionCard title="Content this month" action={<span className="text-[12px] text-brand-ink-2">vs SOW minimum</span>}>
-                <CardRows>
-                  {kpis.volumeByPlatform
-                    .filter((v) => v.target > 0)
-                    .map((v) => (
-                      <li key={v.platform} className="flex flex-col gap-2 px-6 py-3.5">
-                        <span className="flex items-baseline justify-between gap-3 text-[14px]">
+            <ChartCard flush title="What to do" meta={<span className="font-brand-mono text-[12px] text-brand-ink">BY THE PERFORMANCE AGENT</span>}>
+              {actions.length > 0 ? (
+                <>
+                  <ol className="m-0 list-none p-0">
+                    {actions.map((a, i) => (
+                      <li key={a.headline} className="flex gap-3 border-b border-brand-line px-6 py-4">
+                        <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-brand-lime-pale text-[12px] tabular-nums">{i + 1}</span>
+                        <span className="flex min-w-0 flex-1 flex-col gap-2">
+                          <span className="text-[15px] leading-[1.4]">{a.headline}</span>
                           <span className="flex items-center gap-2">
-                            <PlatformBadge platform={v.platform} className="size-5" />
-                            {v.platform}
-                          </span>
-                          <span className="tabular-nums text-brand-ink-2">
-                            {v.published} of {v.target}
+                            {a.chip && <span className="rounded-full bg-brand-chip px-2.5 py-0.5 text-[12px] text-brand-ink-2">{a.chip}</span>}
+                            <span className="flex-1" />
+                            <WhySheet title={a.headline} reasoning={a.why} />
                           </span>
                         </span>
-                        <Meter value={v.published} max={v.target} label={`${v.published} of ${v.target} published on ${v.platform}`} />
                       </li>
                     ))}
-                </CardRows>
-              </SectionCard>
-            )}
+                  </ol>
+                  <div className="px-6 py-4">
+                    <PillLink href={`/brief/new?${new URLSearchParams({ q: briefQ })}`} variant="primary" size="sm">
+                      Make these a brief
+                    </PillLink>
+                  </div>
+                </>
+              ) : (
+                <div className="px-6 py-5">
+                  <SkeletonChart shape="matrix" line="The performance agent picks up to three things to do." action={<AgentButton action={generatePerformanceInsightsAction} label="Ask the agent" pendingLabel="Reading…" />} />
+                </div>
+              )}
+            </ChartCard>
 
-            {outcomeBars.length > 1 && (
-              <SectionCard title="Business outcomes" action={<span className="text-[12px] text-brand-ink-2">{hasRevenue ? "Revenue" : "Leads"} per period</span>}>
-                <CardBody>
-                  <DiscreteMetricBars data={outcomeBars} label={hasRevenue ? "Revenue" : "Leads"} />
-                </CardBody>
-              </SectionCard>
-            )}
-
-            {spendByPlatform.length > 1 && !mixedCurrencies && (
-              <SectionCard title="Spend by platform">
-                <CardBody>
-                  <MixDonutChart data={spendByPlatform} centerValue={formatMoney(spendByPlatform.reduce((s, p) => s + p.value, 0), paid.campaigns[0]?.currency ?? "USD")} centerLabel="total spend" />
-                  <div className="mt-3 flex flex-col gap-1.5">
-                    {spendByPlatform.map((p, i) => (
-                      <div key={p.name} className="flex items-center justify-between text-[13px]">
-                        <span className="flex items-center gap-1.5 text-brand-ink-2">
-                          <span className="size-2 rounded-full" style={{ backgroundColor: MIX_DONUT_COLORS[i % MIX_DONUT_COLORS.length] }} />
-                          {p.name}
-                        </span>
-                        <span>{formatMoney(p.value, paid.campaigns[0]?.currency ?? "USD")}</span>
-                      </div>
+            <ChartCard title="Fatigue watch" table={{ columns: ["Campaign", "CTR, 23 days before", "CTR, last 7 days"], rows: fatigue.map((c) => [c.name, `${c.ctrTrailing}%`, `${c.ctrLast7}%`]) }}>
+              {fatigue.length > 0 ? (
+                <>
+                  <span className="text-[14px] leading-[1.45] text-brand-ink-2">CTR, trailing average (grey) → this week (ink)</span>
+                  <div className="flex flex-col">
+                    {fatigue.map((c) => (
+                      <DumbbellRow key={`${c.platform}:${c.campaignId}`} label={c.name} before={c.ctrTrailing} after={c.ctrLast7} format={{ kind: "pct" }} worse={c.change <= -0.2} note={c.ctrLast7 === 0 ? "Likely a delivery or tracking error" : undefined} />
                     ))}
                   </div>
-                </CardBody>
-              </SectionCard>
+                </>
+              ) : (
+                <SkeletonChart shape="line" line={paid.isSample ? "Fatigue needs daily numbers from a connected account." : "Needs a week of delivery to compare."} />
+              )}
+            </ChartCard>
+
+            {formats.length > 0 && (
+              <ChartCard title="CTR by format" table={{ columns: ["Format", "CTR", "Assets"], rows: formats.map((f) => [f.label, `${f.value}%`, f.count]) }}>
+                <BarList rows={formats.map((f) => ({ label: f.label, value: f.value, display: `${f.value}%`, tone: avg !== null && f.value >= avg ? "ink" : "grey" }))} labelWidth={120} compact />
+              </ChartCard>
             )}
 
             {paid.errors.map((e) => (
-              <SectionCard key={e.platform} title={`Couldn't reach ${e.platform} Ads`} tone="muted">
-                <CardNote>{e.message}</CardNote>
-              </SectionCard>
+              <ChartCard key={e.platform} title={`Couldn't reach ${e.platform} Ads`}>
+                <span className={cn("text-[13px] text-brand-ink-2")}>{e.message}</span>
+              </ChartCard>
             ))}
           </>
         }

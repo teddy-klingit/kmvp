@@ -92,3 +92,48 @@ export async function getMetaAdAccountInsights(): Promise<MetaInsightsResult> {
     return { ok: false, reason: "api_error", message: err instanceof Error ? err.message : "Unknown error" };
   }
 }
+
+export type DailyRow = { campaignId: string; campaignName: string; date: string; impressions: number; clicks: number; spend: number; conversions: number };
+export type DailyResult = { ok: true; accountName: string; currency: string; rows: DailyRow[] } | { ok: false; reason: "not_configured" | "not_connected" | "api_error"; message?: string };
+
+/** One row per campaign per day (time_increment=1) for the last `days` days, following Meta's paging. */
+export async function getMetaDailyInsights(days = 90): Promise<DailyResult> {
+  const token = process.env.META_ADS_ACCESS_TOKEN;
+  const accountId = process.env.META_AD_ACCOUNT_ID;
+  if (!token || !accountId) return { ok: false, reason: "not_configured" };
+  try {
+    const accountRes = await fetch(`https://graph.facebook.com/${META_API_VERSION}/${accountId}?fields=name,currency&access_token=${token}`);
+    const account = await accountRes.json();
+    if (!accountRes.ok) return { ok: false, reason: "api_error", message: account?.error?.message ?? "Meta API request failed." };
+    const until = new Date();
+    const since = new Date(until.getTime() - (days - 1) * 86400000);
+    const iso = (d: Date) => d.toISOString().slice(0, 10);
+    let url: string | null =
+      `https://graph.facebook.com/${META_API_VERSION}/${accountId}/insights?level=campaign&time_increment=1` +
+      `&fields=campaign_id,campaign_name,impressions,clicks,spend,actions,date_start` +
+      `&time_range=${encodeURIComponent(JSON.stringify({ since: iso(since), until: iso(until) }))}&limit=500&access_token=${token}`;
+    const rows: DailyRow[] = [];
+    for (let page = 0; url && page < 20; page++) {
+      const res: Response = await fetch(url);
+      const data = await res.json();
+      if (!res.ok) return { ok: false, reason: "api_error", message: data?.error?.message ?? "Meta API request failed." };
+      for (const row of (data.data ?? []) as Record<string, unknown>[]) {
+        const actions = (row.actions as { action_type: string; value: string }[] | undefined) ?? [];
+        const leadType = LEAD_ACTION_TYPES.find((t) => actions.some((a) => a.action_type === t));
+        rows.push({
+          campaignId: String(row.campaign_id),
+          campaignName: String(row.campaign_name),
+          date: String(row.date_start),
+          impressions: Number(row.impressions ?? 0),
+          clicks: Number(row.clicks ?? 0),
+          spend: Number(row.spend ?? 0),
+          conversions: leadType ? Number(actions.find((a) => a.action_type === leadType)?.value ?? 0) : 0,
+        });
+      }
+      url = data.paging?.next ?? null;
+    }
+    return { ok: true, accountName: account.name ?? "Meta Ads Account", currency: account.currency ?? "USD", rows };
+  } catch (err) {
+    return { ok: false, reason: "api_error", message: err instanceof Error ? err.message : "Unknown error" };
+  }
+}

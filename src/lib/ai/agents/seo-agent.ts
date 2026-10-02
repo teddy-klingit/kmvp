@@ -57,8 +57,9 @@ export async function generateVisibilityQuestions(args: { clientId: string; indu
 }
 
 const RecommendationSchema = z.object({
-  title: z.string().describe("Short, specific fix, e.g. 'Add FAQPage structured data' or 'Unblock GPTBot in robots.txt'"),
-  detail: z.string().describe("1-2 sentences: why, citing the specific finding behind it"),
+  title: z.string().describe("Short, specific fix in at most 8 words, e.g. 'Add FAQPage structured data' or 'Unblock GPTBot in robots.txt'"),
+  impact: z.enum(["High", "Medium", "Low"]).describe("Expected impact on search and AI visibility"),
+  detail: z.string().describe("1-2 sentences: why, citing the specific finding behind it. Shown only behind 'Why?'."),
 });
 
 const SeoInsightsSchema = z.object({
@@ -67,7 +68,7 @@ const SeoInsightsSchema = z.object({
     .array(RecommendationSchema)
     .min(2)
     .max(6)
-    .describe("Concrete, specific fixes — technical SEO gaps, structured data to add, AI-crawler access to unblock, content gaps versus what AI answers actually cited — each grounded in the specific findings given, not generic SEO advice"),
+    .describe("Concrete, specific fixes, highest impact first — technical SEO gaps, structured data to add, AI-crawler access to unblock, content gaps versus what AI answers actually cited — each grounded in the specific findings given, not generic SEO advice"),
 });
 
 export type SeoInsights = z.infer<typeof SeoInsightsSchema>;

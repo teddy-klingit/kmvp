@@ -86,6 +86,7 @@ export async function recordPerformanceSnapshots(clientId: string, campaigns: Pl
           summary: `${c.platform}: ${avgCtr.toFixed(2)}% → ${c.ctr}% CTR.`,
           source: c.platform,
           relevance: pctChange <= -0.5 ? "High relevance" : "Relevant",
+          data: { before: Math.round(avgCtr * 100) / 100, after: c.ctr },
           publishedAt: new Date(),
         },
       });

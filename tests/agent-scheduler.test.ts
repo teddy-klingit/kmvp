@@ -5,6 +5,7 @@ import { createSecurityFixtures } from "./fixtures";
 // The agents themselves are mocked: this tests what the scheduler decides to run.
 const calls = vi.hoisted(() => ({ briefs: [] as string[], reports: [] as string[] }));
 vi.mock("@/lib/insights-brief", () => ({ generatePerformanceBrief: async (id: string) => (calls.briefs.push(id), { ok: true }) }));
+vi.mock("@/lib/integrations/ad-daily", () => ({ syncDailyAdMetrics: async () => ({ synced: [] }) }));
 vi.mock("@/lib/report-data", async (orig) => ({
   ...(await orig<typeof import("@/lib/report-data")>()),
   writeReport: async (id: string, p: { kind: string; label: string }) => (calls.reports.push(`${id}:${p.kind}:${p.label}`), { ok: true }),
@@ -21,7 +22,7 @@ beforeAll(async () => {
   fx = await createSecurityFixtures();
   await prisma.client.updateMany({ where: { id: { in: [fx.clientA.id, fx.clientB.id] } }, data: { status: "ACTIVE" } });
   // A already has this week's takeaways and last week's report; B has nothing.
-  await prisma.performanceBrief.create({ data: { clientId: fx.clientA.id, summary: "s", recommendations: [], takeaways: [{ title: "t", detail: "d", action: { kind: "brief", label: "x", view: null } }], generatedAt: NOW } });
+  await prisma.performanceBrief.create({ data: { clientId: fx.clientA.id, summary: "s", recommendations: [], takeaways: [{ tag: "Performance", metric: "1%", headline: "t", compare: [], action: { kind: "brief", label: "x", view: null }, why: "d" }], actions: [{ headline: "h", chip: "", why: "w", brief: "b" }], generatedAt: NOW } });
   const w = lastClosed("WEEKLY", NOW);
   await prisma.generatedReport.create({ data: { clientId: fx.clientA.id, kind: "WEEKLY", periodStart: w.start, periodEnd: w.end, label: w.label, takeaways: [], topAssetIds: [] } });
 });

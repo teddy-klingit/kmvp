@@ -172,3 +172,39 @@ export async function getGoogleAdsAccountInsights(): Promise<GoogleAdsInsightsRe
     return { ok: false, reason: "api_error", message: err instanceof Error ? err.message : "Unknown error" };
   }
 }
+
+/** One row per campaign per day (segments.date in the SELECT) for the last `days` days. */
+export async function getGoogleAdsDailyInsights(days = 90): Promise<import("@/lib/integrations/meta-ads").DailyResult> {
+  if (!process.env.GOOGLE_ADS_DEVELOPER_TOKEN || !process.env.GOOGLE_ADS_CLIENT_ID || !process.env.GOOGLE_ADS_CLIENT_SECRET) return { ok: false, reason: "not_configured" };
+  const token = await getValidAccessToken();
+  if (!token) return { ok: false, reason: "not_connected" };
+  try {
+    const account = await findAccount(token);
+    if (!account) return { ok: false, reason: "api_error", message: "No accessible Google Ads client account found." };
+    const end = new Date();
+    const start = new Date(end.getTime() - (days - 1) * 86400000);
+    const iso = (d: Date) => d.toISOString().slice(0, 10);
+    const rows = await gaqlSearch(
+      token,
+      account.customerId,
+      `SELECT segments.date, campaign.id, campaign.name, metrics.impressions, metrics.clicks, metrics.cost_micros, metrics.conversions FROM campaign WHERE segments.date BETWEEN '${iso(start)}' AND '${iso(end)}' AND campaign.status = 'ENABLED'`,
+      account.managerId
+    );
+    return {
+      ok: true,
+      accountName: account.name,
+      currency: account.currency,
+      rows: rows.map((r: { segments?: { date?: string }; campaign?: { id?: string; name?: string }; metrics?: { impressions?: string; clicks?: string; costMicros?: string; conversions?: number } }) => ({
+        campaignId: String(r.campaign?.id ?? "unknown"),
+        campaignName: r.campaign?.name ?? "Campaign",
+        date: r.segments?.date ?? "",
+        impressions: Number(r.metrics?.impressions ?? 0),
+        clicks: Number(r.metrics?.clicks ?? 0),
+        spend: Math.round((Number(r.metrics?.costMicros ?? 0) / 1_000_000) * 100) / 100,
+        conversions: Math.round(Number(r.metrics?.conversions ?? 0) * 100) / 100,
+      })).filter((r: { date: string }) => r.date),
+    };
+  } catch (err) {
+    return { ok: false, reason: "api_error", message: err instanceof Error ? err.message : "Unknown error" };
+  }
+}

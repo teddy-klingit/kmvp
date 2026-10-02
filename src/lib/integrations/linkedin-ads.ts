@@ -144,3 +144,43 @@ export async function getLinkedInAdInsights(): Promise<LinkedInInsightsResult> {
     return { ok: false, reason: "api_error", message: err instanceof Error ? err.message : "Unknown error" };
   }
 }
+
+/** One row per campaign per day (timeGranularity=DAILY) for the last `days` days. */
+export async function getLinkedInDailyInsights(days = 90): Promise<import("@/lib/integrations/meta-ads").DailyResult> {
+  const token = await getValidAccessToken();
+  if (!token) return { ok: false, reason: "not_connected" };
+  try {
+    const account = await resolveAdAccount(token);
+    if (!account) return { ok: false, reason: "api_error", message: "No active ad account found." };
+    const end = new Date();
+    const start = new Date(end.getTime() - (days - 1) * 86400000);
+    const dateRange = `(start:(year:${start.getFullYear()},month:${start.getMonth() + 1},day:${start.getDate()}),end:(year:${end.getFullYear()},month:${end.getMonth() + 1},day:${end.getDate()}))`;
+    const accountUrn = encodeURIComponent(`urn:li:sponsoredAccount:${account.id}`);
+    const url =
+      `${LI_API}/adAnalytics?q=statistics&pivots=List(CAMPAIGN)&dateRange=${dateRange}&timeGranularity=DAILY` +
+      `&accounts=List(${accountUrn})&fields=impressions,clicks,costInLocalCurrency,pivotValues,externalWebsiteConversions,oneClickLeads,dateRange`;
+    const res = await fetch(url, { headers: liHeaders(token) });
+    if (!res.ok) return { ok: false, reason: "api_error", message: `LinkedIn analytics request failed (${res.status})` };
+    const data = await res.json();
+    const elements = (data.elements ?? []) as Record<string, unknown>[];
+    const ids = [...new Set(elements.map((e) => ((e.pivotValues as string[])?.[0] ?? "").split(":").pop() ?? "").filter(Boolean))];
+    const names = await fetchCampaignNames(token, account.id, ids);
+    const rows = elements.map((e) => {
+      const id = ((e.pivotValues as string[])?.[0] ?? "").split(":").pop() ?? "unknown";
+      const d = (e.dateRange as { start?: { year: number; month: number; day: number } } | undefined)?.start;
+      const date = d ? `${d.year}-${String(d.month).padStart(2, "0")}-${String(d.day).padStart(2, "0")}` : "";
+      return {
+        campaignId: id,
+        campaignName: names.get(id) ?? `Campaign ${id}`,
+        date,
+        impressions: Number(e.impressions ?? 0),
+        clicks: Number(e.clicks ?? 0),
+        spend: Math.round(Number(e.costInLocalCurrency ?? 0) * 100) / 100,
+        conversions: Number(e.externalWebsiteConversions ?? 0) + Number(e.oneClickLeads ?? 0),
+      };
+    });
+    return { ok: true, accountName: account.name, currency: account.currency, rows: rows.filter((r) => r.date) };
+  } catch (err) {
+    return { ok: false, reason: "api_error", message: err instanceof Error ? err.message : "Unknown error" };
+  }
+}
