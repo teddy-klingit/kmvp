@@ -51,7 +51,7 @@ export function ConnectModal({
       }}
     >
       <DialogPrimitive.Trigger asChild>
-        <Button variant="secondary" size="md" className="w-full sm:w-auto">
+        <Button variant="secondary" size="md" className="shrink-0">
           {connected ? "Manage" : "Connect"}
         </Button>
       </DialogPrimitive.Trigger>
