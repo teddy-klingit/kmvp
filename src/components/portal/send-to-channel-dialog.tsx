@@ -27,8 +27,7 @@ export function SendToChannelDialog({
 
   if (channels.length === 0) {
     return (
-      <Button type="button" variant="secondary" size="sm" className="gap-1.5" disabled title="Connect a Slack, Teams, or email channel in Account settings first">
-        <Send className="size-3.5" />
+      <Button type="button" variant="primary" size="lg" disabled title="Connect a Slack, Teams, or email channel in Account settings first">
         {label}
       </Button>
     );
@@ -37,8 +36,7 @@ export function SendToChannelDialog({
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button type="button" variant="secondary" size="sm" className="gap-1.5">
-          <Send className="size-3.5" />
+        <Button type="button" variant="primary" size="lg">
           {label}
         </Button>
       </DialogTrigger>

@@ -246,6 +246,10 @@ const J2_PAGES: [string, string][] = [
   ["projects-waiting", "/projects?show=you"],
   ["calendar-month", "/calendar"],
   ["calendar-list", "/calendar?view=list"],
+  ["reports-weekly", "/reports"],
+  ["reports-full-weekly", "/reports/weekly"],
+  ["reports-monthly", "/reports/monthly"],
+  ["reports-custom", "/reports/custom"],
 ];
 const pageFilter = args.find((a) => a.startsWith("--pages="))?.split("=")[1]?.split(",");
 

@@ -175,6 +175,7 @@ model Client {
   contentPlanSuggestions       ContentPlanSuggestion[]
   reportingConfig              ClientReportingConfig?
   savedReports                 SavedReport[]
+  generatedReports             GeneratedReport[]
   sampleAdCampaigns            SampleAdCampaign[]
   communityManagementSnapshots CommunityManagementSnapshot[]
   internalMessages             ClientInternalMessage[]
@@ -556,6 +557,11 @@ model ClientReportingConfig {
   clientId   String   @unique
   cadence    String   @default("WEEKLY") // WEEKLY | BIWEEKLY | MONTHLY
   kpiTargets Json? // [{ metric, target, platform? }]
+  /// Send schedule (Reports side card): ISO weekday 1–7 and "HH:MM" in Europe/Stockholm.
+  sendDay          Int      @default(1)
+  sendTime         String   @default("08:00")
+  /// User ids of the client's team who get the report. Null = the account's owners.
+  recipientUserIds Json?
   updatedAt  DateTime @updatedAt
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
@@ -566,6 +572,29 @@ model ClientReportingConfig {
 // come back to without re-picking it every time. The report itself is
 // never stored; only the filter criteria, so reopening it always reflects
 // current data for that slice.
+/// A report the performance agent wrote for a closed period (Reports → Weekly / Monthly, Past reports).
+/// Takeaways are grounded in what was known when it was written; top creative is stored by asset id.
+model GeneratedReport {
+  id          String   @id @default(cuid())
+  clientId    String
+  kind        String // WEEKLY | MONTHLY
+  periodStart DateTime
+  /// Last day of the period (inclusive).
+  periodEnd   DateTime
+  /// "Week 39" / "September 2026"
+  label       String
+  /// { title, detail }[], max 3
+  takeaways   Json
+  /// Delivered assets with the best measured CTR when it was written.
+  topAssetIds Json
+  generatedAt DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, kind, periodStart])
+  @@index([clientId, kind, periodStart])
+}
+
 model SavedReport {
   id        String   @id @default(cuid())
   clientId  String

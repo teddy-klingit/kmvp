@@ -39,10 +39,11 @@ export function StatRows({ rows }: { rows: Stat[] }) {
 export function StatTiles({ tiles, className }: { tiles: Stat[]; className?: string }) {
   if (tiles.length === 0) return null;
   return (
-    <div className={cn("@container/tiles", className)}>
-      <div className={cn("grid grid-cols-2 gap-px bg-brand-line", tiles.length >= 3 && "@min-[640px]/tiles:grid-cols-4", tiles.length === 3 && "@min-[640px]/tiles:grid-cols-3")}>
+    <div className={className}>
+      {/* Flex, not grid: a short last row stretches to the edge instead of leaving an empty grey cell. */}
+      <div className="flex flex-wrap gap-px bg-brand-line">
         {tiles.map((t) => (
-          <div key={t.label} className="flex min-w-0 flex-col gap-1 bg-white px-6 py-5">
+          <div key={t.label} className="flex min-w-0 flex-1 basis-[150px] flex-col gap-1 bg-white px-6 py-5">
             <span className="text-[13px] text-brand-ink-2">{t.label}</span>
             <span className="text-[28px] font-light leading-[1.15] tabular-nums">{t.value}</span>
             {t.note && <span className="text-[12px] text-brand-ink-2">{t.note}</span>}

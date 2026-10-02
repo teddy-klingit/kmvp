@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
-import { PageHeader } from "@/components/shared/page-header";
 import { Card, SectionLabel } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +11,6 @@ import { PostDetailDialog } from "@/components/portal/post-detail-dialog";
 import { FollowerGrowthChart } from "@/components/portal/follower-growth-chart";
 import { DiscreteMetricBars } from "@/components/portal/discrete-metric-bars";
 import { PrintButton } from "@/components/portal/print-button";
-import { SendToChannelDialog } from "@/components/portal/send-to-channel-dialog";
 import { saveReportAction, deleteSavedReportAction } from "@/lib/actions/report-actions";
 import { DATE_RANGE_PRESETS, resolveDateRange, previousPeriod, pctChange, filtersToQueryString, type ReportFilters } from "@/lib/report-filters";
 import { campaignMetricsForRange } from "@/lib/campaign-history";
@@ -91,7 +89,7 @@ export default async function CustomReportPage({
   const clientRecord = await prisma.client.findUnique({ where: { id: clientId }, select: { paidMediaInScope: true } });
   const paidInScope = clientRecord?.paidMediaInScope ?? true;
 
-  const [allPosts, followerSnapshots, businessOutcomes, savedReports, campaignData, prevCampaignData, brief, channels] = await Promise.all([
+  const [allPosts, followerSnapshots, businessOutcomes, savedReports, campaignData, prevCampaignData, brief] = await Promise.all([
     prisma.contentPost.findMany({ where: { clientId } }),
     prisma.followerSnapshot.findMany({ where: { clientId }, orderBy: { capturedAt: "asc" } }),
     prisma.clientBusinessOutcome.findMany({ where: { clientId }, orderBy: { periodStart: "asc" } }),
@@ -99,7 +97,6 @@ export default async function CustomReportPage({
     paidInScope ? campaignMetricsForRange(clientId, range, filters.platform) : Promise.resolve({ campaigns: [], hasHistory: false }),
     paidInScope ? campaignMetricsForRange(clientId, prevRange, filters.platform) : Promise.resolve({ campaigns: [], hasHistory: false }),
     prisma.performanceBrief.findUnique({ where: { clientId } }),
-    prisma.connectedChannel.findMany({ where: { clientId }, orderBy: { connectedAt: "asc" } }),
   ]);
 
   const platforms = Array.from(new Set(allPosts.map((p) => p.platform)));
@@ -184,21 +181,10 @@ export default async function CustomReportPage({
 
   return (
     <div className="flex flex-col gap-6 print:gap-4">
-      <div className="print:hidden">
-        <PageHeader title="Reports" />
-      </div>
-
-      <div className="flex items-center justify-between print:hidden">
-        <div className="flex items-center gap-3">
-          <Link href="/reports" className="text-sm text-muted-foreground hover:text-foreground">
-            &lt; SOW reports
-          </Link>
-          <h2 className="text-lg font-semibold">Custom report</h2>
-        </div>
-        <div className="flex items-center gap-2">
-          <SendToChannelDialog channels={channels} subjectType="REPORT" subjectLabel={`Custom report — ${range.label}`} returnTo={qs({})} />
-          <PrintButton />
-        </div>
+      {/* The Reports header (layout) holds Send to; print stays with the builder. */}
+      <div className="flex items-center justify-between gap-3 print:hidden">
+        <span className="font-brand-mono text-[12px] text-brand-ink-2">CUSTOM REPORT · {range.label.toUpperCase()}</span>
+        <PrintButton />
       </div>
 
       {sp.sent === "1" && (
