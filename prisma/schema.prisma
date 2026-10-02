@@ -535,6 +535,10 @@ model ContentPlanSuggestion {
   status                ContentPlanSuggestionStatus @default(PENDING)
   stage                 ContentPlanSuggestionStage  @default(IN_REVIEW)
   sourceCadence         String                      @default("Monthly strategy recommendation") // e.g. "Weekly trend scan" vs "Monthly strategy recommendation" — which reporting cadence this suggestion is the AI-assisted version of
+  /// The day the agent proposes for it (calendar grid + "Add" schedules it there). Null on older suggestions: they show in the side card only, never on an invented date.
+  proposedDate          DateTime?
+  /// A few words for the side card: "stories get 3× the clicks".
+  reason                String?
   briefedProjectId      String?
   createdAt             DateTime                    @default(now())
   resolvedAt            DateTime?

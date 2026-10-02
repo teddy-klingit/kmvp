@@ -590,6 +590,15 @@ const MILESTONES: { key: string; label: string; stages: ProjectStage[] }[] = [
   { key: "delivered", label: "Delivered", stages: ["closed"] },
 ];
 
+/** The client board's five columns: the client timeline (Projects.dc.html). */
+export const CLIENT_COLUMNS = MILESTONES.map((m) => m.label);
+
+/** Which client column a project sits in. Paused projects stay in their stage's column; archived ones aren't on the board. */
+export function clientColumnFor(state: ProjectState): string | null {
+  if (state.archived) return null;
+  return MILESTONES.find((m) => m.stages.includes(state.stage))?.label ?? "Brief";
+}
+
 /** Short date like "1 Oct" / "30 Sept" — the timeline's caption format. */
 export function shortDate(d: Date) {
   return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(d);

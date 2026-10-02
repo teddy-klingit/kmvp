@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
 import { requireOpsRole } from "@/lib/authz";
-import { generateContentPlanSuggestions } from "@/lib/ai/agents/content-plan-agent";
+import { writePlanSuggestions } from "@/lib/content-plan-suggestions";
 import { runIntake, createProjectFromAnalysis } from "@/lib/brief-intake";
 
 // ---------------------------------------------------------------------
@@ -90,59 +90,11 @@ export async function createContentPostAction(formData: FormData) {
 
 export type GenerateSuggestionsState = { error?: string | null };
 
-export async function generateContentPlanSuggestionsAction(
-  _prev: GenerateSuggestionsState,
-  _formData: FormData
-): Promise<GenerateSuggestionsState> {
+export async function generateContentPlanSuggestionsAction(_prev: GenerateSuggestionsState, _formData: FormData): Promise<GenerateSuggestionsState> {
   const viewer = await getPortalViewer();
-
-  const [planTargets, recentPosts, followerSnapshots, businessOutcomes] = await Promise.all([
-    prisma.contentPlanTarget.findMany({ where: { clientId: viewer.clientId } }),
-    prisma.contentPost.findMany({
-      where: { clientId: viewer.clientId, status: "PUBLISHED" },
-      orderBy: { publishedDate: "desc" },
-      take: 25,
-    }),
-    prisma.followerSnapshot.findMany({ where: { clientId: viewer.clientId }, orderBy: { capturedAt: "desc" }, take: 20 }),
-    prisma.clientBusinessOutcome.findMany({ where: { clientId: viewer.clientId }, orderBy: { periodStart: "desc" }, take: 6 }),
-  ]);
-
-  const result = await generateContentPlanSuggestions({
-    clientId: viewer.clientId,
-    clientName: viewer.client.name,
-    planTargets: planTargets.map((t) => ({ platform: t.platform, weeklyVolume: t.weeklyVolume })),
-    recentPosts: recentPosts.map((p) => ({
-      platform: p.platform,
-      contentType: p.contentType,
-      engagementRate: p.engagementRate,
-      videoViews: p.videoViews,
-      impressions: p.impressions,
-    })),
-    followerTrend: followerSnapshots.map((f) => ({ platform: f.platform, followerCount: f.followerCount, capturedAt: f.capturedAt.toISOString().slice(0, 10) })),
-    businessOutcomes: businessOutcomes.map((o) => ({
-      periodStart: o.periodStart.toISOString().slice(0, 10),
-      periodEnd: o.periodEnd.toISOString().slice(0, 10),
-      revenue: o.revenue,
-      leadsGenerated: o.leadsGenerated,
-    })),
-  });
-
-  if (!result.ok) return { error: result.error };
-
-  await prisma.contentPlanSuggestion.createMany({
-    data: result.data.suggestions.map((s) => ({
-      clientId: viewer.clientId,
-      title: s.title,
-      rationale: s.rationale,
-      platform: s.platform,
-      suggestedVolumeChange: s.suggestedVolumeChange,
-      sourceCadence: s.sourceCadence,
-      stage: "IN_REVIEW",
-    })),
-  });
-
-  revalidatePath("/calendar");
-  return {};
+  const r = await writePlanSuggestions(viewer);
+  if (!r.error) revalidatePath("/calendar");
+  return r;
 }
 
 export async function rejectContentPlanSuggestionAction(formData: FormData) {
@@ -192,7 +144,8 @@ export async function approveContentPlanSuggestionAction(formData: FormData) {
         channelType: "ORGANIC",
         title: suggestion.title,
         status: "PLANNED",
-        scheduledDate: new Date(Date.now() + 7 * 86400000),
+        // The agent's proposed day when it's still ahead; a week out for older suggestions without one.
+        scheduledDate: suggestion.proposedDate && suggestion.proposedDate > new Date() ? suggestion.proposedDate : new Date(Date.now() + 7 * 86400000),
         sourceSuggestionId: suggestion.id,
       },
     });

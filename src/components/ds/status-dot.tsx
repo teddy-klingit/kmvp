@@ -23,7 +23,7 @@ export function StatusDot({ tone, children, className }: { tone: DotTone; childr
 /** The legend under a board or calendar. */
 export function DotLegend({ items, className }: { items: { tone: DotTone; label: string }[]; className?: string }) {
   return (
-    <div className={cn("flex flex-wrap gap-x-5 gap-y-2 text-[12px] text-brand-ink-2", className)}>
+    <div className={cn("flex flex-wrap gap-x-6 gap-y-2 text-[14px] text-brand-ink-2", className)}>
       {items.map((i) => (
         <span key={i.label} className="inline-flex items-center gap-2">
           <span aria-hidden className={cn("size-2 rounded-full", DOT_CLASS[i.tone])} />

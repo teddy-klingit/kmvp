@@ -4,11 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
 import { projectVisibilityWhere } from "@/lib/project-visibility";
 import { loadProjectStates } from "@/lib/project-state-loader";
-import { clientMilestones, type ProjectState } from "@/lib/project-state";
-import { creditSummary, inProgress, marketThisWeek, nextSevenDays, yourTurn, type CreditSummary, type TurnItem } from "@/lib/client-home";
+import { creditSummary, marketThisWeek, nextSevenDays, projectRow, yourTurn, type CreditSummary, type TurnItem } from "@/lib/client-home";
+import { ProjectRows } from "@/components/portal/project-rows";
 import { PROJECT_TYPE_LABEL } from "@/lib/labels";
 import { WORK_TZ } from "@/lib/working-hours";
-import { Avatar, AvatarStack } from "@/components/ds/avatar";
+import { Avatar } from "@/components/ds/avatar";
 import { CardHeader } from "@/components/ds/card";
 import { monoLink } from "@/components/ds/pill-link";
 import { cn } from "@/lib/utils";
@@ -37,22 +37,6 @@ function dueText(t: TurnItem) {
   return t.due?.label.replace(/^By /, "Due ") ?? null;
 }
 
-/** One status line per project: orange "Waiting on you" when it's the client's move, otherwise what Klingit is doing. */
-function projectStatus(state: ProjectState, now: Date): { label: string; dot: string; late: boolean } {
-  if (state.paused) return { label: "Paused", dot: "bg-brand-outline", late: false };
-  if (state.ballInCourt === "client") return { label: "Waiting on you", dot: "bg-brand-orange", late: false };
-  const eta = state.keyFacts.firstDraftEta;
-  if (state.stage === "production" && eta) {
-    const endOfEta = new Date(eta);
-    endOfEta.setHours(23, 59, 59, 999);
-    if (endOfEta < now) return { label: "Klingit working · draft late", dot: "bg-brand-ink", late: true };
-    const soon = eta.getTime() - now.getTime() < 6 * 86400000;
-    const when = soon ? weekday(eta) : new Intl.DateTimeFormat("en-GB", { timeZone: WORK_TZ, day: "numeric", month: "short" }).format(eta);
-    return { label: `Klingit working · draft ${when}`, dot: "bg-brand-ink", late: false };
-  }
-  return { label: "Klingit working", dot: "bg-brand-ink", late: false };
-}
-
 const card = "overflow-hidden rounded-[12px] bg-white";
 
 /**
@@ -70,10 +54,8 @@ export default async function DashboardPage() {
   const [credits, upcoming, market] = await Promise.all([creditSummary(viewer.clientId, now), nextSevenDays(viewer.clientId, items, now), marketThisWeek(viewer.clientId, now)]);
   const turns = yourTurn(items, now);
   // Drafts are still the client's own work: they show in Do this next, not as projects.
-  const progress = inProgress(items.filter(({ state }) => !state.draft), typeLabel, lead);
-  const stateOf = (id: string) => items.find((i) => i.project.id === id)!.state;
-  const statuses = new Map(progress.map((p) => [p.id, projectStatus(stateOf(p.id), now)]));
-  const late = [...statuses.values()].filter((s) => s.late).length;
+  const progress = items.filter(({ state }) => !state.draft && state.stage !== "closed" && !state.archived).map((i) => projectRow(i, typeLabel, lead, now));
+  const late = progress.filter((p) => p.status.late).length;
   const messageProject = turns[0]?.id ?? progress[0]?.id ?? null;
   const dateEyebrow = new Intl.DateTimeFormat("en-GB", { timeZone: WORK_TZ, weekday: "long", day: "numeric", month: "long" }).format(now).toUpperCase().replace(",", "");
 
@@ -168,39 +150,7 @@ export default async function DashboardPage() {
             {progress.length === 0 ? (
               <p className="m-0 px-6 py-5 text-[15px] text-brand-ink-2">No projects yet. Start one with “New project”.</p>
             ) : (
-              <ul className="m-0 list-none p-0">
-                {progress.slice(0, PROJECT_ROWS).map((p) => {
-                  const current = clientMilestones(stateOf(p.id)).find((m) => m.status === "current");
-                  const step = p.steps.indexOf("current") + 1 || p.steps.filter((s) => s === "done").length;
-                  const status = statuses.get(p.id)!;
-                  return (
-                    <li key={p.id} className="border-t border-brand-line first:border-t-0">
-                      <Link
-                        href={`/projects/${p.id}`}
-                        className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-3 px-6 py-[18px] text-brand-ink no-underline hover:bg-brand-chip @min-[600px]/col:grid-cols-[minmax(0,1.6fr)_minmax(0,1.4fr)_minmax(0,0.9fr)_80px]"
-                      >
-                        <span className="flex min-w-0 flex-col gap-0.5">
-                          <span className="truncate text-[16px]">{p.name}</span>
-                          <span className="truncate text-[13px] text-brand-ink-2">{p.meta}</span>
-                        </span>
-                        <span className="order-2 col-span-2 flex items-center gap-2 whitespace-nowrap text-[14px] @min-[600px]/col:order-none @min-[600px]/col:col-span-1">
-                          <span className={cn("size-2 shrink-0 rounded-full", status.dot)} />
-                          <span className="truncate">{status.label}</span>
-                        </span>
-                        <span className="order-3 col-span-2 flex flex-col gap-1.5 @min-[600px]/col:order-none @min-[600px]/col:col-span-1">
-                          <span className="block h-1 overflow-hidden rounded-full bg-brand-track">
-                            <span className="block h-full rounded-full bg-brand-ink" style={{ width: `${(step / 5) * 100}%` }} />
-                          </span>
-                          <span className="whitespace-nowrap font-brand-mono text-[11px] text-brand-ink-2">
-                            {(current?.label ?? "Delivered").toUpperCase()} · {step} OF 5
-                          </span>
-                        </span>
-                        <span className="flex justify-end">{p.team.length > 0 && <AvatarStack names={p.team} size={24} max={3} overlap={4} />}</span>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
+              <ProjectRows rows={progress.slice(0, PROJECT_ROWS)} />
             )}
             {progress.length > PROJECT_ROWS && (
               <div className="border-t border-brand-line px-6 py-4">

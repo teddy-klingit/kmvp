@@ -4,7 +4,6 @@ import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, Dialog
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { addClientCalendarItemAction } from "@/lib/actions/calendar-actions";
-import { Plus } from "lucide-react";
 
 function todayInputValue() {
   const d = new Date();
@@ -18,9 +17,8 @@ export function AddPlanItemDialog() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button type="button" variant="secondary" size="sm" className="gap-1.5">
-          <Plus className="size-3.5" />
-          Add your plan
+        <Button type="button" variant="secondary" size="lg">
+          Add to plan
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-sm">

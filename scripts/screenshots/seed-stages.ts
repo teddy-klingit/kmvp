@@ -6,6 +6,7 @@
  */
 import { PrismaClient } from "../../src/generated/prisma";
 import { PIPELINE_STAGE_ORDER } from "../../src/lib/labels";
+import { seedContentPlan } from "./seed-content-plan";
 
 if (!process.env.DATABASE_URL?.includes("screens.db")) {
   throw new Error("Refusing to run: point DATABASE_URL at the local screens.db screenshot database.");
@@ -310,6 +311,8 @@ async function main() {
       { clientId: klarna.id, app: "figma", url: "https://www.figma.com/", title: "Logo suite", section: "visual-identity", isDemo: true, createdByUserId: jack.userId },
     ],
   });
+
+  await seedContentPlan(prisma);
 
   console.log("Stage demo projects:", { briefing: deck.id, awaiting_approval: investor.id, production: q3.id, final: holiday.id });
 }

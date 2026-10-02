@@ -62,6 +62,16 @@ export default async function AudiencePage() {
   const socialShare = latestW && latestW.visits > 0 && latestW.socialReferralVisits !== null ? Math.round((latestW.socialReferralVisits / latestW.visits) * 100) : null;
   const drivers = [...kpis.publishedPosts].filter((p) => (p.websiteClicks ?? 0) > 0).sort((a, b) => (b.websiteClicks ?? 0) - (a.websiteClicks ?? 0)).slice(0, 3);
   const followers = kpis.followerGrowth.filter((f) => f.followerCount !== null);
+  // Follower growth over time (moved here from the Calendar): one row per capture date, one column per platform.
+  const followerDates = [...new Set(followers.flatMap((f) => f.series.map((s) => s.capturedAt.getTime())))].sort((a, b) => a - b);
+  const followerChart = followerDates.map((ts) => {
+    const row: Record<string, string | number> = { date: formatDate(new Date(ts), { day: "numeric", month: "short" }) };
+    for (const f of followers) {
+      const point = f.series.find((s) => s.capturedAt.getTime() === ts);
+      if (point) row[f.platform] = point.followerCount;
+    }
+    return row;
+  });
 
   const short = (d: Date) => formatDate(d, { day: "numeric", month: "short" });
 
@@ -189,6 +199,11 @@ export default async function AudiencePage() {
           <ConnectCard missing={sources.missing} connected={sources.connected} href={chatProject ? `/projects/${chatProject.id}?channel=klingit` : "/help"} />
           {followers.length > 0 && (
             <SectionCard title="Followers">
+              {followerChart.length > 1 && (
+                <CardBody className="border-b border-brand-line">
+                  <FollowerGrowthChart data={followerChart} platforms={followers.map((f) => f.platform)} />
+                </CardBody>
+              )}
               <CardRows>
                 {followers.map((f) => (
                   <li key={f.platform} className="flex items-center gap-3 px-6 py-3.5">

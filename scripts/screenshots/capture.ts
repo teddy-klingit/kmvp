@@ -239,6 +239,16 @@ const J1_OPS: [string, string][] = [
   ["o05-account", "/ops/account"],
 ];
 
+/** Phase J2: client pages rebuilt from their designs. Pass --pages=projects,calendar to shoot a subset. */
+const J2_PAGES: [string, string][] = [
+  ["projects-board", "/projects"],
+  ["projects-list", "/projects?view=list"],
+  ["projects-waiting", "/projects?show=you"],
+  ["calendar-month", "/calendar"],
+  ["calendar-list", "/calendar?view=list"],
+];
+const pageFilter = args.find((a) => a.startsWith("--pages="))?.split("=")[1]?.split(",");
+
 async function phaseList(outDir: string, client: [string, string][], ops: [string, string][] = []) {
   mkdirSync(outDir, { recursive: true });
   const browser = await chromium.launch();
@@ -266,6 +276,7 @@ async function phaseList(outDir: string, client: [string, string][], ops: [strin
 async function main() {
   if (phase === "insights") return phaseList("screenshots/insights", INSIGHTS_PAGES);
   if (phase === "j1") return phaseList("screenshots/j1", J1_CLIENT, J1_OPS);
+  if (phase === "j2") return phaseList("screenshots/j2", J2_PAGES.filter(([n]) => !pageFilter || pageFilter.some((f) => n.startsWith(f))));
   if (phase === "i") return phaseI();
   if (phase === "sources") return phaseSources();
   if (phase === "home") return phaseHome();

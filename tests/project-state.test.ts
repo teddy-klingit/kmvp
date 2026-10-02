@@ -273,3 +273,34 @@ describe("regressions — the contradictions seen on 'Klarna 10-Slide Sales Deck
     expect(attentionBucket(s)).toBe("needs_input");
   });
 });
+
+describe("client board and status line (Projects.dc.html)", () => {
+  it("five columns from the client timeline; paused stays in its stage's column; archived is off the board", async () => {
+    const { CLIENT_COLUMNS, clientColumnFor } = await import("@/lib/project-state");
+    expect(CLIENT_COLUMNS).toEqual(["Brief", "Estimate", "Production", "Review", "Delivered"]);
+    expect(clientColumnFor(state({ status: "STAFFING" }))).toBe("Production");
+    expect(clientColumnFor(state({ status: "PAUSED", pausedFromStatus: "IN_PRODUCTION" }))).toBe("Production");
+    expect(clientColumnFor(state({ status: "ESTIMATING", estimate: { status: "SENT", totalCredits: 28, sentAt: day(-1), expiresAt: day(3), respondedAt: null } }))).toBe("Estimate");
+    expect(clientColumnFor(state({ status: "ARCHIVED" }))).toBeNull();
+  });
+
+  it("orange only when it's the client's move; paused is grey; Klingit's work reads in plain words", async () => {
+    const { statusLine } = await import("@/lib/client-home");
+    const waiting = state({ status: "ESTIMATING", estimate: { status: "SENT", totalCredits: 28, sentAt: day(-1), expiresAt: day(3), respondedAt: null } });
+    expect(statusLine(waiting, NOW)).toMatchObject({ label: "Waiting on you", tone: "you" });
+    expect(statusLine(state({ status: "PAUSED", pausedFromStatus: "IN_PRODUCTION" }), NOW)).toMatchObject({ label: "Paused", tone: "paused" });
+    const staffing = state({ status: "STAFFING", estimate: { status: "APPROVED", totalCredits: 28, sentAt: day(-9), expiresAt: day(-5), respondedAt: day(-8) } });
+    expect(statusLine(staffing, NOW, "card")).toMatchObject({ label: "Picking your team", tone: "klingit" });
+  });
+});
+
+describe("calendar month grid", () => {
+  it("is Monday-first and covers whole weeks", async () => {
+    const { monthGrid } = await import("@/lib/calendar-items");
+    const g = monthGrid(new Date(2026, 9, 1)); // October 2026 starts on a Thursday
+    expect(g.start.getDay()).toBe(1);
+    expect(g.start.getDate()).toBe(28); // Mon 28 Sept
+    expect(g.cells % 7).toBe(0);
+    expect(g.cells).toBe(35);
+  });
+});

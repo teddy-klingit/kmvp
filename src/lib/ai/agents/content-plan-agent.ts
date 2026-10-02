@@ -6,6 +6,8 @@ const SuggestionSchema = z.object({
   rationale: z.string().describe("1-2 sentences citing the specific real numbers behind the suggestion — performance and, where relevant, business outcome trend"),
   platform: z.string().nullable().describe("The platform this suggestion targets, if it's platform-specific — null for a cross-platform suggestion"),
   suggestedVolumeChange: z.number().nullable().describe("Signed change to weekly volume for `platform`, e.g. 2 or -1 — null if this isn't a volume change (e.g. a content-type shift)"),
+  proposedDate: z.string().describe("The day to publish it, YYYY-MM-DD: within the next 30 days from TODAY, on a day that doesn't already have a planned post where possible"),
+  reason: z.string().describe("The why in at most 6 plain words for a calendar card, e.g. 'stories get 3× the clicks'"),
   sourceCadence: z
     .enum(["Weekly trend scan", "Monthly strategy recommendation"])
     .describe("'Weekly trend scan' for a fast-moving, timely opportunity; 'Monthly strategy recommendation' for a structural plan change grounded in a longer performance trend"),
@@ -28,10 +30,15 @@ export async function generateContentPlanSuggestions(args: {
   recentPosts: { platform: string; contentType: string | null; engagementRate: number | null; videoViews: number | null; impressions: number | null }[];
   followerTrend: { platform: string; followerCount: number; capturedAt: string }[];
   businessOutcomes: { periodStart: string; periodEnd: string; revenue: number | null; leadsGenerated: number | null }[];
+  /** YYYY-MM-DD, so proposed dates are real future days. */
+  today?: string;
+  /** Days that already have something planned (YYYY-MM-DD), so suggestions fill gaps. */
+  plannedDays?: string[];
 }) {
   const system = `You are the Content Plan agent at Klingit, a creative agency. You're given a client's current content plan (weekly volume target per platform), real recent post performance, follower growth over time, and — where available — the client's own business outcomes (revenue/leads, not Klingit's billing). Your job is to propose specific, grounded adjustments to the plan: shift volume toward what's working, flag what isn't, or suggest a content-type change. Every suggestion must cite the actual numbers given. Never suggest a change with no supporting data. These are proposals for a human to approve or reject — never claim a change has been made.`;
 
-  const parts = [`Client: ${args.clientName}`, ""];
+  const parts = [`Client: ${args.clientName}`, `TODAY: ${args.today ?? new Date().toISOString().slice(0, 10)}`, ""];
+  if (args.plannedDays?.length) parts.push(`ALREADY PLANNED ON: ${args.plannedDays.join(", ")}`, "");
 
   parts.push("CURRENT PLAN TARGETS (weekly volume per platform):");
   if (args.planTargets.length) {

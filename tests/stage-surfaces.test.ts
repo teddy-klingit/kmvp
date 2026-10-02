@@ -174,11 +174,17 @@ describe.each(STAGES)("stage %s — every surface agrees", (stage) => {
   const e = EXPECT[stage];
   const p = () => fx.projects[stage];
 
-  it("projects board: right column, next action on the card", async () => {
+  it("projects board: the client timeline's column, and the status in plain words", async () => {
     const html = await render(ProjectsPage({ searchParams: Promise.resolve({}) }));
-    const column = asText(region(html, `data-column="${e.column}"`, ["data-column="]));
+    // Five columns (Projects.dc.html): sign-off sits in Review, staffing in Production.
+    const CLIENT_COLUMN: Record<string, string> = { Briefing: "Brief", Estimate: "Estimate", "In production": "Production", "In review": "Review", "Sign-off": "Review", Delivered: "Delivered" };
+    const column = asText(region(html, `data-column="${CLIENT_COLUMN[e.column]}"`, ["data-column="]));
     expect(column).toContain(p().name);
-    expect(column).toContain(stage === "closed" ? "Delivered" : e.next);
+    // The card right after the project's name carries its status.
+    const card = column.slice(column.indexOf(p().name)).split(/\bDUE \d|NO DATE YET|\b\d{1,2} [A-Z]{3,4}\b/)[0];
+    if (stage === "closed") expect(card).toContain("Signed off");
+    else if (e.dashboard) expect(card).toContain("Waiting on you");
+    else expect(card).not.toContain("Waiting on you");
   });
 
   it("dashboard: in Your turn only when it's the client's turn", async () => {
@@ -320,7 +326,7 @@ describe("regressions — the contradictions seen on a Draft project ('Klarna 10
 
   it("Projects board no longer puts unscoped cards in 'In production'", async () => {
     const html = await render(ProjectsPage({ searchParams: Promise.resolve({}) }));
-    expect(asText(region(html, 'data-column="In production"', ["data-column="]))).not.toContain(draft().name);
+    expect(asText(region(html, 'data-column="Production"', ["data-column="]))).not.toContain(draft().name);
     expect(asText(html)).not.toContain("Not yet scoped");
   });
 

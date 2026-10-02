@@ -311,3 +311,84 @@ export async function marketThisWeek(clientId: string, now = new Date()): Promis
 }
 
 export { shortDate, jsonArray };
+
+// ─── Project rows & board cards (Home "Your projects", Projects board and list) ──
+
+/** Orange = waiting on you, ink = Klingit working, green = done, grey = paused (ds StatusDot tones). */
+export type StatusTone = "you" | "klingit" | "done" | "paused";
+
+const KLINGIT_DOING: Partial<Record<ProjectState["stage"], string>> = {
+  briefing: "Klingit is reviewing the brief",
+  estimating: "Klingit is pricing it",
+  staffing: "Picking your team",
+  production: "In production",
+  review: "Klingit is revising",
+  final: "Final files on the way",
+};
+
+/**
+ * One status in plain words. `row` is Home's wording ("Klingit working · draft Wed"); `card` is the board's
+ * ("Draft Wed 7 Oct"). Waiting on you is always orange; nothing else ever is.
+ */
+export function statusLine(state: ProjectState, now: Date, variant: "row" | "card" = "row"): { label: string; tone: StatusTone; late: boolean } {
+  if (state.archived) return { label: "Archived", tone: "paused", late: false };
+  if (state.stage === "closed") return { label: "Signed off", tone: "done", late: false };
+  if (state.paused) return { label: "Paused", tone: "paused", late: false };
+  if (state.ballInCourt === "client") return { label: "Waiting on you", tone: "you", late: false };
+  const eta = state.keyFacts.firstDraftEta;
+  if (state.stage === "production" && eta) {
+    if (endOfDay(eta) < now) return { label: variant === "card" ? `Draft late · was due ${shortDate(eta)}` : "Klingit working · draft late", tone: "klingit", late: true };
+    if (variant === "card") return { label: `Draft ${formatDay(eta)}`, tone: "klingit", late: false };
+    const soon = eta.getTime() - now.getTime() < 6 * DAY;
+    return { label: `Klingit working · draft ${soon ? new Intl.DateTimeFormat("en-GB", { weekday: "short" }).format(eta) : shortDate(eta)}`, tone: "klingit", late: false };
+  }
+  return { label: variant === "card" ? (KLINGIT_DOING[state.stage] ?? "Klingit working") : "Klingit working", tone: "klingit", late: false };
+}
+
+export type ProjectRowData = {
+  id: string;
+  /** Client-turn rows open where the action is; everything else opens the overview. */
+  href: string;
+  name: string;
+  /** "Campaign · 6 assets" */
+  meta: string;
+  type: string;
+  status: { label: string; tone: StatusTone; late: boolean };
+  /** The board card's wording ("Draft Wed 7 Oct"). */
+  cardStatus: { label: string; tone: StatusTone; late: boolean };
+  /** "Review" … "Delivered" (the client timeline). */
+  stage: string;
+  /** 1–5 on the client timeline. */
+  step: number;
+  /** "DUE 25 OCT", "2 OCT" once delivered, or "NO DATE YET". */
+  dateLabel: string;
+  team: string[];
+  confidential: boolean;
+  draft: boolean;
+  projectStatus: string;
+};
+
+export function projectRow({ project, state }: Item, typeLabel: (t: string) => string, accountLead: string | null, now = new Date()): ProjectRowData {
+  const milestones = clientMilestones(state);
+  const currentIdx = milestones.findIndex((m) => m.status === "current");
+  const step = currentIdx >= 0 ? currentIdx + 1 : milestones.filter((m) => m.status === "done").length;
+  const assetCount = project.assets.length;
+  const team = state.keyFacts.staffedTeam.map((m) => m.name);
+  const day = (d: Date) => shortDate(d).toUpperCase();
+  return {
+    id: project.id,
+    href: state.ballInCourt === "client" && !state.paused && state.stage !== "closed" ? state.nextAction.href : `/projects/${project.id}`,
+    name: project.name,
+    meta: [typeLabel(project.type), assetCount ? `${assetCount} asset${assetCount === 1 ? "" : "s"}` : null].filter(Boolean).join(" · "),
+    type: typeLabel(project.type),
+    status: statusLine(state, now),
+    cardStatus: statusLine(state, now, "card"),
+    stage: milestones[Math.max(0, step - 1)]?.label ?? "Brief",
+    step,
+    dateLabel: state.stage === "closed" ? (project.deliveredAt ? day(project.deliveredAt) : "DELIVERED") : state.keyFacts.dueDate ? `DUE ${day(state.keyFacts.dueDate)}` : "NO DATE YET",
+    team: team.length ? team : accountLead ? [accountLead] : [],
+    confidential: project.confidential,
+    draft: state.draft,
+    projectStatus: project.status,
+  };
+}

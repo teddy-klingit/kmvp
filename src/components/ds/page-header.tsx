@@ -29,7 +29,8 @@ export function PageHeader({
   return (
     <div className={cn("flex flex-col gap-6", className)}>
       <header className="flex flex-wrap items-end gap-x-6 gap-y-4">
-        <div className="flex min-w-0 flex-1 flex-col gap-2">
+        {/* At least 280px for the title block, so on phones the actions wrap under it instead of squeezing it. */}
+        <div className="flex min-w-[min(100%,280px)] flex-1 flex-col gap-2">
           {back && (
             <Link href={back.href} className="-ml-1 inline-flex min-h-11 items-center gap-1 self-start text-[13px] text-brand-ink-2 no-underline hover:text-brand-ink sm:min-h-0">
               <ChevronLeft className="size-4" strokeWidth={1.75} />

@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutDashboard, FolderKanban, Sparkles, BarChart3, CalendarDays, FileText, LayoutGrid, Bell, ChevronsUpDown } from "lucide-react";
+import { LayoutDashboard, FolderKanban, Sparkles, BarChart3, CalendarDays, FileText, LayoutGrid, Bell, UserRound, ChevronsUpDown } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { PersonaSwitcher } from "@/components/shared/persona-switcher";
 import { AppNav, type NavSection } from "@/components/shared/app-nav";
@@ -35,7 +35,10 @@ export function PortalSidebar({ userName, userEmail, clientName, brands, unreadC
     <AppNav
       homeHref="/dashboard"
       sections={sections}
-      bottom={[{ label: "Notifications", href: "/notifications", icon: Bell, dot: unreadCount > 0 }]}
+      bottom={[
+        { label: "Notifications", href: "/notifications", icon: Bell, dot: unreadCount > 0 },
+        { label: "Account", href: "/account", icon: UserRound },
+      ]}
       extra={<PersonaSwitcher currentEmail={userEmail} />}
       user={{ name: userName, sub: clientName, href: "/account" }}
       top={

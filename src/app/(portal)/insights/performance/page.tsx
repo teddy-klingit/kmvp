@@ -10,7 +10,8 @@ import { formatDate, formatMoney, jsonArray } from "@/lib/utils";
 import { PageGrid } from "@/components/ds/page-grid";
 import { SectionCard, CardBody, CardNote, CardRows } from "@/components/ds/card";
 import { FilterChips } from "@/components/ds/filter-chips";
-import { HBars, StatTiles, type Stat } from "@/components/ds/stats";
+import { HBars, Meter, StatTiles, type Stat } from "@/components/ds/stats";
+import { DiscreteMetricBars } from "@/components/portal/discrete-metric-bars";
 import { NumberedRow } from "@/components/ds/numbered-row";
 import { StatusPill, type PillTone } from "@/components/ds/status-pill";
 import { CampaignDetailDialog } from "@/components/portal/campaign-detail-dialog";
@@ -56,13 +57,19 @@ export default async function InsightsPerformancePage({ searchParams }: { search
   const { platform: selectedPlatform, range: selectedRange, tier: selectedTier } = await searchParams;
   const viewer = await getPortalViewer();
   const clientId = viewer.clientId;
-  const [paid, kpis, { all }, brief, config] = await Promise.all([
+  const [paid, kpis, { all }, brief, config, outcomes] = await Promise.all([
     loadPaidMedia(clientId, selectedRange),
     loadContentKpis(clientId),
     loadMeasuredAssets(clientId),
     prisma.performanceBrief.findUnique({ where: { clientId } }),
     prisma.clientReportingConfig.findUnique({ where: { clientId } }),
+    prisma.clientBusinessOutcome.findMany({ where: { clientId }, orderBy: { periodStart: "asc" } }),
   ]);
+  // Business outcomes (moved here from the Calendar): revenue when reported, otherwise leads.
+  const hasRevenue = outcomes.some((o) => o.revenue !== null);
+  const outcomeBars = outcomes
+    .map((o) => ({ period: formatDate(o.periodStart, { month: "short" }), value: hasRevenue ? o.revenue : o.leadsGenerated }))
+    .filter((o): o is { period: string; value: number } => o.value !== null);
   const kpiTargets = jsonArray<KpiTarget>(config?.kpiTargets);
   const targetFor = (metric: string) => kpiTargets.find((t) => t.metric === metric)?.target ?? null;
   const dateRange = resolveDateRange({ preset: selectedRange });
@@ -327,6 +334,37 @@ export default async function InsightsPerformancePage({ searchParams }: { search
                     </li>
                   ))}
                 </CardRows>
+              </SectionCard>
+            )}
+
+            {kpis.volumeByPlatform.some((v) => v.target > 0) && (
+              <SectionCard title="Content this month" action={<span className="text-[12px] text-brand-ink-2">vs SOW minimum</span>}>
+                <CardRows>
+                  {kpis.volumeByPlatform
+                    .filter((v) => v.target > 0)
+                    .map((v) => (
+                      <li key={v.platform} className="flex flex-col gap-2 px-6 py-3.5">
+                        <span className="flex items-baseline justify-between gap-3 text-[14px]">
+                          <span className="flex items-center gap-2">
+                            <PlatformBadge platform={v.platform} className="size-5" />
+                            {v.platform}
+                          </span>
+                          <span className="tabular-nums text-brand-ink-2">
+                            {v.published} of {v.target}
+                          </span>
+                        </span>
+                        <Meter value={v.published} max={v.target} label={`${v.published} of ${v.target} published on ${v.platform}`} />
+                      </li>
+                    ))}
+                </CardRows>
+              </SectionCard>
+            )}
+
+            {outcomeBars.length > 1 && (
+              <SectionCard title="Business outcomes" action={<span className="text-[12px] text-brand-ink-2">{hasRevenue ? "Revenue" : "Leads"} per period</span>}>
+                <CardBody>
+                  <DiscreteMetricBars data={outcomeBars} label={hasRevenue ? "Revenue" : "Leads"} />
+                </CardBody>
               </SectionCard>
             )}
 

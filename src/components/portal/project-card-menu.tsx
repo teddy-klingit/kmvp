@@ -24,7 +24,7 @@ export function ProjectCardMenu({ projectId, status }: { projectId: string; stat
         <button
           type="button"
           onClick={(e) => e.stopPropagation()}
-          className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          className="flex size-11 shrink-0 items-center justify-center rounded-full text-brand-ink-2 transition-colors hover:bg-brand-chip hover:text-brand-ink sm:size-8"
         >
           <MoreHorizontal className="size-4" />
         </button>
