@@ -2,7 +2,7 @@
 
 import { Home, FolderKanban, Bot, Users, Archive, Building2, Tag, Bell } from "lucide-react";
 import { PersonaSwitcher } from "@/components/shared/persona-switcher";
-import { AppNav, type NavItem } from "@/components/shared/app-nav";
+import { AppNav, RailHint, type NavItem } from "@/components/shared/app-nav";
 import type { RoleTier } from "@/lib/role-tier";
 
 type TieredItem = NavItem & { tiers: RoleTier[] };
@@ -25,12 +25,14 @@ const AGENCY: TieredItem[] = [
  * Archive. Billing, Analytics and Settings live in the Account menu; the Inbox is a Needs-you filter.
  */
 export function OpsSidebar({
+  userId,
   userName,
   userTitle,
   userEmail,
   tier,
   needsCount = 0,
 }: {
+  userId: string;
   userName: string;
   userTitle: string;
   userEmail: string;
@@ -50,6 +52,12 @@ export function OpsSidebar({
       sections={[{ items: pick(MAIN) }, ...(agency.length ? [{ label: "Agency", items: agency }] : [])]}
       bottom={[{ label: "Notifications", href: "/ops/notifications", icon: Bell }]}
       extra={<PersonaSwitcher currentEmail={userEmail} />}
+      extraRail={
+        <RailHint label="Switch view">
+          <PersonaSwitcher currentEmail={userEmail} compact />
+        </RailHint>
+      }
+      storageKey={userId}
       user={{ name: userName, sub: userTitle, href: "/ops/account" }}
     />
   );

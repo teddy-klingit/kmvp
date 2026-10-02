@@ -71,6 +71,16 @@ export const loadAudienceData = cache(async (clientId: string) => {
   return { community, escalations, website };
 });
 
+/**
+ * The asset's own image to show as a thumbnail, or null: never stock filler (sample-image.ts), and never the
+ * download route of an asset with no stored file (that serves a labelled placeholder, see asset-files.ts).
+ */
+export function assetThumbnail(a: { fileUrl: string | null; mimeType: string | null; storageKey: string | null }) {
+  if (!a.fileUrl || !a.mimeType?.startsWith("image/") || a.fileUrl.includes("picsum.photos")) return null;
+  if (a.fileUrl.startsWith("/api/assets/") && !a.storageKey) return null;
+  return a.fileUrl;
+}
+
 /** Delivered assets with a measured CTR, with display names. */
 export const loadMeasuredAssets = cache(async (clientId: string) => {
   const assets = await prisma.asset.findMany({ where: { clientId }, include: { project: { select: { name: true } } }, orderBy: { createdAt: "asc" } });
@@ -78,7 +88,7 @@ export const loadMeasuredAssets = cache(async (clientId: string) => {
     all: assets.map((a) => ({ ...a, displayTitle: assetTitle(a.name, a.format) })),
     measured: assets
       .filter((a) => a.performanceCtr !== null)
-      .map((a) => ({ id: a.id, title: assetTitle(a.name, a.format), project: a.project.name, format: a.format, ctr: a.performanceCtr!, color: a.thumbnailColor })),
+      .map((a) => ({ id: a.id, title: assetTitle(a.name, a.format), project: a.project.name, format: a.format, ctr: a.performanceCtr!, color: a.thumbnailColor, thumbnail: assetThumbnail(a) })),
   };
 });
 

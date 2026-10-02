@@ -1,6 +1,19 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* The folded desktop nav (src/components/shared/app-nav.tsx): the aside carries data-nav="open" | "folded",
+   or "auto" before the stored choice is known, where it follows the default (folded from 900 to 1279px). */
+@custom-variant rail {
+  &:is([data-nav="folded"], [data-nav="folded"] *) {
+    @slot;
+  }
+  @media (min-width: 900px) and (max-width: 1279.98px) {
+    &:is([data-nav="auto"], [data-nav="auto"] *) {
+      @slot;
+    }
+  }
+}
+
 :root {
   /* Klingit brand theme, app-wide (Phase J): cream page, white cards without borders, ink text.
      Orange (#FF5D02) only ever means "your action"; errors are red and warnings amber. */
@@ -147,7 +160,8 @@
   --brand-line: #efebe2; /* card title rules and row dividers */
   --brand-track: #efebe2; /* progress bar track */
   --brand-chip: #f7f5f0; /* date chips in Next 7 days */
-  --brand-rule: #e6e0d2; /* nav user-block rule */
+  --brand-rule: #e6e0d2; /* nav right edge, nav user-block rule */
+  --brand-nav: #f2ede3; /* side nav: a touch darker than the cream page */
   --brand-outline: #c2c3c5;
   /* Pill tabs (SegmentedControl / SegmentedNav): grey track on product pages, warm on brand pages. */
   --seg-track: var(--ds-subtle);
@@ -272,6 +286,7 @@
   --color-brand-track: var(--brand-track);
   --color-brand-chip: var(--brand-chip);
   --color-brand-rule: var(--brand-rule);
+  --color-brand-nav: var(--brand-nav);
   --color-brand-outline: var(--brand-outline);
   --font-brand: var(--font-albert), "Helvetica Neue", Arial, sans-serif;
   --font-brand-mono: var(--font-azeret), ui-monospace, monospace;
@@ -304,6 +319,15 @@ body {
 @layer base {
   * {
     border-color: var(--border);
+  }
+  /* Focus: never on mouse click, only for keyboard focus (:focus-visible), as a 2px orange ring with a 2px gap.
+     In the base layer, so a component's own outline-none (e.g. a borderless input inside a pill) still wins. */
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+  :focus-visible {
+    outline: 2px solid #ff5d02;
+    outline-offset: 2px;
   }
 }
 

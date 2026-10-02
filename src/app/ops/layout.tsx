@@ -13,6 +13,7 @@ export default async function OpsLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex h-screen w-full flex-col bg-brand-page min-[900px]:flex-row">
       <OpsSidebar
+        userId={viewer.userId}
         userName={viewer.user.name}
         userTitle={INTERNAL_ROLE_LABEL[viewer.title]}
         userEmail={viewer.user.email}

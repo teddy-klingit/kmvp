@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Film, GalleryHorizontalEnd, Image as ImageIcon, RectangleHorizontal } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { formatLabel } from "@/lib/asset-display";
 import { filtersToQueryString, type ReportFilters } from "@/lib/report-filters";
@@ -35,6 +35,32 @@ export function TakeawaysCard({ period, report, action }: { period: Period; repo
 }
 
 /** Top creative with its measured CTR: the report's, or the best right now when there's no report yet. */
+/** Which icon stands in for a format with no image: video formats get film, carousels a gallery, banners a wide frame. */
+function FormatIcon({ format }: { format: string }) {
+  const f = format.toLowerCase();
+  const props = { className: "size-7", strokeWidth: 1.5 };
+  if (/story|reel|video|tiktok|short/.test(f)) return <Film {...props} />;
+  if (f.includes("carousel")) return <GalleryHorizontalEnd {...props} />;
+  if (/banner|leaderboard|display|billboard/.test(f)) return <RectangleHorizontal {...props} />;
+  return <ImageIcon {...props} />;
+}
+
+/** The asset's own image, or a neutral placeholder with its format icon when it has none. */
+function PostThumbnail({ src, format }: { src: string | null; format: string }) {
+  return (
+    <span className="relative block aspect-[16/7] overflow-hidden rounded-[8px] bg-brand-chip @min-[600px]/col:aspect-[11/6]">
+      {src ? (
+        // eslint-disable-next-line @next/next/no-img-element -- access-checked upload route, not a static asset
+        <img src={src} alt="" loading="lazy" className="absolute inset-0 size-full object-cover" />
+      ) : (
+        <span aria-hidden className="absolute inset-0 flex items-center justify-center text-brand-outline">
+          <FormatIcon format={format} />
+        </span>
+      )}
+    </span>
+  );
+}
+
 export async function TopPostsCard({ clientId, report }: { clientId: string; report: Report | null }) {
   const assets = report ? await reportAssets(clientId, report.topAssetIds) : [...(await loadMeasuredAssets(clientId)).measured].sort((a, b) => b.ctr - a.ctr).slice(0, 3);
   if (assets.length === 0) return null;
@@ -43,7 +69,7 @@ export async function TopPostsCard({ clientId, report }: { clientId: string; rep
       <div className="grid grid-cols-1 gap-4 px-6 pb-6 pt-5 @min-[600px]/col:grid-cols-3">
         {assets.map((a) => (
           <div key={a.id} className="flex min-w-0 flex-col gap-2">
-            <span aria-hidden className="block aspect-[16/7] rounded-[8px] @min-[600px]/col:aspect-[11/6]" style={{ backgroundColor: a.color ? `color-mix(in srgb, ${a.color} 16%, white)` : "var(--brand-chip)" }} />
+            <PostThumbnail src={a.thumbnail} format={a.format} />
             <span className="truncate text-[15px]">{a.title}</span>
             <span className="text-[13px] text-brand-ink-2">
               {a.ctr.toFixed(1)}% CTR · {formatLabel(a.format).split(" · ")[0]}

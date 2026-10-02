@@ -9,6 +9,7 @@
  *   npx tsx scripts/screenshots/capture.ts home
  *   npx tsx scripts/screenshots/capture.ts insights   (every Insights tab, 1440 + 390)
  *   npx tsx scripts/screenshots/capture.ts j1         (theme sweep: client + ops pages, 1440 + 390)
+ *   npx tsx scripts/screenshots/capture.ts nav        (side nav open / folded / tooltip / focus ring at 1440, menu sheet at 390)
  *
  * Output: screenshots/<phase>/...png
  */
@@ -333,7 +334,68 @@ async function phaseList(outDir: string, client: [string, string][], ops: [strin
   await browser.close();
 }
 
+/** The side nav: Reports with it open and folded, a rail tooltip, keyboard focus, ops folded, and the phone menu sheet. */
+async function phaseNav() {
+  const outDir = "screenshots/nav";
+  mkdirSync(outDir, { recursive: true });
+  const prisma = new PrismaClient({ datasourceUrl: "file:./prisma/screens.db" });
+  const users = await prisma.user.findMany({ where: { email: { in: ["jack.ross@klarna.com", "teddy@klingit.com"] } }, select: { id: true, email: true } });
+  await prisma.$disconnect();
+  const keyFor = (email: string) => `klingit.nav.${users.find((u) => u.email === email)!.id}`;
+  const setNav = (page: Page, key: string, v: "open" | "folded") => page.evaluate(([k, x]) => localStorage.setItem(k, x), [key, v]);
+  const browser = await chromium.launch();
+
+  const client = await signInAs(browser, "jack.ross@klarna.com", 1440);
+  const jack = keyFor("jack.ross@klarna.com");
+  await setNav(client.page, jack, "open");
+  await shot(client.page, "/reports", "01-reports-nav-open", outDir, 1440);
+  await setNav(client.page, jack, "folded");
+  await shot(client.page, "/reports", "02-reports-nav-folded", outDir, 1440);
+  // Viewport shots: a rail tooltip on hover, then keyboard focus (Tab) on the fold button.
+  await client.page.goto(`${BASE}/reports`, { waitUntil: "networkidle" });
+  await client.page.hover('aside a[href="/insights"]');
+  await client.page.waitForTimeout(150);
+  await client.page.screenshot({ path: `${outDir}/03-rail-tooltip-1440.png` });
+  console.log("  03-rail-tooltip-1440.png");
+  await client.page.mouse.move(900, 500);
+  await client.page.keyboard.press("Tab");
+  await client.page.keyboard.press("Tab");
+  await client.page.waitForTimeout(150);
+  await client.page.screenshot({ path: `${outDir}/04-focus-ring-1440.png` });
+  console.log("  04-focus-ring-1440.png");
+  // Mouse click on a nav row: it keeps focus but shows no outline (mouse moved off so the tooltip hides).
+  await client.page.click('aside a[href="/calendar"]');
+  await client.page.waitForURL("**/calendar", { timeout: 60_000 });
+  await client.page.waitForLoadState("networkidle");
+  await client.page.mouse.move(900, 500);
+  await client.page.waitForTimeout(200);
+  console.log(`  focused after click: ${await client.page.evaluate(() => document.activeElement?.getAttribute("href"))}`);
+  await client.page.screenshot({ path: `${outDir}/05-after-click-no-outline-1440.png` });
+  console.log("  05-after-click-no-outline-1440.png");
+  await client.context.close();
+
+  const ops = await signInAs(browser, "teddy@klingit.com", 1440);
+  const teddy = keyFor("teddy@klingit.com");
+  await setNav(ops.page, teddy, "open");
+  await shot(ops.page, "/ops", "06-ops-nav-open", outDir, 1440);
+  await setNav(ops.page, teddy, "folded");
+  await shot(ops.page, "/ops", "07-ops-nav-folded", outDir, 1440);
+  await ops.context.close();
+
+  const phone = await signInAs(browser, "jack.ross@klarna.com", 390);
+  await phone.page.setViewportSize({ width: 390, height: 844 });
+  await phone.page.goto(`${BASE}/reports`, { waitUntil: "networkidle" });
+  await phone.page.screenshot({ path: `${outDir}/08-reports-top-bar-390.png` });
+  await phone.page.click('button[aria-label="Open menu"]');
+  await phone.page.waitForTimeout(400);
+  await phone.page.screenshot({ path: `${outDir}/09-mobile-menu-390.png` });
+  console.log("  08-reports-top-bar-390.png, 09-mobile-menu-390.png");
+  await phone.context.close();
+  await browser.close();
+}
+
 async function main() {
+  if (phase === "nav") return phaseNav();
   if (phase === "insights") return phaseList("screenshots/insights", INSIGHTS_PAGES);
   if (phase === "j1") return phaseList("screenshots/j1", J1_CLIENT, J1_OPS);
   if (phase === "j4") {

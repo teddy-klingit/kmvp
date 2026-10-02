@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { PillLink } from "@/components/ds/pill-link";
 import { ChannelBadge, channelTypeLabel } from "@/components/portal/channel-icon";
 import { sendToChannelAction } from "@/lib/actions/channel-actions";
 import { Send } from "lucide-react";
@@ -25,11 +26,29 @@ export function SendToChannelDialog({
 }) {
   const [selected, setSelected] = useState<string | null>(channels[0]?.id ?? null);
 
+  // With nothing connected the button still works: it explains what's needed and where to connect it.
   if (channels.length === 0) {
     return (
-      <Button type="button" variant="primary" size="lg" disabled title="Connect a Slack, Teams, or email channel in Account settings first">
-        {label}
-      </Button>
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button type="button" variant="primary" size="lg">
+            {label}
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>No channel connected yet</DialogTitle>
+            <DialogDescription>
+              Connect a Slack, Teams or email channel and &quot;{subjectLabel}&quot; can be pushed straight to it from here.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <PillLink href="/account/security" variant="primary">
+              Connect in Account
+            </PillLink>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     );
   }
 

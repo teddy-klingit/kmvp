@@ -3,9 +3,10 @@
 import { LayoutDashboard, FolderKanban, Sparkles, BarChart3, CalendarDays, FileText, LayoutGrid, Bell, UserRound, ChevronsUpDown } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { PersonaSwitcher } from "@/components/shared/persona-switcher";
-import { AppNav, type NavSection } from "@/components/shared/app-nav";
+import { AppNav, RailHint, type NavSection } from "@/components/shared/app-nav";
 
 type SidebarProps = {
+  userId: string;
   userName: string;
   userEmail: string;
   clientName: string;
@@ -17,7 +18,7 @@ type SidebarProps = {
  * Client nav (brand theme): Home, Projects, Brand OS, Insights, Calendar, Reports, Custom apps; then
  * Notifications and the Account user block. Help lives in Account; "Switch view" is the demo persona switcher.
  */
-export function PortalSidebar({ userName, userEmail, clientName, brands, unreadCount }: SidebarProps) {
+export function PortalSidebar({ userId, userName, userEmail, clientName, brands, unreadCount }: SidebarProps) {
   const sections: NavSection[] = [
     {
       items: [
@@ -40,6 +41,12 @@ export function PortalSidebar({ userName, userEmail, clientName, brands, unreadC
         { label: "Account", href: "/account", icon: UserRound },
       ]}
       extra={<PersonaSwitcher currentEmail={userEmail} />}
+      extraRail={
+        <RailHint label="Switch view">
+          <PersonaSwitcher currentEmail={userEmail} compact />
+        </RailHint>
+      }
+      storageKey={userId}
       user={{ name: userName, sub: clientName, href: "/account" }}
       top={
         brands.length > 1 ? (

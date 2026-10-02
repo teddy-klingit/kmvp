@@ -11,7 +11,7 @@ function isProjectDetail(pathname: string) {
   return section === "projects" && Boolean(id) && !RESERVED.has(id);
 }
 
-/** Page padding from the designs: 24 top (40 on Insights), 40 right, 56 bottom, 16 left next to the nav; 16px gutters on phones. */
+/** Page padding from the designs: 24 top (40 on Insights), 40 right, 56 bottom, 40 left; 16px gutters on phones. */
 export function PortalMain({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "";
   if (isProjectDetail(pathname)) {
@@ -20,7 +20,7 @@ export function PortalMain({ children }: { children: React.ReactNode }) {
   }
   const top = pathname === "/dashboard" ? "min-[900px]:pt-6" : "min-[900px]:pt-10";
   return (
-    <main className={`min-w-0 flex-1 overflow-y-auto px-4 pb-12 pt-5 min-[900px]:pb-14 min-[900px]:pl-4 min-[900px]:pr-10 ${top}`}>
+    <main className={`min-w-0 flex-1 overflow-y-auto px-4 pb-12 pt-5 min-[900px]:pb-14 min-[900px]:pl-10 min-[900px]:pr-10 ${top}`}>
       <div className="mx-auto w-full max-w-[1120px]">
         <PageTransition>{children}</PageTransition>
       </div>

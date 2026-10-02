@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 /** Everything clickable is a pill with a mono label (brand theme): black primary, outlined secondary. */
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full font-brand-mono text-[12px] transition-colors disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full font-brand-mono text-[12px] transition-colors disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {

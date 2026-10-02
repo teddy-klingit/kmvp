@@ -24,10 +24,10 @@ export function PersonaSwitcher({ currentEmail, compact = false }: { currentEmai
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
-          title="Switch view"
+          aria-label={compact ? "Switch view" : undefined}
           className={cn(
-            "flex min-h-11 w-full items-center gap-3 rounded-full py-2 text-[13px] text-brand-ink-2 hover:bg-brand-ink/5 hover:text-brand-ink sm:min-h-0",
-            compact ? "justify-center px-2" : "px-3.5"
+            "flex items-center rounded-full text-[13px] text-brand-ink-2 hover:bg-brand-ink/5 hover:text-brand-ink",
+            compact ? "size-11 justify-center" : "min-h-11 w-full gap-3 px-[13px] py-2 sm:min-h-0"
           )}
         >
           <Repeat className="size-[18px]" strokeWidth={1.75} />
