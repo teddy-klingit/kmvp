@@ -9,7 +9,7 @@ const SEGMENTS: { label: string; href: string; match: (p: string) => boolean }[]
   { label: "Visual identity", href: "/assets/visual-identity", match: (p) => p.startsWith("/assets/visual-identity") },
   { label: "Sources", href: "/assets/sources", match: (p) => p.startsWith("/assets/sources") },
   { label: "Library", href: "/assets/library", match: (p) => ["/assets/library", "/assets/top-performers", "/assets/by-campaign"].some((x) => p.startsWith(x)) },
-  { label: "Agents", href: "/assets/agents-templates", match: (p) => p.startsWith("/assets/agents-templates") || p.startsWith("/assets/templates") },
+  { label: "Agents & templates", href: "/assets/agents-templates", match: (p) => p.startsWith("/assets/agents-templates") || p.startsWith("/assets/templates") },
 ];
 
 /**

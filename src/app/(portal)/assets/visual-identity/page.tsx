@@ -4,9 +4,8 @@ import { getPortalViewer } from "@/lib/current-viewer";
 import { Card, CardHeader, SectionCard } from "@/components/ds/card";
 import { PageGrid } from "@/components/ds/page-grid";
 import { jsonArray } from "@/lib/utils";
-import { VISUAL_IDENTITY_FOLDERS } from "@/lib/brand-iq-taxonomy";
+import { VISUAL_IDENTITY_FOLDERS, VISUAL_IDENTITY_CATEGORY as CATEGORY_FOR } from "@/lib/brand-iq-taxonomy";
 import { Palette, Type, Image as ImageIcon, Shapes, Grid3x3, Video, Sparkles } from "lucide-react";
-import type { BrandAssetCategory } from "@/generated/prisma";
 import { sectionSources } from "@/lib/brand-sources-data";
 import { SourcesRow } from "@/components/portal/brand-sources/sources-row";
 import { FigmaDesignSystemSlot } from "@/components/portal/brand-sources/figma-slot";
@@ -23,15 +22,7 @@ const ICON_FOR: Record<string, React.ComponentType<{ className?: string }>> = {
   animation: Video,
 };
 
-const CATEGORY_FOR: Record<string, BrandAssetCategory> = {
-  logotype: "LOGO",
-  photography: "PHOTOGRAPHY",
-  illustration: "ILLUSTRATION",
-  icons: "ICON",
-  patterns: "PATTERN",
-  video: "VIDEO",
-  animation: "ANIMATION",
-};
+
 
 export default async function VisualIdentityPage() {
   const viewer = await getPortalViewer();

@@ -487,6 +487,13 @@ async function phaseBoard() {
 }
 
 async function main() {
+  if (phase === "agents")
+    return phaseList("screenshots/agents", [
+      ["01-agents", "/assets/agents-templates"],
+      ["02-agents-visual", "/assets/agents-templates?cat=visual"],
+      ["03-templates", "/assets/agents-templates/templates"],
+      ["04-brand-os-rules", "/assets/agents-templates/brand-os"],
+    ]);
   if (phase === "board") return phaseBoard();
   if (phase === "studio") return phaseStudio();
   if (phase === "nav") return phaseNav();

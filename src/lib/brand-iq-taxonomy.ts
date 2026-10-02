@@ -1,3 +1,5 @@
+import type { BrandAssetCategory } from "@/generated/prisma";
+
 export const VISUAL_IDENTITY_FOLDERS = [
   { slug: "logotype", label: "Logotype" },
   { slug: "brand-colours", label: "Brand colours" },
@@ -9,6 +11,17 @@ export const VISUAL_IDENTITY_FOLDERS = [
   { slug: "video", label: "Video" },
   { slug: "animation", label: "Animation" },
 ];
+
+/** Which BrandAsset category fills a visual identity folder (colours and typography come from BrandOS). */
+export const VISUAL_IDENTITY_CATEGORY: Record<string, BrandAssetCategory> = {
+  logotype: "LOGO",
+  photography: "PHOTOGRAPHY",
+  illustration: "ILLUSTRATION",
+  icons: "ICON",
+  patterns: "PATTERN",
+  video: "VIDEO",
+  animation: "ANIMATION",
+};
 
 export const BRAND_PLATFORM_DOCS = [
   { slug: "our-brand", label: "Our brand" },

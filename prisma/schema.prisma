@@ -855,6 +855,8 @@ model Project {
   // Until then it waits in the client's queue, in queuePosition order (the client can reorder it).
   activatedAt             DateTime?
   queuePosition           Int?
+  /// An agent build the client requested from Brand OS → Agents & templates ("Being built for you").
+  agentBuild              Boolean        @default(false)
   createdByClientUserId   String?
   createdAt               DateTime       @default(now())
   updatedAt               DateTime       @updatedAt

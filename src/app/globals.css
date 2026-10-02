@@ -176,6 +176,7 @@
   --brand-peach-line: #f6d9c6;
   --brand-orange-text: #b8460f; /* "Answering now" */
   --brand-tag-grey: #f4f1ea; /* "From <past project>" */
+  --brand-lavender-pale: #eef0fa; /* social agents' icon */
   /* Pill tabs (SegmentedControl / SegmentedNav): grey track on product pages, warm on brand pages. */
   --seg-track: var(--ds-subtle);
   --seg-active: var(--ds-text);
@@ -312,6 +313,7 @@
   --color-brand-peach-line: var(--brand-peach-line);
   --color-brand-orange-text: var(--brand-orange-text);
   --color-brand-tag-grey: var(--brand-tag-grey);
+  --color-brand-lavender-pale: var(--brand-lavender-pale);
   --font-brand: var(--font-albert), "Helvetica Neue", Arial, sans-serif;
   --font-brand-mono: var(--font-azeret), ui-monospace, monospace;
   --radius-pill: 999px;
