@@ -84,7 +84,7 @@ export async function loadCockpit(projectId: string) {
         pipelineStages: { orderBy: { order: "asc" } },
       },
     }),
-    prisma.priceListItem.findMany({ orderBy: [{ deliverableType: "asc" }, { complexityTier: "asc" }] }),
+    prisma.priceListItem.findMany({ where: { archivedAt: null }, orderBy: [{ deliverableType: "asc" }, { complexityTier: "asc" }] }),
     loadStaffPool(),
     prisma.agentRun.findMany({ where: { projectId }, include: { agent: true, overriddenByUser: true }, orderBy: { createdAt: "desc" }, take: 50 }),
     prisma.decisionLog.findMany({ where: { projectId }, include: { actor: true }, orderBy: { createdAt: "desc" }, take: 50 }),

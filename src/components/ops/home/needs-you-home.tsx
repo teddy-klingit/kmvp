@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { NeedsYouChips } from "@/components/ops/needs-you-chips";
 import { Card, CardHeader } from "@/components/ds/card";
 import { StatusPill, type PillTone } from "@/components/ds/status-pill";
 import { Button } from "@/components/ds/button";
@@ -48,7 +49,7 @@ function when(p: OpsProject) {
   }
 }
 
-export async function NeedsYouHome({ viewer }: { viewer: StaffMember & { user: User } }) {
+export async function NeedsYouHome({ viewer, inboxCount }: { viewer: StaffMember & { user: User }; inboxCount: number }) {
   const now = new Date();
   const startOfDay = new Date(now);
   startOfDay.setHours(0, 0, 0, 0);
@@ -103,11 +104,13 @@ export async function NeedsYouHome({ viewer }: { viewer: StaffMember & { user: U
           </form>
         </header>
 
+        <NeedsYouChips active="needs" needs={needs.length} inbox={inboxCount} />
+
         <section aria-label="Summary" className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {tiles.map((t) => (
             <Card key={t.label} as="div" className="flex flex-col gap-1 px-5 py-4">
               <span className="text-[12px] text-ds-text-2">{t.label}</span>
-              <span className={`text-[24px] font-semibold tabular-nums ${t.turn ? "text-ds-turn-strong" : "text-ds-text"}`}>
+              <span className={`text-[28px] font-light tabular-nums leading-[1.15] ${t.turn ? "text-ds-turn-strong" : "text-ds-text"}`}>
                 {t.value}
                 {t.extra && <span className="ml-1 text-[13px] font-medium text-ds-text-2">{t.extra}</span>}
               </span>

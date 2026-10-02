@@ -1,50 +1,61 @@
-import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { OpsPage } from "@/components/ops/ops-page";
-import { PageHeader } from "@/components/shared/page-header";
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { formatDate } from "@/lib/utils";
+import { OpsPage } from "@/components/ops/ops-page";
+import { PageHeader } from "@/components/ds/page-header";
+import { FilterChips } from "@/components/ds/filter-chips";
+import { SectionCard, CardNote } from "@/components/ds/card";
+import { DataTable } from "@/components/ds/data-table";
+import { StatusPill } from "@/components/ds/status-pill";
 
-export default async function CrossClientArchivePage() {
+/** Ops → Archive (OpsClients pattern): delivered and archived projects across clients, newest first. */
+export default async function CrossClientArchivePage({ searchParams }: { searchParams: Promise<{ show?: string }> }) {
+  const { show } = await searchParams;
   const projects = await prisma.project.findMany({
     where: { status: { in: ["ARCHIVED", "DELIVERED"] } },
-    include: { client: true, assets: true },
-    orderBy: { deliveredAt: "desc" },
+    include: { client: true, _count: { select: { assets: true } } },
+    orderBy: [{ deliveredAt: "desc" }, { updatedAt: "desc" }],
   });
+  const delivered = projects.filter((p) => p.status === "DELIVERED");
+  const archived = projects.filter((p) => p.status === "ARCHIVED");
+  const visible = show === "delivered" ? delivered : show === "archived" ? archived : projects;
 
   return (
     <OpsPage>
-      <div className="flex flex-col gap-6">
-        <PageHeader title="Archive" addHref="/ops/archive" />
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Client</TableHead>
-              <TableHead>Project</TableHead>
-              <TableHead>Assets</TableHead>
-              <TableHead>Delivered</TableHead>
-              <TableHead>Value</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {projects.map((p) => (
-              <TableRow key={p.id}>
-                <TableCell className="font-medium">
-                  <Link href={`/ops/clients/${p.clientId}/dashboard`} className="hover:underline">
-                    {p.client.name}
-                  </Link>
-                </TableCell>
-                <TableCell>{p.name}</TableCell>
-                <TableCell>{p.assets.length}</TableCell>
-                <TableCell className="text-muted-foreground">{p.deliveredAt && formatDate(p.deliveredAt)}</TableCell>
-                <TableCell>
-                  {p.priceCurrency} {p.priceAmount?.toLocaleString() ?? "—"}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <PageHeader eyebrow={`${delivered.length} delivered · ${archived.length} archived`} title="Archive" />
+      <FilterChips
+        label="Filter archive"
+        items={[
+          { label: "All", href: "/ops/archive", active: !show },
+          { label: "Delivered", href: "/ops/archive?show=delivered", active: show === "delivered", count: delivered.length },
+          { label: "Archived", href: "/ops/archive?show=archived", active: show === "archived", count: archived.length },
+        ]}
+      />
+      <SectionCard title="Projects">
+        <DataTable
+          label="Archived projects"
+          empty={<CardNote>Nothing here yet.</CardNote>}
+          columns={[
+            { key: "project", label: "Project" },
+            { key: "client", label: "Client" },
+            { key: "assets", label: "Assets", align: "right" },
+            { key: "delivered", label: "Delivered" },
+            { key: "value", label: "Value", align: "right" },
+            { key: "status", label: "Status" },
+          ]}
+          rows={visible.map((p) => ({
+            id: p.id,
+            href: `/ops/projects/${p.id}`,
+            cells: {
+              project: <span className="text-[15px]">{p.name}</span>,
+              client: p.client.name,
+              assets: p._count.assets,
+              delivered: p.deliveredAt ? formatDate(p.deliveredAt, { day: "numeric", month: "short", year: "numeric" }) : null,
+              value: p.priceAmount !== null ? `${p.priceCurrency} ${p.priceAmount.toLocaleString("en-GB")}` : null,
+              status: <StatusPill tone={p.status === "DELIVERED" ? "success" : "neutral"}>{p.status === "DELIVERED" ? "Delivered" : "Archived"}</StatusPill>,
+            },
+          }))}
+        />
+      </SectionCard>
     </OpsPage>
   );
 }

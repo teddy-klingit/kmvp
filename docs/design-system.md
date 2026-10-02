@@ -124,3 +124,14 @@ Breakpoints on this screen:
 - Overview takeaways are written by the performance agent (`PerformanceBrief.takeaways`, max 3, each with one action: start a brief or open a view, `takeawayHref`). They are rewritten after a week, on the next visit, after the response (`scheduleTakeaways`; `INSIGHTS_AGENT_ON_PAGE_LOAD=0` freezes it for screenshots).
 - Data loaders in `src/lib/insights-data.ts` are cached per request, so the header and the tab share one read of each ad account.
 - No "—" tiles anywhere; `insightSources()` decides which sources are missing because a metric is hidden.
+
+## Phase J pages
+
+| Page | Built from | Computed / real data |
+|---|---|---|
+| Projects | Projects.dc.html | 5 client-timeline columns (`CLIENT_COLUMNS`, `clientColumnFor`), status words from `statusLine()`, rows shared with Home (`ProjectRows`) |
+| Calendar | Calendar.dc.html | `src/lib/calendar-items.ts` (Klingit / plan / suggested); suggestions carry `proposedDate` + `reason`; coverage = planned + published posts vs plan targets × 4 |
+| Reports | Reports.dc.html | `GeneratedReport` per closed week/month (`src/lib/report-data.ts`, performance agent); send schedule on `ClientReportingConfig` |
+| Brand IQ | BrandIQ / BrandSection.dc.html | Health from `platformStatus()` (`src/lib/brand-completeness.ts`), readers from `SECTION_READERS`; drafts in `BrandSectionDraft`, saved only by the client |
+| Account | Account.dc.html | Credits from the ledger (`creditSummary`), team from `ClientUser`; no card on file is shown (none stored) |
+| Ops lists | OpsClients.dc.html | `DataTable` + `FilterChips`; client health from `src/lib/client-health.ts` (under 75 = at risk) |

@@ -1,8 +1,5 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { OpsPage } from "@/components/ops/ops-page";
-import { PageHeader } from "@/components/shared/page-header";
-import { NavTabs } from "@/components/ui/nav-tabs";
 import { Card, SectionLabel } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,18 +15,8 @@ export default async function BrandOSEditorPage({ params }: { params: Promise<{ 
   const b = client.brandOS;
 
   return (
-    <OpsPage>
+    <>
       <div className="flex flex-col gap-6">
-        <PageHeader title={`${client.name} — Brand OS editor`} actions={<div />} />
-        <NavTabs
-          items={[
-            { label: "Workspace", href: `/ops/clients/${clientId}/dashboard` },
-            { label: "Admin", href: `/ops/clients/${clientId}/admin` },
-            { label: "Brand OS", href: `/ops/clients/${clientId}/brand-os` },
-            { label: "Custom apps", href: `/ops/clients/${clientId}/custom-apps` },
-            { label: "Content plan", href: `/ops/clients/${clientId}/content-plan` },
-          ]}
-        />
 
         <form action={updateBrandOSAction} className="flex flex-col gap-6">
           <input type="hidden" name="clientId" value={clientId} />
@@ -83,6 +70,6 @@ export default async function BrandOSEditorPage({ params }: { params: Promise<{ 
           </Button>
         </form>
       </div>
-    </OpsPage>
+    </>
   );
 }

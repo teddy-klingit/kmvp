@@ -34,11 +34,16 @@ export async function createPriceListItemAction(_prev: PriceListState, formData:
   const existing = await prisma.priceListItem.findUnique({
     where: { deliverableType_complexityTier: { deliverableType, complexityTier: complexityTier as (typeof TIERS)[number] } },
   });
-  if (existing) return { error: `${deliverableType} (${complexityTier}) already has a price — edit that row instead.` };
+  if (existing && !existing.archivedAt) return { error: `${deliverableType} (${complexityTier}) already has a price — edit that row instead.` };
 
-  await prisma.priceListItem.create({
-    data: { deliverableType, complexityTier: complexityTier as (typeof TIERS)[number], creditCost, notes: notes || null },
-  });
+  if (existing) {
+    // Re-adding an archived row brings it back with the new price.
+    await prisma.priceListItem.update({ where: { id: existing.id }, data: { creditCost, notes: notes || null, archivedAt: null } });
+  } else {
+    await prisma.priceListItem.create({
+      data: { deliverableType, complexityTier: complexityTier as (typeof TIERS)[number], creditCost, notes: notes || null },
+    });
+  }
 
   revalidatePath("/ops/price-list");
   return { error: null };
@@ -77,6 +82,7 @@ export async function deletePriceListItemAction(formData: FormData) {
   await requireOpsRole(["ADMIN", "PM"]);
   const id = String(formData.get("id") ?? "");
   if (!id) return;
-  await prisma.priceListItem.delete({ where: { id } });
+  // Soft archive, never a hard delete: estimates that used this row keep their history.
+  await prisma.priceListItem.update({ where: { id }, data: { archivedAt: new Date() } });
   revalidatePath("/ops/price-list");
 }

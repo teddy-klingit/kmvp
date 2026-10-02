@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import { Plus, Pencil } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,13 +38,12 @@ export function PriceListItemDialog({ item }: { item?: ExistingItem }) {
     >
       <DialogTrigger asChild>
         {item ? (
-          <Button type="button" variant="secondary" size="sm" className="gap-1.5">
-            <Pencil className="size-3.5" />
+          <Button type="button" variant="secondary" size="sm">
             Edit
           </Button>
         ) : (
-          <Button type="button" className="gap-1.5">
-            <Plus className="size-4" />
+          <Button type="button" size="lg">
+            <Plus className="size-3.5" />
             Add row
           </Button>
         )}

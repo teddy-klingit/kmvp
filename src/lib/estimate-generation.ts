@@ -28,7 +28,7 @@ export async function generateDraftEstimate(projectId: string, opts: { replace?:
     return { ok: false as const, error: "An estimate already exists; edit it instead." };
   }
 
-  const priceList = await prisma.priceListItem.findMany({ orderBy: [{ deliverableType: "asc" }, { complexityTier: "asc" }] });
+  const priceList = await prisma.priceListItem.findMany({ where: { archivedAt: null }, orderBy: [{ deliverableType: "asc" }, { complexityTier: "asc" }] });
   if (priceList.length === 0) return { ok: false as const, error: "The price list is empty. Add deliverables and rates in Price List first." };
 
   const result = await generateEstimate({

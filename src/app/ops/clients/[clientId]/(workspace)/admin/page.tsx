@@ -1,8 +1,5 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { OpsPage } from "@/components/ops/ops-page";
-import { PageHeader } from "@/components/shared/page-header";
-import { NavTabs } from "@/components/ui/nav-tabs";
 import { Card, SectionLabel } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PersonAvatar } from "@/components/ui/avatar";
@@ -29,28 +26,8 @@ export default async function ClientAdminPage({ params }: { params: Promise<{ cl
   if (!client) notFound();
 
   return (
-    <OpsPage>
+    <>
       <div className="flex flex-col gap-6">
-        <PageHeader
-          title={
-            <span className="flex items-center gap-3">
-              {client.name} — Admin
-              <Badge tone={client.status === "ACTIVE" ? "success" : client.status === "PAUSED" ? "warning" : "neutral"}>
-                {client.status}
-              </Badge>
-            </span>
-          }
-          actions={<div />}
-        />
-        <NavTabs
-          items={[
-            { label: "Workspace", href: `/ops/clients/${clientId}/dashboard` },
-            { label: "Admin", href: `/ops/clients/${clientId}/admin` },
-            { label: "Brand OS", href: `/ops/clients/${clientId}/brand-os` },
-            { label: "Custom apps", href: `/ops/clients/${clientId}/custom-apps` },
-            { label: "Content plan", href: `/ops/clients/${clientId}/content-plan` },
-          ]}
-        />
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="flex flex-col gap-3">
@@ -168,6 +145,6 @@ export default async function ClientAdminPage({ params }: { params: Promise<{ cl
           </Card>
         </div>
       </div>
-    </OpsPage>
+    </>
   );
 }

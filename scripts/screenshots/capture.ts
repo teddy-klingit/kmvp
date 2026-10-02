@@ -268,6 +268,21 @@ const J2_PAGES: [string, string][] = [
   ["misc-help", "/help"],
   ["misc-custom-apps", "/apps"],
 ];
+/** Phase J4: ops pages in the OpsClients list pattern (signed in as the PM / Admin). */
+const J4_OPS: [string, string][] = [
+  ["01-clients", "/ops/clients"],
+  ["02-clients-at-risk", "/ops/clients?show=risk"],
+  ["03-price-list", "/ops/price-list"],
+  ["04-archive", "/ops/archive"],
+  ["05-team-capacity", "/ops/team"],
+  ["06-team-forecast", "/ops/team/forecast"],
+  ["07-agents-library", "/ops/agents"],
+  ["08-agents-decision-log", "/ops/agents/audit"],
+  ["09-needs-you", "/ops"],
+  ["10-inbox", "/ops/inbox"],
+  ["11-notifications", "/ops/notifications"],
+  ["12-account", "/ops/account"],
+];
 const pageFilter = args.find((a) => a.startsWith("--pages="))?.split("=")[1]?.split(",");
 
 async function phaseList(outDir: string, client: [string, string][], ops: [string, string][] = []) {
@@ -297,6 +312,14 @@ async function phaseList(outDir: string, client: [string, string][], ops: [strin
 async function main() {
   if (phase === "insights") return phaseList("screenshots/insights", INSIGHTS_PAGES);
   if (phase === "j1") return phaseList("screenshots/j1", J1_CLIENT, J1_OPS);
+  if (phase === "j4") {
+    // The client workspace needs Klarna's id; add it at run time.
+    const prisma = new PrismaClient({ datasourceUrl: "file:./prisma/screens.db" });
+    const klarna = await prisma.client.findFirstOrThrow({ where: { name: "Klarna" }, select: { id: true } });
+    await prisma.$disconnect();
+    const ws: [string, string][] = ["dashboard", "delivery", "brand-os", "admin"].map((v, i) => [`2${i}-workspace-${v}`, `/ops/clients/${klarna.id}/${v}`]);
+    return phaseList("screenshots/j4", [], [...J4_OPS, ...ws]);
+  }
   if (phase === "j2") return phaseList("screenshots/j2", J2_PAGES.filter(([n]) => !pageFilter || pageFilter.some((f) => n.startsWith(f))));
   if (phase === "i") return phaseI();
   if (phase === "sources") return phaseSources();

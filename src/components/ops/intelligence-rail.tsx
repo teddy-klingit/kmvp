@@ -24,8 +24,14 @@ export function IntelligenceRail({ client, activeProject }: ClientWorkspace) {
           <SectionLabel>Active project</SectionLabel>
           <p className="mt-1 text-sm font-semibold">{activeProject.name}</p>
           <p className="text-sm text-muted-foreground">
-            {activeProject.creditsQuoted ?? "—"}c · Due {activeProject.dueDate ? formatDate(activeProject.dueDate) : "TBD"} ·{" "}
-            {activeProject.team?.members[0]?.staffMember.user.name.split(" ")[0] ?? "Unassigned"}
+            {/* Only facts we have: no "—c" or "TBD" placeholders. */}
+            {[
+              activeProject.creditsQuoted !== null ? `${activeProject.creditsQuoted}c` : null,
+              activeProject.dueDate ? `Due ${formatDate(activeProject.dueDate)}` : null,
+              activeProject.team?.members[0]?.staffMember.user.name.split(" ")[0] ?? "Unassigned",
+            ]
+              .filter(Boolean)
+              .join(" · ")}
           </p>
           <Badge tone={STATUS_TONE[projectHealthLabel(activeProject.status)] ?? "neutral"} className="mt-2">
             {projectHealthLabel(activeProject.status)}

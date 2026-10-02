@@ -1,8 +1,6 @@
 import { requireOpsPage } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
-import { OpsPage } from "@/components/ops/ops-page";
-import { PageHeader } from "@/components/shared/page-header";
-import { Card, SectionLabel } from "@/components/ui/card";
+import { SectionCard, CardBody } from "@/components/ds/card";
 import { CapacityForecastChart } from "@/components/ops/capacity-forecast-chart";
 
 const WEEKS = 6;
@@ -39,19 +37,13 @@ export default async function CapacityForecastPage() {
   });
 
   return (
-    <OpsPage>
-      <div className="flex flex-col gap-6">
-        <PageHeader title="Capacity forecast" addHref="/ops/team" />
-        <div className="flex flex-col gap-3">
-          <SectionLabel>Committed vs. available hours — next {WEEKS} weeks</SectionLabel>
-          <Card className="p-5">
-            <CapacityForecastChart data={data} />
-          </Card>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Total weekly team capacity: {totalCapacity}h across {staff.length} staff.
+    <SectionCard title="Committed vs available hours" action={<span className="font-brand-mono text-[12px] text-brand-ink-2">NEXT {WEEKS} WEEKS</span>}>
+      <CardBody className="flex flex-col gap-3">
+        <CapacityForecastChart data={data} />
+        <p className="m-0 text-[13px] text-brand-ink-2">
+          Weekly team capacity: {totalCapacity}h across {staff.length} people.
         </p>
-      </div>
-    </OpsPage>
+      </CardBody>
+    </SectionCard>
   );
 }

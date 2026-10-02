@@ -1,9 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { OpsPage } from "@/components/ops/ops-page";
-import { PageHeader } from "@/components/shared/page-header";
-import { NavTabs } from "@/components/ui/nav-tabs";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,18 +24,8 @@ export default async function ClientCustomAppsPage({ params }: { params: Promise
   });
 
   return (
-    <OpsPage>
+    <>
       <div className="flex flex-col gap-6">
-        <PageHeader title={`${client.name} — Custom apps`} actions={<div />} />
-        <NavTabs
-          items={[
-            { label: "Workspace", href: `/ops/clients/${clientId}/dashboard` },
-            { label: "Admin", href: `/ops/clients/${clientId}/admin` },
-            { label: "Brand OS", href: `/ops/clients/${clientId}/brand-os` },
-            { label: "Custom apps", href: `/ops/clients/${clientId}/custom-apps` },
-            { label: "Content plan", href: `/ops/clients/${clientId}/content-plan` },
-          ]}
-        />
 
         <BuildWithAiPrompt />
 
@@ -119,6 +106,6 @@ export default async function ClientCustomAppsPage({ params }: { params: Promise
           )}
         </div>
       </div>
-    </OpsPage>
+    </>
   );
 }

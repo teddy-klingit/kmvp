@@ -1,59 +1,48 @@
-import { MoreHorizontal, Plus, Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { NavTabs } from "@/components/ui/nav-tabs";
 import { IntelligenceRail } from "@/components/ops/intelligence-rail";
+import { PageHeader } from "@/components/ds/page-header";
 import { getClientWorkspace } from "@/lib/data/ops-client-workspace";
 import { getOpsViewer } from "@/lib/current-viewer";
+import { PLAN_TIER_LABEL } from "@/lib/labels";
 
-export default async function ClientWorkspaceLayout({
-  children,
-  params,
-}: {
-  children: React.ReactNode;
-  params: Promise<{ clientId: string }>;
-}) {
+const STATUS: Record<string, string> = { ACTIVE: "Active", ONBOARDING: "Onboarding", PAUSED: "Paused", OFFBOARDED: "Offboarded" };
+
+/**
+ * One client's workspace (ops): one header with a single segmented control for every view (it used to be
+ * two overlapping tab bars), and the intelligence rail on the right on wide screens.
+ */
+export default async function ClientWorkspaceLayout({ children, params }: { children: React.ReactNode; params: Promise<{ clientId: string }> }) {
   await getOpsViewer();
   const { clientId } = await params;
   const workspace = await getClientWorkspace(clientId);
   const { client } = workspace;
+  const base = `/ops/clients/${clientId}`;
 
   return (
     <div className="flex h-full">
-      <div className="flex-1 overflow-y-auto px-10 py-8">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <h1 className="font-display text-xl font-light tracking-tight">{client.name}</h1>
-            <button className="text-muted-foreground hover:text-foreground">
-              <MoreHorizontal className="size-4" />
-            </button>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-              <Input placeholder="Search" className="h-9 w-48 rounded-full bg-card pl-8" />
-            </div>
-            <Button size="icon" className="rounded-full">
-              <Plus className="size-4" />
-            </Button>
-          </div>
+      <div className="min-w-0 flex-1 overflow-y-auto px-4 pb-12 pt-5 min-[900px]:pb-14 min-[900px]:pl-4 min-[900px]:pr-10 min-[900px]:pt-10">
+        <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-6">
+          <PageHeader
+            back={{ href: "/ops/clients", label: "Clients" }}
+            eyebrow={[PLAN_TIER_LABEL[client.planTier] ?? client.planTier, STATUS[client.status] ?? client.status].join(" · ")}
+            title={client.name}
+            tabsLabel="Client workspace"
+            tabs={[
+              { label: "Dashboard", href: `${base}/dashboard` },
+              { label: "Delivery", href: `${base}/delivery` },
+              { label: "Brand assets", href: `${base}/brand-assets` },
+              { label: "Brand OS", href: `${base}/brand-os` },
+              { label: "Content plan", href: `${base}/content-plan` },
+              { label: "Custom apps", href: `${base}/custom-apps` },
+              { label: "Project files", href: `${base}/project-files` },
+              { label: "Admin", href: `${base}/admin` },
+            ]}
+          />
+          {children}
         </div>
-
-        <NavTabs
-          className="mt-4"
-          items={[
-            { label: "Dashboard", href: `/ops/clients/${clientId}/dashboard` },
-            { label: "Brand assets", href: `/ops/clients/${clientId}/brand-assets` },
-            { label: "Delivery", href: `/ops/clients/${clientId}/delivery` },
-            { label: "Project files", href: `/ops/clients/${clientId}/project-files` },
-            { label: "Custom apps", href: `/ops/clients/${clientId}/custom-apps` },
-            { label: "Content plan", href: `/ops/clients/${clientId}/content-plan` },
-          ]}
-        />
-
-        <div className="pt-6">{children}</div>
       </div>
-      <IntelligenceRail {...workspace} />
+      <div className="hidden min-[1200px]:flex">
+        <IntelligenceRail {...workspace} />
+      </div>
     </div>
   );
 }

@@ -1015,6 +1015,8 @@ model PriceListItem {
   complexityTier  ComplexityTier
   creditCost      Int
   notes           String?
+  /// Soft archive ("Remove" on the price list): hidden from the list and from new estimates; old estimate lines keep their link.
+  archivedAt      DateTime?
   lineItems       EstimateLineItem[]
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt

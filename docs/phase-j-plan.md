@@ -1,6 +1,6 @@
 # Phase J plan: Klingit brand design across the whole app
 
-Status: **waiting for OK**. Spec: `screenshots/design-reference/` (README + 9 designs, 8 targets). Where the prompt and a design disagree, the design wins. Real data only: no placeholders, no "—" tiles, no invented trends, no stored scores.
+Status: **done** (approved 2026-10-02 with all defaults; shipped in 6 deploys: J1, J2 ×3, J3, J4). Spec: `screenshots/design-reference/` (README + 9 designs, 8 targets). Where the prompt and a design disagree, the design wins. Real data only: no placeholders, no "—" tiles, no invented trends, no stored scores.
 
 Scope today: 54 client pages, 30 ops pages. Shipped in four stages, each pushed and confirmed by deployment ID.
 

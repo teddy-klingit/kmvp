@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { platformStatus } from "@/lib/brand-completeness";
+import { clientHealthMap } from "@/lib/client-health";
 import { Card, SectionLabel } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
@@ -8,6 +9,8 @@ import { PROJECT_STATUS_LABEL } from "@/lib/labels";
 
 export default async function ClientOpsDashboardPage({ params }: { params: Promise<{ clientId: string }> }) {
   const { clientId } = await params;
+  // Computed from what is happening now (overdue work, waiting items, credits, renewal), never the stored score.
+  const health = (await clientHealthMap()).get(clientId);
   const [projects, client] = await Promise.all([
     prisma.project.findMany({
       where: { clientId, status: { not: "DRAFT" } },
@@ -37,8 +40,8 @@ export default async function ClientOpsDashboardPage({ params }: { params: Promi
           <p className="text-xs text-muted-foreground">Brand OS sections written</p>
         </Card>
         <Card className="border border-border bg-paper p-4">
-          <p className="font-display text-2xl font-light">{client.healthScore}</p>
-          <p className="text-xs text-muted-foreground">Account health</p>
+          <p className="font-display text-2xl font-light">{health?.score ?? 100}</p>
+          <p className="text-xs text-muted-foreground">Account health{health?.atRisk ? " · at risk" : ""}</p>
         </Card>
       </div>
 

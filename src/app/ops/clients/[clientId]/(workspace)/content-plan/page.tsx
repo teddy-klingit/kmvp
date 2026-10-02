@@ -1,8 +1,5 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { OpsPage } from "@/components/ops/ops-page";
-import { PageHeader } from "@/components/shared/page-header";
-import { NavTabs } from "@/components/ui/nav-tabs";
 import { Card, SectionLabel } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,18 +24,8 @@ export default async function ClientContentPlanPage({ params }: { params: Promis
   ]);
 
   return (
-    <OpsPage>
+    <>
       <div className="flex flex-col gap-6">
-        <PageHeader title={`${client.name} — Content plan`} actions={<div />} />
-        <NavTabs
-          items={[
-            { label: "Workspace", href: `/ops/clients/${clientId}/dashboard` },
-            { label: "Admin", href: `/ops/clients/${clientId}/admin` },
-            { label: "Brand OS", href: `/ops/clients/${clientId}/brand-os` },
-            { label: "Custom apps", href: `/ops/clients/${clientId}/custom-apps` },
-            { label: "Content plan", href: `/ops/clients/${clientId}/content-plan` },
-          ]}
-        />
 
         <div className="flex flex-col gap-3">
           <SectionLabel>Weekly plan targets</SectionLabel>
@@ -190,6 +177,6 @@ export default async function ClientContentPlanPage({ params }: { params: Promis
           )}
         </div>
       </div>
-    </OpsPage>
+    </>
   );
 }

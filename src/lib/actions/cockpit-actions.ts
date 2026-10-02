@@ -137,7 +137,7 @@ async function priceLines(lines: z.infer<typeof LineSchema>[]) {
   for (const [order, l] of lines.entries()) {
     if (l.kind === "price") {
       const row = await prisma.priceListItem.findUnique({ where: { deliverableType_complexityTier: { deliverableType: l.deliverableType, complexityTier: l.complexityTier } } });
-      if (!row) throw new Error(`${l.deliverableType} has no ${COMPLEXITY_LABEL[l.complexityTier].toLowerCase()} tier on the price list.`);
+      if (!row || row.archivedAt) throw new Error(`${l.deliverableType} has no ${COMPLEXITY_LABEL[l.complexityTier].toLowerCase()} tier on the price list.`);
       priced.push({ deliverable: row.deliverableType, detail: l.detail, quantity: l.quantity, complexityTier: row.complexityTier, priceListItemId: row.id, isCustom: false, customReason: null, credits: l.quantity * row.creditCost, hours: l.quantity * row.creditCost, order });
     } else {
       priced.push({ deliverable: l.deliverable, detail: l.detail, quantity: l.quantity, complexityTier: l.complexityTier, priceListItemId: null, isCustom: true, customReason: l.reason, credits: l.credits, hours: l.credits, order });

@@ -1,91 +1,76 @@
 import { redirect } from "next/navigation";
-import { AlertTriangle, Trash2 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getOpsViewer } from "@/lib/current-viewer";
 import { roleTierFor } from "@/lib/role-tier";
 import { OpsPage } from "@/components/ops/ops-page";
-import { PageHeader } from "@/components/shared/page-header";
-import { Card, SectionLabel } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+import { PageHeader } from "@/components/ds/page-header";
+import { FilterChips } from "@/components/ds/filter-chips";
+import { Card, SectionCard, CardNote } from "@/components/ds/card";
+import { DataTable } from "@/components/ds/data-table";
+import { StatusPill, type PillTone } from "@/components/ds/status-pill";
+import { pillClass } from "@/components/ds/button";
 import { PriceListItemDialog } from "@/components/ops/price-list-item-dialog";
 import { deletePriceListItemAction } from "@/lib/actions/price-list-actions";
 
 const TIER_LABEL = { LOW: "Low", MEDIUM: "Medium", HIGH: "High" } as const;
-const TIER_TONE = { LOW: "neutral", MEDIUM: "info", HIGH: "warning" } as const;
+const TIER_TONE: Record<string, PillTone> = { LOW: "neutral", MEDIUM: "success", HIGH: "watch" };
 
-export default async function PriceListPage() {
+/** Ops → Price list (OpsClients pattern): header + tier chips + one card with the table. "Remove" archives a row; nothing is deleted. */
+export default async function PriceListPage({ searchParams }: { searchParams: Promise<{ tier?: string }> }) {
   const viewer = await getOpsViewer();
-  const tier = roleTierFor(viewer.title);
-  if (tier !== "ADMIN" && tier !== "PM") redirect("/ops");
-
-  const items = await prisma.priceListItem.findMany({
-    orderBy: [{ deliverableType: "asc" }, { complexityTier: "asc" }],
-  });
+  const role = roleTierFor(viewer.title);
+  if (role !== "ADMIN" && role !== "PM") redirect("/ops");
+  const { tier } = await searchParams;
+  const items = await prisma.priceListItem.findMany({ where: { archivedAt: null }, orderBy: [{ deliverableType: "asc" }, { complexityTier: "asc" }] });
+  const visible = tier && tier in TIER_LABEL ? items.filter((i) => i.complexityTier === tier) : items;
+  const types = new Set(items.map((i) => i.deliverableType)).size;
 
   return (
     <OpsPage>
-      <div className="flex flex-col gap-6">
-        <PageHeader title="Price List" actions={<PriceListItemDialog />} />
-
-        <Card className="flex items-start gap-3 bg-warning-soft p-4">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-ink" />
-          <div>
-            <p className="text-sm font-bold text-ink">DRAFT — pending real pricing review</p>
-            <p className="text-sm text-muted-foreground">
-              These credit costs are illustrative placeholder values for scoping estimates internally — not final,
-              not client-facing pricing. Replace them with reviewed rates before relying on this for anything
-              client-facing.
-            </p>
-          </div>
-        </Card>
-
-        <div className="flex flex-col gap-3">
-          <SectionLabel>{items.length} deliverable{items.length === 1 ? "" : "s"} priced</SectionLabel>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Deliverable type</TableHead>
-                <TableHead>Complexity tier</TableHead>
-                <TableHead>Credit cost</TableHead>
-                <TableHead>Notes</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {items.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell className="font-medium">{item.deliverableType}</TableCell>
-                  <TableCell>
-                    <Badge tone={TIER_TONE[item.complexityTier]}>{TIER_LABEL[item.complexityTier]}</Badge>
-                  </TableCell>
-                  <TableCell>{item.creditCost}c</TableCell>
-                  <TableCell className="text-muted-foreground">{item.notes ?? "—"}</TableCell>
-                  <TableCell>
-                    <div className="flex justify-end gap-2">
-                      <PriceListItemDialog item={item} />
-                      <form action={deletePriceListItemAction}>
-                        <input type="hidden" name="id" value={item.id} />
-                        <Button type="submit" size="icon" variant="secondary" title="Delete">
-                          <Trash2 className="size-3.5" />
-                        </Button>
-                      </form>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {items.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
-                    No price list rows yet — add one above.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
+      <PageHeader eyebrow={`${types} deliverable${types === 1 ? "" : "s"} · ${items.length} prices`} title="Price list" actions={<PriceListItemDialog />} />
+      <FilterChips
+        label="Complexity"
+        items={[
+          { label: "All", href: "/ops/price-list", active: !tier },
+          ...(["LOW", "MEDIUM", "HIGH"] as const).map((t) => ({ label: TIER_LABEL[t], href: `/ops/price-list?tier=${t}`, active: tier === t, count: items.filter((i) => i.complexityTier === t).length })),
+        ]}
+      />
+      <Card tone="muted" className="px-6 py-4 text-[13px] leading-[1.5] text-brand-ink-2">
+        <span className="font-brand-mono text-[11px] text-brand-ink">DRAFT PRICING</span> · These credit costs are internal placeholders for scoping estimates, pending a real pricing review. Not client-facing.
+      </Card>
+      <SectionCard title="All prices">
+        <DataTable
+          label="Price list"
+          empty={<CardNote>No prices in this tier.</CardNote>}
+          columns={[
+            { key: "type", label: "Deliverable" },
+            { key: "tier", label: "Complexity" },
+            { key: "cost", label: "Credits", align: "right" },
+            { key: "notes", label: "Notes" },
+            { key: "actions", label: "", align: "right" },
+          ]}
+          rows={visible.map((item) => ({
+            id: item.id,
+            cells: {
+              type: <span className="text-[15px]">{item.displayName ?? item.deliverableType}</span>,
+              tier: <StatusPill tone={TIER_TONE[item.complexityTier]}>{TIER_LABEL[item.complexityTier]}</StatusPill>,
+              cost: `${item.creditCost}c`,
+              notes: item.notes ? <span className="text-brand-ink-2">{item.notes}</span> : null,
+              actions: (
+                <span className="flex justify-end gap-2">
+                  <PriceListItemDialog item={item} />
+                  <form action={deletePriceListItemAction}>
+                    <input type="hidden" name="id" value={item.id} />
+                    <button type="submit" className={pillClass("secondary", "sm")}>
+                      Remove
+                    </button>
+                  </form>
+                </span>
+              ),
+            },
+          }))}
+        />
+      </SectionCard>
     </OpsPage>
   );
 }

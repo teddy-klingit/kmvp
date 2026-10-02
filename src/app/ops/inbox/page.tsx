@@ -1,69 +1,71 @@
 import { requireOpsPage } from "@/lib/authz";
-import Link from "next/link";
-import { prisma } from "@/lib/prisma";
-import { OpsPage } from "@/components/ops/ops-page";
-import { PageHeader } from "@/components/shared/page-header";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
-import { getAgencyAttentionItems } from "@/lib/data/agency-attention";
+import { loadInbox } from "@/lib/ops-inbox";
+import { loadOpsProjects, rankExceptions } from "@/lib/ops-exceptions";
+import { OpsPage } from "@/components/ops/ops-page";
+import { PageHeader } from "@/components/ds/page-header";
+import { SectionCard, CardNote } from "@/components/ds/card";
+import { DataTable } from "@/components/ds/data-table";
+import { StatusPill, type PillTone } from "@/components/ds/status-pill";
+import { NeedsYouChips } from "@/components/ops/needs-you-chips";
 
+const URGENCY: Record<string, { label: string; tone: PillTone }> = { high: { label: "High", tone: "danger" }, medium: { label: "Medium", tone: "watch" }, low: { label: "Low", tone: "neutral" } };
+
+/** Ops → Needs you → Inbox (OpsClients pattern): flagged agent runs and attention items across clients. */
 export default async function OpsInboxPage() {
   await requireOpsPage(["ADMIN", "PM"]);
-  const [attention, flaggedRuns] = await Promise.all([
-    getAgencyAttentionItems(),
-    prisma.agentRun.findMany({
-      where: { status: { in: ["FLAGGED", "FAILED"] }, overridden: false },
-      include: { agent: true, client: true, project: true },
-      orderBy: { createdAt: "desc" },
-      take: 20,
-    }),
-  ]);
-
+  const [{ attention, flaggedRuns, count }, projects] = await Promise.all([loadInbox(), loadOpsProjects()]);
+  const rows = [
+    ...flaggedRuns.map((r) => ({
+      id: `run-${r.id}`,
+      href: r.project ? `/ops/projects/${r.project.id}?feed=activity` : `/ops/agents/${r.agentId}`,
+      cells: {
+        item: (
+          <span className="flex flex-col">
+            <span className="text-[15px]">
+              {r.agent.name} {r.status === "FAILED" ? "failed" : "flagged something"}
+            </span>
+            <span className="text-[12px] text-brand-ink-2">{r.decision ?? "No detail recorded."}</span>
+          </span>
+        ),
+        where: [r.client?.name, r.project?.name].filter(Boolean).join(" · "),
+        when: <span className="font-brand-mono text-[11px] text-brand-ink-2">{formatDate(r.createdAt, { day: "2-digit", month: "short" }).toUpperCase()}</span>,
+        urgency: <StatusPill tone={r.status === "FAILED" ? "danger" : "watch"}>{r.status === "FAILED" ? "Failed" : "Flagged"}</StatusPill>,
+      },
+    })),
+    ...attention.map((a) => ({
+      id: a.id,
+      href: a.href,
+      cells: {
+        item: (
+          <span className="flex flex-col">
+            <span className="text-[15px]">{a.title}</span>
+            <span className="text-[12px] text-brand-ink-2">{a.detail}</span>
+          </span>
+        ),
+        where: `${a.clientName} · ${a.projectName}`,
+        when: null,
+        urgency: <StatusPill tone={URGENCY[a.urgency].tone}>{URGENCY[a.urgency].label}</StatusPill>,
+      },
+    })),
+  ];
   return (
     <OpsPage>
-      <div className="flex flex-col gap-6">
-        <PageHeader title="Inbox" addHref="/ops/inbox" />
-
-        <Card className="divide-y divide-border p-0">
-          {flaggedRuns.map((r) => (
-            <Link
-              key={r.id}
-              href={r.project ? `/ops/projects/${r.project.id}?feed=activity` : `/ops/agents/${r.agentId}`}
-              className="flex items-center justify-between gap-4 px-5 py-3.5 hover:bg-muted/50"
-            >
-              <div>
-                <p className="text-sm font-medium">
-                  {r.agent.name} {r.status === "FAILED" ? "failed" : "flagged something"}
-                  {r.client && ` — ${r.client.name}`}
-                  {r.project && ` · ${r.project.name}`}
-                </p>
-                <p className="text-sm text-muted-foreground">{r.decision ?? "No detail recorded."}</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <p className="text-xs text-muted-foreground">{formatDate(r.createdAt, { day: "2-digit", month: "short" })}</p>
-                <Badge tone={r.status === "FAILED" ? "danger" : "warning"}>{r.status}</Badge>
-              </div>
-            </Link>
-          ))}
-          {attention.map((item) => (
-            <Link key={item.id} href={item.href} className="flex items-center justify-between gap-4 px-5 py-3.5 hover:bg-muted/50">
-              <div>
-                <p className="text-sm font-medium">
-                  {item.clientName} — {item.title}
-                </p>
-                <p className="text-sm text-muted-foreground">{item.detail}</p>
-              </div>
-              <Badge tone={item.urgency === "high" ? "danger" : item.urgency === "medium" ? "warning" : "neutral"}>
-                {item.urgency}
-              </Badge>
-            </Link>
-          ))}
-          {flaggedRuns.length === 0 && attention.length === 0 && (
-            <p className="px-5 py-6 text-sm text-muted-foreground">Inbox zero — nothing needs your attention.</p>
-          )}
-        </Card>
-      </div>
+      <PageHeader eyebrow={`Inbox · ${count} item${count === 1 ? "" : "s"}`} title="Needs you" />
+      <NeedsYouChips active="inbox" needs={rankExceptions(projects).length} inbox={count} />
+      <SectionCard title="Inbox">
+        <DataTable
+          label="Inbox"
+          empty={<CardNote>Inbox zero. Nothing needs your attention.</CardNote>}
+          columns={[
+            { key: "item", label: "Item" },
+            { key: "where", label: "Client · project" },
+            { key: "when", label: "When" },
+            { key: "urgency", label: "Urgency" },
+          ]}
+          rows={rows}
+        />
+      </SectionCard>
     </OpsPage>
   );
 }
