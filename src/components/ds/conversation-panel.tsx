@@ -273,7 +273,7 @@ function PanelInner({
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex flex-col gap-3.5 border-b border-ds-divider px-5 pb-4 pt-5">
         <div className="flex items-center gap-2">
-          <h2 className="m-0 flex-1 text-[15px] font-semibold text-ds-text">{title}</h2>
+          <h2 className="m-0 flex-1 text-[18px] font-normal text-ds-text">{title}</h2>
           <AvatarStack names={participants} size={26} max={3} />
           <button
             type="button"

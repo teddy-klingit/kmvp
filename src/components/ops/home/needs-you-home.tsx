@@ -76,11 +76,12 @@ export async function NeedsYouHome({ viewer }: { viewer: StaffMember & { user: U
   ];
 
   return (
-    <div className="px-4 pb-12 pt-6 md:px-10 md:pt-8">
+    <div className="px-4 pb-12 pt-5 min-[900px]:pb-14 min-[900px]:pl-4 min-[900px]:pr-10 min-[900px]:pt-10">
       <div className="mx-auto flex max-w-[1120px] flex-col gap-6">
         <header className="flex flex-wrap items-end gap-4">
-          <div className="flex min-w-0 flex-1 flex-col gap-1">
-            <h1 className="m-0 text-[24px] font-semibold tracking-[-0.015em] text-ds-text">
+          <div className="flex min-w-[min(100%,280px)] flex-1 flex-col gap-2">
+            <span className="font-brand-mono text-[12px] uppercase text-brand-ink-2">{new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long" }).format(now).replace(",", "")}</span>
+            <h1 className="m-0 text-[30px] font-light leading-[1.15] tracking-[0.01em] text-ds-text min-[700px]:text-[36px]">
               {greeting(now)}, {first}
             </h1>
             <span className="text-[14px] text-ds-text-2">
@@ -97,7 +98,7 @@ export async function NeedsYouHome({ viewer }: { viewer: StaffMember & { user: U
               type="search"
               name="q"
               placeholder="Search projects, clients, people"
-              className="h-[38px] w-full rounded-[8px] border border-ds-control-border bg-white px-3 text-[14px] outline-none placeholder:text-ds-text-3 focus:border-ds-text-3 sm:w-[280px]"
+              className="h-11 w-full rounded-full border border-brand-rule bg-white px-[18px] text-[14px] outline-none placeholder:text-brand-ink-2 focus:border-brand-ink sm:w-[300px]"
             />
           </form>
         </header>

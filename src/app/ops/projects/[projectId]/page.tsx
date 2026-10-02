@@ -130,7 +130,7 @@ export default async function CockpitPage({ params, searchParams }: { params: Pr
               <div className="flex flex-col items-start gap-4 px-6 pb-5 pt-6 sm:flex-row">
                 <div className="flex min-w-0 flex-1 flex-col gap-2">
                   <div className="flex flex-wrap items-center gap-3">
-                    <h1 className="m-0 text-[24px] font-semibold tracking-[-0.015em] text-ds-text">{project.name}</h1>
+                    <h1 className="m-0 text-[28px] font-light leading-[1.2] tracking-[0.01em] text-ds-text min-[700px]:text-[32px]">{project.name}</h1>
                     <StatusPill>{state.paused ? "Paused" : INTERNAL_STAGE_PILL[state.stage]}</StatusPill>
                     <StatusPill tone={project.autopilot ? "success" : "watch"} dot>
                       {project.autopilot ? "Autopilot on" : "Autopilot paused"}
@@ -164,7 +164,7 @@ export default async function CockpitPage({ params, searchParams }: { params: Pr
               </div>
               <SummaryBar items={summary} />
               <div className="px-6 pb-6 pt-5">
-                <ProjectTimeline steps={c.timeline} variant="internal" label="Internal pipeline" />
+                <ProjectTimeline steps={c.timeline} variant="internal" label="Internal pipeline" yourTurn={false} />
               </div>
             </Card>
 

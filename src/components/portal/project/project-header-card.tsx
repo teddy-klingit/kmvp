@@ -87,7 +87,7 @@ export function ProjectHeaderCard({
       <div className="flex flex-col items-start gap-4 px-5 pb-5 pt-5 sm:flex-row sm:px-6 sm:pt-6">
         <div className="flex min-w-0 flex-1 flex-col gap-2">
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="m-0 text-[24px] font-semibold tracking-[-0.015em] text-ds-text">{project.name}</h1>
+            <h1 className="m-0 text-[28px] font-light leading-[1.2] tracking-[0.01em] text-ds-text min-[700px]:text-[32px]">{project.name}</h1>
             <StatusPill tone={pill.tone} dot>
               {pill.label}
             </StatusPill>
@@ -99,7 +99,7 @@ export function ProjectHeaderCard({
       <SummaryBar items={summaryItems(state, assets)} />
       {!state.archived && (
         <div className="px-5 pb-5 pt-5 sm:px-6 sm:pb-6">
-          <ProjectTimeline steps={clientMilestones(state)} />
+          <ProjectTimeline steps={clientMilestones(state)} yourTurn={state.ballInCourt === "client" && !state.paused} />
         </div>
       )}
     </Card>

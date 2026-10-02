@@ -4,22 +4,26 @@ import { cn } from "@/lib/utils";
 export type TimelineMilestone = { key: string; label: string; status: "done" | "current" | "upcoming"; caption?: string };
 
 /**
- * One continuous track. Done = filled dark circle with a check; current =
- * orange ring with a halo and an orange "Now · …" caption; upcoming = grey ring.
+ * One continuous track. Done = filled dark circle with a check; upcoming = grey ring. Current = an orange
+ * ring with a halo and an orange "Now · …" caption when it's the client's turn (orange always means "your
+ * action"), an ink ring when Klingit is on it.
  * `client` = 5 milestones (24px dots); `internal` = the PM's 8 stages (20px).
  */
 export function ProjectTimeline({
   steps,
   variant = "client",
   label = "Project timeline",
+  yourTurn = true,
 }: {
   steps: TimelineMilestone[];
   variant?: "client" | "internal";
   label?: string;
+  /** Whether the current step waits on the viewer (orange) or on Klingit (ink). */
+  yourTurn?: boolean;
 }) {
   const dot = variant === "client" ? "size-6" : "size-5";
   return (
-    <>
+    <div className={yourTurn ? "[--tl:var(--ds-turn)] [--tl-halo:var(--ds-turn-tint)] [--tl-text:var(--ds-turn-text)]" : "[--tl:var(--brand-ink)] [--tl-halo:var(--brand-line)] [--tl-text:var(--brand-ink)]"}>
       <VerticalTimeline steps={steps} label={label} dot={dot} />
       <div className="hidden overflow-x-auto sm:block">
         <ol
@@ -49,7 +53,7 @@ export function ProjectTimeline({
                       title={s.caption}
                       className={cn(
                         "truncate whitespace-nowrap text-[12px] tabular-nums",
-                        s.status === "current" ? "font-medium text-ds-turn-text" : s.status === "done" ? "text-ds-text-2" : "text-ds-text-3"
+                        s.status === "current" ? "font-medium text-[var(--tl-text)]" : s.status === "done" ? "text-ds-text-2" : "text-ds-text-3"
                       )}
                     >
                       {s.caption}
@@ -61,7 +65,7 @@ export function ProjectTimeline({
           })}
         </ol>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -72,12 +76,12 @@ function Dot({ status, dot }: { status: TimelineMilestone["status"]; dot: string
         "flex shrink-0 items-center justify-center rounded-full",
         dot,
         status === "done" && "bg-ds-text",
-        status === "current" && "border-2 border-ds-turn bg-white shadow-[0_0_0_4px_var(--ds-turn-tint)]",
+        status === "current" && "border-2 border-[var(--tl)] bg-white shadow-[0_0_0_4px_var(--tl-halo)]",
         status === "upcoming" && "border-2 border-ds-control-border bg-white"
       )}
     >
       {status === "done" && <Check className="size-3.5 text-white" strokeWidth={2.5} />}
-      {status === "current" && <span className="size-2 rounded-full bg-ds-turn" />}
+      {status === "current" && <span className="size-2 rounded-full bg-[var(--tl)]" />}
     </span>
   );
 }
@@ -102,7 +106,7 @@ function VerticalTimeline({ steps, label, dot }: { steps: TimelineMilestone[]; l
                 <span
                   className={cn(
                     "text-[12px] tabular-nums",
-                    s.status === "current" ? "font-medium text-ds-turn-text" : s.status === "done" ? "text-ds-text-2" : "text-ds-text-3"
+                    s.status === "current" ? "font-medium text-[var(--tl-text)]" : s.status === "done" ? "text-ds-text-2" : "text-ds-text-3"
                   )}
                 >
                   {s.caption}
