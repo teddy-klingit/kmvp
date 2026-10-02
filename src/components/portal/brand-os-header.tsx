@@ -13,17 +13,17 @@ const SEGMENTS: { label: string; href: string; match: (p: string) => boolean }[]
 ];
 
 /**
- * Brand IQ header (BrandIQ.dc.html): one segmented control instead of the old left sub-menu. A platform
+ * Brand OS header (BrandIQ.dc.html): one segmented control instead of the old left sub-menu. A platform
  * section page (BrandSection.dc.html) has its own breadcrumb header, so this one steps aside there.
  */
-export function BrandIqHeader() {
+export function BrandOsHeader() {
   const pathname = usePathname() ?? "/assets";
   if (/^\/assets\/brand-platform\/[^/]+/.test(pathname)) return null;
   return (
     <PageHeader
       eyebrow="Your brand, as Klingit’s agents see it"
-      title="Brand IQ"
-      tabsLabel="Brand IQ sections"
+      title="Brand OS"
+      tabsLabel="Brand OS sections"
       tabs={SEGMENTS.map((s) => ({ label: s.label, href: s.href, active: s.match(pathname) }))}
     />
   );

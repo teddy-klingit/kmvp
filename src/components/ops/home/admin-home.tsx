@@ -15,7 +15,7 @@ export async function AdminHome({ viewer }: { viewer: StaffMember & { user: User
     prisma.client.findMany({ where: { status: "ACTIVE" } }),
     prisma.staffMember.findMany({ include: { teamMemberships: true } }),
     prisma.creditLedgerEntry.findMany({
-      where: { type: "CONSUMPTION", createdAt: { gte: new Date(Date.now() - 30 * 86400000) } },
+      where: { type: "CONSUMPTION", createdAt: { gte: new Date(new Date().getTime() - 30 * 86400000) } },
     }),
   ]);
 

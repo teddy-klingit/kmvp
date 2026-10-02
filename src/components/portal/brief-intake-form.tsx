@@ -27,14 +27,12 @@ const THINKING_STEPS = [
 function useCyclingLabel(active: boolean, steps: string[], intervalMs = 1700) {
   const [i, setI] = useState(0);
   useEffect(() => {
-    if (!active) {
-      setI(0);
-      return;
-    }
+    if (!active) return;
     const id = setInterval(() => setI((v) => (v + 1) % steps.length), intervalMs);
     return () => clearInterval(id);
   }, [active, steps, intervalMs]);
-  return steps[i];
+  // Starts from the first step whenever it isn't running.
+  return active ? steps[i] : steps[0];
 }
 
 export function BriefIntakeForm({ projectId, prefill }: { projectId?: string; prefill?: string }) {

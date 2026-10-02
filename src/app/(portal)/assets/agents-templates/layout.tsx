@@ -1,6 +1,6 @@
 import { RouteChips } from "@/components/ds/route-chips";
 
-/** Brand IQ → Agents: Agents · Templates · Brand OS rules as filter chips (never a second tab bar). */
+/** Brand OS → Agents: Agents · Templates · Brand OS rules as filter chips (never a second tab bar). */
 export default function AgentsTemplatesLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-6">

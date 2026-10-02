@@ -16,11 +16,11 @@ import { AgentButton } from "@/components/portal/insights/agent-button";
 import { PlatformList } from "@/components/portal/platform-list";
 
 /**
- * Brand IQ overview (BrandIQ.dc.html): the brand card, a "Draft with AI" card while platform sections are
+ * Brand OS overview (BrandIQ.dc.html): the brand card, a "Draft with AI" card while platform sections are
  * empty, the platform list with done / not-written per section, and on the side the linked sources and
  * brand health, computed from what's written (never a stored score).
  */
-export default async function BrandIqOverviewPage() {
+export default async function BrandOsOverviewPage() {
   const viewer = await getPortalViewer();
   const clientId = viewer.clientId;
   const [client, brandOS, sources, connections, drafts] = await Promise.all([

@@ -40,7 +40,7 @@ export function IntelligenceRail({ client, activeProject }: ClientWorkspace) {
       )}
 
       {(() => {
-        // Computed from what's written (Brand IQ), never the stored percentage.
+        // Computed from what's written (Brand OS), never the stored percentage.
         const brand = platformStatus({ brandSummary: client.brandSummary, brandOS: client.brandOS });
         return (
           <div>

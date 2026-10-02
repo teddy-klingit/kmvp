@@ -14,7 +14,7 @@ type SidebarProps = {
 };
 
 /**
- * Client nav (brand theme): Home, Projects, Brand IQ, Insights, Calendar, Reports, Custom apps; then
+ * Client nav (brand theme): Home, Projects, Brand OS, Insights, Calendar, Reports, Custom apps; then
  * Notifications and the Account user block. Help lives in Account; "Switch view" is the demo persona switcher.
  */
 export function PortalSidebar({ userName, userEmail, clientName, brands, unreadCount }: SidebarProps) {
@@ -23,7 +23,7 @@ export function PortalSidebar({ userName, userEmail, clientName, brands, unreadC
       items: [
         { label: "Home", href: "/dashboard", icon: LayoutDashboard },
         { label: "Projects", href: "/projects", icon: FolderKanban },
-        { label: "Brand IQ", href: "/assets", icon: Sparkles },
+        { label: "Brand OS", href: "/assets", icon: Sparkles },
         { label: "Insights", href: "/insights", icon: BarChart3 },
         { label: "Calendar", href: "/calendar", icon: CalendarDays },
         { label: "Reports", href: "/reports", icon: FileText },

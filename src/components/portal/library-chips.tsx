@@ -1,6 +1,6 @@
 import { RouteChips } from "@/components/ds/route-chips";
 
-/** Brand IQ → Library: All · Top performers · By campaign. */
+/** Brand OS → Library: All · Top performers · By campaign. */
 export function LibraryChips() {
   return (
     <RouteChips

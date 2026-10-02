@@ -16,7 +16,7 @@ export function buildBrandContext(client: Pick<Client, "name" | "industry" | "br
 
   lines.push(`Brand summary: ${client.brandSummary ?? "No summary documented yet."}`);
 
-  // The brand & message platform (Brand IQ). Every section an agent can use is listed in SECTION_READERS.
+  // The brand & message platform (Brand OS). Every section an agent can use is listed in SECTION_READERS.
   if (brandOS?.vision) lines.push(`Vision: ${brandOS.vision}`);
   if (brandOS?.mission) lines.push(`Mission: ${brandOS.mission}`);
   const coreValues = jsonArray<{ title: string; description: string }>(brandOS?.coreValues);

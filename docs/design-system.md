@@ -76,7 +76,7 @@ Messages:
 ## Layout
 
 - **Shell** (`shared/app-nav.tsx`, both apps): 240px cream nav with the real logo SVG, pill rows (ink active), 18px icons, a mono section label ("AGENCY" in ops), Notifications and the user block (Account) at the bottom. Under 900px it's a top bar with a menu sheet.
-  - Client: Home, Projects, Brand IQ, Insights, Calendar, Reports, Custom apps · Notifications, Account. Help is linked from Account.
+  - Client: Home, Projects, Brand OS, Insights, Calendar, Reports, Custom apps · Notifications, Account. Help is linked from Account.
   - Ops: Needs you (orange count), Projects, Team, Agents · Agency: Clients, Price list, Archive · Notifications, Account (Billing, Analytics and Settings are in Account).
   - "Switch view" (demo persona switcher) sits above Notifications.
 - **Page padding**: 24px top on Home, 40px elsewhere; 40 right, 56 bottom, 16 left next to the nav; 16px gutters on phones. Content max 1120px. `PortalMain` does this for the client; `OpsPage` for ops.
@@ -132,6 +132,6 @@ Breakpoints on this screen:
 | Projects | Projects.dc.html | 5 client-timeline columns (`CLIENT_COLUMNS`, `clientColumnFor`), status words from `statusLine()`, rows shared with Home (`ProjectRows`) |
 | Calendar | Calendar.dc.html | `src/lib/calendar-items.ts` (Klingit / plan / suggested); suggestions carry `proposedDate` + `reason`; coverage = planned + published posts vs plan targets × 4 |
 | Reports | Reports.dc.html | `GeneratedReport` per closed week/month (`src/lib/report-data.ts`, performance agent); send schedule on `ClientReportingConfig` |
-| Brand IQ | BrandIQ / BrandSection.dc.html | Health from `platformStatus()` (`src/lib/brand-completeness.ts`), readers from `SECTION_READERS`; drafts in `BrandSectionDraft`, saved only by the client |
+| Brand OS | BrandIQ / BrandSection.dc.html | Health from `platformStatus()` (`src/lib/brand-completeness.ts`), readers from `SECTION_READERS`; drafts in `BrandSectionDraft`, saved only by the client |
 | Account | Account.dc.html | Credits from the ledger (`creditSummary`), team from `ClientUser`; no card on file is shown (none stored) |
 | Ops lists | OpsClients.dc.html | `DataTable` + `FilterChips`; client health from `src/lib/client-health.ts` (under 75 = at risk) |

@@ -4,7 +4,7 @@ import { brandSourcesForAgents } from "@/lib/brand-sources-data";
 import { draftBrandSections } from "@/lib/ai/agents/brand-draft-agent";
 
 /**
- * The brand agent's drafts for Brand IQ sections, stored for review (BrandSectionDraft). Not a server action:
+ * The brand agent's drafts for Brand OS sections, stored for review (BrandSectionDraft). Not a server action:
  * callers pass a client id they've already checked (the actions use the signed-in viewer's).
  */
 export type DraftResult = { error?: string | null };

@@ -8,7 +8,7 @@ import { Meter } from "@/components/ds/stats";
 import { AgentButton } from "@/components/portal/insights/agent-button";
 import { PlatformList } from "@/components/portal/platform-list";
 
-/** Brand IQ → Platform: the eight brand & message sections, each opening its editor. */
+/** Brand OS → Platform: the eight brand & message sections, each opening its editor. */
 export default async function BrandPlatformPage() {
   const viewer = await getPortalViewer();
   const [client, brandOS, drafts] = await Promise.all([

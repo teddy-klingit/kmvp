@@ -16,7 +16,7 @@ export default async function CapacityForecastPage() {
   ]);
 
   const totalCapacity = staff.reduce((sum, s) => sum + s.capacityHoursPerWeek, 0);
-  const now = Date.now();
+  const now = new Date().getTime();
   const week = 7 * 86400000;
 
   const data = Array.from({ length: WEEKS }, (_, i) => {

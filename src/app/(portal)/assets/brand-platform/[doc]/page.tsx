@@ -28,7 +28,7 @@ function list(names: string[]) {
 }
 
 /**
- * A Brand IQ platform section (BrandSection.dc.html): breadcrumb, "BRAND & MESSAGE PLATFORM · i OF 8", the
+ * A Brand OS platform section (BrandSection.dc.html): breadcrumb, "BRAND & MESSAGE PLATFORM · i OF 8", the
  * section in the standard editor with its question, Save / Cancel / Rewrite with AI and its source chips.
  * Side: every section with its status, and which agents read this one.
  */
@@ -59,7 +59,7 @@ export default async function BrandPlatformDocPage({ params }: { params: Promise
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader back={{ href: "/assets/brand-platform", label: "Brand IQ · Platform" }} eyebrow={`Brand & message platform · ${index} of ${status.total}`} title={meta.label} />
+      <PageHeader back={{ href: "/assets/brand-platform", label: "Brand OS · Platform" }} eyebrow={`Brand & message platform · ${index} of ${status.total}`} title={meta.label} />
       <PageGrid
         main={<Card className="overflow-hidden">{renderDoc(doc, client, brandOS, common)}</Card>}
         side={

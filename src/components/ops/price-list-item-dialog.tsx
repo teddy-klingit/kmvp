@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 import { Plus } from "lucide-react";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -21,13 +21,14 @@ type ExistingItem = {
 
 export function PriceListItemDialog({ item }: { item?: ExistingItem }) {
   const action = item ? updatePriceListItemAction : createPriceListItemAction;
-  const [state, formAction, pending] = useActionState(action, initialState);
-  const [tier, setTier] = useState<string>(item?.complexityTier ?? "MEDIUM");
   const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    if (state.error === null) setOpen(false);
-  }, [state]);
+  // Close on success from the action itself (not an effect), so there's no extra render pass.
+  const [state, formAction, pending] = useActionState(async (prev: typeof initialState, fd: FormData) => {
+    const r = await action(prev, fd);
+    if (r.error === null) setOpen(false);
+    return r;
+  }, initialState);
+  const [tier, setTier] = useState<string>(item?.complexityTier ?? "MEDIUM");
 
   return (
     <Dialog

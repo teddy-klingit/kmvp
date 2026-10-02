@@ -10,7 +10,7 @@ type DocAction = (prev: EmptyState, formData: FormData) => Promise<EmptyState>;
 type Draft = { id: string; content: string; basis: string | null };
 
 /**
- * A Brand IQ section in its card (BrandSection.dc.html): view mode with Edit, or edit mode with the prompt,
+ * A Brand OS section in its card (BrandSection.dc.html): view mode with Edit, or edit mode with the prompt,
  * the standard textarea (1px border, soft focus ring, writing-assistant extensions opted out), Save /
  * Cancel and Rewrite with AI. A pending agent draft shows on top: "Use draft" opens it in the editor (the
  * client still saves), "Discard" drops it. Nothing reaches Brand OS without the client's Save.

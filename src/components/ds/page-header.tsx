@@ -22,7 +22,7 @@ export function PageHeader({
   actions?: React.ReactNode;
   tabs?: SegmentLink[];
   tabsLabel?: string;
-  /** Breadcrumb back link ("‹ Brand IQ · Platform"). */
+  /** Breadcrumb back link ("‹ Brand OS · Platform"). */
   back?: { href: string; label: string };
   className?: string;
 }) {

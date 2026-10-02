@@ -60,7 +60,7 @@ async function resolve(node: ReactNode): Promise<ReactNode> {
 async function render(el: ReactNode | Promise<ReactNode>) {
   setMockSession({ user: { id: fx.user.id, role: "CLIENT" } });
   // Project pages render inside the layout's ConversationProvider; give standalone page renders the same context.
-  return renderToStaticMarkup(createElement(ConversationProvider, { defaultChannel: "klingit", children: createElement(Fragment, null, await resolve(await el)) }));
+  return renderToStaticMarkup(createElement(ConversationProvider as (p: { defaultChannel: string; children?: ReactNode }) => ReactNode, { defaultChannel: "klingit" }, createElement(Fragment, null, await resolve(await el))));
 }
 
 const text = async (el: ReactNode | Promise<ReactNode>) => asText(await render(el));

@@ -24,7 +24,7 @@ const DraftSchema = z.object({
 });
 
 /**
- * The Brand OS agent drafting Brand IQ platform sections for the client to review. Grounded in what we
+ * The Brand OS agent drafting Brand OS platform sections for the client to review. Grounded in what we
  * actually have: the brand summary, the sections already written, the client's website (via web search) and
  * the titles of linked sources (their contents are never fetched). It must say what each draft is based on.
  */
@@ -58,6 +58,6 @@ export async function draftBrandSections(args: {
     prompt: parts.join("\n"),
     schema: DraftSchema,
     webSearch: Boolean(args.website),
-    summarize: (d) => `Drafted ${d.drafts.length} Brand IQ section(s) for review`,
+    summarize: (d) => `Drafted ${d.drafts.length} Brand OS section(s) for review`,
   });
 }

@@ -15,6 +15,6 @@ async function main() {
   console.log("Templates:", templates.length);
   console.log(templates.map((t) => ({ name: t.name, category: t.category, clientId: t.clientId })));
   const brandOS = await prisma.brandOS.findUnique({ where: { clientId: client.id } });
-  console.log("BrandOS keys with data:", brandOS ? Object.keys(brandOS).filter((k) => (brandOS as any)[k] != null) : null);
+  console.log("BrandOS keys with data:", brandOS ? Object.keys(brandOS).filter((k) => (brandOS as Record<string, unknown>)[k] != null) : null);
 }
 main().finally(() => prisma.$disconnect());
