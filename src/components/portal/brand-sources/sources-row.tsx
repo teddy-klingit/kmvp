@@ -39,7 +39,7 @@ export function SourceChip({ source, removable = true }: { source: SourceChipDat
 export function SourcesRow({ section, sources, connected, divider = true }: { section: string; sources: SourceChipData[]; connected: ConnectedApp[]; divider?: boolean }) {
   return (
     <div className={cn("flex flex-col gap-3", divider && "border-t border-brand-line pt-5")}>
-      <span className="font-brand-mono text-[11px] text-brand-ink-2">SOURCES FOR THIS SECTION</span>
+      <span className="text-[12px] text-brand-ink-2">Sources for this section</span>
       <div className="flex flex-wrap items-center gap-2">
         {sources.map((s) => (
           <SourceChip key={s.id} source={s} />

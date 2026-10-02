@@ -90,7 +90,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
         actions={
           <>
             <PillLink href="/projects/inspiration">Inspiration</PillLink>
-            <PillLink href="/projects/new" variant="primary">
+            <PillLink href="/brief/new" variant="primary">
               <Plus className="size-3.5" strokeWidth={1.75} />
               New project
             </PillLink>
@@ -99,7 +99,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
       />
 
       {items.length === 0 ? (
-        <EmptyState icon={FolderKanban} title="No projects yet. Every project starts with a brief." action={<PillLink href="/projects/new" variant="primary">Start a brief</PillLink>} />
+        <EmptyState icon={FolderKanban} title="No projects yet. Every project starts with a brief." action={<PillLink href="/brief/new" variant="primary">Start a brief</PillLink>} />
       ) : (
         <>
           <div className="flex flex-wrap items-center justify-between gap-4">

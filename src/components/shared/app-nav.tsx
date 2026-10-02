@@ -121,7 +121,11 @@ export function RailHint({ label, children }: { label: string; children: React.R
  */
 export function AppNav(props: NavProps) {
   const key = `klingit.nav.${props.storageKey}`;
-  const state = useNavState(key);
+  const stored = useNavState(key);
+  // The Brief studio needs the width: the nav folds to the rail there without changing the saved choice.
+  const studio = (usePathname() ?? "").startsWith("/brief/");
+  const [studioOpen, setStudioOpen] = useState(false);
+  const state = studio ? (studioOpen ? "open" : "folded") : stored;
   const folded = state === "folded";
   const [hint, setHint] = useState<Hint>(null);
 
@@ -141,15 +145,17 @@ export function AppNav(props: NavProps) {
       if (!window.matchMedia("(min-width: 900px)").matches) return;
       e.preventDefault();
       setHint(null);
-      writeNav(key, readNav(key) === "folded" ? "open" : "folded");
+      if (studio) setStudioOpen((o) => !o);
+      else writeNav(key, readNav(key) === "folded" ? "open" : "folded");
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [key]);
+  }, [key, studio]);
 
   const toggle = () => {
     setHint(null);
-    writeNav(key, folded ? "open" : "folded");
+    if (studio) setStudioOpen(!studioOpen);
+    else writeNav(key, folded ? "open" : "folded");
   };
   const showHint = (label: string | null, el?: HTMLElement) => {
     if (!label || !el) return setHint(null);
@@ -280,7 +286,7 @@ function UserLink({ user, active, onClose }: { user: NavProps["user"]; active: b
       <Avatar name={user.name} size={34} />
       <span className="flex min-w-0 flex-col whitespace-nowrap rail:sr-only">
         <span className="truncate text-[15px] font-semibold text-brand-ink">{user.name}</span>
-        <span className="truncate font-brand-mono text-[11px] uppercase text-brand-ink-2">{user.sub}</span>
+        <span className="truncate text-[12px] text-brand-ink-2">{user.sub}</span>
       </span>
     </Link>
   );
@@ -309,7 +315,7 @@ function NavContent({ onClose, onFold, folded = false, ...props }: NavProps & { 
           <div key={s.label ?? i} className={cn("rail:flex rail:flex-col rail:items-center", i > 0 && "mt-6 rail:mt-4")}>
             {s.label && (
               <>
-                <p className="mb-1.5 whitespace-nowrap px-[13px] font-brand-mono text-[11px] uppercase text-brand-ink-2 rail:sr-only">{s.label}</p>
+                <p className="mb-1.5 whitespace-nowrap px-[13px] text-[12px] text-brand-mute rail:sr-only">{s.label}</p>
                 <span aria-hidden className="mb-4 hidden h-px w-6 bg-brand-rule rail:block" />
               </>
             )}

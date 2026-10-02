@@ -144,7 +144,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
             <SectionCard
               id="suggested"
               title="Suggested by the agent"
-              action={pending.length + ideas.length > 0 ? <span className="font-brand-mono text-[12px] text-brand-ink-2">{pending.length + ideas.length} NEW</span> : undefined}
+              action={pending.length + ideas.length > 0 ? <span className="text-[12px] text-brand-ink-2">{pending.length + ideas.length} new</span> : undefined}
             >
               {pending.length === 0 && ideas.length === 0 ? (
                 <CardNote>No suggestions right now. “Suggest content” asks the agent to read your plan and performance.</CardNote>
@@ -180,7 +180,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                           Start by {formatDay(startBy)} · ready for {formatDay(idea.targetDate!)}
                         </span>
                       </span>
-                      <InspirationExploreButton inspirationId={idea.id} label="Brief now" />
+                      <InspirationExploreButton title={idea.title} description={idea.description} label="Brief now" />
                     </li>
                   ))}
                 </CardRows>
@@ -247,7 +247,7 @@ function CalendarList({ items, month }: { items: CalendarItem[]; month: Date }) 
       {days.map((d) => (
         <li key={d.toISOString()} className="flex gap-4 px-6 py-4">
           <span className="flex size-11 shrink-0 flex-col items-center justify-center rounded-[8px] bg-brand-chip">
-            <span className="font-brand-mono text-[10px] uppercase text-brand-ink-2">{new Intl.DateTimeFormat("en-GB", { weekday: "short" }).format(d)}</span>
+            <span className="text-[11px] text-brand-ink-2">{new Intl.DateTimeFormat("en-GB", { weekday: "short" }).format(d)}</span>
             <span className="text-[16px] leading-[1.1]">{d.getDate()}</span>
           </span>
           <ul className="m-0 flex min-w-0 flex-1 list-none flex-col gap-2.5 p-0">

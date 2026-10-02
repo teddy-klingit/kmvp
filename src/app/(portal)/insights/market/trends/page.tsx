@@ -53,7 +53,7 @@ export default async function MarketTrendsPage() {
             )}
           </SectionCard>
 
-          <SectionCard title="Sources" action={news.length > 0 ? <span className="font-brand-mono text-[12px] text-brand-ink-2">LIVE · GOOGLE NEWS</span> : undefined}>
+          <SectionCard title="Sources" action={news.length > 0 ? <span className="text-[12px] text-brand-ink-2">Live · Google News</span> : undefined}>
             {news.length === 0 ? (
               <CardNote>No recent coverage found for {viewer.client.industry ?? viewer.client.name}.</CardNote>
             ) : (

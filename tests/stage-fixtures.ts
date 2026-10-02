@@ -56,16 +56,18 @@ export async function createStageFixtures() {
     await prisma.teamMember.create({ data: { teamId: team.id, staffMemberId: staff.id, roleOnProject: "Art director" } });
   }
 
-  // briefing — DRAFT, brief agent waiting on one question, stage rows contradicting it.
+  // briefing — DRAFT, the brief still in the Brief studio, stage rows contradicting it.
   const briefing = await project("Stage Deck Briefing", "DRAFT", { BRIEF: "COMPLETED", PRODUCTION: "ACTIVE" });
   await prisma.brief.create({
     data: {
       projectId: briefing.id,
       status: "DRAFT",
       rawIntake: "sales presentation with 10 slides",
-      goals: "sales presentation with 10 slides",
-      pendingQuestions: [{ key: "audience", question: "Who will this deck be presented to?", quickAnswers: ["Investors", "Customers"] }],
-      transcript: [],
+      qualityScore: 40,
+      sections: [
+        { key: "deliverables", value: "", items: ["Deck, about 10 slides"], source: "answer", editedByClient: false },
+        { key: "objective", value: "Win a pitch or a deal", source: "answer", editedByClient: true },
+      ],
     },
   });
 

@@ -58,7 +58,7 @@ export function EditableDoc({
         title={title}
         action={
           editing ? (
-            <span className="font-brand-mono text-[12px] text-brand-ink-2">EDITING</span>
+            <span className="text-[12px] text-brand-ink-2">Editing</span>
           ) : (
             <button type="button" onClick={() => edit(initialValue, null)} className={pillClass("secondary", "sm")}>
               Edit

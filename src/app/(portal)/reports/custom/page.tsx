@@ -253,7 +253,7 @@ export default async function CustomReportPage({
         <div className="flex flex-col gap-4 px-6 py-5">
           {filterRows.map((row) => (
             <div key={row.label} className="flex flex-col gap-2">
-              <span className="font-brand-mono text-[11px] uppercase text-brand-ink-2">{row.label}</span>
+              <span className="text-[12px] text-brand-mute">{row.label}</span>
               <FilterChips label={row.label} items={row.chips} />
             </div>
           ))}

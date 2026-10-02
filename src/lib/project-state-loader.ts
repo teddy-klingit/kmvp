@@ -1,8 +1,7 @@
 import { cache } from "react";
-import type { BrandOS, Prisma } from "@/generated/prisma";
+import type { Prisma } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
 import { projectVisibilityWhere } from "@/lib/project-visibility";
-import { getEffectiveBriefQuestions } from "@/lib/brief-questions";
 import { getProjectState, type ProjectState, type ProjectStateInput } from "@/lib/project-state";
 
 /** The relations getProjectState needs — include this wherever a project's state is shown. */
@@ -16,7 +15,7 @@ export const projectStateInclude = {
 
 export type ProjectWithStateData = Prisma.ProjectGetPayload<{ include: typeof projectStateInclude }>;
 
-export function toProjectStateInput(project: ProjectWithStateData, brandOS: BrandOS | null): ProjectStateInput {
+export function toProjectStateInput(project: ProjectWithStateData): ProjectStateInput {
   return {
     id: project.id,
     status: project.status,
@@ -25,7 +24,6 @@ export function toProjectStateInput(project: ProjectWithStateData, brandOS: Bran
     deliveredAt: project.deliveredAt,
     creditsQuoted: project.creditsQuoted,
     brief: project.brief,
-    fixedQuestions: getEffectiveBriefQuestions(brandOS),
     estimate: project.estimate,
     team: project.team
       ? {
@@ -44,12 +42,9 @@ export async function loadProjectStates(
   clientId: string,
   orderBy: Prisma.ProjectOrderByWithRelationInput = { createdAt: "desc" }
 ): Promise<{ project: ProjectWithStateData; state: ProjectState }[]> {
-  const [projects, brandOS] = await Promise.all([
-    prisma.project.findMany({ where: { ...where, clientId }, include: projectStateInclude, orderBy }),
-    prisma.brandOS.findUnique({ where: { clientId } }),
-  ]);
+  const projects = await prisma.project.findMany({ where: { ...where, clientId }, include: projectStateInclude, orderBy });
   const now = new Date();
-  return projects.map((project) => ({ project, state: getProjectState(toProjectStateInput(project, brandOS), now) }));
+  return projects.map((project) => ({ project, state: getProjectState(toProjectStateInput(project), now) }));
 }
 
 /**

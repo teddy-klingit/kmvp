@@ -9,7 +9,7 @@ export default async function FullWeeklyReportPage() {
   const data = await loadSowData(viewer.clientId);
   return (
     <>
-      <span className="font-brand-mono text-[12px] text-brand-ink-2">FULL WEEKLY REPORT · SOW SECTION 7 · LIVE DATA</span>
+      <span className="text-[12px] text-brand-ink-2">Full weekly report · SOW section 7 · live data</span>
       <PageGrid main={<WeeklySow data={data} />} side={<ScheduleCard clientId={viewer.clientId} />} />
     </>
   );

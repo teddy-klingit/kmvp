@@ -63,7 +63,7 @@ export default async function VisualIdentityPage() {
             connected={figma.connected}
             linkedCount={figma.sources.length}
           />
-          <SectionCard title="Visual identity" action={<span className="font-brand-mono text-[12px] text-brand-ink-2">{VISUAL_IDENTITY_FOLDERS.length} FOLDERS</span>}>
+          <SectionCard title="Visual identity" action={<span className="text-[12px] text-brand-ink-2">{VISUAL_IDENTITY_FOLDERS.length} folders</span>}>
             <ul className="m-0 grid list-none grid-cols-2 gap-3 px-6 py-5 @min-[560px]/col:grid-cols-3">
               {VISUAL_IDENTITY_FOLDERS.map((folder, i) => {
                 const Icon = ICON_FOR[folder.slug] ?? Shapes;

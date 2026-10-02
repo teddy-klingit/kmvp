@@ -95,7 +95,7 @@ export function inProgress(items: Item[], typeLabel: (t: string) => string, acco
       const current = milestones.find((m) => m.status === "current");
       const assetCount = project.assets.length;
       const eta = state.keyFacts.firstDraftEta;
-      const left = state.brief.mode !== "intake" ? state.brief.total - state.brief.answered : 0;
+      const score = state.brief.mode === "studio" ? state.brief.score : null;
       const KLINGIT_NEXT: Partial<Record<ProjectState["stage"], string>> = {
         briefing: "Brief · Klingit is reviewing it",
         estimating: "Estimate · Klingit is pricing it",
@@ -109,8 +109,8 @@ export function inProgress(items: Item[], typeLabel: (t: string) => string, acco
         : state.ballInCourt === "client"
           ? state.stage === "final"
             ? "Sign-off · waiting on you"
-            : state.stage === "briefing" && left > 0
-              ? `Brief · ${left} question${left === 1 ? "" : "s"} left`
+            : state.stage === "briefing" && score !== null
+              ? `Brief · quality ${score}`
               : `${current?.label ?? "Next step"} · waiting on you`
           : state.stage === "production" && eta
             ? endOfDay(eta).getTime() < Date.now()

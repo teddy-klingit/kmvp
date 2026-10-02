@@ -53,7 +53,7 @@ export default async function ProjectInspirationPage() {
                       </div>
                     )}
                   </div>
-                  <InspirationExploreButton inspirationId={idea.id} />
+                  <InspirationExploreButton title={idea.title} description={idea.description} />
                 </li>
               );
             })}

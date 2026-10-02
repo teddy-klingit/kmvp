@@ -9,6 +9,7 @@
  *   npx tsx scripts/screenshots/capture.ts home
  *   npx tsx scripts/screenshots/capture.ts insights   (every Insights tab, 1440 + 390)
  *   npx tsx scripts/screenshots/capture.ts j1         (theme sweep: client + ops pages, 1440 + 390)
+ *   npx tsx scripts/screenshots/capture.ts studio     (Brief studio states at 1440 + 390; run seed-brief-studio.ts first)
  *   npx tsx scripts/screenshots/capture.ts nav        (side nav open / folded / tooltip / focus ring at 1440, menu sheet at 390)
  *
  * Output: screenshots/<phase>/...png
@@ -394,7 +395,66 @@ async function phaseNav() {
   await browser.close();
 }
 
+/** Brief studio: right after a short request, mid-flow, a detailed request, editing a section, the low-score send confirm. */
+async function phaseStudio() {
+  const outDir = "screenshots/studio";
+  mkdirSync(outDir, { recursive: true });
+  const browser = await chromium.launch();
+  for (const width of widths.length > 1 || args.some((a) => a.startsWith("--widths=")) ? widths : [1440, 390]) {
+    const { context, page } = await signInAs(browser, "jack.ross@klarna.com", width);
+    const height = width < 768 ? 844 : 960;
+    await page.setViewportSize({ width, height });
+    const settled = async () => {
+      await page.waitForLoadState("networkidle");
+      await page.getByText("Saved · you can leave and come back").or(page.getByText("Draft saved")).first().waitFor({ timeout: 90_000 });
+      await page.waitForTimeout(500);
+    };
+    const snap = async (name: string) => {
+      await page.screenshot({ path: `${outDir}/${name}-${width}.png` });
+      console.log(`  ${name}-${width}.png`);
+    };
+    const start = async (q: string) => {
+      await page.goto(`${BASE}/brief/new?${new URLSearchParams({ q })}`);
+      await page.waitForURL(/\/brief\/(?!new)/, { timeout: 120_000 });
+      await settled();
+    };
+    const showBrief = async () => {
+      if (width < 1000) await page.getByRole("button", { name: /^View brief/ }).click();
+    };
+
+    await start("I need new ads for Meta");
+    await snap("01-first-message");
+    // Mid-flow, as in the design: the objective answered, formats being asked.
+    await page.getByRole("button", { name: /^App installs/ }).click();
+    await settled();
+    await snap("02-mid-flow");
+    if (width < 1000) {
+      await showBrief();
+      await snap("02b-mid-flow-brief");
+    }
+    // Editing a section inline.
+    await page.getByRole("button", { name: "Edit key message" }).click();
+    await page.waitForTimeout(200);
+    await snap("04-editing-section");
+
+    await start('Instagram stories and a carousel for our Black Friday sale, live by 20 Nov. Message: "Pay later, shop the whole drop." Must include the legal disclaimer.');
+    await snap("03-detailed-first-message");
+    await showBrief();
+    if (width < 1000) await snap("03b-detailed-brief");
+
+    await start("Something for our app");
+    await showBrief();
+    await page.getByRole("button", { name: /Send brief to Klingit/ }).click();
+    await page.getByText("Klingit may come back with questions. Send anyway?").waitFor();
+    await page.waitForTimeout(300);
+    await snap("05-low-score-confirm");
+    await context.close();
+  }
+  await browser.close();
+}
+
 async function main() {
+  if (phase === "studio") return phaseStudio();
   if (phase === "nav") return phaseNav();
   if (phase === "insights") return phaseList("screenshots/insights", INSIGHTS_PAGES);
   if (phase === "j1") return phaseList("screenshots/j1", J1_CLIENT, J1_OPS);

@@ -36,7 +36,7 @@ function CardFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement
 function SectionLabel({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
   return (
     <p
-      className={cn("font-brand-mono text-[12px] uppercase text-muted-foreground", className)}
+      className={cn("text-[12px] text-brand-mute", className)}
       {...props}
     />
   );

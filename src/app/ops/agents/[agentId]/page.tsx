@@ -80,7 +80,7 @@ export default async function AgentDetailPage({ params }: { params: Promise<{ ag
         </CardRows>
       </SectionCard>
 
-      <SectionCard title="Run history" meta={agent.runs.length > 0 ? <span className="font-brand-mono text-[12px] text-brand-ink-2">LAST {agent.runs.length}</span> : undefined}>
+      <SectionCard title="Run history" meta={agent.runs.length > 0 ? <span className="text-[12px] text-brand-ink-2">Last {agent.runs.length}</span> : undefined}>
         <DataTable
           label="Run history"
           empty={<CardNote>No runs recorded yet.</CardNote>}

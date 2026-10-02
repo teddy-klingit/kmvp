@@ -227,7 +227,7 @@ export default async function InsightsPerformancePage({ searchParams }: { search
               </SectionCard>
             )}
 
-            <SectionCard id="creative" title={all.length > 0 ? "Creative effectiveness" : "Top content"} action={all.length > 0 ? <span className="font-brand-mono text-[12px] text-brand-ink-2">{all.length} ASSETS</span> : undefined}>
+            <SectionCard id="creative" title={all.length > 0 ? "Creative effectiveness" : "Top content"} action={all.length > 0 ? <span className="text-[12px] text-brand-ink-2">{all.length} assets</span> : undefined}>
               {all.length > 0 ? (
                 <CardRows>
                   {[...all]

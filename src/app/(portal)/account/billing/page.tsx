@@ -23,7 +23,7 @@ export default async function AccountBillingPage() {
   return (
     <PageGrid
       main={
-        <SectionCard title="Invoices" action={<span className="font-brand-mono text-[12px] text-brand-ink-2">{invoices.length} IN TOTAL</span>}>
+        <SectionCard title="Invoices" action={<span className="text-[12px] text-brand-ink-2">{invoices.length} in total</span>}>
           <DataTable
             label="Invoices"
             empty={<CardNote>No invoices yet.</CardNote>}

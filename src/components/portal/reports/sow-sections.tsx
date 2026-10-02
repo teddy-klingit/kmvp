@@ -224,7 +224,7 @@ export function MonthlySow({ data }: { data: SowData }) {
         ) : (
           <div className="grid grid-cols-1 @min-[600px]/col:grid-cols-2">
             <div>
-              <p className="m-0 px-6 pt-4 font-brand-mono text-[11px] text-brand-ink-2">TOP POSTS</p>
+              <p className="m-0 px-6 pt-4 text-[12px] text-brand-ink-2">Top posts</p>
               <CardRows>
                 {monthTop.map((p) => (
                   <PostRow key={p.id} p={p} metric="engagement" />
@@ -232,7 +232,7 @@ export function MonthlySow({ data }: { data: SowData }) {
               </CardRows>
             </div>
             <div className="border-t border-brand-line @min-[600px]/col:border-l @min-[600px]/col:border-t-0">
-              <p className="m-0 px-6 pt-4 font-brand-mono text-[11px] text-brand-ink-2">BEHIND THE REST</p>
+              <p className="m-0 px-6 pt-4 text-[12px] text-brand-ink-2">Behind the rest</p>
               {monthUnder.length === 0 ? (
                 <CardNote>Nothing meaningfully behind the rest of the month&apos;s content.</CardNote>
               ) : (
@@ -257,7 +257,7 @@ export function MonthlySow({ data }: { data: SowData }) {
                   {platform.toUpperCase()} · AGE
                 </span>
                 <Bars data={jsonArray<Breakdown>(snap.ageBreakdown)} />
-                <span className="font-brand-mono text-[11px] text-brand-ink-2">TOP LOCATIONS</span>
+                <span className="text-[12px] text-brand-ink-2">Top locations</span>
                 <Bars data={jsonArray<Breakdown>(snap.topLocations).slice(0, 3)} />
               </div>
             ))}

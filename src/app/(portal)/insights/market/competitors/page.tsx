@@ -56,7 +56,7 @@ export default async function MarketIntelligenceCompetitorsPage() {
   const shareOfVoiceData = linkedInAdResults.filter((r) => r.ok).map((r) => ({ brand: r.brand, totalAds: r.ok ? r.total : 0 }));
 
   const suggestionsCard = suggestions.length > 0 && (
-    <SectionCard title="Suggested competitors" action={<span className="font-brand-mono text-[12px] text-brand-ink-2">{suggestions.length} NEW</span>}>
+    <SectionCard title="Suggested competitors" action={<span className="text-[12px] text-brand-ink-2">{suggestions.length} new</span>}>
       <CardRows>
         {suggestions.map((s) => (
           <li key={s.id} className="flex items-center gap-3 px-6 py-4">
@@ -175,7 +175,7 @@ export default async function MarketIntelligenceCompetitorsPage() {
 
                   {trend.length >= 2 && (
                     <div>
-                      <p className="m-0 mb-1 font-brand-mono text-[11px] text-brand-ink-2">AD VOLUME, LINKEDIN</p>
+                      <p className="m-0 mb-1 text-[12px] text-brand-ink-2">Ad volume, LinkedIn</p>
                       <AdVolumeTrendChart data={trend} />
                     </div>
                   )}

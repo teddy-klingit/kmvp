@@ -91,7 +91,7 @@ export default async function AudiencePage() {
                 {community.length > 1 && (
                   <CardBody className="flex flex-col gap-6 border-t border-brand-line">
                     <div className="flex flex-col gap-2">
-                      <span className="font-brand-mono text-[11px] text-brand-ink-2">SENTIMENT</span>
+                      <span className="text-[12px] text-brand-ink-2">Sentiment</span>
                       <FollowerGrowthChart
                         data={community.map((s) => ({ date: short(s.periodEnd), Positive: s.sentimentPositivePct, Neutral: s.sentimentNeutralPct, Negative: s.sentimentNegativePct }))}
                         platforms={["Positive", "Neutral", "Negative"]}
@@ -99,11 +99,11 @@ export default async function AudiencePage() {
                     </div>
                     <div className="grid grid-cols-1 gap-6 @min-[600px]/col:grid-cols-2">
                       <div className="flex flex-col gap-2">
-                        <span className="font-brand-mono text-[11px] text-brand-ink-2">COMMENTS</span>
+                        <span className="text-[12px] text-brand-ink-2">Comments</span>
                         <DiscreteMetricBars data={community.map((s) => ({ period: short(s.periodEnd), value: s.commentVolume }))} label="Comments" />
                       </div>
                       <div className="flex flex-col gap-2">
-                        <span className="font-brand-mono text-[11px] text-brand-ink-2">DMS</span>
+                        <span className="text-[12px] text-brand-ink-2">DMs</span>
                         <DiscreteMetricBars data={community.map((s) => ({ period: short(s.periodEnd), value: s.dmVolume }))} label="DMs" />
                       </div>
                     </div>
@@ -116,7 +116,7 @@ export default async function AudiencePage() {
           </SectionCard>
 
           {escalations.length > 0 && (
-            <SectionCard title="Needs a response" action={<span className="font-brand-mono text-[12px] text-brand-ink-2">{open.length} OPEN</span>}>
+            <SectionCard title="Needs a response" action={<span className="text-[12px] text-brand-ink-2">{open.length} open</span>}>
               {open.length === 0 ? (
                 <CardNote>Nothing flagged for escalation right now.</CardNote>
               ) : (

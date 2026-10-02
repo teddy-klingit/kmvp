@@ -1,21 +1,9 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { prisma } from "@/lib/prisma";
-import { setMockSession } from "./setup";
 import { createSecurityFixtures } from "./fixtures";
 import { recordPerformanceSnapshots } from "@/lib/integrations/performance-alerts";
-import { startBriefFromIntakeAction } from "@/lib/actions/brief-intake-actions";
 import type { PlatformCampaign } from "@/lib/performance";
 
-const intakeResult = vi.hoisted(() => ({
-  ok: true as const,
-  data: {
-    suggestedName: "Klarna 10-Slide Deck",
-    projectType: "PRESENTATION" as const,
-    summary: "A 10-slide deck.",
-    clarifyingQuestions: [{ key: "audience", question: "Who is it for?", quickAnswers: ["Investors"] }],
-  },
-}));
-vi.mock("@/lib/ai/agents/intake-agent", () => ({ intakeBrief: vi.fn(async () => intakeResult) }));
 
 function campaign(ctr: number): PlatformCampaign {
   return {
@@ -108,93 +96,3 @@ describe("performance drop alerts", () => {
   });
 });
 
-describe("new brief intake", () => {
-  function intakeForm(extra: Record<string, string> = {}) {
-    const fd = new FormData();
-    fd.set("rawText", "I need a 10 slide presentation");
-    for (const [k, v] of Object.entries(extra)) fd.set(k, v);
-    return fd;
-  }
-
-  it("offers 'Continue your draft' instead of creating a near-duplicate", async () => {
-    const fx = await createSecurityFixtures();
-    try {
-      const draft = await prisma.project.create({
-        data: { clientId: fx.clientA.id, name: "Klarna Presentation Deck", type: "PRESENTATION", status: "DRAFT" },
-      });
-      setMockSession({ user: { id: fx.userA.id, role: "CLIENT" } });
-
-      const state = await startBriefFromIntakeAction({}, intakeForm());
-
-      expect(state.existingDraft).toEqual({ id: draft.id, name: "Klarna Presentation Deck" });
-      expect(state.submitted?.rawText).toBe("I need a 10 slide presentation");
-      expect(await prisma.project.count({ where: { clientId: fx.clientA.id } })).toBe(2);
-    } finally {
-      await fx.cleanup();
-    }
-  });
-
-  it("still creates a new project when the client chooses to", async () => {
-    const fx = await createSecurityFixtures();
-    try {
-      await prisma.project.create({
-        data: { clientId: fx.clientA.id, name: "Klarna Presentation Deck", type: "PRESENTATION", status: "DRAFT" },
-      });
-      setMockSession({ user: { id: fx.userA.id, role: "CLIENT" } });
-
-      await expect(startBriefFromIntakeAction({}, intakeForm({ startNew: "1" }))).rejects.toThrow(/^REDIRECT:\/projects\/[^/]+$/);
-      expect(await prisma.project.count({ where: { clientId: fx.clientA.id, type: "PRESENTATION" } })).toBe(2);
-    } finally {
-      await fx.cleanup();
-    }
-  });
-
-  it("ignores drafts of a different type, archived projects, and other clients", async () => {
-    const fx = await createSecurityFixtures();
-    try {
-      await prisma.project.createMany({
-        data: [
-          { clientId: fx.clientA.id, name: "Video", type: "MOTION_VIDEO", status: "DRAFT" },
-          { clientId: fx.clientA.id, name: "Old deck", type: "PRESENTATION", status: "ARCHIVED" },
-          { clientId: fx.clientB.id, name: "B's deck", type: "PRESENTATION", status: "DRAFT" },
-        ],
-      });
-      setMockSession({ user: { id: fx.userA.id, role: "CLIENT" } });
-
-      await expect(startBriefFromIntakeAction({}, intakeForm())).rejects.toThrow(/^REDIRECT:/);
-    } finally {
-      await fx.cleanup();
-    }
-  });
-
-  it("does not suggest a teammate's confidential draft", async () => {
-    const fx = await createSecurityFixtures();
-    try {
-      const teammate = await prisma.user.create({
-        data: { name: "Teammate", email: `mate-${Date.now()}@test.local`, role: "CLIENT", status: "ACTIVE" },
-      });
-      const teammateCU = await prisma.clientUser.create({
-        data: { userId: teammate.id, clientId: fx.clientA.id, permission: "APPROVER" },
-      });
-      await prisma.project.create({
-        data: {
-          clientId: fx.clientA.id,
-          name: "Secret deck",
-          type: "PRESENTATION",
-          status: "DRAFT",
-          confidential: true,
-          createdByClientUserId: teammateCU.id,
-        },
-      });
-      setMockSession({ user: { id: fx.userA.id, role: "CLIENT" } });
-
-      try {
-        await expect(startBriefFromIntakeAction({}, intakeForm())).rejects.toThrow(/^REDIRECT:/);
-      } finally {
-        await prisma.user.delete({ where: { id: teammate.id } });
-      }
-    } finally {
-      await fx.cleanup();
-    }
-  });
-});

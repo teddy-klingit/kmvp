@@ -37,7 +37,7 @@ export default async function CapacityForecastPage() {
   });
 
   return (
-    <SectionCard title="Committed vs available hours" action={<span className="font-brand-mono text-[12px] text-brand-ink-2">NEXT {WEEKS} WEEKS</span>}>
+    <SectionCard title="Committed vs available hours" action={<span className="text-[12px] text-brand-ink-2">Next {WEEKS} weeks</span>}>
       <CardBody className="flex flex-col gap-3">
         <CapacityForecastChart data={data} />
         <p className="m-0 text-[13px] text-brand-ink-2">

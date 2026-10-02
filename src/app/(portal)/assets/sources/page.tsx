@@ -20,7 +20,7 @@ export default async function BrandSourcesPage({ searchParams }: { searchParams:
     <PageGrid
       main={
         <>
-          <SectionCard title="Apps" action={<span className="font-brand-mono text-[12px] text-brand-ink-2">{CONNECTABLE_APPS.filter((a) => connectedApps.has(a.key)).length} OF {CONNECTABLE_APPS.length} CONNECTED</span>}>
+          <SectionCard title="Apps" action={<span className="text-[12px] text-brand-ink-2">{CONNECTABLE_APPS.filter((a) => connectedApps.has(a.key)).length} of {CONNECTABLE_APPS.length} connected</span>}>
             <CardRows>
               {CONNECTABLE_APPS.map((app) => {
                 const isConnected = connectedApps.has(app.key);

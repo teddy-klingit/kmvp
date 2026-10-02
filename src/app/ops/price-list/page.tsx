@@ -36,7 +36,7 @@ export default async function PriceListPage({ searchParams }: { searchParams: Pr
         ]}
       />
       <Card tone="muted" className="px-6 py-4 text-[13px] leading-[1.5] text-brand-ink-2">
-        <span className="font-brand-mono text-[11px] text-brand-ink">DRAFT PRICING</span> · These credit costs are internal placeholders for scoping estimates, pending a real pricing review. Not client-facing.
+        <span className="text-[12px] text-brand-ink">Draft pricing</span> · These credit costs are internal placeholders for scoping estimates, pending a real pricing review. Not client-facing.
       </Card>
       <SectionCard title="All prices">
         <DataTable

@@ -79,8 +79,8 @@ export default async function BrandOsOverviewPage() {
           {status.empty.length > 0 && (
             <section aria-label="Draft with AI" className="flex flex-wrap items-center gap-x-6 gap-y-4 rounded-[12px] bg-brand-ink px-6 py-6 text-white @min-[600px]/col:px-8">
               <div className="flex min-w-0 flex-1 basis-[300px] flex-col gap-1.5">
-                <span className="font-brand-mono text-[12px] text-brand-lime">
-                  {status.empty.length} SECTION{status.empty.length === 1 ? "" : "S"} EMPTY
+                <span className="text-[12px] text-brand-lime">
+                  {status.empty.length} section{status.empty.length === 1 ? "" : "s"} empty
                 </span>
                 {emptyNotDrafted.length > 0 ? (
                   <>
@@ -106,7 +106,7 @@ export default async function BrandOsOverviewPage() {
             </section>
           )}
 
-          <SectionCard title="Brand & message platform" action={<span className="font-brand-mono text-[12px] text-brand-ink-2">{status.done} OF {status.total} DONE</span>}>
+          <SectionCard title="Brand & message platform" action={<span className="text-[12px] text-brand-ink-2">{status.done} of {status.total} done</span>}>
             <PlatformList sections={status.sections} drafted={drafted} />
           </SectionCard>
         </>

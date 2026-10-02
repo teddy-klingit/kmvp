@@ -29,7 +29,7 @@ export default async function OpsNotificationsPage() {
                   <span className="text-[15px]">{n.title}</span>
                   <span className="text-[13px] text-brand-ink-2">{n.body}</span>
                 </span>
-                <span className="font-brand-mono text-[11px] uppercase text-brand-ink-2">{formatDate(n.createdAt, { day: "numeric", month: "short" })}</span>
+                <span className="text-[12px] text-brand-mute">{formatDate(n.createdAt, { day: "numeric", month: "short" })}</span>
                 {n.actionUrl && (
                   <Link href={n.actionUrl} className="font-brand-mono text-[12px] text-brand-ink underline underline-offset-4">
                     {(n.actionLabel ?? "Open").toUpperCase()}

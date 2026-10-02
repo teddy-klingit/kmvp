@@ -1,3 +1,5 @@
+import { QualityBar } from "@/components/portal/brief-studio/brief-canvas";
+import { qualityLabel } from "@/lib/brief-studio/quality";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft, Download, ImageIcon, Lock, Play } from "lucide-react";
@@ -264,9 +266,12 @@ function BriefStep({ c, canEdit, editing, base }: { c: Cockpit; canEdit: boolean
     pmChanged(c, "brief") ? STEP_PILL.pm : accepted && (lastRun(c, "brief_agent") || c.decisions.some((d) => d.area === "autopilot" && d.action === "Accepted the brief")) ? STEP_PILL.agent : null,
     !accepted && stage === "briefing" && brief?.status === "SUBMITTED" && (!c.project.autopilot || gaps.length > 0) ? STEP_PILL.needs : null,
   ].filter(Boolean) as { label: string; tone: PillTone }[];
+  const score = brief?.qualityScore ?? null;
   const summary = !brief
     ? "The client hasn't started the brief."
-    : accepted
+    : accepted && score !== null
+      ? `Sent from the Brief studio${brief.acceptedAt ? ` ${shortDate(brief.acceptedAt)}` : ""}.${score < 50 ? " Below the essentials line: check what's missing with the client." : ""}`
+      : accepted
       ? `Complete, ${gaps.length} gap${gaps.length === 1 ? "" : "s"}.${brief.aiSummary ? ` ${brief.aiSummary}` : ""}`
       : brief.status === "GAPS_FLAGGED"
         ? `Waiting on the client: ${gaps.join(" · ") || "more detail"}.`
@@ -274,7 +279,7 @@ function BriefStep({ c, canEdit, editing, base }: { c: Cockpit; canEdit: boolean
           ? gaps.length
             ? `${gaps.length} gap${gaps.length === 1 ? "" : "s"}: ${gaps.join(" · ")}`
             : "Ready to accept: 0 gaps."
-          : "The client is still answering the brief agent's questions.";
+          : "The client is still writing the brief in the Brief studio.";
 
   return (
     <StepCard
@@ -307,6 +312,14 @@ function BriefStep({ c, canEdit, editing, base }: { c: Cockpit; canEdit: boolean
         ) : undefined
       }
     >
+      {!editing && score !== null && (
+        <div className="flex max-w-[420px] flex-col gap-1.5">
+          <span className="text-[13px]">
+            <span className="font-semibold">Brief quality {score}</span> <span className="text-brand-mute">{qualityLabel(score)}</span>
+          </span>
+          <QualityBar score={score} compact />
+        </div>
+      )}
       {editing && brief && (
         <BriefEditForm
           projectId={c.project.id}

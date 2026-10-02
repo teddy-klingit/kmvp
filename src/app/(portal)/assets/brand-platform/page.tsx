@@ -22,7 +22,7 @@ export default async function BrandPlatformPage() {
   return (
     <PageGrid
       main={
-        <SectionCard title="Brand & message platform" action={<span className="font-brand-mono text-[12px] text-brand-ink-2">{status.done} OF {status.total} DONE</span>}>
+        <SectionCard title="Brand & message platform" action={<span className="text-[12px] text-brand-ink-2">{status.done} of {status.total} done</span>}>
           <PlatformList sections={status.sections} drafted={drafted} />
         </SectionCard>
       }

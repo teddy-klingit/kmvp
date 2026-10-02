@@ -20,7 +20,7 @@ export default async function AssetsAllPage() {
         title="No assets yet"
         description="Once your first project reaches production, delivered assets will show up here."
         actionLabel="Start a brief"
-        actionHref="/projects/new"
+        actionHref="/brief/new"
       />
     );
   }
@@ -29,7 +29,7 @@ export default async function AssetsAllPage() {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <LibraryChips />
-        <span className="font-brand-mono text-[12px] text-brand-ink-2">{assets.length} ASSETS</span>
+        <span className="text-[12px] text-brand-ink-2">{assets.length} assets</span>
       </div>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
         {assets.map((a) => (

@@ -94,7 +94,7 @@ export default async function InsightsOverviewPage() {
     <PageGrid
       main={
         <>
-          <SectionCard title="This week's takeaways" action={<span className="font-brand-mono text-[12px] text-brand-ink-2">BY THE PERFORMANCE AGENT</span>}>
+          <SectionCard title="This week's takeaways" action={<span className="text-[12px] text-brand-ink-2">By the performance agent</span>}>
             {takeaways.length > 0 ? (
               <CardRows as="ol">
                 {takeaways.map((t, i) => (
@@ -150,7 +150,7 @@ export default async function InsightsOverviewPage() {
                     <CreativeList label="BELOW AVERAGE" items={weakest} footer={<PillLink href={refresh} size="sm" className="mt-2 self-start">Brief a refresh</PillLink>} />
                   ) : (
                     <div className="flex flex-col gap-1 px-6 pb-5 pt-4">
-                      <span className="pb-1.5 font-brand-mono text-[11px] text-brand-ink-2">BELOW AVERAGE</span>
+                      <span className="pb-1.5 text-[12px] text-brand-ink-2">Below average</span>
                       <span className="text-[14px] text-brand-ink-2">Nothing under {BELOW_AVG_CTR}% CTR.</span>
                     </div>
                   )}

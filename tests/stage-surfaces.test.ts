@@ -88,11 +88,11 @@ const EXPECT: Record<StageKey, Expect> = {
   briefing: {
     column: "Briefing",
     badge: "Briefing",
-    next: "Your turn: answer 1 question about the audience",
-    title: "Answer 1 question about the audience",
+    next: "Your turn: finish your brief",
+    title: "Finish your brief",
     eyebrow: "YOUR TURN",
     dashboard: true,
-    overview: ["Brief agent asks", "Question 1 of 1", "Who will this deck be presented to?", "Investors", "Your brief so far"],
+    overview: ["Continue brief", "Your brief so far", "Brief quality 40", "Win a pitch or a deal", "Open brief studio"],
   },
   estimating: {
     column: "Estimate",
@@ -307,7 +307,7 @@ describe("regressions — the contradictions seen on a Draft project ('Klarna 10
   it("nothing says Klingit is working while the brief waits on the client", async () => {
     const t = (await text(ProjectLayout({ children: null, ...tab(draft().id) }))) + (await text(OverviewPage(tab(draft().id))));
     expect(t).not.toContain("Klingit is working on your project");
-    expect(t).toContain("Answer 1 question about the audience");
+    expect(t).toContain("Finish your brief");
   });
 
   it("no review button when there's nothing to review", async () => {
@@ -317,9 +317,9 @@ describe("regressions — the contradictions seen on a Draft project ('Klarna 10
     expect(t).not.toContain("Request changes");
   });
 
-  it("Overview shows the waiting question inline instead of TBD / TBD / 0 / Creative score 88", async () => {
+  it("Overview shows the brief so far instead of TBD / TBD / 0 / Creative score 88", async () => {
     const t = await text(OverviewPage(tab(draft().id)));
-    expect(t).toContain("Who will this deck be presented to?");
+    expect(t).toContain("Deck, about 10 slides");
     expect(t).not.toContain("TBD");
     expect(t).not.toContain("Creative score");
   });

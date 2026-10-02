@@ -42,7 +42,7 @@ export default async function AgentsTemplatesPage() {
       main={
         <>
           {selfServiceAgents.length > 0 && (
-            <SectionCard title="Use an agent yourself" action={<span className="font-brand-mono text-[12px] text-brand-ink-2">{selfServiceAgents.length} READY</span>}>
+            <SectionCard title="Use an agent yourself" action={<span className="text-[12px] text-brand-ink-2">{selfServiceAgents.length} ready</span>}>
               <p className="m-0 px-6 pt-4 text-[13px] leading-[1.5] text-brand-ink-2">Run these directly, no account manager needed. Each one already knows your brand.</p>
               <CardRows className="pt-1">
                 {selfServiceAgents.map((agent) => (

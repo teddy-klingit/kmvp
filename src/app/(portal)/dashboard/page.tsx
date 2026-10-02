@@ -83,7 +83,7 @@ export default async function DashboardPage() {
           <p className="m-0 text-[16px] text-brand-cream">{summary}</p>
         </div>
         <Link
-          href="/projects/new"
+          href="/brief/new"
           className="relative inline-flex h-11 shrink-0 items-center gap-2.5 rounded-full bg-brand-cream px-5 font-brand-mono text-[13px] text-brand-ink no-underline hover:bg-white"
         >
           <Plus className="size-4" strokeWidth={1.75} />
@@ -95,7 +95,7 @@ export default async function DashboardPage() {
         <div className="@container/col flex min-w-0 flex-col gap-6 min-[1000px]:col-span-8">
           <section aria-label="Do this next" className={card} data-list="your-turn">
             <CardHeader title="Do this next" action={
-              <span className="font-brand-mono text-[12px] text-brand-ink-2">{turns.length} OPEN</span>
+              <span className="text-[12px] text-brand-ink-2">{turns.length} open</span>
             } />
             {turns.length === 0 ? (
               <p className="m-0 px-6 py-5 text-[15px] text-brand-ink-2">Nothing needs you. Klingit is on everything.</p>
@@ -173,7 +173,7 @@ export default async function DashboardPage() {
                   const body = (
                     <>
                       <span className="flex size-11 shrink-0 flex-col items-center justify-center rounded-[8px] bg-brand-chip">
-                        <span className="font-brand-mono text-[10px] uppercase text-brand-ink-2">{weekday(u.at)}</span>
+                        <span className="text-[11px] text-brand-ink-2">{weekday(u.at)}</span>
                         <span className="text-[16px] leading-[1.1]">{u.at.getDate()}</span>
                       </span>
                       <span className="flex min-w-0 flex-col">

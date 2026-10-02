@@ -930,6 +930,13 @@ model Brief {
   followUpSuggestions Json? // string[] — quick-tap replies the client can send their team about the flagged gaps
   aiSummary           String? // Brief agent's structured summary of the brief
   aiQualityScore      Int? // Brief agent's 0-100 completeness/clarity score
+  // Brief studio (Phase K): the live brief as sections [{key, value, items?, refs?, source, sourceRef?, editedByClient}],
+  // the deterministic briefQuality() score, the questions the agent asked [{id, key, question, type, options,
+  // recommendedOptionIds, chosen, ...}] and the studio conversation [{id, role, text, at, ...}].
+  sections            Json?
+  qualityScore        Int?
+  questionsLog        Json?
+  messages            Json?
   status              BriefStatus @default(DRAFT)
   submittedAt         DateTime?
   acceptedAt          DateTime?
@@ -1022,6 +1029,8 @@ model PriceListItem {
   complexityTier  ComplexityTier
   creditCost      Int
   notes           String?
+  /// Business days from staffing to final delivery; the Brief studio's earliest realistic deadline adds the first-draft rule.
+  leadTimeDays    Int                @default(5)
   /// Soft archive ("Remove" on the price list): hidden from the list and from new estimates; old estimate lines keep their link.
   archivedAt      DateTime?
   lineItems       EstimateLineItem[]

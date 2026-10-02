@@ -52,7 +52,7 @@ export default async function ClientAppDetailPage({ params }: { params: Promise<
           <dl className="m-0 grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-4">
             {facts.map((f) => (
               <div key={f.label} className="flex min-w-0 flex-col gap-1">
-                <dt className="font-brand-mono text-[11px] uppercase text-brand-ink-2">{f.label}</dt>
+                <dt className="text-[12px] text-brand-mute">{f.label}</dt>
                 <dd className="m-0 min-w-0 text-[14px]">{f.value}</dd>
               </div>
             ))}

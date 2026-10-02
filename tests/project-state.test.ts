@@ -19,7 +19,6 @@ function input(overrides: Partial<ProjectStateInput> = {}): ProjectStateInput {
     deliveredAt: null,
     creditsQuoted: null,
     brief: null,
-    fixedQuestions: [],
     estimate: null,
     team: null,
     assets: [],
@@ -28,19 +27,12 @@ function input(overrides: Partial<ProjectStateInput> = {}): ProjectStateInput {
   };
 }
 
-const dynamicBrief = (answeredKeys: string[] = []): NonNullable<ProjectStateInput["brief"]> => ({
+const studioBrief = (score: number | null = 62): NonNullable<ProjectStateInput["brief"]> => ({
   status: "DRAFT",
   rawIntake: "sales presentation with 10 slides",
-  pendingQuestions: [
-    { key: "audience", question: "Who will see this deck?", quickAnswers: ["Investors", "Customers"] },
-    { key: "deadline", question: "When do you need it?", quickAnswers: ["This week", "Next week"] },
-  ],
-  transcript: answeredKeys.map((key) => ({ key, question: "q", answer: "a" })),
   gapsFlagged: [],
-  goals: "sales presentation with 10 slides",
-  targetAudience: null,
-  successMetrics: null,
-  references: null,
+  qualityScore: score,
+  sections: [{ key: "objective", value: "Win a pitch", source: "answer", editedByClient: true }],
   acceptedAt: null,
 });
 
@@ -53,27 +45,25 @@ const confirmedTeam = (confirmedAt: Date) => ({
 const state = (o: Partial<ProjectStateInput>) => getProjectState(input(o), NOW);
 
 describe("getProjectState — one test per stage", () => {
-  it("briefing: the brief agent is waiting on the client", () => {
-    const s = state({ status: "DRAFT", brief: dynamicBrief(["deadline"]) });
+  it("briefing: a brief in the studio is the client's turn, linked to the studio with its score", () => {
+    const s = state({ status: "DRAFT", brief: studioBrief(62) });
     expect(s.stage).toBe("briefing");
     expect(s.ballInCourt).toBe("client");
-    expect(s.nextAction.label).toBe("Your turn: answer 1 question about the audience");
-    expect(s.nextAction.description).toBe("Who will see this deck?");
-    expect(s.brief).toMatchObject({ mode: "dynamic", next: { key: "audience" } });
+    expect(s.nextAction.label).toBe("Your turn: finish your brief");
+    expect(s.nextAction.href).toBe("/brief/p1");
+    expect(s.nextAction.cta).toBe("Continue brief");
+    expect(s.nextAction.description).toContain("Brief quality 62 · Good");
+    expect(s.brief).toEqual({ mode: "studio", score: 62 });
   });
 
-  it("briefing: no brief written yet", () => {
-    expect(state({ status: "DRAFT" }).nextAction.label).toBe("Your turn: tell us what you need");
+  it("briefing: no brief written yet opens the studio", () => {
+    const s = state({ status: "DRAFT" });
+    expect(s.nextAction.label).toBe("Your turn: tell us what you need");
+    expect(s.nextAction.href).toBe("/brief/p1");
   });
 
-  it("briefing: complete draft waits for the client to start it", () => {
-    const s = state({ status: "DRAFT", brief: dynamicBrief(["audience", "deadline"]) });
-    expect(s.ballInCourt).toBe("client");
-    expect(s.nextAction.cta).toBe("Start project");
-  });
-
-  it("briefing: submitted brief is Klingit's turn", () => {
-    const s = state({ status: "BRIEFING", brief: { ...dynamicBrief(["audience", "deadline"]), status: "SUBMITTED" } });
+  it("briefing: a submitted (legacy) brief is Klingit's turn", () => {
+    const s = state({ status: "BRIEFING", brief: { ...studioBrief(), status: "SUBMITTED" } });
     expect(s.ballInCourt).toBe("klingit");
     expect(s.nextAction.label).toBe("Klingit: reviewing your brief");
   });
@@ -81,32 +71,15 @@ describe("getProjectState — one test per stage", () => {
   it("briefing: gaps flagged by the account lead are the client's turn", () => {
     const s = state({
       status: "BRIEFING",
-      brief: {
-        ...dynamicBrief(["audience", "deadline"]),
-        status: "GAPS_FLAGGED",
-        gapsFlagged: ["Missing success metrics on Autumn campaign brief"],
-      },
+      brief: { ...studioBrief(), status: "GAPS_FLAGGED", gapsFlagged: ["Missing success metrics on Autumn campaign brief"] },
     });
     expect(s.ballInCourt).toBe("client");
     expect(s.nextAction.label).toBe("Your turn: add 1 missing detail");
     expect(s.nextAction.description).toBe("Missing success metrics on Autumn campaign brief");
   });
 
-  it("briefing: fixed-question briefs ask the next unanswered question", () => {
-    const s = state({
-      status: "BRIEFING",
-      brief: { ...dynamicBrief(), rawIntake: null, pendingQuestions: [], goals: "Refresh the brand" },
-      fixedQuestions: [
-        { key: "goals", question: "What do you need?", presets: [], placeholder: "" },
-        { key: "targetAudience", question: "Who's this for?", presets: ["Gen Z"], placeholder: "" },
-      ],
-    });
-    expect(s.nextAction.label).toBe("Your turn: answer 1 question about the audience");
-    expect(s.brief).toMatchObject({ mode: "fixed", next: { key: "targetAudience", quickAnswers: ["Gen Z"] } });
-  });
-
   it("estimating: no estimate yet is Klingit's turn — even with leftover agent questions on an accepted brief", () => {
-    const s = state({ status: "ESTIMATING", brief: { ...dynamicBrief(), status: "ACCEPTED" } });
+    const s = state({ status: "ESTIMATING", brief: { ...studioBrief(), status: "ACCEPTED" } });
     expect(s.stage).toBe("estimating");
     expect(s.ballInCourt).toBe("klingit");
     expect(s.nextAction.label).toBe("Klingit: preparing your estimate");
@@ -212,7 +185,7 @@ describe("getProjectState — cross-cutting rules", () => {
   });
 
   it("key facts never carry placeholders — unknown values are simply absent", () => {
-    const s = state({ status: "DRAFT", brief: dynamicBrief() });
+    const s = state({ status: "DRAFT", brief: studioBrief() });
     expect(s.keyFacts).toEqual({ staffedTeam: [] });
   });
 
@@ -233,7 +206,7 @@ describe("getProjectState — cross-cutting rules", () => {
 });
 
 describe("regressions — the contradictions seen on 'Klarna 10-Slide Sales Deck' and friends", () => {
-  const draftDeck = () => state({ status: "DRAFT", brief: dynamicBrief() });
+  const draftDeck = () => state({ status: "DRAFT", brief: studioBrief() });
 
   it("a draft whose brief waits on the client is never final, never in production, never 'Klingit is working'", () => {
     const s = draftDeck();

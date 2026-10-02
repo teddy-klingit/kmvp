@@ -163,6 +163,19 @@
   --brand-rule: #e6e0d2; /* nav right edge, nav user-block rule */
   --brand-nav: #f2ede3; /* side nav: a touch darker than the cream page */
   --brand-outline: #c2c3c5;
+  /* "Balanced" colour level (BriefStudioBalanced.dc.html), app-wide: soft pastel source tags, pale lime selection,
+     a pale peach active state. Orange stays for the one "your action" button and "Answering now". */
+  --brand-mute: #8a8a8a; /* secondary labels and hints */
+  --brand-field: #dcd6c8; /* composer and reference borders, dashed "+ add" */
+  --brand-lime-pale: #f3f8e4; /* "Your answer" tag, selected chip fill, agent avatar */
+  --brand-lime-zone: #e9f3cc; /* quality bar 80–100 */
+  --brand-lime-text: #5e6b2a; /* "Great" */
+  --brand-pink-pale: #fbeffb; /* "From Brand OS" */
+  --brand-peach-pale: #fff3ec; /* "Suggested" */
+  --brand-peach-active: #fff8f3; /* the section being asked about */
+  --brand-peach-line: #f6d9c6;
+  --brand-orange-text: #b8460f; /* "Answering now" */
+  --brand-tag-grey: #f4f1ea; /* "From <past project>" */
   /* Pill tabs (SegmentedControl / SegmentedNav): grey track on product pages, warm on brand pages. */
   --seg-track: var(--ds-subtle);
   --seg-active: var(--ds-text);
@@ -288,6 +301,17 @@
   --color-brand-rule: var(--brand-rule);
   --color-brand-nav: var(--brand-nav);
   --color-brand-outline: var(--brand-outline);
+  --color-brand-mute: var(--brand-mute);
+  --color-brand-field: var(--brand-field);
+  --color-brand-lime-pale: var(--brand-lime-pale);
+  --color-brand-lime-zone: var(--brand-lime-zone);
+  --color-brand-lime-text: var(--brand-lime-text);
+  --color-brand-pink-pale: var(--brand-pink-pale);
+  --color-brand-peach-pale: var(--brand-peach-pale);
+  --color-brand-peach-active: var(--brand-peach-active);
+  --color-brand-peach-line: var(--brand-peach-line);
+  --color-brand-orange-text: var(--brand-orange-text);
+  --color-brand-tag-grey: var(--brand-tag-grey);
   --font-brand: var(--font-albert), "Helvetica Neue", Arial, sans-serif;
   --font-brand-mono: var(--font-azeret), ui-monospace, monospace;
   --radius-pill: 999px;

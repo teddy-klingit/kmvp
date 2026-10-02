@@ -73,10 +73,7 @@ export async function loadOpsProjects(where: { id?: string } = {}, now = new Dat
   });
   if (projects.length === 0) return [];
   const ids = projects.map((p) => p.id);
-  const clientIds = [...new Set(projects.map((p) => p.clientId))];
-
-  const [brandOSes, comments, assets, failedRuns] = await Promise.all([
-    prisma.brandOS.findMany({ where: { clientId: { in: clientIds } } }),
+  const [comments, assets, failedRuns] = await Promise.all([
     prisma.comment.findMany({
       where: { projectId: { in: ids }, kind: "MESSAGE", archivedAt: null },
       include: { clientAuthor: { include: { user: true } } },
@@ -92,8 +89,7 @@ export async function loadOpsProjects(where: { id?: string } = {}, now = new Dat
 
   const out: OpsProject[] = [];
   for (const project of projects) {
-    const brandOS = brandOSes.find((b) => b.clientId === project.clientId) ?? null;
-    const state = getProjectState(toProjectStateInput(project, brandOS), now);
+    const state = getProjectState(toProjectStateInput(project), now);
     const facts = await autopilotInputFor(project.id);
     const plan = facts ? planAutopilot(facts.input) : { steps: [], blocked: [] };
     const exceptions: OpsException[] = [];

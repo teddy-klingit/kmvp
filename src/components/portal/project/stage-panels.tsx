@@ -76,6 +76,24 @@ export async function OverviewNextStep({ projectId, viewer, state }: PanelProps)
     );
   }
 
+  if (stage === "briefing" && turn) {
+    return (
+      <NextStepCard
+        variant="turn"
+        title={sentence(nextAction.label)}
+        description={nextAction.description}
+        actions={
+          <>
+            {ask}
+            <Button asChild variant="primary" size="lg">
+              <Link href={nextAction.href}>{nextAction.cta ?? "Continue brief"}</Link>
+            </Button>
+          </>
+        }
+      />
+    );
+  }
+
   if (stage === "review" && turn) {
     return (
       <NextStepCard
@@ -126,10 +144,7 @@ export async function OverviewNextStep({ projectId, viewer, state }: PanelProps)
     );
   }
 
-  const description =
-    stage === "briefing" && turn && state.brief.mode !== "intake" && state.brief.next
-      ? "The brief agent's question is just below."
-      : nextAction.description;
+  const description = nextAction.description;
   return <NextStepCard variant={turn ? "turn" : "klingit"} title={sentence(nextAction.label)} description={description} actions={ask} />;
 }
 

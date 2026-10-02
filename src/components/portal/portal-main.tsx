@@ -14,6 +14,8 @@ function isProjectDetail(pathname: string) {
 /** Page padding from the designs: 24 top (40 on Insights), 40 right, 56 bottom, 40 left; 16px gutters on phones. */
 export function PortalMain({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "";
+  // The Brief studio lays out its own full-height split.
+  if (pathname.startsWith("/brief/")) return <main className="min-w-0 flex-1 overflow-y-auto min-[1000px]:overflow-hidden">{children}</main>;
   if (isProjectDetail(pathname)) {
     // No page transition here: it is keyed by pathname and would remount the conversation panel on every tab switch.
     return <main className="min-w-0 flex-1 overflow-y-auto">{children}</main>;

@@ -67,9 +67,6 @@ export const FIRST_DRAFT_BUSINESS_DAYS = 2;
 /** A client-side deadline this close counts as SLA risk on the dashboard. */
 export const SLA_RISK_WINDOW_MS = 24 * 60 * 60 * 1000;
 
-export type BriefQuestion = { key: string; question: string; quickAnswers: string[]; placeholder?: string };
-
-export type FixedBriefQuestion = { key: string; question: string; presets: string[]; placeholder: string };
 
 export type ProjectStateInput = {
   id: string;
@@ -81,17 +78,13 @@ export type ProjectStateInput = {
   brief: {
     status: BriefStatus;
     rawIntake: string | null;
-    pendingQuestions: unknown;
-    transcript: unknown;
     gapsFlagged: unknown;
-    goals: string | null;
-    targetAudience: string | null;
-    successMetrics: string | null;
-    references: string | null;
+    /** briefQuality() score saved by the Brief studio. */
+    qualityScore: number | null;
+    /** Brief studio sections; any means the studio has started this brief. */
+    sections: unknown;
     acceptedAt: Date | null;
   } | null;
-  /** The fixed (legacy) brief questions in effect for this client — see getEffectiveBriefQuestions. */
-  fixedQuestions: FixedBriefQuestion[];
   estimate: {
     status: EstimateStatus;
     totalCredits: number;
@@ -104,9 +97,8 @@ export type ProjectStateInput = {
   pipelineStages: { name: PipelineStageName; completedAt: Date | null; etaAt: Date | null }[];
 };
 
-export type BriefProgress =
-  | { mode: "intake" }
-  | { mode: "dynamic" | "fixed"; answered: number; total: number; next: BriefQuestion | null };
+/** intake = nothing written yet; studio = a brief in the Brief studio, with its quality score. */
+export type BriefProgress = { mode: "intake" } | { mode: "studio"; score: number | null };
 
 export type NextAction = { label: string; description: string; href: string; cta?: string; dueAt?: Date };
 
@@ -135,50 +127,10 @@ export type ProjectState = {
   urgency: "overdue" | "at_risk" | null;
 };
 
-type TranscriptTurn = { key?: string };
-
-export function getBriefProgress(
-  brief: ProjectStateInput["brief"],
-  fixedQuestions: FixedBriefQuestion[]
-): BriefProgress {
+export function getBriefProgress(brief: ProjectStateInput["brief"]): BriefProgress {
   if (!brief) return { mode: "intake" };
-
-  const pending = jsonArray<BriefQuestion>(brief.pendingQuestions);
-  const transcript = jsonArray<TranscriptTurn>(brief.transcript);
-  if (brief.rawIntake || pending.length > 0) {
-    const answered = pending.filter((q) => transcript.some((t) => t.key === q.key)).length;
-    const next = pending.find((q) => !transcript.some((t) => t.key === q.key)) ?? null;
-    return { mode: "dynamic", answered, total: pending.length, next };
-  }
-
-  const answers: Record<string, string | null> = {
-    goals: brief.goals,
-    targetAudience: brief.targetAudience,
-    successMetrics: brief.successMetrics,
-    references: brief.references,
-  };
-  if (!Object.values(answers).some(Boolean)) return { mode: "intake" };
-
-  const nextFixed = fixedQuestions.find((q) => !answers[q.key]);
-  return {
-    mode: "fixed",
-    answered: fixedQuestions.filter((q) => answers[q.key]).length,
-    total: fixedQuestions.length,
-    next: nextFixed
-      ? { key: nextFixed.key, question: nextFixed.question, quickAnswers: nextFixed.presets, placeholder: nextFixed.placeholder }
-      : null,
-  };
-}
-
-const FIXED_TOPIC: Record<string, string> = {
-  goals: "the goal",
-  targetAudience: "the audience",
-  successMetrics: "success metrics",
-  references: "references",
-};
-
-function questionTopic(key: string) {
-  return FIXED_TOPIC[key] ?? `the ${key.replace(/_/g, " ")}`;
+  if (!brief.rawIntake && jsonArray(brief.sections).length === 0) return { mode: "intake" };
+  return { mode: "studio", score: brief.qualityScore };
 }
 
 export function addBusinessDays(from: Date, days: number) {
@@ -220,30 +172,32 @@ function stageFor(input: ProjectStateInput, status: ProjectStatus, brief: BriefP
   switch (status) {
     case "DRAFT":
     case "BRIEFING": {
-      const briefHref = base;
+      // The brief is written in the Brief studio until the client sends it.
+      const briefHref = `/brief/${input.id}`;
       const accepted = input.brief?.status === "ACCEPTED";
-      if (!accepted && brief.mode === "intake") {
+      const drafting = !accepted && (!input.brief || input.brief.status === "DRAFT");
+      if (drafting && brief.mode === "intake") {
         return {
           stage: "briefing",
           ballInCourt: "client",
           nextAction: {
             label: "Your turn: tell us what you need",
-            description: "Describe the project in your own words — Klingit will ask about anything that's missing.",
+            description: "Describe it in your own words. The brief agent fills in what it already knows and asks only what's missing.",
             href: briefHref,
-            cta: "Write your brief",
+            cta: "Start brief",
           },
         };
       }
-      if (!accepted && brief.mode !== "intake" && brief.next) {
-        const remaining = brief.total - brief.answered;
+      if (drafting && brief.mode === "studio") {
+        const score = brief.score;
         return {
           stage: "briefing",
           ballInCourt: "client",
           nextAction: {
-            label: `Your turn: answer ${plural(remaining, "question")}${remaining === 1 ? ` about ${questionTopic(brief.next.key)}` : ""}`,
-            description: brief.next.question,
+            label: "Your turn: finish your brief",
+            description: score !== null ? `Brief quality ${score} · ${score >= 80 ? "Great" : score >= 50 ? "Good" : "Needs more"}. Send it when you're ready; Klingit fills any gaps.` : "Pick up where you left off.",
             href: briefHref,
-            cta: "Answer",
+            cta: "Continue brief",
           },
         };
       }
@@ -260,25 +214,13 @@ function stageFor(input: ProjectStateInput, status: ProjectStatus, brief: BriefP
           },
         };
       }
-      if (status === "DRAFT") {
-        return {
-          stage: "briefing",
-          ballInCourt: "client",
-          nextAction: {
-            label: "Your turn: start the project",
-            description: "Your brief is ready. Nothing is sent to Klingit until you start the project.",
-            href: briefHref,
-            cta: "Start project",
-          },
-        };
-      }
       return {
         stage: "briefing",
         ballInCourt: "klingit",
         nextAction: {
           label: "Klingit: reviewing your brief",
           description: "Next, you'll get an estimate to approve — or a follow-up question if anything is unclear.",
-          href: briefHref,
+          href: base,
         },
       };
     }
@@ -444,7 +386,7 @@ export function getProjectState(input: ProjectStateInput, now: Date = new Date()
   const archived = input.status === "ARCHIVED";
   const effectiveStatus: ProjectStatus = paused ? (input.pausedFromStatus ?? "BRIEFING") : input.status;
 
-  const brief = getBriefProgress(input.brief, input.fixedQuestions);
+  const brief = getBriefProgress(input.brief);
   const firstDraftEta =
     input.team?.confirmed && input.team.confirmedAt ? addBusinessDays(input.team.confirmedAt, FIRST_DRAFT_BUSINESS_DAYS) : null;
   const estimateCredits =
@@ -609,11 +551,8 @@ function nowCaption(state: ProjectState): string {
   switch (stage) {
     case "briefing":
       if (ballInCourt !== "client") return "Now · reviewing";
-      if (brief.mode !== "intake" && brief.next) {
-        const left = brief.total - brief.answered;
-        return `Now · ${left} question${left === 1 ? "" : "s"}`;
-      }
-      return state.draft ? "Now · ready" : "Now · your input";
+      if (brief.mode === "studio" && brief.score !== null) return `Now · quality ${brief.score}`;
+      return "Now · your input";
     case "estimating":
       return "Now · pricing";
     case "awaiting_approval":

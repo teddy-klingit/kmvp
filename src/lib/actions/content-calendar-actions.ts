@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
 import { requireOpsRole } from "@/lib/authz";
 import { writePlanSuggestions } from "@/lib/content-plan-suggestions";
-import { runIntake, createProjectFromAnalysis } from "@/lib/brief-intake";
+import { startStudio } from "@/lib/brief-studio/studio";
 
 // ---------------------------------------------------------------------
 // Ops-side: manage the underlying data (plan targets, business outcomes,
@@ -109,9 +109,8 @@ export async function rejectContentPlanSuggestionAction(formData: FormData) {
   revalidatePath("/calendar");
 }
 
-/** Approving flows straight into a new brief — same AI-intake path as
- * starting a brief from a Market Intelligence idea, so an approved
- * suggestion never dead-ends as just a calendar change. */
+/** Approving flows straight into a new brief in the Brief studio, so an approved suggestion never
+ * dead-ends as just a calendar change. */
 export async function approveContentPlanSuggestionAction(formData: FormData) {
   const viewer = await getPortalViewer();
   const suggestionId = String(formData.get("suggestionId") ?? "");
@@ -152,17 +151,9 @@ export async function approveContentPlanSuggestionAction(formData: FormData) {
   }
 
   const rawText = `${suggestion.title}\n\n${suggestion.rationale}`;
-  let project;
+  let projectId: string;
   try {
-    const analysis = await runIntake({
-      clientId: viewer.clientId,
-      client: viewer.client,
-      rawText,
-      link: "",
-      fileName: "",
-      fileText: "",
-    });
-    project = await createProjectFromAnalysis(viewer, analysis, rawText);
+    projectId = await startStudio(viewer, rawText);
   } catch {
     // The plan change and calendar entry above still apply even if brief
     // creation fails — mark it scheduled without a linked brief rather
@@ -177,8 +168,8 @@ export async function approveContentPlanSuggestionAction(formData: FormData) {
 
   await prisma.contentPlanSuggestion.update({
     where: { id: suggestion.id },
-    data: { status: "APPROVED", stage: "SCHEDULED", resolvedAt: new Date(), briefedProjectId: project.id },
+    data: { status: "APPROVED", stage: "SCHEDULED", resolvedAt: new Date(), briefedProjectId: projectId },
   });
 
-  redirect(`/projects/${project.id}`);
+  redirect(`/brief/${projectId}`);
 }

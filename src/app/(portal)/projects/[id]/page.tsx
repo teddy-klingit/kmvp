@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
-import { BriefConversation } from "@/components/portal/project/brief-conversation";
+import { BriefSummaryCard } from "@/components/portal/project/brief-summary-card";
 import {
   BriefAndNextStepsRow,
   DeliveryPackageCard,
@@ -43,7 +43,7 @@ async function StageContent(props: { projectId: string; viewer: PortalViewer; st
   if (state.paused) return <WhatsHappeningCard {...props} />;
   switch (state.stage) {
     case "briefing":
-      return <BriefConversation {...props} />;
+      return state.ballInCourt === "client" ? <BriefSummaryCard projectId={props.projectId} viewer={props.viewer} /> : <WhatsHappeningCard {...props} />;
     case "awaiting_approval":
       return (
         <>

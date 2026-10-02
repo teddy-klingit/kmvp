@@ -35,7 +35,7 @@ export default async function MarketFeedPage() {
   return (
     <PageGrid
       main={
-        <SectionCard title="What's new" action={<span className="font-brand-mono text-[12px] text-brand-ink-2">{signals.length} SIGNALS</span>}>
+        <SectionCard title="What's new" action={<span className="text-[12px] text-brand-ink-2">{signals.length} signals</span>}>
           {signals.length === 0 ? (
             <CardNote>No signals logged yet. Competitor and news checks run each time you open this page.</CardNote>
           ) : (
@@ -50,7 +50,7 @@ export default async function MarketFeedPage() {
                     </span>
                     <span className="text-[13px] leading-[1.5] text-brand-ink-2">{s.summary}</span>
                   </span>
-                  <span className="shrink-0 font-brand-mono text-[11px] uppercase text-brand-ink-2">
+                  <span className="shrink-0 text-[12px] text-brand-mute">
                     {formatDate(s.publishedAt, { day: "numeric", month: "short" })} · {KIND[s.type] ?? s.type}
                   </span>
                 </li>

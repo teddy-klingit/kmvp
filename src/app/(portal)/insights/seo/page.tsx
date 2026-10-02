@@ -164,11 +164,11 @@ export default async function SeoPage() {
                   <Checklist onPage={ownOnPage!} />
                   <div className="flex flex-col gap-4">
                     <div className="flex flex-col gap-1.5">
-                      <span className="font-brand-mono text-[11px] text-brand-ink-2">STRUCTURED DATA</span>
+                      <span className="text-[12px] text-brand-ink-2">Structured data</span>
                       <Structured onPage={ownOnPage!} />
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <span className="font-brand-mono text-[11px] text-brand-ink-2">AI CRAWLER ACCESS</span>
+                      <span className="text-[12px] text-brand-ink-2">AI crawler access</span>
                       <Crawlers onPage={ownOnPage!} />
                     </div>
                   </div>
