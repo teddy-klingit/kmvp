@@ -1,4 +1,3 @@
-import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { jsonArray } from "@/lib/utils";
 import { loadMeasuredAssets, loadPaidMedia } from "@/lib/insights-data";
@@ -88,40 +87,11 @@ export async function writeReport(clientId: string, period: Period): Promise<{ o
   return { ok: true };
 }
 
-const inFlight = new Set<string>();
-
-/**
- * After the response: writes the latest closed week's and month's reports if they don't exist yet.
- * INSIGHTS_AGENT_ON_PAGE_LOAD=0 freezes it (screenshots). TODO: move to a cron on the send schedule.
- */
-export function scheduleReports(clientId: string, missing: Period[]) {
-  if (process.env.INSIGHTS_AGENT_ON_PAGE_LOAD === "0" || missing.length === 0) return;
-  try {
-    after(async () => {
-      for (const p of missing) {
-        const key = `${clientId}:${p.kind}:${p.start.toISOString()}`;
-        if (inFlight.has(key)) continue;
-        inFlight.add(key);
-        try {
-          await writeReport(clientId, p);
-        } catch (err) {
-          console.error("report run failed", err);
-        } finally {
-          inFlight.delete(key);
-        }
-      }
-    });
-  } catch {
-    // No request scope.
-  }
-}
-
-/** The latest closed period's report of a kind, plus the ones before it. Schedules a missing latest one. */
+/** The latest closed period's report of a kind, plus the ones before it. Missing ones are written by the scheduler (src/lib/agent-scheduler.ts). */
 export async function loadReports(clientId: string, kind: ReportKind, now = new Date()) {
   const latest = lastClosed(kind, now);
   const rows = await prisma.generatedReport.findMany({ where: { clientId, kind }, orderBy: { periodStart: "desc" }, take: 8 });
   const current = rows.find((r) => r.periodStart.getTime() === latest.start.getTime()) ?? null;
-  if (!current) scheduleReports(clientId, [latest]);
   return { latest, current, earlier: rows.filter((r) => r !== current) };
 }
 

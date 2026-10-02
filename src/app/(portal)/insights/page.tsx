@@ -2,7 +2,6 @@ import Link from "next/link";
 import { getPortalViewer } from "@/lib/current-viewer";
 import { prisma } from "@/lib/prisma";
 import { insightSources, loadMeasuredAssets, loadPaidMedia, loadTakeaways, takeawayHref } from "@/lib/insights-data";
-import { scheduleTakeaways } from "@/lib/insights-brief";
 import { getRecentMarketSignals } from "@/lib/integrations/market-signals";
 import { summarizePlatformCampaigns } from "@/lib/performance";
 import { formatLabel } from "@/lib/asset-display";
@@ -40,7 +39,7 @@ const BELOW_AVG_CTR = 3;
 export default async function InsightsOverviewPage() {
   const viewer = await getPortalViewer();
   const clientId = viewer.clientId;
-  const [paid, { all, measured }, { takeaways, stale }, sources, signals, chatProject] = await Promise.all([
+  const [paid, { all, measured }, { takeaways }, sources, signals, chatProject] = await Promise.all([
     loadPaidMedia(clientId),
     loadMeasuredAssets(clientId),
     loadTakeaways(clientId),
@@ -48,7 +47,6 @@ export default async function InsightsOverviewPage() {
     getRecentMarketSignals(clientId, { take: 3 }),
     prisma.project.findFirst({ where: { clientId, status: { notIn: ["ARCHIVED", "DRAFT"] } }, orderBy: { updatedAt: "desc" }, select: { id: true } }),
   ]);
-  if (stale) scheduleTakeaways(clientId);
 
   // CTR by format, delivered work only.
   const groups = new Map<string, { total: number; n: number }>();
@@ -116,9 +114,7 @@ export default async function InsightsOverviewPage() {
             ) : (
               <div className="flex flex-wrap items-center gap-4 px-6 py-5">
                 <p className="m-0 min-w-0 flex-1 basis-[260px] text-[14px] text-brand-ink-2">
-                  {stale && process.env.INSIGHTS_AGENT_ON_PAGE_LOAD !== "0"
-                    ? "The performance agent is reading this week's numbers. Takeaways appear here in a minute."
-                    : "The performance agent writes this week's takeaways from your numbers."}
+                  The performance agent writes this week&apos;s takeaways from your numbers every week. Want them now?
                 </p>
                 <AgentButton action={generatePerformanceInsightsAction} label="Write takeaways" pendingLabel="Reading the numbers…" />
               </div>
