@@ -6,7 +6,9 @@ import { Card, SectionCard, CardRows } from "@/components/ds/card";
 import { StatusPill } from "@/components/ds/status-pill";
 import { Button } from "@/components/ds/button";
 import { PillLink } from "@/components/ds/pill-link";
-import { INTERNAL_ROLE_LABEL } from "@/lib/labels";
+import { INTERNAL_ROLE_LABEL, PLAN_TIER_LABEL } from "@/lib/labels";
+import { DEFAULT_ACTIVE_SLOTS } from "@/lib/active-slots";
+import { setPlanSlotsAction } from "@/lib/actions/plan-actions";
 import { formatDate } from "@/lib/utils";
 
 const INTEGRATIONS = [
@@ -59,6 +61,8 @@ export default async function WorkspaceSettingsPage({
   const metaConfigured = Boolean(process.env.META_ADS_ACCESS_TOKEN);
   const googleConfigured = Boolean(process.env.GOOGLE_ADS_DEVELOPER_TOKEN && process.env.GOOGLE_ADS_CLIENT_ID);
   const bigQueryConfigured = Boolean(process.env.GOOGLE_BIGQUERY_SERVICE_ACCOUNT_KEY);
+  const plans = await prisma.plan.findMany();
+  const slotsFor = (tier: keyof typeof DEFAULT_ACTIVE_SLOTS) => plans.find((p) => p.tier === tier)?.activeSlots ?? DEFAULT_ACTIVE_SLOTS[tier];
   const adConnected = [metaConfigured, Boolean(linkedInConnection), Boolean(googleAdsConnection), bigQueryConfigured].filter(Boolean).length;
 
   return (
@@ -69,6 +73,26 @@ export default async function WorkspaceSettingsPage({
       {linkedin === "error" && <Notice ok={false}>Couldn&apos;t connect LinkedIn. The authorization was cancelled or failed.</Notice>}
       {google === "connected" && <Notice ok>Google Ads connected successfully.</Notice>}
       {google === "error" && <Notice ok={false}>Couldn&apos;t connect Google Ads. The authorization was cancelled or failed.</Notice>}
+
+      <SectionCard title="Plans · active slots" meta={<span className="text-[13px] text-brand-ink-2">Projects Klingit runs at once per client; the rest queue</span>}>
+        <CardRows>
+          {(Object.keys(DEFAULT_ACTIVE_SLOTS) as (keyof typeof DEFAULT_ACTIVE_SLOTS)[]).map((tier) => (
+            <li key={tier} className="flex flex-wrap items-center gap-x-4 gap-y-3 px-6 py-4">
+              <span className="min-w-0 flex-1 text-[15px]">{PLAN_TIER_LABEL[tier]}</span>
+              <form action={setPlanSlotsAction} className="flex items-center gap-2">
+                <input type="hidden" name="tier" value={tier} />
+                <label className="sr-only" htmlFor={`slots-${tier}`}>
+                  Active slots on {PLAN_TIER_LABEL[tier]}
+                </label>
+                <input id={`slots-${tier}`} name="activeSlots" type="number" min={1} max={50} defaultValue={slotsFor(tier)} className="h-9 w-20 rounded-[8px] border border-brand-outline bg-white px-3 text-[14px] outline-none focus:border-brand-ink" />
+                <Button type="submit" size="sm" variant="secondary">
+                  Save
+                </Button>
+              </form>
+            </li>
+          ))}
+        </CardRows>
+      </SectionCard>
 
       <SectionCard title="Ad platform connections">
         <CardRows>

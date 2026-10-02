@@ -7,6 +7,7 @@ import { PIPELINE_STAGE_ORDER } from "@/lib/labels";
 import { formatDay } from "@/lib/project-state";
 import { postProjectEvent } from "@/lib/project-events";
 import { logDecision } from "@/lib/decision-log";
+import { enqueue } from "@/lib/active-slots";
 import { runBriefUpdateAgent, runSmartStartAgent, type SmartStartResult } from "@/lib/ai/agents/brief-studio-agent";
 import type { PortalViewer } from "@/lib/brief-intake";
 import {
@@ -633,5 +634,6 @@ export async function sendBrief(viewer: PortalViewer, projectId: string) {
   await prisma.pipelineStage.updateMany({ where: { projectId, name: "ESTIMATE" }, data: { status: "ACTIVE", startedAt: now } });
   await logDecision({ projectId, actorUserId: viewer.userId, area: "brief", action: "Client sent the brief", after: { qualityScore: q.score, essentialsCovered: q.essentialsCovered } });
   await postProjectEvent(projectId, "Brief sent");
+  await enqueue(projectId, viewer.clientId);
   return { score: q.score };
 }

@@ -11,11 +11,11 @@ export const DOT_CLASS: Record<DotTone, string> = {
 };
 
 /** A status in plain words with its dot: "● Waiting on you". */
-export function StatusDot({ tone, children, className }: { tone: DotTone; children: React.ReactNode; className?: string }) {
+export function StatusDot({ tone, children, className, wrap = false }: { tone: DotTone; children: React.ReactNode; className?: string; wrap?: boolean }) {
   return (
-    <span className={cn("inline-flex min-w-0 items-center gap-2 text-[14px] text-brand-ink", className)}>
-      <span aria-hidden className={cn("size-2 shrink-0 rounded-full", DOT_CLASS[tone])} />
-      <span className="truncate">{children}</span>
+    <span className={cn("inline-flex min-w-0 gap-2 text-[14px] text-brand-ink", wrap ? "items-baseline" : "items-center", className)}>
+      <span aria-hidden className={cn("size-2 shrink-0 rounded-full", DOT_CLASS[tone], wrap && "translate-y-[-1px]")} />
+      <span className={wrap ? "min-w-0" : "truncate"}>{children}</span>
     </span>
   );
 }

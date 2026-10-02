@@ -23,6 +23,7 @@ export function toProjectStateInput(project: ProjectWithStateData): ProjectState
     dueDate: project.dueDate,
     deliveredAt: project.deliveredAt,
     creditsQuoted: project.creditsQuoted,
+    activatedAt: project.activatedAt,
     brief: project.brief,
     estimate: project.estimate,
     team: project.team

@@ -95,4 +95,5 @@ export const PLAN_TIER_LABEL: Record<string, string> = {
   STARTER: "Starter",
   GROWTH: "Growth",
   SCALE: "Scale",
+  ENTERPRISE: "Enterprise",
 };

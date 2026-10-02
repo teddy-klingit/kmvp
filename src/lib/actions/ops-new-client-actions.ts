@@ -18,13 +18,13 @@ export async function createClientAction(formData: FormData) {
 
   const name = String(formData.get("name") ?? "").trim();
   const industry = String(formData.get("industry") ?? "").trim();
-  const planTier = String(formData.get("planTier") ?? "GROWTH") as "STARTER" | "GROWTH" | "SCALE";
+  const planTier = String(formData.get("planTier") ?? "GROWTH") as "STARTER" | "GROWTH" | "SCALE" | "ENTERPRISE";
   const accountLeadId = String(formData.get("accountLeadId") ?? "") || null;
   const contactName = String(formData.get("contactName") ?? "").trim();
   const contactEmail = String(formData.get("contactEmail") ?? "").trim();
   if (!name) return;
 
-  const allowance = { STARTER: 16, GROWTH: 40, SCALE: 80 }[planTier] ?? 40;
+  const allowance = { STARTER: 16, GROWTH: 40, SCALE: 80, ENTERPRISE: 160 }[planTier] ?? 40;
 
   let slug = slugify(name);
   const existing = await prisma.client.findUnique({ where: { slug } });

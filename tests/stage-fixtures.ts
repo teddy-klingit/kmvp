@@ -35,7 +35,9 @@ export async function createStageFixtures() {
   const staff = await prisma.staffMember.create({ data: { userId: staffUser.id, title: "ART_DIRECTOR" } });
 
   async function project(name: string, status: ProjectStatus, stages: Partial<Record<PipelineStageName, StageStatus>> = {}) {
-    const p = await prisma.project.create({ data: { clientId: client.id, name, status, type: "PRESENTATION" } });
+    // Work past approval holds one of the client's active slots.
+    const holding = ["STAFFING", "IN_PRODUCTION", "QA", "AWAITING_REVIEW", "IN_FEEDBACK", "DELIVERED"].includes(status);
+    const p = await prisma.project.create({ data: { clientId: client.id, name, status, type: "PRESENTATION", activatedAt: holding ? new Date() : null } });
     await prisma.pipelineStage.createMany({
       data: PIPELINE_STAGE_ORDER.map((stageName, order) => ({
         projectId: p.id,

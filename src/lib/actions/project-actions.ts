@@ -7,6 +7,7 @@ import { jsonArray } from "@/lib/utils";
 import { loadProjectState } from "@/lib/project-state-loader";
 import { onLabel } from "@/lib/context-label";
 import { runAutopilot } from "@/lib/autopilot-runner";
+import { activateQueued } from "@/lib/active-slots";
 import type { SnapshotLine } from "@/lib/estimate-diff";
 import { postProjectEvent } from "@/lib/project-events";
 
@@ -31,12 +32,15 @@ export async function approveEstimateAction(formData: FormData) {
 
   // A revision approved after the first approval: the work continues, the stage never moves back.
   const isRevision = estimate.approvedVersion !== null || !["ESTIMATING", "BRIEFING"].includes(estimate.project.status);
-  if (!isRevision) {
-    await prisma.project.update({ where: { id: estimate.projectId }, data: { status: "STAFFING" } });
-  }
   await postProjectEvent(estimate.projectId, estimate.version > 1 ? `Estimate v${estimate.version} approved` : "Estimate approved");
-  // Autopilot: auto-staff on approval when every role has a strong match.
-  if (!isRevision) await runAutopilot(estimate.projectId);
+  if (!isRevision) {
+    // It moves to Active (staffing) when a slot is free; otherwise it waits in the queue for one.
+    if (estimate.project.status === "BRIEFING") await prisma.project.update({ where: { id: estimate.projectId }, data: { status: "ESTIMATING" } });
+    const activated = await activateQueued(viewer.clientId);
+    if (!activated.includes(estimate.projectId)) await postProjectEvent(estimate.projectId, "Queued: starts when an active slot frees up");
+    // Autopilot: auto-staff what just became active, when every role has a strong match.
+    for (const id of activated) await runAutopilot(id);
+  }
 
   revalidatePath(`/projects/${estimate.projectId}`, "layout");
   revalidatePath(`/ops/projects/${estimate.projectId}`);
@@ -273,6 +277,8 @@ export async function signOffProjectAction(formData: FormData) {
   });
   // Rating is separate (RatingCard); signing off never invents one.
   await postProjectEvent(projectId, "Signed off and delivered");
+  // Signing off frees the slot: the next approved project in the queue starts.
+  for (const id of await activateQueued(viewer.clientId)) await runAutopilot(id);
 
   revalidatePath(`/projects/${projectId}`, "layout");
   revalidatePath("/dashboard");

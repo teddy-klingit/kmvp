@@ -18,6 +18,7 @@ function input(overrides: Partial<ProjectStateInput> = {}): ProjectStateInput {
     dueDate: null,
     deliveredAt: null,
     creditsQuoted: null,
+    activatedAt: null,
     brief: null,
     estimate: null,
     team: null,
@@ -248,12 +249,12 @@ describe("regressions — the contradictions seen on 'Klarna 10-Slide Sales Deck
 });
 
 describe("client board and status line (Projects.dc.html)", () => {
-  it("five columns from the client timeline; paused stays in its stage's column; archived is off the board", async () => {
+  it("five client-stage lanes; paused stays in its lane; archived is off the board", async () => {
     const { CLIENT_COLUMNS, clientColumnFor } = await import("@/lib/project-state");
-    expect(CLIENT_COLUMNS).toEqual(["Brief", "Estimate", "Production", "Review", "Delivered"]);
-    expect(clientColumnFor(state({ status: "STAFFING" }))).toBe("Production");
-    expect(clientColumnFor(state({ status: "PAUSED", pausedFromStatus: "IN_PRODUCTION" }))).toBe("Production");
-    expect(clientColumnFor(state({ status: "ESTIMATING", estimate: { status: "SENT", totalCredits: 28, sentAt: day(-1), expiresAt: day(3), respondedAt: null } }))).toBe("Estimate");
+    expect(CLIENT_COLUMNS).toEqual(["Draft", "Queued", "Active", "In review", "Delivered"]);
+    expect(clientColumnFor(state({ status: "STAFFING", activatedAt: day(-1) }))).toBe("Active");
+    expect(clientColumnFor(state({ status: "PAUSED", pausedFromStatus: "IN_PRODUCTION", activatedAt: day(-3) }))).toBe("Active");
+    expect(clientColumnFor(state({ status: "ESTIMATING", estimate: { status: "SENT", totalCredits: 28, sentAt: day(-1), expiresAt: day(3), respondedAt: null } }))).toBe("Queued");
     expect(clientColumnFor(state({ status: "ARCHIVED" }))).toBeNull();
   });
 

@@ -36,8 +36,8 @@ export function ProjectRows({ rows, menu }: { rows: ProjectRowData[]; menu?: (ro
               <span className="block h-1 overflow-hidden rounded-full bg-brand-track">
                 <span className="block h-full rounded-full bg-brand-ink" style={{ width: `${(p.step / 5) * 100}%` }} />
               </span>
-              <span className="whitespace-nowrap font-brand-mono text-[11px] text-brand-ink-2">
-                {p.stage.toUpperCase()} · {p.step} OF 5
+              <span className="whitespace-nowrap text-[12px] text-brand-ink-2">
+                {p.stage} · {p.step} of 5
               </span>
             </span>
             <span className="flex justify-end">{p.team.length > 0 && <AvatarStack names={p.team} size={24} max={3} overlap={4} />}</span>

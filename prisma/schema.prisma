@@ -107,6 +107,15 @@ enum PlanTier {
   STARTER
   GROWTH
   SCALE
+  ENTERPRISE
+}
+
+/// Per-plan settings an Admin can change in Settings. activeSlots = how many projects Klingit works on at once
+/// for one client; the rest wait in the client's queue.
+model Plan {
+  tier        PlanTier @id
+  activeSlots Int
+  updatedAt   DateTime @updatedAt
 }
 
 enum ClientStatus {
@@ -842,6 +851,10 @@ model Project {
   autopilot               Boolean        @default(true)
   autopilotPausedAt       DateTime?
   autopilotPausedByUserId String?
+  // Active slots: a project holds one from activation (estimate approved and a slot free) until sign-off.
+  // Until then it waits in the client's queue, in queuePosition order (the client can reorder it).
+  activatedAt             DateTime?
+  queuePosition           Int?
   createdByClientUserId   String?
   createdAt               DateTime       @default(now())
   updatedAt               DateTime       @updatedAt

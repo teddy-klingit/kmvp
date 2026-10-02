@@ -26,7 +26,7 @@ export default async function NewClientPage() {
             <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
               <legend className="mb-1.5 p-0 text-[13px] text-brand-ink-2">Plan tier</legend>
               <div className="flex flex-wrap gap-2">
-                {(["STARTER", "GROWTH", "SCALE"] as const).map((tier, i) => (
+                {(["STARTER", "GROWTH", "SCALE", "ENTERPRISE"] as const).map((tier, i) => (
                   <label
                     key={tier}
                     className="inline-flex h-11 cursor-pointer items-center gap-2 rounded-full border border-brand-outline bg-white px-4 text-[13px] has-[:checked]:border-brand-ink has-[:checked]:bg-brand-ink has-[:checked]:text-white has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand-ink has-[:focus-visible]:ring-offset-1 sm:h-9"

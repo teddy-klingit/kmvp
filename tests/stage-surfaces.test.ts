@@ -11,6 +11,8 @@ import { legacyTabRedirect, type LegacyTab, type ProjectStage } from "@/lib/proj
 
 import ProjectsPage from "@/app/(portal)/projects/page";
 import DashboardPage from "@/app/(portal)/dashboard/page";
+import CalendarPage from "@/app/(portal)/calendar/page";
+import NotificationsPage from "@/app/(portal)/notifications/page";
 import ProjectLayout from "@/app/(portal)/projects/[id]/layout";
 import OverviewPage from "@/app/(portal)/projects/[id]/page";
 import WorkPage from "@/app/(portal)/projects/[id]/work/page";
@@ -83,11 +85,12 @@ const scope = (id: string) => ({ ...tab(id), searchParams: Promise.resolve({}) }
 const work = scope;
 
 /** next = the board/dashboard label; title = the Next step card heading (the label without its "Your turn:" prefix). */
-type Expect = { column: string; badge: string; next: string; title: string; eyebrow: string; dashboard: boolean; overview: string[] };
+type Expect = { column: string; badge: string; card: string; next: string; title: string; eyebrow: string; dashboard: boolean; overview: string[] };
 const EXPECT: Record<StageKey, Expect> = {
   briefing: {
-    column: "Briefing",
-    badge: "Briefing",
+    column: "Drafts",
+    badge: "Draft",
+    card: "Continue brief",
     next: "Your turn: finish your brief",
     title: "Finish your brief",
     eyebrow: "YOUR TURN",
@@ -95,8 +98,9 @@ const EXPECT: Record<StageKey, Expect> = {
     overview: ["Continue brief", "Your brief so far", "Brief quality 40", "Win a pitch or a deal", "Open brief studio"],
   },
   estimating: {
-    column: "Estimate",
-    badge: "Estimating",
+    column: "Queued",
+    badge: "Queued",
+    card: "Klingit is preparing the estimate",
     next: "Klingit: preparing your estimate",
     title: "Preparing your estimate",
     eyebrow: "KLINGIT IS ON IT",
@@ -104,8 +108,9 @@ const EXPECT: Record<StageKey, Expect> = {
     overview: ["What's happening"],
   },
   awaiting_approval: {
-    column: "Estimate",
-    badge: "Awaiting your approval",
+    column: "Queued",
+    badge: "Queued",
+    card: "Approve estimate · 28 credits",
     next: "Your turn: approve estimate (28 credits)",
     title: "Approve the estimate",
     eyebrow: "YOUR TURN",
@@ -113,17 +118,19 @@ const EXPECT: Record<StageKey, Expect> = {
     overview: ["Approve · 28 credits", "Ask a question", "PPT slide", "Total 28 credits", "valid until", "After you approve"],
   },
   staffing: {
-    column: "In production",
-    badge: "Staffing",
-    next: "Klingit: staffing your team",
-    title: "Staffing your team",
+    column: "Active",
+    badge: "Active",
+    card: "Picking your team",
+    next: "Klingit: picking your team",
+    title: "Picking your team",
     eyebrow: "KLINGIT IS ON IT",
     dashboard: false,
     overview: ["What's happening"],
   },
   production: {
-    column: "In production",
-    badge: "In production",
+    column: "Active",
+    badge: "Active",
+    card: "First draft",
     next: "Klingit: producing your first draft",
     title: "Producing your first draft",
     eyebrow: "KLINGIT IS ON IT",
@@ -132,7 +139,8 @@ const EXPECT: Record<StageKey, Expect> = {
   },
   review: {
     column: "In review",
-    badge: "Ready for your review",
+    badge: "In review",
+    card: "Review 2 assets",
     next: "Your turn: review 2 assets",
     title: "Review 2 assets",
     eyebrow: "YOUR TURN",
@@ -140,8 +148,9 @@ const EXPECT: Record<StageKey, Expect> = {
     overview: ["Review in Work", "Ask a question"],
   },
   final: {
-    column: "Sign-off",
-    badge: "Ready for sign-off",
+    column: "In review",
+    badge: "In review",
+    card: "Sign off",
     next: "Your turn: sign off on the final delivery",
     title: "Sign off on the final delivery",
     eyebrow: "YOUR TURN",
@@ -151,6 +160,7 @@ const EXPECT: Record<StageKey, Expect> = {
   closed: {
     column: "Delivered",
     badge: "Delivered",
+    card: "Signed off",
     next: "Delivered",
     title: "Delivered and signed off",
     eyebrow: "DELIVERED",
@@ -174,17 +184,13 @@ describe.each(STAGES)("stage %s — every surface agrees", (stage) => {
   const e = EXPECT[stage];
   const p = () => fx.projects[stage];
 
-  it("projects board: the client timeline's column, and the status in plain words", async () => {
+  it("projects board: the client-stage lane, and the status in plain words", async () => {
     const html = await render(ProjectsPage({ searchParams: Promise.resolve({}) }));
-    // Five columns (Projects.dc.html): sign-off sits in Review, staffing in Production.
-    const CLIENT_COLUMN: Record<string, string> = { Briefing: "Brief", Estimate: "Estimate", "In production": "Production", "In review": "Review", "Sign-off": "Review", Delivered: "Delivered" };
-    const column = asText(region(html, `data-column="${CLIENT_COLUMN[e.column]}"`, ["data-column="]));
+    const column = asText(region(html, `data-column="${e.column}"`, ["data-column="]));
     expect(column).toContain(p().name);
-    // The card right after the project's name carries its status.
-    const card = column.slice(column.indexOf(p().name)).split(/\bDUE \d|NO DATE YET|\b\d{1,2} [A-Z]{3,4}\b/)[0];
-    if (stage === "closed") expect(card).toContain("Signed off");
-    else if (e.dashboard) expect(card).toContain("Waiting on you");
-    else expect(card).not.toContain("Waiting on you");
+    // The card right after the project's name carries its status (or its one action).
+    const card = column.slice(column.indexOf(p().name), column.indexOf(p().name) + 160);
+    expect(card).toContain(e.card);
   });
 
   it("dashboard: in Your turn only when it's the client's turn", async () => {
@@ -199,7 +205,7 @@ describe.each(STAGES)("stage %s — every surface agrees", (stage) => {
     for (const label of ["Overview", "Work", "Brief & scope", "Share", "With Klingit", "Internal", "Conversation"]) {
       expect(t).toContain(label);
     }
-    for (const milestone of ["Brief", "Estimate", "Production", "Review", "Delivered"]) expect(t).toContain(milestone);
+    for (const milestone of ["Draft", "Queued", "Active", "In review", "Delivered"]) expect(t).toContain(milestone);
     expect(t).toContain(stage === "closed" ? "Delivered" : "Now ·");
     // Before an estimate exists, or past staffing with no team on record, the summary item is omitted rather than making something up.
     expect(/Klingit team (Sara|Assigned|Being)/.test(t)).toBe(stage !== "closed" && stage !== "briefing");
@@ -330,10 +336,10 @@ describe("regressions — the contradictions seen on a Draft project ('Klarna 10
     expect(asText(html)).not.toContain("Not yet scoped");
   });
 
-  it("Dashboard's estimate approval matches the board's Estimate column", async () => {
+  it("Dashboard's estimate approval matches the board's Queued lane", async () => {
     const [dashboard, board] = await Promise.all([render(DashboardPage()), render(ProjectsPage({ searchParams: Promise.resolve({}) }))]);
     expect(yourTurnList(dashboard)).toContain("Approve estimate · 28 credits");
-    expect(asText(region(board, 'data-column="Estimate"', ["data-column="]))).toContain(fx.projects.awaiting_approval.name);
+    expect(asText(region(board, 'data-column="Queued"', ["data-column="]))).toContain(fx.projects.awaiting_approval.name);
   });
 
   it("an overdue approval leads Your turn with a red Overdue pill; nothing else is marked overdue", async () => {
@@ -365,5 +371,36 @@ describe("regressions — the contradictions seen on a Draft project ('Klarna 10
     expect(after).not.toMatch(/\d+ of \d+ left/);
     expect(after).toMatch(/\d+ used · /);
     expect(after).toContain("No monthly allowance");
+  });
+});
+
+// The 8 internal stages are for ops; clients only ever see Draft, Queued, Active, In review, Delivered.
+const INTERNAL_STAGE_NAMES = ["Briefing", "Estimating", "Staffing", "In production", "Awaiting approval", "Awaiting client approval", "Awaiting your approval", "Ready for sign-off", "QA"];
+
+describe("clients never see internal stage names", () => {
+  // The fixture projects are named after their stages ("Stage Deck Briefing"): only the UI's own words count.
+  const withoutNames = async (t: string) => {
+    const names = (await prisma.project.findMany({ where: { clientId: fx.client.id }, select: { name: true } })).map((p) => p.name);
+    return names.sort((a, b) => b.length - a.length).reduce((acc, n) => acc.split(n).join(" "), t);
+  };
+  it("not on the dashboard, the board, the list, the calendar or notifications", async () => {
+    const pages = await Promise.all([
+      render(DashboardPage()),
+      render(ProjectsPage({ searchParams: Promise.resolve({}) })),
+      render(ProjectsPage({ searchParams: Promise.resolve({ view: "list" }) })),
+      render(CalendarPage({ searchParams: Promise.resolve({}) })),
+      render(CalendarPage({ searchParams: Promise.resolve({ view: "list" }) })),
+      render(NotificationsPage({ searchParams: Promise.resolve({}) } as never)),
+    ]);
+    for (const html of pages) {
+      const t = await withoutNames(asText(html));
+      for (const name of INTERNAL_STAGE_NAMES) expect(t).not.toContain(name);
+    }
+  });
+
+  it.each(STAGES)("not in the %s project's header or Overview", async (stage) => {
+    const id = fx.projects[stage].id;
+    const t = await withoutNames((await text(ProjectLayout({ children: null, ...tab(id) }))) + (await text(OverviewPage(tab(id)))));
+    for (const name of INTERNAL_STAGE_NAMES) expect(t).not.toContain(name);
   });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { MoreHorizontal, Copy, Pause, Play, Trash2 } from "lucide-react";
+import { MoreHorizontal, Copy, Pause, Play, Archive } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -68,14 +68,14 @@ export function ProjectCardMenu({ projectId, status }: { projectId: string; stat
           <form
             action={deleteProjectAction}
             onSubmit={(e) => {
-              if (!confirm("Delete this project? This can't be undone.")) e.preventDefault();
+              if (!confirm("Archive this project? You'll find it under Archived.")) e.preventDefault();
             }}
           >
             <input type="hidden" name="projectId" value={projectId} />
             <DropdownMenuItem asChild>
-              <button type="submit" className="w-full text-danger-foreground">
-                <Trash2 className="size-3.5" />
-                Delete
+              <button type="submit" className="w-full">
+                <Archive className="size-3.5" />
+                Archive
               </button>
             </DropdownMenuItem>
           </form>

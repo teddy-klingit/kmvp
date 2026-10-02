@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
 import { PIPELINE_STAGE_ORDER } from "@/lib/labels";
 import { projectVisibilityWhere } from "@/lib/project-visibility";
+import { activateQueued } from "@/lib/active-slots";
+import { runAutopilot } from "@/lib/autopilot-runner";
 
 export async function duplicateProjectAction(formData: FormData) {
   const viewer = await getPortalViewer();
@@ -93,7 +95,10 @@ export async function deleteProjectAction(formData: FormData) {
   const viewer = await getPortalViewer();
   const projectId = String(formData.get("projectId") ?? "");
 
-  await prisma.project.deleteMany({ where: { id: projectId, clientId: viewer.clientId, ...projectVisibilityWhere(viewer.id) } });
+  // Soft archive, never a hard delete: the project (and its files and history) can be restored.
+  const archived = await prisma.project.updateMany({ where: { id: projectId, clientId: viewer.clientId, status: { not: "ARCHIVED" }, ...projectVisibilityWhere(viewer.id) }, data: { status: "ARCHIVED", queuePosition: null } });
+  // An archived project gives its slot back.
+  if (archived.count) for (const id of await activateQueued(viewer.clientId)) await runAutopilot(id);
 
   revalidatePath("/projects");
   revalidatePath("/dashboard");

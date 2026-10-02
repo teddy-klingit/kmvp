@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { clientMilestones, endOfDay, formatDay, shortDate, type ProjectState } from "@/lib/project-state";
+import { CLIENT_STAGE_LABEL, clientMilestones, endOfDay, formatDay, shortDate, type ProjectState } from "@/lib/project-state";
 import { jsonArray } from "@/lib/utils";
 import type { ProjectWithStateData } from "@/lib/project-state-loader";
 
@@ -97,12 +97,12 @@ export function inProgress(items: Item[], typeLabel: (t: string) => string, acco
       const eta = state.keyFacts.firstDraftEta;
       const score = state.brief.mode === "studio" ? state.brief.score : null;
       const KLINGIT_NEXT: Partial<Record<ProjectState["stage"], string>> = {
-        briefing: "Brief · Klingit is reviewing it",
-        estimating: "Estimate · Klingit is pricing it",
-        staffing: "Production · Klingit is picking your team",
-        production: "Production · in progress",
-        review: "Review · Klingit is revising",
-        final: "Delivery · final files on the way",
+        briefing: "Klingit is reviewing the brief",
+        estimating: "Klingit is pricing it",
+        staffing: state.clientStage === "queued" ? "waiting for a free slot" : "Klingit is picking your team",
+        production: "in progress",
+        review: "Klingit is revising",
+        final: "final files on the way",
       };
       const next = state.paused
         ? "Paused"
@@ -116,7 +116,7 @@ export function inProgress(items: Item[], typeLabel: (t: string) => string, acco
             ? endOfDay(eta).getTime() < Date.now()
               ? `First draft late · was due ${formatDay(eta)}`
               : `First draft ${formatDay(eta)}`
-            : (KLINGIT_NEXT[state.stage] ?? `${current?.label ?? "Next step"} · in progress`);
+            : `${CLIENT_STAGE_LABEL[state.clientStage]} · ${KLINGIT_NEXT[state.stage] ?? "in progress"}`;
       const team = state.keyFacts.staffedTeam.map((m) => m.name);
       return {
         id: project.id,
@@ -321,7 +321,7 @@ const KLINGIT_DOING: Partial<Record<ProjectState["stage"], string>> = {
   briefing: "Klingit is reviewing the brief",
   estimating: "Klingit is pricing it",
   staffing: "Picking your team",
-  production: "In production",
+  production: "Klingit is producing it",
   review: "Klingit is revising",
   final: "Final files on the way",
 };

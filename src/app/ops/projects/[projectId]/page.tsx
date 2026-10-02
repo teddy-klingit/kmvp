@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { ChevronLeft, Download, ImageIcon, Lock, Play } from "lucide-react";
 import { getOpsViewer } from "@/lib/current-viewer";
 import { roleTierFor } from "@/lib/role-tier";
-import { loadCockpit, INTERNAL_STAGE_PILL, type Cockpit } from "@/lib/ops-cockpit";
+import { loadCockpit, internalStagePill, type Cockpit } from "@/lib/ops-cockpit";
 import { activityFeed, clientThread, staffNotesThread, type ActivityItem } from "@/lib/ops-feed";
 import { scheduleAutopilot } from "@/lib/autopilot-schedule";
 import { PROJECT_TYPE_LABEL, INTERNAL_ROLE_LABEL } from "@/lib/labels";
@@ -133,7 +133,7 @@ export default async function CockpitPage({ params, searchParams }: { params: Pr
                 <div className="flex min-w-0 flex-1 flex-col gap-2">
                   <div className="flex flex-wrap items-center gap-3">
                     <h1 className="m-0 text-[28px] font-light leading-[1.2] tracking-[0.01em] text-ds-text min-[700px]:text-[32px]">{project.name}</h1>
-                    <StatusPill>{state.paused ? "Paused" : INTERNAL_STAGE_PILL[state.stage]}</StatusPill>
+                    <StatusPill>{internalStagePill(state)}</StatusPill>
                     <StatusPill tone={project.autopilot ? "success" : "watch"} dot>
                       {project.autopilot ? "Autopilot on" : "Autopilot paused"}
                     </StatusPill>

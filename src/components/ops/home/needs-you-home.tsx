@@ -7,7 +7,7 @@ import { Button } from "@/components/ds/button";
 import { EmptyState } from "@/components/ds/empty-state";
 import { loadOpsProjects, projectHealth, rankExceptions, type OpsException, type OpsProject } from "@/lib/ops-exceptions";
 import { nextAutomatedStep } from "@/lib/autopilot";
-import { INTERNAL_STAGE_PILL } from "@/lib/ops-cockpit";
+import { internalStagePill } from "@/lib/ops-cockpit";
 import { formatDay } from "@/lib/project-state";
 import { WORK_TZ } from "@/lib/working-hours";
 import { CheckCircle2 } from "lucide-react";
@@ -187,7 +187,7 @@ export async function NeedsYouHome({ viewer, inboxCount }: { viewer: StaffMember
                           </div>
                         </td>
                         <td className="px-3 py-3.5">
-                          <StatusPill>{INTERNAL_STAGE_PILL[p.state.stage]}</StatusPill>
+                          <StatusPill>{internalStagePill(p.state)}</StatusPill>
                         </td>
                         <td className="px-3 py-3.5 text-ds-text-body">
                           {nextAutomatedStep({ status: p.project.status, autopilot: p.project.autopilot, estimateStatus: p.project.estimate?.status ?? null })}

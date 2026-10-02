@@ -44,22 +44,11 @@ export const STAGE_LABEL: Record<ProjectStage, string> = {
   closed: "Delivered",
 };
 
-const STAGE_STATUS_TEXT: Record<ProjectStage, string> = {
-  briefing: "Briefing",
-  estimating: "Estimating",
-  awaiting_approval: "Awaiting approval",
-  staffing: "Staffing",
-  production: "In production",
-  review: "In review",
-  final: "Ready for sign-off",
-  closed: "Delivered",
-};
-
-/** The one status label every badge shows for a project. */
-export function stageStatusText(state: Pick<ProjectState, "stage" | "paused" | "archived">) {
+/** The one status label every client badge shows for a project: its client stage, never an internal one. */
+export function stageStatusText(state: Pick<ProjectState, "clientStage" | "paused" | "archived">) {
   if (state.archived) return "Archived";
   if (state.paused) return "Paused";
-  return STAGE_STATUS_TEXT[state.stage];
+  return CLIENT_STAGE_LABEL[state.clientStage];
 }
 
 /** Committed rule: first draft within this many business days of staffing being confirmed. */
@@ -75,6 +64,8 @@ export type ProjectStateInput = {
   dueDate: Date | null;
   deliveredAt: Date | null;
   creditsQuoted: number | null;
+  /** When the project took one of the client's active slots (null while queued or still a draft). */
+  activatedAt: Date | null;
   brief: {
     status: BriefStatus;
     rawIntake: string | null;
@@ -104,8 +95,20 @@ export type NextAction = { label: string; description: string; href: string; cta
 
 export type TimelineStep = { stage: ProjectStage; label: string; status: "done" | "current" | "upcoming"; date?: Date };
 
+/**
+ * What a client sees (the board's lanes, every badge): draft = brief not sent; queued = sent, waiting for the
+ * estimate's approval and/or a free active slot; active = holding a slot (staffing and production);
+ * in_review = something waits on the client's feedback or sign-off; delivered = signed off in the last 30 days.
+ * The 8 internal stages are for ops only.
+ */
+export type ClientStage = "draft" | "queued" | "active" | "in_review" | "delivered" | "archived";
+export const CLIENT_STAGES: Exclude<ClientStage, "archived">[] = ["draft", "queued", "active", "in_review", "delivered"];
+export const CLIENT_STAGE_LABEL: Record<ClientStage, string> = { draft: "Draft", queued: "Queued", active: "Active", in_review: "In review", delivered: "Delivered", archived: "Archived" };
+export const DELIVERED_WINDOW_DAYS = 30;
+
 export type ProjectState = {
   stage: ProjectStage;
+  clientStage: ClientStage;
   /** "none" once the project is closed — nobody owes anything. */
   ballInCourt: "client" | "klingit" | "none";
   paused: boolean;
@@ -279,7 +282,7 @@ function stageFor(input: ProjectStateInput, status: ProjectStatus, brief: BriefP
       return {
         stage: "staffing",
         ballInCourt: "klingit",
-        nextAction: { label: "Klingit: staffing your team", description: etaText, href: base, dueAt: firstDraftEta ?? undefined },
+        nextAction: { label: "Klingit: picking your team", description: etaText, href: base, dueAt: firstDraftEta ?? undefined },
       };
 
     case "IN_PRODUCTION":
@@ -430,6 +433,7 @@ export function getProjectState(input: ProjectStateInput, now: Date = new Date()
 
   return {
     stage,
+    clientStage: clientStageFor(input, stage, ballInCourt, archived, now),
     ballInCourt,
     paused,
     archived,
@@ -524,21 +528,30 @@ export function legacyTabRedirect(tab: LegacyTab, projectId: string, state: Pick
 export type MilestoneStatus = "done" | "current" | "upcoming";
 export type Milestone = { key: string; label: string; status: MilestoneStatus; caption?: string };
 
-const MILESTONES: { key: string; label: string; stages: ProjectStage[] }[] = [
-  { key: "brief", label: "Brief", stages: ["briefing"] },
-  { key: "estimate", label: "Estimate", stages: ["estimating", "awaiting_approval"] },
-  { key: "production", label: "Production", stages: ["staffing", "production"] },
-  { key: "review", label: "Review", stages: ["review", "final"] },
-  { key: "delivered", label: "Delivered", stages: ["closed"] },
-];
+/** The client board's five lanes and the header timeline: the client stages (Projects.dc.html). */
+export const CLIENT_COLUMNS = CLIENT_STAGES.map((c) => CLIENT_STAGE_LABEL[c]);
 
-/** The client board's five columns: the client timeline (Projects.dc.html). */
-export const CLIENT_COLUMNS = MILESTONES.map((m) => m.label);
-
-/** Which client column a project sits in. Paused projects stay in their stage's column; archived ones aren't on the board. */
+/** Which client lane a project sits in. Paused projects stay in their lane; archived ones aren't on the board. */
 export function clientColumnFor(state: ProjectState): string | null {
-  if (state.archived) return null;
-  return MILESTONES.find((m) => m.stages.includes(state.stage))?.label ?? "Brief";
+  if (state.clientStage === "archived") return null;
+  return CLIENT_STAGE_LABEL[state.clientStage];
+}
+
+export function clientStageFor(
+  input: Pick<ProjectStateInput, "brief" | "activatedAt" | "deliveredAt">,
+  stage: ProjectStage,
+  ballInCourt: ProjectState["ballInCourt"],
+  archived: boolean,
+  now: Date
+): ClientStage {
+  if (archived) return "archived";
+  if (stage === "closed") {
+    if (!input.deliveredAt) return "delivered";
+    return now.getTime() - input.deliveredAt.getTime() <= DELIVERED_WINDOW_DAYS * 86400000 ? "delivered" : "archived";
+  }
+  if (stage === "briefing" && (!input.brief || input.brief.status === "DRAFT")) return "draft";
+  if ((stage === "review" || stage === "final") && ballInCourt === "client") return "in_review";
+  return input.activatedAt ? "active" : "queued";
 }
 
 /** Short date like "1 Oct" / "30 Sept" — the timeline's caption format. */
@@ -558,9 +571,9 @@ function nowCaption(state: ProjectState): string {
     case "awaiting_approval":
       return nextAction.dueAt ? `Now · by ${shortDate(nextAction.dueAt)}` : "Now · your approval";
     case "staffing":
-      return "Now · staffing";
+      return state.clientStage === "queued" ? "Now · waiting for a slot" : "Now · picking your team";
     case "production":
-      return keyFacts.firstDraftEta ? `Now · draft ${shortDate(keyFacts.firstDraftEta)}` : "Now · in production";
+      return keyFacts.firstDraftEta ? `Now · draft ${shortDate(keyFacts.firstDraftEta)}` : "Now · in progress";
     case "review":
       return state.assetsAwaitingReview > 0
         ? `Now · ${state.assetsAwaitingReview} to review`
@@ -572,34 +585,34 @@ function nowCaption(state: ProjectState): string {
   }
 }
 
-/** The 8 internal stages folded into the 5 milestones a client cares about. */
+/** The 8 internal stages folded into the 5 client stages, as the header timeline. */
 export function clientMilestones(state: ProjectState): Milestone[] {
   const byStage = new Map(state.timeline.map((t) => [t.stage, t]));
-  const currentIndex = MILESTONES.findIndex((m) => m.stages.includes(state.stage));
+  // An archived project shows how far it got; one delivered over 30 days ago shows as delivered.
+  const shown: Exclude<ClientStage, "archived"> =
+    state.clientStage !== "archived" ? state.clientStage : state.stage === "closed" ? "delivered" : state.stage === "briefing" ? "draft" : "queued";
+  const currentIndex = CLIENT_STAGES.indexOf(shown);
   const closed = state.stage === "closed";
+  const dateOf = (...stages: ProjectStage[]) => stages.map((st) => byStage.get(st)?.date).find(Boolean);
 
-  return MILESTONES.map((m, i) => {
+  return CLIENT_STAGES.map((key, i) => {
     const status: MilestoneStatus = closed || i < currentIndex ? "done" : i === currentIndex ? "current" : "upcoming";
-    const last = byStage.get(m.stages[m.stages.length - 1]);
-    const first = byStage.get(m.stages[0]);
     let caption: string | undefined;
     if (status === "done") {
-      const d = last?.date ?? first?.date;
-      const verb = { brief: "Done", estimate: "Approved", production: "First draft", review: "Signed off", delivered: "Delivered" }[m.key];
+      const d = { draft: dateOf("briefing"), queued: dateOf("awaiting_approval", "estimating"), active: dateOf("production", "staffing"), in_review: dateOf("final", "review"), delivered: dateOf("closed") }[key];
+      const verb = { draft: "Sent", queued: "Started", active: "First draft", in_review: "Signed off", delivered: "Delivered" }[key];
       caption = d ? `${verb} ${shortDate(d)}` : undefined;
     } else if (status === "current") {
       caption = nowCaption(state);
-    } else if (m.key === "production") {
-      caption = state.keyFacts.firstDraftEta
-        ? `Est. ${shortDate(state.keyFacts.firstDraftEta)}`
-        : `First draft ≤ ${FIRST_DRAFT_BUSINESS_DAYS} days`;
-    } else if (m.key === "review") {
+    } else if (key === "active") {
+      caption = state.keyFacts.firstDraftEta ? `Est. ${shortDate(state.keyFacts.firstDraftEta)}` : `First draft ≤ ${FIRST_DRAFT_BUSINESS_DAYS} days`;
+    } else if (key === "in_review") {
       const eta = byStage.get("review")?.date;
       caption = eta ? `Est. ${shortDate(eta)}` : undefined;
-    } else if (m.key === "delivered") {
+    } else if (key === "delivered") {
       caption = state.keyFacts.dueDate ? `Due ${shortDate(state.keyFacts.dueDate)}` : undefined;
     }
-    return { key: m.key, label: m.label, status, ...(caption ? { caption } : {}) };
+    return { key, label: CLIENT_STAGE_LABEL[key], status, ...(caption ? { caption } : {}) };
   });
 }
 
@@ -607,15 +620,6 @@ export function clientMilestones(state: ProjectState): Milestone[] {
 export function clientStatusPill(state: ProjectState): { label: string; tone: "turn" | "neutral" | "success" | "watch" } {
   if (state.archived) return { label: "Archived", tone: "neutral" };
   if (state.paused) return { label: "Paused", tone: "watch" };
-  if (state.stage === "closed") return { label: "Delivered", tone: "success" };
-  if (state.ballInCourt === "client") {
-    const label = {
-      briefing: "Waiting for your answers",
-      awaiting_approval: "Awaiting your approval",
-      review: "Ready for your review",
-      final: "Ready for sign-off",
-    }[state.stage as "briefing" | "awaiting_approval" | "review" | "final"];
-    return { label: label ?? "Your turn", tone: "turn" };
-  }
-  return { label: stageStatusText(state), tone: "neutral" };
+  if (state.clientStage === "delivered" || state.clientStage === "archived") return { label: CLIENT_STAGE_LABEL[state.clientStage], tone: state.clientStage === "delivered" ? "success" : "neutral" };
+  return { label: CLIENT_STAGE_LABEL[state.clientStage], tone: state.ballInCourt === "client" ? "turn" : "neutral" };
 }

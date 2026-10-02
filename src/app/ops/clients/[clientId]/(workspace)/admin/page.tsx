@@ -49,7 +49,7 @@ export default async function ClientAdminPage({ params }: { params: Promise<{ cl
             <span className="min-w-0 flex-1 text-[14px] text-brand-ink-2">Plan tier</span>
             <form action={updateClientPlanAction} className="flex flex-wrap gap-2">
               <input type="hidden" name="clientId" value={clientId} />
-              {(["STARTER", "GROWTH", "SCALE"] as const).map((tier) => (
+              {(["STARTER", "GROWTH", "SCALE", "ENTERPRISE"] as const).map((tier) => (
                 <Button key={tier} type="submit" name="planTier" value={tier} size="sm" variant={client.planTier === tier ? "primary" : "secondary"} aria-pressed={client.planTier === tier}>
                   {PLAN_TIER_LABEL[tier]}
                 </Button>

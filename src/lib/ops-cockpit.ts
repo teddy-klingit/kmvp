@@ -43,6 +43,13 @@ export const INTERNAL_STAGE_PILL: Record<ProjectState["stage"], string> = {
   closed: "Delivered",
 };
 
+/** The ops stage pill, with the client queue made visible: approved but waiting for one of the client's slots. */
+export function internalStagePill(state: ProjectState) {
+  if (state.paused) return "Paused";
+  if (state.clientStage === "queued" && state.stage === "staffing") return "Approved · waiting for a slot";
+  return INTERNAL_STAGE_PILL[state.stage];
+}
+
 export function internalTimeline(state: ProjectState, autopilot: boolean, dates: { stageDone: Partial<Record<string, Date | null>>; due: Date | null; reviewEta: Date | null }): TimelineMilestone[] {
   const current = internalIndex(state);
   const turn = state.ballInCourt === "client" ? "client" : "Klingit";

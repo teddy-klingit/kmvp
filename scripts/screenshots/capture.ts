@@ -9,6 +9,7 @@
  *   npx tsx scripts/screenshots/capture.ts home
  *   npx tsx scripts/screenshots/capture.ts insights   (every Insights tab, 1440 + 390)
  *   npx tsx scripts/screenshots/capture.ts j1         (theme sweep: client + ops pages, 1440 + 390)
+ *   npx tsx scripts/screenshots/capture.ts board      (Projects board v2: board, list, a refused drag, archived; 1440 + 390)
  *   npx tsx scripts/screenshots/capture.ts studio     (Brief studio states at 1440 + 390; run seed-brief-studio.ts first)
  *   npx tsx scripts/screenshots/capture.ts nav        (side nav open / folded / tooltip / focus ring at 1440, menu sheet at 390)
  *
@@ -453,7 +454,40 @@ async function phaseStudio() {
   await browser.close();
 }
 
+/** Projects board v2: the board and list at both widths, a drag Klingit refuses (with its tooltip), and Archived. */
+async function phaseBoard() {
+  const outDir = "screenshots/board";
+  mkdirSync(outDir, { recursive: true });
+  const browser = await chromium.launch();
+  for (const width of widths.length > 1 || args.some((a) => a.startsWith("--widths=")) ? widths : [1440, 390]) {
+    const { context, page } = await signInAs(browser, "jack.ross@klarna.com", width);
+    await shot(page, "/projects", "01-board", outDir, width);
+    await shot(page, "/projects?view=list", "02-list", outDir, width);
+    await shot(page, "/projects?show=archived", "04-archived", outDir, width);
+    if (width >= 1000) {
+      // Pick up the first queued card and hold it over Active: not allowed, with the reason.
+      await page.goto(`${BASE}/projects`, { waitUntil: "networkidle" });
+      const grip = page.locator('section[data-column="Queued"] button[aria-label^="Move"]').first();
+      const target = page.locator('section[data-column="Active"]');
+      const g = (await grip.boundingBox())!;
+      const t = (await target.boundingBox())!;
+      await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(g.x + 40, g.y + 20, { steps: 5 });
+      await page.mouse.move(t.x + t.width / 2, t.y + 200, { steps: 12 });
+      await page.waitForTimeout(300);
+      await page.screenshot({ path: `${outDir}/03-drag-not-allowed-${width}.png` });
+      console.log(`  03-drag-not-allowed-${width}.png`);
+      await page.keyboard.press("Escape");
+      await page.mouse.up();
+    }
+    await context.close();
+  }
+  await browser.close();
+}
+
 async function main() {
+  if (phase === "board") return phaseBoard();
   if (phase === "studio") return phaseStudio();
   if (phase === "nav") return phaseNav();
   if (phase === "insights") return phaseList("screenshots/insights", INSIGHTS_PAGES);
