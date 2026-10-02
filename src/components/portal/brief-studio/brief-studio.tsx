@@ -38,6 +38,8 @@ export function BriefStudio({ initial, viewerName, start, drafts = [] }: { initi
   const [note, setNote] = useState<string | null>(null);
   const [panel, setPanel] = useState<"chat" | "brief">("chat");
   const [attachOpen, setAttachOpen] = useState(false);
+  // What the agent is working on after this answer, for the thinking line.
+  const [working, setWorking] = useState<{ part: string; labels: string[] } | null>(null);
   const started = useRef(false);
 
   const run = (fn: () => Promise<StudioResult | void>) =>
@@ -72,7 +74,11 @@ export function BriefStudio({ initial, viewerName, start, drafts = [] }: { initi
 
   const id = view?.projectId ?? "";
   const handlers = {
-    answer: (questionId: string, answer: Parameters<typeof answerQuestionAction>[2]) => run(() => answerQuestionAction(id, questionId, answer)),
+    answer: (questionId: string, answer: Parameters<typeof answerQuestionAction>[2]) => {
+      const q = view?.log.find((x) => x.id === questionId);
+      setWorking(q ? { part: q.part, labels: (answer.chosen ?? []).map((c) => q.options.find((o) => o.id === c)?.label ?? c) } : null);
+      run(() => answerQuestionAction(id, questionId, answer));
+    },
     send: (text: string) => (view ? run(() => sendStudioMessageAction(id, text)) : begin(text)),
     basics: (b: Parameters<typeof setBasicsAction>[1]) => run(() => setBasicsAction(id, b)),
     attach: (fd: FormData) => run(() => attachReferenceAction(fd)),
@@ -137,6 +143,7 @@ export function BriefStudio({ initial, viewerName, start, drafts = [] }: { initi
             viewerName={viewerName}
             pending={pending}
             thinking={thinking}
+            thinkingLine={thinkingLine(working, thinking)}
             handlers={handlers}
             intro={(!view || view.messages.length === 0) && !thinking ? <Intro drafts={view ? [] : drafts} /> : null}
           />
@@ -157,6 +164,38 @@ export function BriefStudio({ initial, viewerName, start, drafts = [] }: { initi
       {view && <AttachDialog open={attachOpen} onOpenChange={setAttachOpen} projectId={id} onAttach={handlers.attach} />}
     </div>
   );
+}
+
+const and = (l: string[]) => (l.length > 1 ? `${l.slice(0, -1).join(", ")} and ${l[l.length - 1]}` : l[0] ?? "");
+
+/** One line saying what the agent is doing after an answer (README: thinking state). */
+function thinkingLine(w: { part: string; labels: string[] } | null, first: string | null) {
+  if (first) return "Starting your brief from your Brand OS and past projects";
+  switch (w?.part) {
+    case "channels":
+      return w.labels.length ? `Checking what worked on ${and(w.labels)} in your past projects` : "Checking your past projects";
+    case "formats":
+      return "Working out the sizes and the estimate";
+    case "whyNow":
+      return "Lining it up with your calendar";
+    case "objective":
+      return "Finding a past result to compare with";
+    case "persona":
+    case "barrier":
+      return "Reading your Brand OS audience and recent comments";
+    case "keyMessage":
+      return "Writing it into the brief";
+    case "proofOffer":
+      return "Checking what needs a legal line";
+    case "cta":
+      return "Setting up the call to action";
+    case "material":
+      return "Recomputing the estimate from the Price List";
+    case "closing":
+      return w.labels.includes("No, that is everything") ? "Writing The task" : "Getting the follow-up ready";
+    default:
+      return "Thinking";
+  }
 }
 
 function Intro({ drafts }: { drafts: { id: string; name: string }[] }) {

@@ -385,3 +385,100 @@ body {
   font-size: 15px;
   line-height: 1.45;
 }
+
+/* Brief studio motion (README "Brief studio update"): messages and chips rise in, the thinking line shimmers,
+   new canvas text fades from pale lime. Reduced motion: plain fades, no shimmer or streaming. */
+@keyframes studio-rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes studio-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes studio-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+@keyframes studio-dot {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+@keyframes studio-highlight {
+  from {
+    background-color: var(--brand-lime-zone);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+@keyframes studio-caret {
+  50% {
+    opacity: 0;
+  }
+}
+.studio-rise {
+  animation: studio-rise 220ms ease-out both;
+}
+.studio-shimmer {
+  background: linear-gradient(90deg, var(--brand-mute) 0%, var(--brand-mute) 40%, var(--brand-ink) 50%, var(--brand-mute) 60%, var(--brand-mute) 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: studio-shimmer 1.6s linear infinite;
+}
+.studio-dot {
+  animation: studio-dot 1.2s ease-in-out infinite;
+}
+.studio-highlight {
+  animation: studio-highlight 1.2s ease-out both;
+  border-radius: 3px;
+}
+.studio-caret::after {
+  content: "";
+  display: inline-block;
+  width: 1px;
+  height: 1em;
+  margin-left: 1px;
+  vertical-align: -0.15em;
+  background: var(--brand-ink);
+  animation: studio-caret 0.9s steps(1) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .studio-rise {
+    animation: studio-fade 200ms ease-out both;
+  }
+  .studio-shimmer {
+    animation: none;
+    color: var(--brand-mute);
+    background: none;
+  }
+  .studio-dot,
+  .studio-caret::after {
+    animation: none;
+  }
+  .studio-highlight {
+    animation: none;
+  }
+}

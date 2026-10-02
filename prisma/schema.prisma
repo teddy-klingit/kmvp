@@ -952,6 +952,8 @@ model Brief {
   qualityScore        Int?
   questionsLog        Json?
   messages            Json?
+  // The brief agent's drafted chips (message options, barriers, proof points) and The task's inputs, kept between turns.
+  agentDrafts         Json?
   status              BriefStatus @default(DRAFT)
   submittedAt         DateTime?
   acceptedAt          DateTime?

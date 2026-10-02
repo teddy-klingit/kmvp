@@ -4,309 +4,367 @@ import {
   newId,
   sectionFilled,
   setClientSection,
+  slot,
   type BriefSection,
   type QuestionOption,
   type SectionKey,
   type StudioQuestion,
 } from "@/lib/brief-studio/model";
-import { formatsFor, formatForLabel, isoDay, fromIsoDay, type DeliverableKind } from "@/lib/brief-studio/formats";
-import { parseDeadline, parseMarkets } from "@/lib/brief-studio/parse";
-import { formatDay } from "@/lib/project-state";
+import { CHANNEL_GROUPS, CLOSING, CLOSING_FOLLOW_UP, QUESTION_BANK, formatsForChannels, type DeliverableKind } from "@/lib/brief-studio/question-bank";
 
 /**
- * The brief agent's questions: one at a time, only for what isn't known yet, the most valuable first. The agent
- * stops once the essentials are in or the brief scores 80, and never asks more than 8. Chips carry real data
- * only (past CTR, markets used before, the Price List); without data there is no "Recommended".
+ * The brief agent's questions (README: "the question framework"). One at a time, in this order: what's being made
+ * (channel first, then formats) → why now → objective → audience and what holds them back → the one thing to
+ * remember → proof and offer → call to action → material, then always the closing "Anything else they should
+ * know?". Anything known (Basics, Brand OS, past projects, the first message) is skipped; an inference becomes a
+ * confirm question. Basics (deadline, markets, languages) are never asked. At most 8 questions plus the closing one.
+ * Chips carry real data only.
  */
 
 export type FormatStat = { formatId: string; ctr: number; projectName: string };
-export type TopAsset = { id: string; name: string; format: string; ctr: number; projectId: string; projectName: string };
 
 export type PlannerContext = {
   kind: DeliverableKind;
-  /** Latest measured CTR per format, from the client's own delivered assets. */
+  brandName: string;
+  /** Latest measured CTR per bank format, from the client's own delivered assets. */
   formatStats: FormatStat[];
-  usps: string[];
-  topAssets: TopAsset[];
-  /** Markets of the most similar past project that recorded them. */
-  pastMarkets: { markets: string[]; projectName: string } | null;
-  estimate: { low: number; high: number } | null;
-  earliest: { firstDraft: Date; final: Date };
+  /** Channels of the most similar past project (the "Recommended" channel). */
+  pastChannels: { channels: string[]; projectName: string } | null;
+  personas: { name: string; description: string }[];
+  /** The agent's single-minded message proposals (or Brand OS USPs). */
+  keyMessageOptions: string[];
+  /** What holds people back; `reason` only when real data backs it. */
+  barrierOptions: { label: string; reason: string | null }[];
+  proofOptions: string[];
+  /** The past project to compare results with. */
+  compareTo: { id: string; name: string } | null;
+  website: string | null;
 };
 
-/** The agent asks these even when it already has a suggestion: guessing them wrong changes the whole job. */
-const ASK_IF_SUGGESTED = new Set<SectionKey>(["objective", "deliverables"]);
-/** Essentials, by impact (points in briefQuality), then what's quickest to answer. */
-const PLAN_ORDER: SectionKey[] = ["objective", "deliverables", "audience", "markets", "keyMessage", "deadline"];
+export type Part = "channels" | "formats" | "whyNow" | "objective" | "persona" | "barrier" | "keyMessage" | "proofOffer" | "cta" | "material";
+const PLAN: Part[] = ["channels", "formats", "whyNow", "objective", "persona", "barrier", "keyMessage", "proofOffer", "cta", "material"];
+const PART_KEY: Record<Part, SectionKey> = { channels: "deliverables", formats: "deliverables", whyNow: "whyNow", objective: "objective", persona: "audience", barrier: "audience", keyMessage: "keyMessage", proofOffer: "proofOffer", cta: "cta", material: "material" };
 
-export function needsAsking(sections: BriefSection[], key: SectionKey) {
-  const s = getSection(sections, key);
-  if (!sectionFilled(s)) return true;
-  return s!.source === "suggested" && !s!.editedByClient && !s!.delegated && ASK_IF_SUGGESTED.has(key);
+/** Never asked: they come from Basics. */
+export const BASICS: SectionKey[] = ["deadline", "markets", "languages"];
+
+const unconfirmed = (s: BriefSection | undefined) => Boolean(s && s.source === "suggested" && !s.editedByClient && !s.delegated && !s.confident);
+
+/** Goals whose call to action is certain enough to show without asking (an app install means the app stores). */
+export const CONFIDENT_CTA: Record<string, string> = { installs: "install" };
+
+/** Whether the agent still has to ask this part (empty, or an inference waiting to be confirmed). */
+export function needsAsking(sections: BriefSection[], part: Part, ctx: Pick<PlannerContext, "kind" | "personas">): boolean {
+  const bank = QUESTION_BANK[ctx.kind];
+  const s = getSection(sections, PART_KEY[part]);
+  if (s?.delegated) return false;
+  const d = slot(sections, "deliverables");
+  const a = slot(sections, "audience");
+  switch (part) {
+    case "channels":
+      return bank.channels.length > 0 && !d.channels?.length;
+    case "formats":
+      // A format suggested from past CTR is still asked: it's the client's call.
+      return !d.formats?.length || unconfirmed(s);
+    case "objective":
+      return !slot(sections, "objective").goal || unconfirmed(s);
+    case "persona":
+      // One persona in Brand OS is confident enough to just show; several get a confirm question.
+      return !(a.personaName || a.description) || (unconfirmed(s) && ctx.personas.length > 1 && !a.barrier);
+    case "barrier":
+      return !a.barrier;
+    case "keyMessage":
+    case "cta":
+      return !sectionFilled(s) || unconfirmed(s);
+    default:
+      return !sectionFilled(s);
+  }
 }
 
-export const agentQuestionsAsked = (log: StudioQuestion[]) => log.filter((q) => !q.requested).length;
+export const agentQuestionsAsked = (log: StudioQuestion[]) => log.filter((q) => !q.requested && q.type !== "closing").length;
 export const activeQuestion = (log: StudioQuestion[]) => log.find((q) => !q.answeredAt) ?? null;
 
-/** What the agent still plans to ask, in order. Empty once the essentials are in or the score is 80+. */
-export function plannedKeys(sections: BriefSection[], score: number) {
-  if (score >= 80) return [];
-  return PLAN_ORDER.filter((k) => needsAsking(sections, k));
+/** What the agent still plans to ask, in order. */
+export function plannedParts(sections: BriefSection[], ctx: Pick<PlannerContext, "kind" | "personas">) {
+  return PLAN.filter((p) => needsAsking(sections, p, ctx));
 }
 
-export function nextQuestionKey(sections: BriefSection[], log: StudioQuestion[], score: number): SectionKey | null {
-  if (agentQuestionsAsked(log) >= HARD_QUESTION_CEILING) return null;
-  return plannedKeys(sections, score)[0] ?? null;
+/** The next step: a part to ask, the closing question, or nothing (done). */
+export function nextStep(sections: BriefSection[], log: StudioQuestion[], ctx: Pick<PlannerContext, "kind" | "personas">): Part | "closing" | null {
+  if (log.some((q) => q.type === "closing" && q.chosen?.includes("done"))) return null;
+  const planned = plannedParts(sections, ctx);
+  if (planned.length && agentQuestionsAsked(log) < HARD_QUESTION_CEILING) return planned[0];
+  return "closing";
 }
 
-/** "About N questions left": the plan, capped by the ceiling, plus a question the client asked for. */
-export function questionsLeft(sections: BriefSection[], log: StudioQuestion[], score: number) {
+/** "About N questions": essentials still to ask that can't be inferred, capped by the ceiling. The closing one isn't counted. */
+export function questionsLeft(sections: BriefSection[], log: StudioQuestion[], ctx: Pick<PlannerContext, "kind" | "personas">) {
   const active = activeQuestion(log);
-  const planned = Math.min(HARD_QUESTION_CEILING - agentQuestionsAsked(log) + (active && !active.requested ? 1 : 0), plannedKeys(sections, score).length);
-  return Math.max(0, planned) + (active?.requested ? 1 : 0);
+  const room = HARD_QUESTION_CEILING - agentQuestionsAsked(log) + (active && !active.requested && active.type !== "closing" ? 1 : 0);
+  return Math.max(0, Math.min(room, plannedParts(sections, ctx).length)) + (active?.requested ? 1 : 0);
 }
 
 // ─── Building one question ─────────────────────────────────────────────────
 
-const OBJECTIVE_OPTIONS: Record<DeliverableKind, QuestionOption[]> = {
-  ads: [
-    { id: "installs", label: "App installs" },
-    { id: "awareness", label: "Awareness" },
-    { id: "sales", label: "Sales" },
-    { id: "winback", label: "Win back old users" },
-  ],
-  social: [
-    { id: "awareness", label: "Awareness" },
-    { id: "engagement", label: "Engagement" },
-    { id: "sales", label: "Sales" },
-    { id: "launch", label: "Launch something new" },
-  ],
-  deck: [
-    { id: "pitch", label: "Win a pitch or a deal" },
-    { id: "investors", label: "Update investors or the board" },
-    { id: "internal", label: "Align the team" },
-    { id: "launch", label: "Launch something new" },
-  ],
-  video: [
-    { id: "awareness", label: "Awareness" },
-    { id: "explain", label: "Explain the product" },
-    { id: "launch", label: "Launch something new" },
-    { id: "sales", label: "Sales" },
-  ],
-  web: [
-    { id: "signups", label: "Sign-ups" },
-    { id: "sales", label: "Sales" },
-    { id: "launch", label: "Launch something new" },
-    { id: "inform", label: "Inform" },
-  ],
-  email: [
-    { id: "sales", label: "Sales" },
-    { id: "winback", label: "Win back old users" },
-    { id: "onboarding", label: "Onboard new users" },
-    { id: "news", label: "Share news" },
-  ],
-  brand: [
-    { id: "consistency", label: "Keep the brand consistent" },
-    { id: "rebrand", label: "Roll out a rebrand" },
-    { id: "agencies", label: "Brief partners and agencies" },
-  ],
-  other: [
-    { id: "awareness", label: "Awareness" },
-    { id: "sales", label: "Sales" },
-    { id: "launch", label: "Launch something new" },
-    { id: "internal", label: "Internal use" },
-  ],
-};
-
-const OBJECTIVE_TEXT: Record<string, string> = {
-  installs: "Drive app installs",
-  awareness: "Build awareness",
-  sales: "Drive sales",
-  winback: "Win back lapsed users",
-  engagement: "Grow engagement",
-  launch: "Launch something new",
-  pitch: "Win a pitch or a deal",
-  investors: "Update investors and the board",
-  internal: "Align the team internally",
-  explain: "Explain the product",
-  signups: "Drive sign-ups",
-  inform: "Inform visitors",
-  onboarding: "Onboard new users",
-  news: "Share news",
-  consistency: "Keep the brand consistent everywhere",
-  rebrand: "Roll out a rebrand",
-  agencies: "Brief partners and agencies",
-};
-
-const AUDIENCE_OPTIONS: QuestionOption[] = [
-  { id: "existing", label: "Existing customers" },
-  { id: "new", label: "New customers" },
-  { id: "young", label: "Gen Z, 18–24" },
-  { id: "b2b", label: "Business buyers" },
-];
-
-const MUST_HAVE_OPTIONS: QuestionOption[] = [
-  { id: "legal", label: "Legal disclaimer" },
-  { id: "price", label: "Price and terms" },
-  { id: "logo", label: "Logo lockup" },
-  { id: "none", label: "Nothing specific" },
-];
-
 const pct = (n: number) => `${Number.isInteger(n) ? n : n.toFixed(1)}%`;
+const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 40);
 
-export function buildQuestion(key: SectionKey, ctx: PlannerContext, opts: { requested?: boolean; now?: Date } = {}): StudioQuestion {
-  const base = { id: newId("q"), key, askedAt: (opts.now ?? new Date()).toISOString(), requested: opts.requested || undefined };
-  const reason: Record<string, string> = {};
-  let recommended: string[] = [];
+export function buildQuestion(part: Part, sections: BriefSection[], ctx: PlannerContext, opts: { now?: Date } = {}): StudioQuestion {
+  const bank = QUESTION_BANK[ctx.kind];
+  const base = { id: newId("q"), key: PART_KEY[part], part, askedAt: (opts.now ?? new Date()).toISOString() };
+  const none = { recommendedOptionIds: [] as string[], reasonPerOption: {} as Record<string, string> };
 
-  switch (key) {
-    case "objective":
-      return { ...base, question: questionText(ctx.kind), type: "single", options: OBJECTIVE_OPTIONS[ctx.kind], recommendedOptionIds: [], reasonPerOption: {} };
-
-    case "deliverables": {
-      const options = formatsFor(ctx.kind).map((f) => ({ id: f.id, label: f.label }));
-      const withData = options.map((o) => ({ o, stat: ctx.formatStats.find((s) => s.formatId === o.id) })).filter((x) => x.stat);
+  switch (part) {
+    case "channels": {
+      const groups = CHANNEL_GROUPS.map((g) => ({ ...g, channels: g.channels.filter((c) => bank.channels.includes(c)) })).filter((g) => g.channels.length);
+      const options: QuestionOption[] = groups.flatMap((g) => g.channels.map((c) => ({ id: c, label: c, group: groups.length > 1 ? g.group : undefined })));
+      const past = ctx.pastChannels?.channels.filter((c) => options.some((o) => o.id === c)) ?? [];
+      return { ...base, question: `Where will the ${bank.noun} run?`, hint: "Pick any", type: "multi", options, recommendedOptionIds: past, reasonPerOption: Object.fromEntries(past.map((c) => [c, `Used in ${ctx.pastChannels!.projectName}`])) };
+    }
+    case "formats": {
+      const channels = slot(sections, "deliverables").channels ?? [];
+      const formats = formatsForChannels(channels.length ? channels : bank.fixedChannel ? [bank.fixedChannel] : ["Meta"]);
+      const reason: Record<string, string> = {};
+      const withData = formats.map((f) => ({ f, stat: ctx.formatStats.find((s) => s.formatId === f.id) })).filter((x) => x.stat);
       const best = [...withData].sort((a, b) => b.stat!.ctr - a.stat!.ctr)[0];
-      for (const { o, stat } of withData) reason[o.id] = o.id === best?.o.id ? `${pct(stat!.ctr)} CTR last time` : `${pct(stat!.ctr)} CTR`;
-      if (best) recommended = [best.o.id];
-      return { ...base, question: ctx.kind === "deck" ? "How big is the deck?" : "Which formats?", hint: "Pick any", type: "multi", options, recommendedOptionIds: recommended, reasonPerOption: reason };
-    }
-
-    case "audience":
-      return { ...base, question: "Who is it for?", type: "single", options: AUDIENCE_OPTIONS, recommendedOptionIds: [], reasonPerOption: {} };
-
-    case "markets": {
-      const past = ctx.pastMarkets?.markets ?? [];
-      const names = [...new Set([...past, "Sweden", "Norway", "Denmark", "Finland", "Germany", "United Kingdom"])].slice(0, 7);
-      const options = names.map((n) => ({ id: n, label: n }));
-      for (const m of past) reason[m] = `Used in ${ctx.pastMarkets!.projectName}`;
-      return { ...base, question: "Which markets?", hint: "Pick any", type: "multi", options, recommendedOptionIds: past, reasonPerOption: reason };
-    }
-
-    case "keyMessage": {
-      const options = ctx.usps.slice(0, 3).map((u, i) => ({ id: `usp${i}`, label: u }));
-      for (const o of options) reason[o.id] = "From your Brand OS";
-      return { ...base, question: "What's the one thing people should take away?", hint: options.length ? "Pick one or write your own" : "Write it in your own words", type: options.length ? "single" : "text", options, recommendedOptionIds: [], reasonPerOption: reason };
-    }
-
-    case "deadline": {
-      const final = ctx.earliest.final;
-      const days = [final, new Date(final.getFullYear(), final.getMonth(), final.getDate() + 7), new Date(final.getFullYear(), final.getMonth(), final.getDate() + 14)];
-      const options = days.map((d) => ({ id: isoDay(d), label: formatDay(d) }));
-      reason[options[0].id] = "Earliest realistic date";
-      return { ...base, question: "When do you need the final files?", type: "date", options, recommendedOptionIds: [], reasonPerOption: reason };
-    }
-
-    case "successMetric": {
-      const best = [...ctx.formatStats].sort((a, b) => b.ctr - a.ctr)[0];
-      const options: QuestionOption[] = [
-        ...(best ? [{ id: "beat_ctr", label: `Beat ${pct(best.ctr)} CTR` }] : []),
-        { id: "volume", label: ctx.kind === "deck" ? "A meeting or deal won" : "A target for installs or sales" },
-        { id: "reach", label: "Reach and awareness lift" },
-        { id: "none", label: "No hard KPI" },
-      ];
-      if (best) {
-        reason.beat_ctr = `Your best so far, ${best.projectName}`;
-        recommended = ["beat_ctr"];
-      }
-      return { ...base, question: "How will you know it worked?", type: "single", options, recommendedOptionIds: recommended, reasonPerOption: reason };
-    }
-
-    case "mustHaves":
-      return { ...base, question: "Anything it must include or avoid?", hint: "Pick any", type: "multi", options: MUST_HAVE_OPTIONS, recommendedOptionIds: [], reasonPerOption: {} };
-
-    case "references": {
-      const options = ctx.topAssets.slice(0, 3).map((a) => ({ id: a.id, label: `Like ${a.name}` }));
-      for (const a of ctx.topAssets.slice(0, 3)) reason[a.id] = `${pct(a.ctr)} CTR · ${a.projectName}`;
-      if (ctx.topAssets[0]) recommended = [ctx.topAssets[0].id];
+      for (const { f, stat } of withData) reason[f.id] = f.id === best?.f.id ? `${pct(stat!.ctr)} CTR last time` : `${pct(stat!.ctr)} CTR`;
       return {
         ...base,
-        question: "Anything it should look or feel like?",
-        hint: "Pick any, or attach a file or link below",
+        question: "Which formats?",
+        hint: channels.length > 1 ? `For ${channels.join(" and ")} · pick any` : "Pick any",
         type: "multi",
-        options: [...options, { id: "none", label: "No references" }],
-        recommendedOptionIds: recommended,
+        options: formats.map((f) => ({ id: f.id, label: f.label, group: channels.length > 1 ? f.channel : undefined })),
+        recommendedOptionIds: best ? [best.f.id] : [],
         reasonPerOption: reason,
       };
     }
-
-    case "budget": {
-      const high = ctx.estimate?.high ?? null;
-      const caps = high ? [roundUp(high), roundUp(high * 1.5)] : [20, 40];
-      const options = [...new Set(caps)].map((c) => ({ id: `credits:${c}`, label: `Up to ${c} credits` }));
-      if (high) reason[options[0].id] = `Covers the ≈ ${ctx.estimate!.low}–${ctx.estimate!.high} estimate`;
-      return { ...base, question: "What budget should we work to?", type: "single", options: [...options, { id: "flexible", label: "Flexible" }], recommendedOptionIds: high ? [options[0].id] : [], reasonPerOption: reason };
+    case "whyNow":
+      return { ...base, question: bank.whyNow.question, type: "single", options: bank.whyNow.options, ...none };
+    case "objective":
+      return { ...base, question: bank.objective.question, type: "single", options: bank.objective.options, ...none };
+    case "persona": {
+      if (ctx.personas.length > 1) {
+        const first = ctx.personas[0];
+        return { ...base, question: `I'm assuming ${first.name}, right?`, hint: first.description, type: "confirm", options: ctx.personas.map((p, i) => ({ id: `p${i}`, label: i === 0 ? `Yes, ${p.name}` : p.name })), ...none };
+      }
+      return {
+        ...base,
+        question: "Who is it for?",
+        type: "single",
+        options: [
+          { id: "existing", label: "Existing customers" },
+          { id: "new", label: "New customers" },
+          { id: "young", label: "Gen Z, 18–24" },
+          { id: "b2b", label: "Business buyers" },
+        ],
+        ...none,
+      };
     }
-
-    default:
-      return { ...base, question: "Anything else we should know?", type: "text", options: [], recommendedOptionIds: [], reasonPerOption: {} };
+    case "barrier": {
+      const options = ctx.barrierOptions.slice(0, 4).map((b) => ({ id: slug(b.label), label: b.label }));
+      const backed = ctx.barrierOptions.slice(0, 4).filter((b) => b.reason);
+      return {
+        ...base,
+        question: bank.barrier.question.replace("{brand}", ctx.brandName),
+        hint: bank.barrier.hint,
+        type: options.length ? "single" : "text",
+        options,
+        recommendedOptionIds: backed.slice(0, 1).map((b) => slug(b.label)),
+        reasonPerOption: Object.fromEntries(backed.map((b) => [slug(b.label), b.reason!])),
+      };
+    }
+    case "keyMessage": {
+      const options = ctx.keyMessageOptions.slice(0, 3).map((m, i) => ({ id: `m${i}`, label: m }));
+      return { ...base, question: bank.keyMessage.question, hint: options.length ? bank.keyMessage.hint : "Write it in your own words", type: options.length ? "single" : "text", options, ...none };
+    }
+    case "proofOffer": {
+      const options = ctx.proofOptions.slice(0, 3).map((m, i) => ({ id: `o${i}`, label: m }));
+      return { ...base, question: bank.proofOffer.question, hint: bank.proofOffer.hint, type: options.length ? "single" : "text", options, ...none };
+    }
+    case "cta": {
+      const inferred = getSection(sections, "cta");
+      if (inferred && unconfirmed(inferred)) {
+        const others = bank.cta.options.filter((o) => o.label !== slot(sections, "cta").action);
+        return { ...base, question: `I'm assuming “${inferred.value}”, right?`, type: "confirm", options: [{ id: "yes", label: "Yes" }, ...others], ...none };
+      }
+      return { ...base, question: bank.cta.question, type: "single", options: bank.cta.options, ...none };
+    }
+    case "material":
+      return { ...base, question: bank.material.question, type: "single", options: bank.material.options, footnote: bank.material.footnote, ...none };
   }
 }
 
-function questionText(kind: DeliverableKind) {
-  return kind === "ads" ? "What should the ads achieve?" : kind === "deck" ? "What is the deck for?" : "What should it achieve?";
+export function closingQuestion(now = new Date()): StudioQuestion {
+  return {
+    id: newId("q"),
+    key: "notes",
+    part: "closing",
+    question: CLOSING.question,
+    type: "closing",
+    options: [...CLOSING.options, { id: "done", label: CLOSING.done }],
+    recommendedOptionIds: [],
+    reasonPerOption: {},
+    askedAt: now.toISOString(),
+  };
 }
 
-export const roundUp = (n: number) => Math.ceil(n / 5) * 5;
+/** A closing chip's short follow-up (or the same question from "Make it great"). */
+export function followUpQuestion(id: keyof typeof CLOSING_FOLLOW_UP, now = new Date()): StudioQuestion {
+  const f = CLOSING_FOLLOW_UP[id];
+  return { id: newId("q"), key: f.key, part: id, question: f.question, hint: f.hint, type: "text", options: [], recommendedOptionIds: [], reasonPerOption: {}, requested: true, askedAt: now.toISOString() };
+}
 
 // ─── Applying an answer ────────────────────────────────────────────────────
 
 export type Answer = { chosen?: string[]; freeText?: string; delegate?: boolean };
 
-/** Writes the client's answer (or "Let Klingit decide") into its section. */
+const and = (l: string[]) => (l.length > 1 ? `${l.slice(0, -1).join(", ")} and ${l[l.length - 1]}` : l[0] ?? "");
+
+/** "Think it is only for big purchases" → "Thinks it is only for big purchases" (the persona is singular). */
+export function thirdPerson(s: string) {
+  return s
+    .replace(/^Think\b/, "Thinks")
+    .replace(/^Worry\b/, "Worries")
+    .replace(/^Do not\b/, "Doesn't")
+    .replace(/^Don't\b/, "Doesn't")
+    .replace(/^Prefer\b/, "Prefers")
+    .replace(/^Feel\b/, "Feels")
+    .replace(/^Believe\b/, "Believes")
+    .replace(/^Have\b/, "Has");
+}
+
+export function deliverablesText(d: { channels?: string[]; formats?: string[]; ideasCount?: number | null }) {
+  const made = [d.ideasCount ? `${d.ideasCount} idea${d.ideasCount === 1 ? "" : "s"}` : null, d.formats?.length ? and(d.formats) : null].filter(Boolean).join(" × ");
+  return [made, d.channels?.length ? `for ${and(d.channels)}` : null].filter(Boolean).join(" ");
+}
+
+export function audienceText(a: { personaName?: string | null; description?: string; barrier?: string | null }) {
+  const who = [a.personaName, a.description].filter(Boolean).join(", ");
+  return [who ? `${who.replace(/\.$/, "")}.` : "", a.barrier ? `${thirdPerson(a.barrier).replace(/\.$/, "")}.` : ""].filter(Boolean).join(" ");
+}
+
+const CTA_DESTINATION: Record<string, (website: string | null) => string | null> = {
+  install: () => "App Store and Google Play",
+  download: () => "App Store and Google Play",
+  shop: (w) => w,
+  buy: (w) => w,
+  signup: (w) => w,
+  visit: (w) => w,
+};
+export const ctaDestination = (id: string, website: string | null) => CTA_DESTINATION[id]?.(website) ?? null;
+
+export function legalLineNeeded(text: string) {
+  return /interest|\bfees?\b|\brates?\b|%|apr|pay in \d|credit|loan|installments?/i.test(text);
+}
+
+/** Writes the client's answer (or "Let Klingit decide") into its slot. */
 export function applyAnswer(sections: BriefSection[], q: StudioQuestion, answer: Answer, ctx: PlannerContext): BriefSection[] {
-  const chosen = (answer.chosen ?? []).filter((id) => q.options.some((o) => o.id === id));
-  const labels = chosen.map((id) => q.options.find((o) => o.id === id)!.label);
+  const bank = QUESTION_BANK[ctx.kind];
+  const ids = (answer.chosen ?? []).filter((id) => q.options.some((o) => o.id === id));
+  const labels = ids.map((id) => q.options.find((o) => o.id === id)!.label);
   const text = answer.freeText?.trim() ?? "";
 
   if (answer.delegate) {
-    // Klingit takes the data-backed option when there is one, else decides later. Not asked again either way.
-    const pick = q.recommendedOptionIds.map((id) => q.options.find((o) => o.id === id)).filter((o): o is QuestionOption => Boolean(o));
     const current = getSection(sections, q.key);
-    const picked = { key: q.key, ...valueFor(q, pick.map((o) => o.id), pick.map((o) => o.label), "", ctx) } as BriefSection;
-    const kept: Pick<BriefSection, "value" | "items" | "refs"> = sectionFilled(picked) ? picked : current && sectionFilled(current) ? current : { value: "Klingit decides" };
-    const delegated: BriefSection = { key: q.key, value: kept.value, items: kept.items, refs: kept.refs, source: "suggested", sourceRef: null, editedByClient: false, delegated: true };
-    return [...sections.filter((s) => s.key !== q.key), delegated];
+    const keep = current && sectionFilled(current) ? current : null;
+    // Klingit takes the data-backed option when there is one.
+    const rec = q.recommendedOptionIds.map((id) => q.options.find((o) => o.id === id)!.label);
+    const next: BriefSection = keep
+      ? { ...keep, source: "suggested", delegated: true, editedByClient: false }
+      : { key: q.key, value: rec[0] ?? "Klingit decides", source: "suggested", editedByClient: false, delegated: true };
+    if (q.part === "channels" && rec.length) next.data = { ...(keep?.data ?? {}), channels: rec, formats: [], ideasCount: 3 } as never;
+    return [...sections.filter((s) => s.key !== q.key), next];
   }
 
-  const patch = valueFor(q, chosen, labels, text, ctx);
-  return setClientSection(sections, q.key, patch);
-}
-
-function valueFor(q: StudioQuestion, ids: string[], labels: string[], text: string, ctx: PlannerContext): Omit<BriefSection, "key" | "source" | "editedByClient"> {
-  switch (q.key) {
-    case "objective":
-      return { value: text || OBJECTIVE_TEXT[ids[0]] || labels[0] || "" };
-    case "deliverables": {
-      const typed = text ? text.split(/,|\band\b/).map((t) => t.trim()).filter(Boolean).map((t) => formatForLabel(t)?.label ?? t) : [];
-      return { value: "", items: [...new Set([...labels, ...typed])] };
+  const d = slot(sections, "deliverables");
+  const a = slot(sections, "audience");
+  switch (q.part) {
+    case "channels": {
+      const channels = [...new Set([...labels, ...(text ? [text] : [])])];
+      const formats = (d.formats ?? []).filter((f) => formatsForChannels(channels).some((x) => x.label === f));
+      const data = { channels, formats, ideasCount: d.ideasCount ?? 3 };
+      return setClientSection(sections, "deliverables", { value: deliverablesText(data), data });
     }
-    case "markets": {
-      const typed = text ? (parseMarkets(text).length ? parseMarkets(text) : [text]) : [];
-      return { value: "", items: [...new Set([...labels, ...typed])] };
+    case "formats": {
+      const formats = [...new Set([...labels, ...(text ? text.split(/,|\band\b/).map((t) => t.trim()).filter(Boolean) : [])])];
+      const data = { channels: d.channels?.length ? d.channels : bank.fixedChannel ? [bank.fixedChannel] : [], formats, ideasCount: d.ideasCount ?? 3 };
+      return setClientSection(sections, "deliverables", { value: deliverablesText(data), data });
     }
-    case "deadline": {
-      const d = text ? parseDeadline(text) : fromIsoDay(ids[0] ?? "");
-      return { value: d ? isoDay(d) : "" };
+    case "whyNow": {
+      const reason = text || labels[0] || "";
+      return setClientSection(sections, "whyNow", { value: reason, data: { reason } });
     }
-    case "mustHaves": {
-      const items = [...labels, ...(text ? [text] : [])];
-      return { value: "", items: items.includes("Nothing specific") ? ["None"] : items };
+    case "objective": {
+      const id = ids[0];
+      const goal = text || bank.objective.options.find((o) => o.id === id)?.label || labels[0] || "";
+      const metric = id ? bank.objective.metricFor[id] ?? null : null;
+      const compare = metric && ctx.compareTo ? ctx.compareTo : null;
+      const value = [goal.replace(/\.$/, ""), metric ? `Success = ${metric}${compare ? ` than ${compare.name}` : ""}` : null].filter(Boolean).join(". ") + ".";
+      let next = setClientSection(sections, "objective", { value, data: { goal, metric, target: null, compareToProjectId: compare?.id ?? null, compareToName: compare?.name ?? null } });
+      // The call to action follows from the goal: shown when it's certain, confirmed when it's a guess.
+      const ctaId = id ? (CONFIDENT_CTA[id] ?? ({ sales: "shop", signups: "signup" } as Record<string, string>)[id]) : undefined;
+      const opt = ctaId ? bank.cta.options.find((o) => o.id === ctaId) : undefined;
+      if (opt && !sectionFilled(getSection(next, "cta"))) {
+        const destination = ctaDestination(opt.id, ctx.website);
+        next = [...next, { key: "cta", value: [opt.label, destination].filter(Boolean).join(" · "), data: { action: opt.label, destination }, source: "suggested", editedByClient: false, confident: Boolean(CONFIDENT_CTA[id!]) }];
+      }
+      return next;
     }
-    case "references": {
-      if (ids.includes("none") && !text) return { value: "None", refs: [] };
-      const refs = ids
-        .map((id) => ctx.topAssets.find((a) => a.id === id))
-        .filter((a): a is TopAsset => Boolean(a))
-        .map((a) => ({ kind: "asset" as const, id: a.id, label: a.name, sub: `${pct(a.ctr)} CTR · ${a.format}` }));
-      return { value: text, refs };
+    case "persona": {
+      const i = ids[0]?.startsWith("p") ? Number(ids[0].slice(1)) : -1;
+      const persona = i >= 0 ? ctx.personas[i] : null;
+      const data = persona
+        ? { ...a, personaId: `p${i}`, personaName: persona.name, description: persona.description }
+        : { ...a, personaId: null, personaName: null, description: text || labels[0] || "" };
+      return setClientSection(sections, "audience", { value: audienceText(data), data });
     }
-    case "budget": {
-      if (text) return { value: text.match(/\d+/)?.[0] ?? text };
-      const id = ids[0] ?? "";
-      return { value: id.startsWith("credits:") ? id.slice(8) : id === "flexible" ? "flexible" : "" };
+    case "barrier": {
+      const data = { ...a, barrier: text || labels[0] || "" };
+      return setClientSection(sections, "audience", { value: audienceText(data), data });
+    }
+    case "keyMessage": {
+      const t = text || labels[0] || "";
+      return setClientSection(sections, "keyMessage", { value: t, data: { text: t } });
+    }
+    case "proofOffer": {
+      const t = text || labels[0] || "";
+      const legal = legalLineNeeded(t);
+      return setClientSection(sections, "proofOffer", { value: legal ? `${t.replace(/\.$/, "")}. Legal line required per market.` : t, data: { text: t, needsLegalLine: legal } });
+    }
+    case "cta": {
+      const confirmed = ids[0] === "yes" ? slot(sections, "cta") : null;
+      const opt = bank.cta.options.find((o) => o.id === ids[0]);
+      const action = confirmed?.action ?? (text || opt?.label || labels[0] || "");
+      const destination = confirmed ? confirmed.destination ?? null : opt ? ctaDestination(opt.id, ctx.website) : null;
+      return setClientSection(sections, "cta", { value: [action, destination].filter(Boolean).join(" · "), data: { action, destination } });
+    }
+    case "material": {
+      const id = ids[0];
+      const data = { clientProvides: id === "client" ? [labels[0], text].filter(Boolean).join(": ") : !id && text ? text : null, klingitMakes: id === "klingit" || id === "shoot" ? labels[0] : null, needsShoot: id === "shoot" };
+      return setClientSection(sections, "material", { value: [labels[0], text].filter(Boolean).join(": "), data });
+    }
+    // Closing follow-ups.
+    case "avoid": {
+      const items = [...(getSection(sections, "mustAvoid")?.items ?? []), text].filter(Boolean);
+      return setClientSection(sections, "mustAvoid", { value: "", items, data: { items } });
+    }
+    case "competitor": {
+      const items = [...(getSection(sections, "competitorExamples")?.items ?? []), text].filter(Boolean);
+      return setClientSection(sections, "competitorExamples", { value: "", items, data: { items } });
+    }
+    case "legal": {
+      const proof = slot(sections, "proofOffer");
+      const base = (proof.text ?? getSection(sections, "proofOffer")?.value ?? "").replace(/\.$/, "");
+      return setClientSection(sections, "proofOffer", { value: [base, `Legal checks: ${text.replace(/\.$/, "")}`].filter(Boolean).join(". ") + ".", data: { text: base, needsLegalLine: true } });
+    }
+    case "approver": {
+      const rounds = text.match(/(\d+)\s*rounds?/i);
+      const name = text.replace(/,?\s*\d+\s*rounds?.*/i, "").trim() || text;
+      let next = setClientSection(sections, "approver", { value: name, data: { name } });
+      if (rounds) next = setClientSection(next, "feedbackRounds", { value: `${rounds[1]} rounds of feedback`, data: { count: Number(rounds[1]) } });
+      return next;
     }
     default:
-      return { value: text || labels.join(", ") };
+      return setClientSection(sections, q.key, { value: text || labels.join(", ") });
   }
 }

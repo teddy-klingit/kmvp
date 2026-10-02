@@ -1,60 +1,23 @@
 import { addBusinessDays, FIRST_DRAFT_BUSINESS_DAYS } from "@/lib/project-state";
+import { FORMATS, UNITS_PER_FORMAT, formatByLabel, type DeliverableKind, type FormatDef } from "@/lib/brief-studio/question-bank";
+
+export type { DeliverableKind, FormatDef };
 
 /**
- * What a client can ask for, mapped to the Price List: the studio's format chips, the estimate preview and the
- * earliest realistic deadline all read this one catalogue.
+ * Pricing and dates for the Brief studio: the estimate preview (ideas × sizes, priced from the Price List, with
+ * the material answer moving the tiers) and the earliest realistic deadline.
  */
 
-export type DeliverableKind = "ads" | "social" | "deck" | "video" | "web" | "email" | "brand" | "other";
 type Tier = "LOW" | "MEDIUM" | "HIGH";
+const TIERS: Tier[] = ["LOW", "MEDIUM", "HIGH"];
+const up = (t: Tier) => TIERS[Math.min(2, TIERS.indexOf(t) + 1)];
 
-export type FormatDef = {
-  id: string;
-  label: string;
-  kinds: DeliverableKind[];
-  /** PriceListItem.deliverableType it's priced as. */
-  priceType: string;
-  /** Typical units in one project (a set of ad variants, a deck's slides). */
-  qty: [number, number];
-  tiers: [Tier, Tier];
-  /** Matches an existing Asset.format, so past performance can be read per format. */
-  matches: RegExp;
-};
+export { formatByLabel };
 
-export const FORMAT_CATALOG: FormatDef[] = [
-  { id: "stories", label: "Stories 9:16", kinds: ["ads", "social"], priceType: "Social post (static)", qty: [3, 4], tiers: ["MEDIUM", "HIGH"], matches: /^(story|stories)\b|story 9:16/i },
-  { id: "carousel", label: "Carousel", kinds: ["ads", "social"], priceType: "Social post (static)", qty: [2, 3], tiers: ["MEDIUM", "HIGH"], matches: /carousel/i },
-  { id: "static", label: "Static 1:1", kinds: ["ads", "social"], priceType: "Social post (static)", qty: [3, 4], tiers: ["LOW", "MEDIUM"], matches: /static|feed post|1:1/i },
-  { id: "reels", label: "Reels / video", kinds: ["ads", "social", "video"], priceType: "Video cutdown (<30s)", qty: [1, 2], tiers: ["MEDIUM", "HIGH"], matches: /reel|video 9:16|^video\b/i },
-  { id: "banners", label: "Display banners", kinds: ["ads"], priceType: "Social post (static)", qty: [3, 4], tiers: ["LOW", "MEDIUM"], matches: /banner|\d+\s*[×x]\s*\d+/i },
-  { id: "deck_short", label: "Deck, about 10 slides", kinds: ["deck"], priceType: "PPT slide", qty: [8, 12], tiers: ["MEDIUM", "MEDIUM"], matches: /deck|slides?/i },
-  { id: "deck_long", label: "Deck, 20+ slides", kinds: ["deck"], priceType: "PPT slide", qty: [20, 25], tiers: ["MEDIUM", "MEDIUM"], matches: /^$/ },
-  { id: "data_slides", label: "Data visualisation slides", kinds: ["deck"], priceType: "PPT slide", qty: [3, 5], tiers: ["HIGH", "HIGH"], matches: /^$/ },
-  { id: "cutdowns", label: "Video cutdowns", kinds: ["video"], priceType: "Video cutdown (<30s)", qty: [3, 4], tiers: ["LOW", "MEDIUM"], matches: /cutdown/i },
-  { id: "film", label: "Full video", kinds: ["video"], priceType: "Full video production", qty: [1, 1], tiers: ["HIGH", "HIGH"], matches: /^$/ },
-  { id: "landing", label: "Landing page", kinds: ["web"], priceType: "Landing page build", qty: [1, 1], tiers: ["MEDIUM", "HIGH"], matches: /landing|web page/i },
-  { id: "email", label: "Email copy", kinds: ["email", "ads"], priceType: "Email copy", qty: [2, 3], tiers: ["LOW", "MEDIUM"], matches: /email|newsletter/i },
-  { id: "guidelines", label: "Brand guidelines", kinds: ["brand"], priceType: "Brand guidelines deck", qty: [1, 1], tiers: ["HIGH", "HIGH"], matches: /guidelines/i },
-];
-
-export function formatsFor(kind: DeliverableKind) {
-  const list = FORMAT_CATALOG.filter((f) => f.kinds.includes(kind));
-  return list.length ? list : FORMAT_CATALOG.filter((f) => f.kinds.includes("ads"));
-}
-
-/** The catalogue entry for a chosen or typed format label ("Stories 9:16", "4 stories"). */
-export function formatForLabel(label: string) {
-  const exact = FORMAT_CATALOG.find((f) => f.label.toLowerCase() === label.trim().toLowerCase());
-  if (exact) return exact;
-  const l = label.toLowerCase();
-  if (/stor(y|ies)/.test(l)) return FORMAT_CATALOG.find((f) => f.id === "stories")!;
-  if (/reel|video ad|tiktok/.test(l)) return FORMAT_CATALOG.find((f) => f.id === "reels")!;
-  return FORMAT_CATALOG.find((f) => f.matches.test(label)) ?? null;
-}
-
-/** The catalogue format an existing asset was made in (for past CTR per format). */
+/** The bank format an existing asset was made in (for past CTR per format). */
 export function formatForAsset(assetFormat: string) {
-  return FORMAT_CATALOG.find((f) => f.matches.test(assetFormat) && f.matches.source !== "^$") ?? null;
+  if (/^video 9:16/i.test(assetFormat)) return FORMATS.find((f) => f.id === "meta_reels")!;
+  return FORMATS.find((f) => f.channel === "Meta" && f.matches.test(assetFormat)) ?? FORMATS.find((f) => f.matches.test(assetFormat)) ?? null;
 }
 
 export type PriceEntry = { deliverableType: string; complexityTier: Tier; creditCost: number; leadTimeDays: number };
@@ -62,46 +25,59 @@ export type PriceEntry = { deliverableType: string; complexityTier: Tier; credit
 function cost(prices: PriceEntry[], type: string, tier: Tier) {
   const forType = prices.filter((p) => p.deliverableType === type);
   if (forType.length === 0) return null;
-  const order: Tier[] = ["LOW", "MEDIUM", "HIGH"];
-  // The tier itself, else the nearest one that's listed.
-  const ranked = [...forType].sort((a, b) => Math.abs(order.indexOf(a.complexityTier) - order.indexOf(tier)) - Math.abs(order.indexOf(b.complexityTier) - order.indexOf(tier)));
+  const ranked = [...forType].sort((a, b) => Math.abs(TIERS.indexOf(a.complexityTier) - TIERS.indexOf(tier)) - Math.abs(TIERS.indexOf(b.complexityTier) - TIERS.indexOf(tier)));
   return ranked[0].creditCost;
 }
 
+export type Material = { clientProvides?: string | null; klingitMakes?: string | null; needsShoot?: boolean };
+
 /**
- * "Estimate preview": the Estimate agent's Price List lookup for the chosen formats, as a credit range
- * (typical quantity × the format's tiers). Null when no chosen format is on the price list.
+ * "Estimate preview": the Estimate agent's Price List lookup for what's being made. Units = ideas × sizes; with the
+ * client's own material the format's usual tiers apply, Klingit creating the visuals (or a shoot) moves each up one.
+ * Formats not on the price list, and a shoot, are left out and named in `unpriced`.
  */
-export function estimatePreview(deliverables: string[], prices: PriceEntry[]) {
+export function estimatePreview(d: { formats: string[]; ideasCount?: number | null }, prices: PriceEntry[], material: Material = {}) {
+  const ideas = d.ideasCount && d.ideasCount > 0 ? d.ideasCount : 3;
+  const makes = Boolean(material.needsShoot) || /klingit/i.test(material.klingitMakes ?? "");
   let low = 0;
   let high = 0;
   let priced = 0;
-  for (const label of deliverables) {
-    const f = formatForLabel(label);
-    if (!f) continue;
-    const lo = cost(prices, f.priceType, f.tiers[0]);
-    const hi = cost(prices, f.priceType, f.tiers[1]);
-    if (lo === null || hi === null) continue;
-    low += f.qty[0] * lo;
-    high += f.qty[1] * hi;
+  const unpriced: string[] = [];
+  for (const label of d.formats) {
+    const f = formatByLabel(label);
+    if (!f?.priceType) {
+      unpriced.push(label);
+      continue;
+    }
+    const tiers: [Tier, Tier] = makes ? [up(f.tiers[0]), up(f.tiers[1])] : f.tiers;
+    const lo = cost(prices, f.priceType, tiers[0]);
+    const hi = cost(prices, f.priceType, tiers[1]);
+    if (lo === null || hi === null) {
+      unpriced.push(label);
+      continue;
+    }
+    const units = UNITS_PER_FORMAT[f.id] ?? ideas;
+    low += units * lo;
+    high += units * hi;
     priced++;
   }
-  return priced ? { low, high } : null;
+  if (material.needsShoot) unpriced.push("Shoot");
+  return priced ? { low, high, unpriced } : null;
 }
 
-/** The longest Price List lead time among the chosen formats (business days, staffing to final). */
-export function leadTimeFor(deliverables: string[], prices: PriceEntry[]) {
-  const days = deliverables
-    .map((l) => formatForLabel(l))
-    .filter((f): f is FormatDef => Boolean(f))
+/** The longest Price List lead time among the formats (business days, staffing to final). */
+export function leadTimeFor(formats: string[], prices: PriceEntry[]) {
+  const days = formats
+    .map((l) => formatByLabel(l))
+    .filter((f): f is FormatDef => Boolean(f?.priceType))
     .flatMap((f) => prices.filter((p) => p.deliverableType === f.priceType).map((p) => p.leadTimeDays));
   return days.length ? Math.max(...days) : 5;
 }
 
 /** Earliest realistic dates: the first draft by the 2-business-day rule, the final after the lead time on top. */
-export function earliestDates(deliverables: string[], prices: PriceEntry[], now = new Date()) {
+export function earliestDates(formats: string[], prices: PriceEntry[], now = new Date()) {
   const firstDraft = addBusinessDays(now, FIRST_DRAFT_BUSINESS_DAYS);
-  const final = addBusinessDays(now, FIRST_DRAFT_BUSINESS_DAYS + leadTimeFor(deliverables, prices));
+  const final = addBusinessDays(now, FIRST_DRAFT_BUSINESS_DAYS + leadTimeFor(formats, prices));
   return { firstDraft, final };
 }
 

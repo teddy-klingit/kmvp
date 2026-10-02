@@ -10,6 +10,7 @@
  *   npx tsx scripts/screenshots/capture.ts insights   (every Insights tab, 1440 + 390)
  *   npx tsx scripts/screenshots/capture.ts j1         (theme sweep: client + ops pages, 1440 + 390)
  *   npx tsx scripts/screenshots/capture.ts board      (Projects board v2: board, list, a refused drag, archived; 1440 + 390)
+ *   npx tsx scripts/screenshots/capture.ts studio-end (Brief studio question framework: "I need new ads" end to end)
  *   npx tsx scripts/screenshots/capture.ts studio     (Brief studio states at 1440 + 390; run seed-brief-studio.ts first)
  *   npx tsx scripts/screenshots/capture.ts nav        (side nav open / folded / tooltip / focus ring at 1440, menu sheet at 390)
  *
@@ -434,7 +435,7 @@ async function phaseStudio() {
       await snap("02b-mid-flow-brief");
     }
     // Editing a section inline.
-    await page.getByRole("button", { name: "Edit key message" }).click();
+    await page.getByRole("button", { name: /^Edit (one thing to remember|key message)/ }).first().click();
     await page.waitForTimeout(200);
     await snap("04-editing-section");
 
@@ -486,7 +487,75 @@ async function phaseBoard() {
   await browser.close();
 }
 
+/**
+ * Brief studio, the question framework end to end: "I need new ads", answered like BriefStudioEnd.dc.html
+ * (Meta and TikTok, Stories and TikTok in-feed, a seasonal moment, app installs, the first barrier, message and
+ * proof options, our own product shots), with shots along the way and at the closing question.
+ */
+async function phaseStudioEnd() {
+  const outDir = "screenshots/studio-end";
+  mkdirSync(outDir, { recursive: true });
+  const browser = await chromium.launch();
+  for (const width of widths.length > 1 || args.some((a) => a.startsWith("--widths=")) ? widths : [1440, 390]) {
+    const { context, page } = await signInAs(browser, "jack.ross@klarna.com", width);
+    await page.setViewportSize({ width, height: width < 768 ? 844 : 960 });
+    const settled = async () => {
+      await page.waitForLoadState("networkidle");
+      await page.getByText("Saved · you can leave and come back").first().waitFor({ timeout: 120_000 });
+      await page.waitForTimeout(3200); // let streamed text and "Writing…" finish
+    };
+    const snap = async (name: string) => {
+      await page.screenshot({ path: `${outDir}/${name}-${width}.png` });
+      console.log(`  ${name}-${width}.png`);
+    };
+    const chip = (label: RegExp) => page.locator('section[aria-label="Brief conversation"] button[aria-pressed]').filter({ hasText: label }).last();
+    const pickOne = async (label: RegExp) => {
+      await chip(label).click();
+      await settled();
+    };
+    const pickMany = async (labels: RegExp[]) => {
+      for (const l of labels) if ((await chip(l).getAttribute("aria-pressed")) !== "true") await chip(l).click();
+      await page.getByRole("button", { name: "Continue" }).last().click();
+      await settled();
+    };
+    const firstChip = async () => {
+      await page.locator('section[aria-label="Brief conversation"] button[aria-pressed="false"]:not([disabled])').last().waitFor();
+      const chips = page.locator('section[aria-label="Brief conversation"] div:has(> button[aria-pressed]) > button[aria-pressed]:not([disabled])');
+      await chips.first().click();
+      await settled();
+    };
+
+    await page.goto(`${BASE}/brief/new?${new URLSearchParams({ q: "I need new ads" })}`);
+    await page.waitForURL(/\/brief\/(?!new)/, { timeout: 120_000 });
+    await settled();
+    // Markets live in Basics, never in the conversation.
+    await page.getByRole("button", { name: /Pick markets/ }).click();
+    for (const m of ["Sweden", "Norway"]) await page.getByRole("dialog", { name: "Markets" }).getByRole("button", { name: m }).click();
+    await page.keyboard.press("Escape");
+    await settled();
+    await snap("01-channel-first");
+    await pickMany([/^Meta/, /^TikTok/]);
+    await pickMany([/^Stories 9:16/, /^TikTok in-feed/]);
+    await pickOne(/^A seasonal moment/);
+    await pickOne(/^App installs/);
+    await snap("02-barrier");
+    await firstChip(); // barrier
+    await firstChip(); // one thing to remember
+    await firstChip(); // proof and offer
+    await pickOne(/^We have product shots/);
+    await snap("03-end-closing");
+    if (width < 1000) {
+      await page.getByRole("button", { name: /^View brief/ }).click();
+      await page.waitForTimeout(400);
+      await snap("03b-end-brief");
+    }
+    await context.close();
+  }
+  await browser.close();
+}
+
 async function main() {
+  if (phase === "studio-end") return phaseStudioEnd();
   if (phase === "agents")
     return phaseList("screenshots/agents", [
       ["01-agents", "/assets/agents-templates"],

@@ -1,109 +1,112 @@
-import { getSection, sectionFilled, type BrandFacts, type BriefSection, type SectionKey } from "@/lib/brief-studio/model";
+import { getSection, sectionFilled, slot, type BrandFacts, type BriefSection, type SectionKey } from "@/lib/brief-studio/model";
 
 /**
- * Brief quality, 0–100: a pure, deterministic function of what the brief says (never an AI guess).
- *   Essentials 50 · Specificity 20 · References 10 · Brand fit 10 · Constraints 10
- * A brief missing an essential scores at most 49, so passing the Essentials marker means all of them are in.
+ * Brief quality, 0–100: deterministic points per filled slot (never an AI guess). The 9 essentials make 50; the
+ * 10 nice-to-haves make up to 50 more. Until every essential is in, the score stays under the Essentials marker
+ * (49 at most). Great is 80 or more: a designer can start from it.
  */
 
-export const ESSENTIALS: { key: SectionKey; points: number; label: string }[] = [
-  { key: "objective", points: 9, label: "Add the objective" },
-  { key: "deliverables", points: 9, label: "Pick the formats" },
-  { key: "audience", points: 8, label: "Say who it's for" },
-  { key: "keyMessage", points: 8, label: "Add a key message" },
-  { key: "deadline", points: 8, label: "Set a deadline" },
-  { key: "markets", points: 8, label: "Pick the markets" },
-];
+export type Essential = "deliverables" | "whyNow" | "objective" | "audience" | "keyMessage" | "proofOffer" | "cta" | "material" | "deadline";
+export type NiceToHave = "tone" | "references" | "competitorExamples" | "mustInclude" | "mustAvoid" | "approver" | "feedbackRounds" | "target" | "legalChecked" | "budgetCeiling";
 
-export type BucketKey = "essentials" | "specificity" | "references" | "brandFit" | "constraints";
-export const BUCKET_MAX: Record<BucketKey, number> = { essentials: 50, specificity: 20, references: 10, brandFit: 10, constraints: 10 };
+export const ESSENTIAL_POINTS: Record<Essential, number> = { deliverables: 8, whyNow: 4, objective: 7, audience: 7, keyMessage: 6, proofOffer: 5, cta: 5, material: 4, deadline: 4 };
+export const NICE_POINTS = 5;
+export const NICE_TO_HAVES: NiceToHave[] = ["tone", "references", "competitorExamples", "mustInclude", "mustAvoid", "approver", "feedbackRounds", "target", "legalChecked", "budgetCeiling"];
 
-/** A missing piece the client can add by answering one question (so brand fit, which comes from Brand OS, isn't one). */
-export type QualitySuggestion = { key: SectionKey; label: string; points: number; bucket: BucketKey };
+/** "Make it great": the nice-to-haves a question can fill, with the section it lands in. */
+const ASKABLE: Partial<Record<NiceToHave, { key: SectionKey; label: string }>> = {
+  mustAvoid: { key: "mustAvoid", label: "Say what to avoid" },
+  competitorExamples: { key: "competitorExamples", label: "Add a competitor example" },
+  approver: { key: "approver", label: "Name who signs off" },
+  references: { key: "references", label: "Add a reference" },
+  mustInclude: { key: "mustInclude", label: "Add must-haves" },
+  target: { key: "objective", label: "Set a target" },
+  legalChecked: { key: "proofOffer", label: "Check the legal line" },
+};
+
+export type QualitySuggestion = { key: SectionKey; label: string; points: number; nice: NiceToHave };
 
 export type BriefQuality = {
   score: number;
   label: "Needs more" | "Good" | "Great";
   essentialsCovered: boolean;
-  missingEssentials: SectionKey[];
-  buckets: Record<BucketKey, number>;
-  /** "Make it great": up to 2, from the lowest buckets. */
+  essentialsDone: number;
+  missingEssentials: Essential[];
+  niceDone: number;
+  /** Points per essential (partial when only part of a slot is in). */
+  essentials: Record<Essential, number>;
+  nice: Record<NiceToHave, boolean>;
   suggestions: QualitySuggestion[];
-  /** "Good · essentials covered", "Needs more · 2 essentials missing". */
+  /** "Great · a designer can start from this". */
   status: string;
+  /** "All 9 essentials covered · 8 of 10 nice-to-haves". */
+  detail: string;
 };
-
-const NO_KPI = /no (hard )?kpi|quality only|no metric/i;
-const words = (s: string) => s.trim().split(/\s+/).filter(Boolean).length;
 
 export function qualityLabel(score: number): BriefQuality["label"] {
   return score >= 80 ? "Great" : score >= 50 ? "Good" : "Needs more";
 }
 
+const has = (s: string | null | undefined) => Boolean(s && s.trim());
+
+/** Points each essential earns: full when every part a designer needs is there, partial for some. */
+function essentialPoints(sections: BriefSection[]): Record<Essential, number> {
+  const p = ESSENTIAL_POINTS;
+  const deliverables = slot(sections, "deliverables");
+  const objective = slot(sections, "objective");
+  const audience = slot(sections, "audience");
+  const filled = (k: SectionKey) => sectionFilled(getSection(sections, k));
+  const channels = (deliverables.channels?.length ?? 0) > 0;
+  const formats = (deliverables.formats?.length ?? 0) > 0;
+  const deadline = filled("deadline");
+  const markets = (getSection(sections, "markets")?.items?.length ?? 0) > 0;
+  return {
+    deliverables: channels && formats ? p.deliverables : channels || formats || filled("deliverables") ? p.deliverables / 2 : 0,
+    whyNow: filled("whyNow") ? p.whyNow : 0,
+    objective: has(objective.goal) && has(objective.metric) ? p.objective : has(objective.goal) || filled("objective") ? 4 : 0,
+    audience: (has(audience.description) || has(audience.personaName)) && has(audience.barrier) ? p.audience : has(audience.description) || has(audience.personaName) || filled("audience") ? 4 : 0,
+    keyMessage: filled("keyMessage") ? p.keyMessage : 0,
+    proofOffer: filled("proofOffer") ? p.proofOffer : 0,
+    cta: filled("cta") ? p.cta : 0,
+    material: filled("material") ? p.material : 0,
+    deadline: deadline && markets ? p.deadline : deadline || markets ? p.deadline / 2 : 0,
+  };
+}
+
 export function briefQuality(input: { sections: BriefSection[]; brand: BrandFacts }): BriefQuality {
   const { sections, brand } = input;
-  const s = (k: SectionKey) => getSection(sections, k);
-  const filled = (k: SectionKey) => sectionFilled(s(k));
-  const missing: QualitySuggestion[] = [];
+  const filled = (k: SectionKey) => sectionFilled(getSection(sections, k));
+  const essentials = essentialPoints(sections);
+  const missingEssentials = (Object.keys(ESSENTIAL_POINTS) as Essential[]).filter((k) => essentials[k] < ESSENTIAL_POINTS[k]);
 
-  // Essentials (50)
-  let essentials = 0;
-  const missingEssentials: SectionKey[] = [];
-  for (const e of ESSENTIALS) {
-    if (filled(e.key)) essentials += e.points;
-    else {
-      missingEssentials.push(e.key);
-      missing.push({ key: e.key, label: e.label, points: e.points, bucket: "essentials" });
-    }
-  }
+  const objective = slot(sections, "objective");
+  const proof = slot(sections, "proofOffer");
+  const nice: Record<NiceToHave, boolean> = {
+    tone: filled("tone") && ((brand.voice && brand.visual) || brand.linkedSources > 0 || getSection(sections, "tone")?.source === "answer"),
+    references: filled("references"),
+    competitorExamples: filled("competitorExamples"),
+    mustInclude: filled("mustInclude"),
+    mustAvoid: filled("mustAvoid"),
+    approver: filled("approver"),
+    feedbackRounds: filled("feedbackRounds"),
+    target: has(objective.target) || has(objective.compareToProjectId) || /\d/.test(objective.metric ?? ""),
+    legalChecked: proof.needsLegalLine === true || proof.needsLegalLine === false,
+    budgetCeiling: filled("budgetCeiling"),
+  };
+  const niceDone = NICE_TO_HAVES.filter((n) => nice[n]).length;
 
-  // Specificity (20): a measurable goal 8, a named persona or segment 6, a key message under 25 words 6.
-  let specificity = 0;
-  const metric = s("successMetric");
-  const objective = s("objective")?.value ?? "";
-  const measurable = (sectionFilled(metric) && !NO_KPI.test(metric!.value + (metric!.items ?? []).join(" "))) || /\d/.test(objective);
-  if (measurable) specificity += 8;
-  else missing.push({ key: "successMetric", label: "Make the goal measurable", points: 8, bucket: "specificity" });
-  const audience = s("audience");
-  const named = sectionFilled(audience) && (Boolean(audience!.sourceRef) || /persona|segment|aged?\b|\d{2}\s*[–-]\s*\d{2}|\b(gen ?z|millennials|parents|students|shoppers|buyers|customers|users|members)\b/i.test(audience!.value));
-  if (named) specificity += 6;
-  else if (filled("audience")) missing.push({ key: "audience", label: "Name the persona", points: 6, bucket: "specificity" });
-  const message = s("keyMessage");
-  if (sectionFilled(message) && words(message!.value) < 25) specificity += 6;
-  else if (filled("keyMessage")) missing.push({ key: "keyMessage", label: "Shorten the key message", points: 6, bucket: "specificity" });
+  const total = Math.min(100, Math.round(Object.values(essentials).reduce((a, b) => a + b, 0) + niceDone * NICE_POINTS));
+  const essentialsCovered = missingEssentials.length === 0;
+  const score = essentialsCovered ? total : Math.min(total, 49);
+  const label = qualityLabel(score);
 
-  // References (10)
-  const references = filled("references") ? 10 : 0;
-  if (!references) missing.push({ key: "references", label: "Add a reference", points: 10, bucket: "references" });
-
-  // Brand fit (10): Brand OS voice and visual identity, or linked brand sources; half for one of the two.
-  const brandFit = (brand.voice && brand.visual) || brand.linkedSources > 0 ? 10 : brand.voice || brand.visual ? 5 : 0;
-
-  // Constraints (10): a budget the client set 4; must-haves or legal (or an explicit "none") 6.
-  let constraints = 0;
-  const budget = s("budget");
-  if (sectionFilled(budget) && budget!.source === "answer") constraints += 4;
-  else missing.push({ key: "budget", label: "Set a budget", points: 4, bucket: "constraints" });
-  if (filled("mustHaves")) constraints += 6;
-  else missing.push({ key: "mustHaves", label: "Add must-haves", points: 6, bucket: "constraints" });
-
-  const buckets: Record<BucketKey, number> = { essentials, specificity, references, brandFit, constraints };
-  // The Essentials marker at 50 means "every essential is in": until they are, the score stays below it.
-  const total = Math.min(100, essentials + specificity + references + brandFit + constraints);
-  const score = missingEssentials.length ? Math.min(total, 49) : total;
-
-  // Lowest buckets first (by share of their maximum), then the biggest gain within a bucket.
-  const ratio = (b: BucketKey) => buckets[b] / BUCKET_MAX[b];
-  const suggestions = [...missing]
-    .sort((a, b) => ratio(a.bucket) - ratio(b.bucket) || b.points - a.points)
-    .filter((m, i, all) => all.findIndex((x) => x.key === m.key) === i)
+  const suggestions = NICE_TO_HAVES.filter((n) => !nice[n] && ASKABLE[n])
+    .map((n) => ({ key: ASKABLE[n]!.key, label: ASKABLE[n]!.label, points: NICE_POINTS, nice: n }))
     .slice(0, 2);
 
-  const label = qualityLabel(score);
-  const essentialsCovered = missingEssentials.length === 0;
-  const status = essentialsCovered
-    ? `${label} · essentials covered`
-    : `${label} · ${missingEssentials.length} essential${missingEssentials.length === 1 ? "" : "s"} missing`;
+  const essentialsDone = 9 - missingEssentials.length;
+  const status = label === "Great" ? "Great · a designer can start from this" : essentialsCovered ? "Good · essentials covered" : `Needs more · ${missingEssentials.length} essential${missingEssentials.length === 1 ? "" : "s"} missing`;
+  const detail = `${essentialsCovered ? "All 9 essentials covered" : `${essentialsDone} of 9 essentials`} · ${niceDone} of 10 nice-to-haves`;
 
-  return { score, label, essentialsCovered, missingEssentials, buckets, suggestions, status };
+  return { score, label, essentialsCovered, essentialsDone, missingEssentials, niceDone, essentials, nice, suggestions, status, detail };
 }

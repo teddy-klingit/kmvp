@@ -1,9 +1,10 @@
-import { FORMAT_CATALOG, formatsFor, type DeliverableKind } from "@/lib/brief-studio/formats";
+import { FORMATS, CHANNEL_GROUPS, QUESTION_BANK, type DeliverableKind } from "@/lib/brief-studio/question-bank";
 
 /**
- * Reads what the client actually wrote: the kind of deliverable, the channel, formats, markets, dates, a budget,
- * an objective and a quoted key message. Deterministic, so the studio fills these in even when the brief agent
- * is unavailable; anything found here is the client's own answer.
+ * Reads what the client actually wrote: the kind of deliverable, the channels and formats, how many ideas, markets,
+ * dates, why now, the objective, a call to action, a quoted key message, must-include and must-avoid, and a budget
+ * ceiling only if they mention one. Deterministic, so the studio fills these in even when the brief agent is
+ * unavailable; anything found here is the client's own answer.
  */
 
 export type ParsedRequest = {
@@ -11,15 +12,20 @@ export type ParsedRequest = {
   raw: string;
   kind: DeliverableKind;
   projectType: "CAMPAIGN" | "SINGLE_ASSET" | "PRESENTATION" | "MOTION_VIDEO" | "DEVELOPMENT" | "BRAND_GUIDELINES" | "OTHER";
-  channel: string | null;
+  channels: string[];
   formats: string[];
+  ideasCount: number | null;
   markets: string[];
   deadline: Date | null;
   budgetCredits: number | null;
+  objectiveId: string | null;
   objective: string | null;
+  whyNowId: string | null;
+  ctaId: string | null;
   keyMessage: string | null;
-  successMetric: string | null;
-  mustHaves: string[];
+  metric: string | null;
+  mustInclude: string[];
+  mustAvoid: string[];
 };
 
 const KIND_RULES: [DeliverableKind, RegExp][] = [
@@ -27,8 +33,9 @@ const KIND_RULES: [DeliverableKind, RegExp][] = [
   ["deck", /\bdeck\b|presentation|slides|pitch/i],
   ["web", /landing page|website|web ?page|microsite/i],
   ["email", /\bemails?\b|newsletter/i],
+  ["print", /\bprint\b|out-of-home|\booh\b|billboard|poster|in-store|point of sale/i],
   ["ads", /\bads?\b|advert|paid|campaign|banners?/i],
-  ["social", /\bposts?\b|social|instagram|tiktok|stor(y|ies)|reels?|carousel/i],
+  ["social", /\bposts?\b|social|always[- ]on|instagram|tiktok|stor(y|ies)|reels?|carousel/i],
   ["video", /video|film|motion|animation|commercial/i],
 ];
 
@@ -36,6 +43,7 @@ const PROJECT_TYPE: Record<DeliverableKind, ParsedRequest["projectType"]> = {
   ads: "CAMPAIGN",
   social: "CAMPAIGN",
   email: "CAMPAIGN",
+  print: "CAMPAIGN",
   deck: "PRESENTATION",
   video: "MOTION_VIDEO",
   web: "DEVELOPMENT",
@@ -44,14 +52,37 @@ const PROJECT_TYPE: Record<DeliverableKind, ParsedRequest["projectType"]> = {
 };
 
 const CHANNELS: [string, RegExp][] = [
-  ["Instagram", /instagram|\big\b/i],
-  ["Meta", /\bmeta\b|facebook|\bfb\b/i],
+  ["Meta", /\bmeta\b|facebook|\bfb\b|instagram|\big\b/i],
   ["TikTok", /tik ?tok/i],
   ["LinkedIn", /linked ?in/i],
-  ["YouTube", /you ?tube/i],
-  ["Google", /google|display network|search ads/i],
-  ["Snapchat", /snap(chat)?/i],
-  ["Pinterest", /pinterest/i],
+  ["Snapchat", /snap(chat)?\b/i],
+  ["Search & display", /google|display|search ads?|programmatic/i],
+  ["YouTube / CTV", /you ?tube|\bctv\b|connected tv|\btv\b/i],
+  ["Print", /\bprint\b|newspaper|magazine/i],
+  ["Out-of-home", /out-of-home|\bd?ooh\b|billboard|poster/i],
+  ["In-store", /in-store|point of sale|\bpos\b/i],
+];
+
+const WHY_NOW_CUES: [string, RegExp][] = [
+  ["seasonal", /black friday|christmas|holiday|summer|easter|back to school|q4/i],
+  ["launch", /launch|new product|introduc/i],
+  ["offer", /\boffer\b|\d+\s*% off|discount|promo/i],
+  ["tired", /tired|fatigue|stale|refresh/i],
+  ["competitor", /competitor|rival/i],
+];
+
+const CTA_CUES: [string, RegExp][] = [
+  ["install", /install the app|download the app|app store|get the app/i],
+  ["shop", /shop now|\bbuy\b|\bshop\b/i],
+  ["signup", /sign[- ]?up|register/i],
+];
+
+const OBJECTIVE_IDS: [RegExp, string, string][] = [
+  [/app[- ]?installs?|\binstalls?\b|downloads?/i, "installs", "Drive app installs"],
+  [/win[- ]?back|re-?engage|reactivat|lapsed/i, "winback", "Win back lapsed users"],
+  [/sign[- ]?ups?|leads?|registrations?/i, "signups", "Drive sign-ups"],
+  [/\bsales\b|\bsell\b|conversions?|purchases?|revenue|black friday/i, "sales", "Drive sales"],
+  [/awareness|reach/i, "awareness", "Build awareness"],
 ];
 
 export const MARKETS: { name: string; code: string; aliases: RegExp }[] = [
@@ -71,13 +102,6 @@ export const MARKETS: { name: string; code: string; aliases: RegExp }[] = [
 
 export const marketCode = (name: string) => MARKETS.find((m) => m.name === name)?.code ?? name.slice(0, 2).toUpperCase();
 
-const OBJECTIVES: [RegExp, string][] = [
-  [/app[- ]?installs?|installs?|downloads?/i, "Drive app installs"],
-  [/win[- ]?back|re-?engage|reactivat|lapsed/i, "Win back lapsed users"],
-  [/sign[- ]?ups?|leads?|registrations?/i, "Drive sign-ups"],
-  [/\bsales\b|\bsell\b|conversions?|purchases?|revenue|black friday/i, "Drive sales"],
-  [/awareness|reach|launch(ing)?\b/i, "Build awareness"],
-];
 
 const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
 const WEEKDAYS = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
@@ -122,57 +146,52 @@ export function parseMarkets(text: string) {
 
 export function parseRequest(text: string, now = new Date()): ParsedRequest {
   const kind = KIND_RULES.find(([, re]) => re.test(text))?.[0] ?? "other";
-  const channel = CHANNELS.find(([, re]) => re.test(text))?.[0] ?? null;
-
-  const formats = formatsFor(kind)
-    .filter((f) => {
-      if (f.id === "stories") return /stor(y|ies)|9:16/i.test(text);
-      if (f.id === "reels") return /reels?|video ads?|tiktok video/i.test(text);
-      if (f.id === "static") return /static|feed posts?|1:1/i.test(text);
-      if (f.id === "deck_short") return kind === "deck" && !/\b(2\d|[3-9]\d)\s*slides/i.test(text);
-      if (f.id === "deck_long") return /\b(2\d|[3-9]\d)\s*slides/i.test(text);
-      if (f.id === "landing" || f.id === "guidelines") return true;
-      if (f.id === "film") return /\bfilm\b|commercial|full video|\btvc\b/i.test(text);
-      return FORMAT_CATALOG.find((x) => x.id === f.id)!.matches.test(text) && f.matches.source !== "^$";
-    })
-    .map((f) => f.label);
-
-  const budget = text.match(/(\d{1,4})\s*credits?/i);
+  const bank = QUESTION_BANK[kind];
+  const channels = bank.fixedChannel ? [bank.fixedChannel] : CHANNELS.filter(([, re]) => re.test(text)).map(([c]) => c);
+  // Formats only for a channel that's known (or for channel-less types), so nothing is suggested before the channel.
+  const formats = FORMATS.filter((f) => channels.includes(f.channel) && f.matches.test(text) && !(f.channel === "Meta" && /tiktok/i.test(f.label))).map((f) => f.label);
+  const ideas = text.match(/\b(\d+|two|three|four|five|six)\s+(ideas?|concepts?|variants?|versions?)\b/i);
+  const words: Record<string, number> = { two: 2, three: 3, four: 4, five: 5, six: 6 };
+  const budget = text.match(/(?:budget|up to|max(?:imum)?|ceiling)[^\d]{0,12}(\d{1,4})\s*credits?/i) ?? text.match(/(\d{1,4})\s*credits?\s*(?:budget|max)/i);
   const quoted = text.match(/[“"']([^“”"']{8,160})[”"']/);
-  const objective = OBJECTIVES.find(([re]) => re.test(text))?.[1] ?? null;
+  const objective = OBJECTIVE_IDS.find(([re]) => re.test(text));
   const ctr = text.match(/(\d+(?:[.,]\d+)?)\s*%\s*ctr|ctr\s*(?:of|above|over)?\s*(\d+(?:[.,]\d+)?)\s*%/i);
-  const mustHaves = [/disclaimer|legal|terms/i.test(text) && "Legal disclaimer", /logo/i.test(text) && kind !== "brand" && "Logo lockup", /price|pricing/i.test(text) && "Price and terms"].filter(
-    (x): x is string => Boolean(x)
-  );
+  const mustInclude = [/disclaimer|legal line|terms/i.test(text) && "Legal disclaimer", /logo/i.test(text) && kind !== "brand" && "Logo lockup"].filter((x): x is string => Boolean(x));
+  const avoid = [...text.matchAll(/\b(?:no|avoid|without|don't use|do not use)\s+([a-z][a-z -]{2,30})/gi)].map((m) => m[1].trim()).filter((x) => !/^(fees|interest|more|one|need|budget)/i.test(x));
 
   return {
     raw: text,
     kind,
     projectType: PROJECT_TYPE[kind],
-    channel,
+    channels,
     formats,
+    ideasCount: ideas ? (words[ideas[1].toLowerCase()] ?? Number(ideas[1])) : null,
     markets: parseMarkets(text),
     deadline: parseDeadline(text, now),
     budgetCredits: budget ? Number(budget[1]) : null,
-    objective,
+    objectiveId: objective?.[1] ?? null,
+    objective: objective?.[2] ?? null,
+    whyNowId: WHY_NOW_CUES.find(([, re]) => re.test(text))?.[0] ?? null,
+    ctaId: CTA_CUES.find(([, re]) => re.test(text))?.[0] ?? null,
     keyMessage: quoted ? quoted[1].trim() : null,
-    successMetric: ctr ? `Beat ${(ctr[1] ?? ctr[2]).replace(",", ".")}% CTR` : null,
-    mustHaves,
+    metric: ctr ? `Beat ${(ctr[1] ?? ctr[2]).replace(",", ".")}% CTR` : null,
+    mustInclude,
+    mustAvoid: avoid,
   };
 }
 
-/** "Meta app-install ads, SE + NO" — rebuilt from the sections until the client renames the brief. */
-export function briefTitle(args: { kind: DeliverableKind; channel: string | null; objective: string | null; markets: string[]; text?: string }) {
-  // Nothing to name it by: the client's own first words.
-  if (args.kind === "other" && !args.channel && args.text?.trim()) {
+export const ALL_CHANNELS = CHANNEL_GROUPS.flatMap((g) => g.channels);
+
+/** "Everyday buys app-install ads, SE + NO": rebuilt from the slots until the client renames the brief. */
+export function briefTitle(args: { kind: DeliverableKind; channels: string[]; objectiveId: string | null; markets: string[]; text?: string; idea?: string | null }) {
+  if (args.kind === "other" && !args.channels.length && args.text?.trim()) {
     const words = args.text.trim().replace(/\s+/g, " ").split(" ").slice(0, 6).join(" ").replace(/[.,;:!?]+$/, "");
     return words.charAt(0).toUpperCase() + words.slice(1);
   }
-  const noun: Record<DeliverableKind, string> = { ads: "ads", social: "posts", deck: "deck", video: "video", web: "landing page", email: "emails", brand: "brand guidelines", other: "brief" };
-  const purpose = args.objective
-    ? { "Drive app installs": "app-install", "Drive sales": "sales", "Build awareness": "awareness", "Drive sign-ups": "sign-up", "Win back lapsed users": "win-back" }[args.objective] ?? null
-    : null;
-  const head = [args.channel, purpose, noun[args.kind]].filter(Boolean).join(" ");
+  const noun = QUESTION_BANK[args.kind].noun;
+  const purpose = args.objectiveId ? ({ installs: "app-install", sales: "sales", awareness: "awareness", signups: "sign-up", winback: "win-back" } as Record<string, string>)[args.objectiveId] ?? null : null;
+  const channel = args.channels.length === 1 && !QUESTION_BANK[args.kind].fixedChannel ? args.channels[0] : null;
+  const head = [args.idea ?? channel, purpose, noun].filter(Boolean).join(" ");
   const title = head.charAt(0).toUpperCase() + head.slice(1);
   const codes = args.markets.map(marketCode);
   return codes.length && codes.length <= 3 ? `${title}, ${codes.join(" + ")}` : codes.length ? `${title}, ${codes.length} markets` : title;

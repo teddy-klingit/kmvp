@@ -13,7 +13,8 @@ const TAG = { brandOS: ["brandOS", "From Brand OS"], answer: ["answer", "Your an
 /** Overview while the brief is still in the Brief studio: its score and what's in it so far. */
 export async function BriefSummaryCard({ projectId, viewer }: { projectId: string; viewer: PortalViewer }) {
   const brief = await prisma.brief.findFirst({ where: { projectId, project: { clientId: viewer.clientId } }, select: { sections: true, qualityScore: true } });
-  const sections = jsonArray<BriefSection>(brief?.sections).filter((s) => sectionFilled(s) && s.key !== "budget");
+  const all = jsonArray<BriefSection>(brief?.sections).filter((s) => sectionFilled(s) && s.key !== "deadline" && s.key !== "languages");
+  const sections = [...all.filter((s) => s.key === "task"), ...all.filter((s) => s.key !== "task")];
   const score = brief?.qualityScore ?? null;
   return (
     <Card aria-label="Your brief so far">
@@ -48,6 +49,23 @@ export async function BriefSummaryCard({ projectId, viewer }: { projectId: strin
           ))}
         </ul>
       )}
+    </Card>
+  );
+}
+
+/** The task: what Klingit committed to, from the Brief studio, as the project's summary on Overview. */
+export async function TaskCard({ projectId, viewer }: { projectId: string; viewer: PortalViewer }) {
+  const brief = await prisma.brief.findFirst({ where: { projectId, project: { clientId: viewer.clientId } }, select: { sections: true, aiSummary: true } });
+  const task = jsonArray<BriefSection>(brief?.sections).find((s) => s.key === "task" && sectionFilled(s));
+  if (!task) return null;
+  const meta = (task.data as { meta?: string } | undefined)?.meta;
+  return (
+    <Card aria-label="The task">
+      <CardHeader title="The task" action={<Link href={`/projects/${projectId}/scope`} className="font-brand-mono text-[12px] text-brand-ink underline underline-offset-4">Full brief</Link>} />
+      <div className="flex flex-col gap-1.5 px-6 py-5">
+        <p className="m-0 text-[17px] leading-[1.5]">{task.value}</p>
+        {meta && <p className="m-0 text-[14px] text-brand-ink-2">{meta}</p>}
+      </div>
     </Card>
   );
 }

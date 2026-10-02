@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
-import { BriefSummaryCard } from "@/components/portal/project/brief-summary-card";
+import { BriefSummaryCard, TaskCard } from "@/components/portal/project/brief-summary-card";
 import {
   BriefAndNextStepsRow,
   DeliveryPackageCard,
@@ -32,6 +32,7 @@ export default async function ProjectOverviewPage({ params }: { params: Promise<
     <div className="flex flex-col gap-5">
       <OverviewNextStep projectId={id} viewer={viewer} state={state} />
       {revision && <EstimateCard projectId={id} viewer={viewer} revision />}
+      {state.stage !== "briefing" && <TaskCard projectId={id} viewer={viewer} />}
       <StageContent projectId={id} viewer={viewer} state={state} />
     </div>
   );

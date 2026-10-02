@@ -25,7 +25,7 @@ import {
 
 /** Brief studio actions. Each resolves the viewer itself and works only on a draft they can see. */
 
-const KEYS: SectionKey[] = ["objective", "audience", "deliverables", "keyMessage", "tone", "references", "deadline", "markets", "successMetric", "mustHaves", "budget", "notes"];
+const KEYS: SectionKey[] = ["task", "deliverables", "whyNow", "objective", "audience", "keyMessage", "proofOffer", "cta", "material", "deadline", "markets", "languages", "mustInclude", "mustAvoid", "references", "competitorExamples", "approver", "feedbackRounds", "budgetCeiling", "tone", "notes"];
 const isKey = (k: string): k is SectionKey => (KEYS as string[]).includes(k);
 
 export type StudioResult = { view?: StudioView; error?: string };
@@ -58,7 +58,7 @@ export async function editSectionAction(projectId: string, key: string, patch: {
   return done(await editSection(viewer, projectId, key, { value: patch.value?.slice(0, 2000), items: patch.items?.slice(0, 20).map((i) => i.slice(0, 120)) }));
 }
 
-export async function setBasicsAction(projectId: string, basics: { deadline?: string; markets?: string[]; budget?: string }) {
+export async function setBasicsAction(projectId: string, basics: { deadline?: string; markets?: string[] }) {
   const viewer = await getPortalViewer();
   return done(await setBasics(viewer, projectId, basics));
 }
