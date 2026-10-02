@@ -1,11 +1,14 @@
+import { Lightbulb } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
-import { PageHeader } from "@/components/shared/page-header";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { InspirationExploreButton } from "@/components/portal/inspiration-explore-button";
 import { jsonArray } from "@/lib/utils";
+import { PageHeader } from "@/components/ds/page-header";
+import { SectionCard, CardRows, CardNote } from "@/components/ds/card";
+import { StatusPill } from "@/components/ds/status-pill";
+import { EmptyState } from "@/components/ds/empty-state";
+import { InspirationExploreButton } from "@/components/portal/inspiration-explore-button";
 
+/** Project inspiration: ideas the team thinks fit this client now. Reached from Projects (no tabs of its own). */
 export default async function ProjectInspirationPage() {
   const viewer = await getPortalViewer();
   const inspirations = await prisma.inspiration.findMany({
@@ -16,44 +19,47 @@ export default async function ProjectInspirationPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Project Inspiration"
-        tabs={[
-          { label: "All projects", href: "/projects" },
-          { label: "Inspiration", href: "/projects/inspiration" },
-        ]}
+        back={{ href: "/projects", label: "Projects" }}
+        eyebrow={inspirations.length > 0 ? `${inspirations.length} idea${inspirations.length === 1 ? "" : "s"} for ${viewer.client.name}` : `Ideas for ${viewer.client.name}`}
+        title="Project inspiration"
       />
-      <div>
-        <h2 className="text-lg font-semibold">Project inspiration</h2>
-        <p className="text-sm text-muted-foreground">
-          Opportunities our team thinks are right for {viewer.client.name} right now — based on your market,
-          seasonality and brand context.
-        </p>
-      </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {inspirations.map((idea, i) => (
-          <Card
-            key={idea.id}
-            className="flex animate-in fade-in slide-in-from-bottom-1 flex-col gap-3 p-5 duration-300"
-            style={{ animationDelay: `${Math.min(i, 8) * 50}ms`, animationFillMode: "backwards" }}
-          >
-            <div>
-              <p className="text-sm font-semibold">{idea.title}</p>
-              <p className="text-sm text-muted-foreground">{idea.description}</p>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex gap-1.5">
-                {jsonArray<string>(idea.formatTags).map((tag) => (
-                  <Badge key={tag} tone="info">
-                    {tag}
-                  </Badge>
-                ))}
-              </div>
-              <InspirationExploreButton inspirationId={idea.id} />
-            </div>
-          </Card>
-        ))}
-      </div>
+      {inspirations.length === 0 ? (
+        <EmptyState icon={Lightbulb} title="No ideas yet. Your team will add some here." />
+      ) : (
+        <SectionCard title="Ideas for right now">
+          <CardNote className="border-b border-brand-line">
+            Opportunities our team thinks are right for {viewer.client.name} right now — based on your market, seasonality and brand context.
+          </CardNote>
+          <CardRows>
+            {inspirations.map((idea, i) => {
+              const tags = jsonArray<string>(idea.formatTags);
+              return (
+                <li
+                  key={idea.id}
+                  className="flex animate-in fade-in slide-in-from-bottom-1 flex-wrap items-start gap-x-6 gap-y-3 px-6 py-5 duration-300"
+                  style={{ animationDelay: `${Math.min(i, 8) * 50}ms`, animationFillMode: "backwards" }}
+                >
+                  <div className="flex min-w-[min(100%,260px)] flex-1 flex-col gap-1.5">
+                    <span className="text-[16px] text-brand-ink">{idea.title}</span>
+                    <span className="text-[14px] text-brand-ink-2">{idea.description}</span>
+                    {tags.length > 0 && (
+                      <div className="mt-1 flex flex-wrap gap-1.5">
+                        {tags.map((tag) => (
+                          <StatusPill key={tag} tone="neutral">
+                            {tag}
+                          </StatusPill>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <InspirationExploreButton inspirationId={idea.id} />
+                </li>
+              );
+            })}
+          </CardRows>
+        </SectionCard>
+      )}
     </div>
   );
 }

@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Sparkles, Check } from "lucide-react";
+import { Sparkles, Check, ChevronLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
-import { Card, SectionLabel } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardHeader, CardNote, CardRows, SectionCard } from "@/components/ds/card";
+import { StatusPill } from "@/components/ds/status-pill";
+import { PageGrid } from "@/components/ds/page-grid";
 import { Checkbox } from "@/components/ui/checkbox";
 import { formatDate } from "@/lib/utils";
 import { SelfServiceAgentForm } from "@/components/portal/self-service-agent-form";
@@ -37,101 +38,104 @@ export default async function ClientAgentDetailPage({
   const latestSelfServeRun = selfServeRuns[0];
   const pipelineRuns = agent.selfService ? runs.filter((r) => !r.requestedByUserId) : runs;
 
+  const when = (d: Date) => formatDate(d, { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+
   return (
-    <div className="flex flex-col gap-6">
-      <Link href="/assets/agents-templates" className="text-sm text-primary hover:underline">
-        &lt; All agents
+    <div className="flex flex-col gap-4">
+      <Link href="/assets/agents-templates" className="-ml-1 inline-flex min-h-11 items-center gap-1 self-start text-[13px] text-brand-ink-2 no-underline hover:text-brand-ink sm:min-h-0">
+        <ChevronLeft className="size-4" strokeWidth={1.75} />
+        All agents
       </Link>
-      <div className="flex items-center gap-3">
-        <div>
-          <h1 className="font-display text-xl font-light">{agent.name}</h1>
-          <p className="text-sm text-muted-foreground">{agent.description}</p>
-        </div>
-        {agent.selfService && (
-          <Badge tone="accent" className="ml-auto shrink-0">
-            <Sparkles className="size-3" /> Self-service
-          </Badge>
-        )}
-      </div>
-
-      {sent === "1" && (
-        <Card className="flex items-center gap-2 border-l-4 border-l-success p-3 text-sm">
-          <Check className="size-4 text-success-foreground" />
-          Sent — your team will find it in the channel you picked.
-        </Card>
-      )}
-
-      {agent.selfService && (
-        <div className="flex flex-col gap-3">
-          <SectionLabel>Generate</SectionLabel>
-          <Card className="flex flex-col gap-5 p-5">
-            <SelfServiceAgentForm agentId={agent.id} agentKey={agent.key} />
-            {latestSelfServeRun && (
-              <div className="flex flex-col gap-2 border-t border-border pt-5">
-                <p className="text-xs font-medium text-muted-foreground">
-                  Latest generation · {formatDate(latestSelfServeRun.createdAt, { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
-                </p>
-                <SelfServiceOutput agentId={agent.id} agentKey={agent.key} status={latestSelfServeRun.status} output={latestSelfServeRun.output} channels={channels} />
+      <PageGrid
+        main={
+          <>
+            <Card className="flex flex-wrap items-start gap-4 px-6 py-6">
+              <div className="flex min-w-0 flex-1 basis-[260px] flex-col gap-1.5">
+                <h2 className="m-0 text-[24px] font-normal leading-[1.25] text-brand-ink">{agent.name}</h2>
+                <p className="m-0 text-[15px] leading-[1.5] text-brand-ink-2">{agent.description}</p>
               </div>
+              {agent.selfService && (
+                <StatusPill className="shrink-0">
+                  <Sparkles className="size-3" /> Self-service
+                </StatusPill>
+              )}
+            </Card>
+
+            {sent === "1" && (
+              <Card role="status" className="flex items-center gap-2.5 px-6 py-4 text-[14px] text-brand-ink">
+                <Check className="size-4 shrink-0 text-brand-lime-strong" strokeWidth={2} />
+                Sent — your team will find it in the channel you picked.
+              </Card>
             )}
-          </Card>
-        </div>
-      )}
 
-      {agent.selfService && selfServeRuns.length > 1 && (
-        <div className="flex flex-col gap-3">
-          <SectionLabel>Your past generations</SectionLabel>
-          <Card className="divide-y divide-border p-0">
-            {selfServeRuns.slice(1).map((r) => (
-              <div key={r.id} className="flex items-center justify-between px-5 py-3.5">
-                <div>
-                  <p className="text-sm font-medium">{r.decision ?? "Generation completed"}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {r.requestedByUser?.name ?? "You"} · {formatDate(r.createdAt, { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
-                  </p>
+            {agent.selfService && (
+              // Card (not SectionCard) so menus inside the form and output aren't clipped.
+              <Card aria-label="Generate">
+                <CardHeader title="Generate" />
+                <div className="flex flex-col gap-5 px-6 pb-6 pt-5">
+                  <SelfServiceAgentForm agentId={agent.id} agentKey={agent.key} />
+                  {latestSelfServeRun && (
+                    <div className="flex flex-col gap-2 border-t border-brand-line pt-5">
+                      <p className="m-0 font-brand-mono text-[11px] text-brand-ink-2">LATEST GENERATION · {when(latestSelfServeRun.createdAt).toUpperCase()}</p>
+                      <SelfServiceOutput agentId={agent.id} agentKey={agent.key} status={latestSelfServeRun.status} output={latestSelfServeRun.output} channels={channels} />
+                    </div>
+                  )}
                 </div>
-                <Badge tone={r.status === "SUCCESS" ? "success" : r.status === "FLAGGED" ? "warning" : "danger"}>{r.status}</Badge>
-              </div>
-            ))}
-          </Card>
-        </div>
-      )}
+              </Card>
+            )}
 
-      <div className="flex flex-col gap-3">
-        <SectionLabel>Settings</SectionLabel>
-        <Card className="flex flex-col gap-3 p-5">
-          <label className="flex items-center gap-2.5 text-sm">
-            <Checkbox defaultChecked />
-            Notify me when this agent flags something for review
-          </label>
-          <label className="flex items-center gap-2.5 text-sm">
-            <Checkbox defaultChecked />
-            Include this agent&apos;s output in weekly reports
-          </label>
-        </Card>
-      </div>
-
-      <div className="flex flex-col gap-3">
-        <SectionLabel>{agent.selfService ? "Internal pipeline runs" : "Run history"}</SectionLabel>
-        <Card className="divide-y divide-border p-0">
-          {pipelineRuns.length === 0 && (
-            <p className="px-5 py-4 text-sm text-muted-foreground">
-              {agent.selfService ? "No internal project runs for your account yet." : "No runs yet."}
-            </p>
-          )}
-          {pipelineRuns.map((r) => (
-            <div key={r.id} className="flex items-center justify-between px-5 py-3.5">
-              <div>
-                <p className="text-sm font-medium">{r.decision ?? "Run completed"}</p>
-                <p className="text-xs text-muted-foreground">
-                  {r.project?.name} · {formatDate(r.createdAt, { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
-                </p>
+            {agent.selfService && selfServeRuns.length > 1 && (
+              <SectionCard title="Your past generations">
+                <CardRows>
+                  {selfServeRuns.slice(1).map((r) => (
+                    <RunRow key={r.id} title={r.decision ?? "Generation completed"} detail={`${r.requestedByUser?.name ?? "You"} · ${when(r.createdAt)}`} status={r.status} />
+                  ))}
+                </CardRows>
+              </SectionCard>
+            )}
+          </>
+        }
+        side={
+          <>
+            <SectionCard title="Settings">
+              <div className="flex flex-col gap-3 px-6 py-5">
+                <label className="flex items-center gap-2.5 text-[14px] text-brand-ink">
+                  <Checkbox defaultChecked />
+                  Notify me when this agent flags something for review
+                </label>
+                <label className="flex items-center gap-2.5 text-[14px] text-brand-ink">
+                  <Checkbox defaultChecked />
+                  Include this agent&apos;s output in weekly reports
+                </label>
               </div>
-              <Badge tone={r.status === "SUCCESS" ? "success" : r.status === "FLAGGED" ? "warning" : "danger"}>{r.status}</Badge>
-            </div>
-          ))}
-        </Card>
-      </div>
+            </SectionCard>
+
+            <SectionCard title={agent.selfService ? "Internal pipeline runs" : "Run history"}>
+              {pipelineRuns.length === 0 ? (
+                <CardNote>{agent.selfService ? "No internal project runs for your account yet." : "No runs yet."}</CardNote>
+              ) : (
+                <CardRows>
+                  {pipelineRuns.map((r) => (
+                    <RunRow key={r.id} title={r.decision ?? "Run completed"} detail={[r.project?.name, when(r.createdAt)].filter(Boolean).join(" · ")} status={r.status} />
+                  ))}
+                </CardRows>
+              )}
+            </SectionCard>
+          </>
+        }
+      />
     </div>
+  );
+}
+
+function RunRow({ title, detail, status }: { title: string; detail: string; status: string }) {
+  return (
+    <li className="flex items-center gap-3 px-6 py-3.5">
+      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="text-[15px] text-brand-ink">{title}</span>
+        <span className="text-[12px] text-brand-ink-2">{detail}</span>
+      </span>
+      <StatusPill tone={status === "SUCCESS" ? "success" : status === "FLAGGED" ? "watch" : "danger"}>{status}</StatusPill>
+    </li>
   );
 }

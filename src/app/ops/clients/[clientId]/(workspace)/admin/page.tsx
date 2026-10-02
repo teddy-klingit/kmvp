@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { Card, SectionLabel } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { PersonAvatar } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
+import { SectionCard, CardRows, CardNote } from "@/components/ds/card";
+import { StatRows, type Stat } from "@/components/ds/stats";
+import { StatusPill, type PillTone } from "@/components/ds/status-pill";
+import { Avatar } from "@/components/ds/avatar";
+import { Button } from "@/components/ds/button";
 import { formatDate } from "@/lib/utils";
 import { PLAN_TIER_LABEL, CLIENT_PERMISSION_LABEL } from "@/lib/labels";
 import {
@@ -12,6 +13,15 @@ import {
   reactivateClientAction,
   offboardClientAction,
 } from "@/lib/actions/ops-client-admin-actions";
+
+const INVOICE: Record<string, { label: string; tone: PillTone }> = {
+  PAID: { label: "Paid", tone: "success" },
+  SENT: { label: "Sent", tone: "info" },
+  OVERDUE: { label: "Overdue", tone: "danger" },
+  DRAFT: { label: "Draft", tone: "neutral" },
+};
+
+const count = (n: number) => <span className="font-brand-mono text-[12px] text-brand-ink-2">{n}</span>;
 
 export default async function ClientAdminPage({ params }: { params: Promise<{ clientId: string }> }) {
   const { clientId } = await params;
@@ -25,126 +35,114 @@ export default async function ClientAdminPage({ params }: { params: Promise<{ cl
   });
   if (!client) notFound();
 
+  const credits: Stat[] = [
+    { label: "Monthly credit allowance", value: `${client.monthlyCreditAllowance}c` },
+    { label: "Current balance", value: `${client.creditBalance}c` },
+    ...(client.renewalDate ? [{ label: "Renewal date", value: formatDate(client.renewalDate) }] : []),
+  ];
+
   return (
     <>
-      <div className="flex flex-col gap-6">
-
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <div className="flex flex-col gap-3">
-            <SectionLabel>Plan &amp; billing</SectionLabel>
-            <Card className="flex flex-col gap-4 p-5">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Plan tier</span>
-                <form action={updateClientPlanAction} className="flex gap-2">
-                  <input type="hidden" name="clientId" value={clientId} />
-                  {(["STARTER", "GROWTH", "SCALE"] as const).map((tier) => (
-                    <Button key={tier} type="submit" name="planTier" value={tier} size="sm" variant={client.planTier === tier ? "primary" : "outline"}>
-                      {PLAN_TIER_LABEL[tier]}
-                    </Button>
-                  ))}
-                </form>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Monthly credit allowance</span>
-                <span className="font-medium">{client.monthlyCreditAllowance}c</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Current balance</span>
-                <span className="font-medium">{client.creditBalance}c</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">Renewal date</span>
-                <span className="font-medium">{client.renewalDate && formatDate(client.renewalDate)}</span>
-              </div>
-            </Card>
+      <div className="grid grid-cols-1 gap-6 min-[1000px]:grid-cols-2">
+        <SectionCard title="Plan & billing">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-3 border-b border-brand-line px-6 py-4">
+            <span className="min-w-0 flex-1 text-[14px] text-brand-ink-2">Plan tier</span>
+            <form action={updateClientPlanAction} className="flex flex-wrap gap-2">
+              <input type="hidden" name="clientId" value={clientId} />
+              {(["STARTER", "GROWTH", "SCALE"] as const).map((tier) => (
+                <Button key={tier} type="submit" name="planTier" value={tier} size="sm" variant={client.planTier === tier ? "primary" : "secondary"} aria-pressed={client.planTier === tier}>
+                  {PLAN_TIER_LABEL[tier]}
+                </Button>
+              ))}
+            </form>
           </div>
+          <StatRows rows={credits} />
+        </SectionCard>
 
-          <div className="flex flex-col gap-3">
-            <SectionLabel>Account lead</SectionLabel>
-            <Card className="flex items-center gap-3 p-5">
-              {client.accountLead && (
-                <>
-                  <PersonAvatar name={client.accountLead.user.name} />
-                  <div>
-                    <p className="text-sm font-medium">{client.accountLead.user.name}</p>
-                    <p className="text-xs text-muted-foreground">{client.accountLead.user.email}</p>
-                  </div>
-                </>
-              )}
-            </Card>
-          </div>
-        </div>
+        <SectionCard title="Account lead">
+          {client.accountLead ? (
+            <div className="flex items-center gap-3 px-6 py-5">
+              <Avatar name={client.accountLead.user.name} size={40} />
+              <div className="flex min-w-0 flex-col gap-0.5">
+                <span className="text-[15px]">{client.accountLead.user.name}</span>
+                <span className="truncate text-[13px] text-brand-ink-2">{client.accountLead.user.email}</span>
+              </div>
+            </div>
+          ) : (
+            <CardNote>No account lead assigned yet.</CardNote>
+          )}
+        </SectionCard>
+      </div>
 
-        <div className="flex flex-col gap-3">
-          <SectionLabel>Client onboarding</SectionLabel>
-          <Card className="flex items-center justify-between p-5">
-            <p className="text-sm text-muted-foreground">
-              {client.onboardingCompletedAt
-                ? `Client completed their onboarding wizard on ${formatDate(client.onboardingCompletedAt)}.`
-                : "Client hasn't completed the onboarding wizard yet — they'll see it on next sign-in."}
-            </p>
-            <Badge tone={client.onboardingCompletedAt ? "success" : "warning"}>
-              {client.onboardingCompletedAt ? "Complete" : "Pending"}
-            </Badge>
-          </Card>
-        </div>
+      <SectionCard
+        title="Client onboarding"
+        meta={<StatusPill tone={client.onboardingCompletedAt ? "success" : "watch"}>{client.onboardingCompletedAt ? "Complete" : "Pending"}</StatusPill>}
+      >
+        <CardNote>
+          {client.onboardingCompletedAt
+            ? `Client completed their onboarding wizard on ${formatDate(client.onboardingCompletedAt)}.`
+            : "Client hasn't completed the onboarding wizard yet. They'll see it on next sign-in."}
+        </CardNote>
+      </SectionCard>
 
-        <div className="flex flex-col gap-3">
-          <SectionLabel>Client-side seats</SectionLabel>
-          <Card className="divide-y divide-border p-0">
+      <SectionCard title="Client-side seats" meta={count(client.users.length)}>
+        {client.users.length === 0 ? (
+          <CardNote>No client-side users yet.</CardNote>
+        ) : (
+          <CardRows>
             {client.users.map((u) => (
-              <div key={u.id} className="flex items-center justify-between px-5 py-3.5">
-                <div className="flex items-center gap-3">
-                  <PersonAvatar name={u.user.name} size="sm" />
-                  <div>
-                    <p className="text-sm font-medium">{u.user.name}</p>
-                    <p className="text-xs text-muted-foreground">{u.user.email}</p>
-                  </div>
+              <li key={u.id} className="flex items-center gap-3 px-6 py-4">
+                <Avatar name={u.user.name} size={32} />
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="text-[15px]">{u.user.name}</span>
+                  <span className="truncate text-[13px] text-brand-ink-2">{u.user.email}</span>
                 </div>
-                <Badge tone="neutral">{CLIENT_PERMISSION_LABEL[u.permission]}</Badge>
-              </div>
+                <StatusPill>{CLIENT_PERMISSION_LABEL[u.permission]}</StatusPill>
+              </li>
             ))}
-          </Card>
-        </div>
+          </CardRows>
+        )}
+      </SectionCard>
 
-        <div className="flex flex-col gap-3">
-          <SectionLabel>Recent invoices</SectionLabel>
-          <Card className="divide-y divide-border p-0">
+      <SectionCard title="Recent invoices" meta={client.invoices.length > 0 ? count(client.invoices.length) : undefined}>
+        {client.invoices.length === 0 ? (
+          <CardNote>No invoices issued to this client yet.</CardNote>
+        ) : (
+          <CardRows>
             {client.invoices.map((inv) => (
-              <div key={inv.id} className="flex items-center justify-between px-5 py-3.5 text-sm">
-                <span className="font-medium">{inv.number}</span>
-                <span className="text-muted-foreground">
+              <li key={inv.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 px-6 py-4 text-[14px]">
+                <span className="min-w-0 flex-1 font-brand-mono text-[12px]">{inv.number}</span>
+                <span className="tabular-nums text-brand-ink-2">
                   {inv.currency} {inv.amount.toLocaleString()}
                 </span>
-                <Badge tone="neutral">{inv.status}</Badge>
-              </div>
+                <StatusPill tone={INVOICE[inv.status]?.tone}>{INVOICE[inv.status]?.label ?? inv.status}</StatusPill>
+              </li>
             ))}
-          </Card>
-        </div>
+          </CardRows>
+        )}
+      </SectionCard>
 
-        <div className="flex flex-col gap-3">
-          <SectionLabel>Account actions</SectionLabel>
-          <Card className="flex items-center justify-between gap-4 p-5">
-            <p className="text-sm text-muted-foreground">
-              Pausing pauses new production; offboarding archives the account permanently.
-            </p>
-            <div className="flex gap-2">
-              <form action={client.status === "PAUSED" ? reactivateClientAction : pauseClientAction}>
-                <input type="hidden" name="clientId" value={clientId} />
-                <Button type="submit" variant="secondary">
-                  {client.status === "PAUSED" ? "Reactivate" : "Pause account"}
-                </Button>
-              </form>
-              <form action={offboardClientAction}>
-                <input type="hidden" name="clientId" value={clientId} />
-                <Button type="submit" variant="destructive">
-                  Offboard
-                </Button>
-              </form>
-            </div>
-          </Card>
+      <SectionCard title="Account actions">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-3 px-6 py-5">
+          <p className="m-0 min-w-0 flex-1 basis-[260px] text-[14px] leading-[1.5] text-brand-ink-2">
+            Pausing pauses new production; offboarding archives the account permanently.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <form action={client.status === "PAUSED" ? reactivateClientAction : pauseClientAction}>
+              <input type="hidden" name="clientId" value={clientId} />
+              <Button type="submit" variant="secondary">
+                {client.status === "PAUSED" ? "Reactivate" : "Pause account"}
+              </Button>
+            </form>
+            <form action={offboardClientAction}>
+              <input type="hidden" name="clientId" value={clientId} />
+              <Button type="submit" variant="secondary" className="text-ds-danger-text hover:border-ds-danger-text">
+                Offboard
+              </Button>
+            </form>
+          </div>
         </div>
-      </div>
+      </SectionCard>
     </>
   );
 }

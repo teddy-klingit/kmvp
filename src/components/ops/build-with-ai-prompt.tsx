@@ -2,10 +2,9 @@
 
 import { useState } from "react";
 import { Check, Copy, ChevronDown, ChevronUp } from "lucide-react";
-import { Card } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ds/card";
+import { Button } from "@/components/ds/button";
+import { Field, textareaClass } from "@/components/ops/form-field";
 
 function buildPrompt(idea: string) {
   const description = idea.trim() || "[Describe the app you want.]";
@@ -29,33 +28,39 @@ export function BuildWithAiPrompt() {
   const [copied, setCopied] = useState(false);
 
   return (
-    <Card className="p-5">
-      <button type="button" onClick={() => setOpen((o) => !o)} className="flex w-full items-center justify-between text-left">
-        <div>
-          <p className="text-sm font-medium">Build with AI</p>
-          <p className="text-xs text-muted-foreground">Not built yet? Get a prompt to hand to a coding agent, then register the result below.</p>
-        </div>
-        {open ? <ChevronUp className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
+    <Card>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="flex w-full items-center gap-4 rounded-[12px] px-6 py-5 text-left hover:bg-brand-chip/60"
+      >
+        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="text-[18px] font-normal leading-[1.45] text-brand-ink">Build with AI</span>
+          <span className="text-[13px] text-brand-ink-2">Not built yet? Get a prompt to hand to a coding agent, then register the result below.</span>
+        </span>
+        {open ? <ChevronUp className="size-4 shrink-0 text-brand-ink-2" strokeWidth={1.75} /> : <ChevronDown className="size-4 shrink-0 text-brand-ink-2" strokeWidth={1.75} />}
       </button>
 
       {open && (
-        <div className="mt-4 flex flex-col gap-3 border-t border-border pt-4">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="app-idea">Describe the app you want</Label>
-            <Textarea
+        <div className="flex flex-col gap-4 border-t border-brand-line px-6 pb-6 pt-5">
+          <Field label="Describe the app you want" htmlFor="app-idea">
+            <textarea
               id="app-idea"
               value={idea}
               onChange={(e) => setIdea(e.target.value)}
               placeholder="e.g. A dashboard that shows this client's weekly content calendar and flags overdue deliverables."
               rows={3}
+              className={textareaClass}
             />
-          </div>
-          <div className="rounded-lg border border-border bg-paper p-3">
-            <pre className="whitespace-pre-wrap text-xs text-muted-foreground">{buildPrompt(idea)}</pre>
+          </Field>
+          <div className="rounded-[8px] bg-brand-chip p-4">
+            <pre className="m-0 whitespace-pre-wrap font-brand-mono text-[12px] leading-[1.6] text-brand-ink-2">{buildPrompt(idea)}</pre>
           </div>
           <Button
             type="button"
             variant="secondary"
+            className="self-start"
             onClick={async () => {
               await navigator.clipboard.writeText(buildPrompt(idea));
               setCopied(true);
@@ -72,7 +77,7 @@ export function BuildWithAiPrompt() {
               </>
             )}
           </Button>
-          <p className="text-xs text-muted-foreground">
+          <p className="m-0 text-[13px] leading-[1.5] text-brand-ink-2">
             Paste this into a terminal-capable coding agent. Once it&apos;s built and hosted, come back and publish it to this
             client below with its real URL.
           </p>

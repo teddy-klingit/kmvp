@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { Sparkles } from "lucide-react";
+import { ChevronRight, Sparkles } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
-import { Card, SectionLabel } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { SectionCard, CardNote, CardRows } from "@/components/ds/card";
+import { StatusPill } from "@/components/ds/status-pill";
+import { PageGrid } from "@/components/ds/page-grid";
+import { pillClass } from "@/components/ds/button";
 import { formatDate } from "@/lib/utils";
 import { requestAgentBuildAction } from "@/lib/actions/agent-request-actions";
 
@@ -37,88 +38,85 @@ export default async function AgentsTemplatesPage() {
   const agents = Array.from(byAgent.values());
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-3">
-        <div>
-          <h2 className="text-lg font-semibold">Use an agent yourself</h2>
-          <p className="text-sm text-muted-foreground">These agents are ready for you to run directly — no account manager needed. Each one already knows your brand.</p>
-        </div>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {selfServiceAgents.map((agent) => (
-            <Link key={agent.id} href={`/assets/agents-templates/agent/${agent.id}`}>
-              <Card className="flex h-full flex-col gap-3 p-4 transition-colors hover:border-ink/30">
-                <div className="flex items-center justify-between">
-                  <span className="flex size-8 items-center justify-center rounded-full bg-accent-soft text-ink">
-                    <Sparkles className="size-4" />
-                  </span>
-                  <Badge tone="accent">Self-service</Badge>
-                </div>
-                <div>
-                  <p className="text-sm font-semibold">{agent.name}</p>
-                  <p className="text-sm text-muted-foreground">{agent.description}</p>
-                </div>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      </div>
+    <PageGrid
+      main={
+        <>
+          {selfServiceAgents.length > 0 && (
+            <SectionCard title="Use an agent yourself" action={<span className="font-brand-mono text-[12px] text-brand-ink-2">{selfServiceAgents.length} READY</span>}>
+              <p className="m-0 px-6 pt-4 text-[13px] leading-[1.5] text-brand-ink-2">Run these directly, no account manager needed. Each one already knows your brand.</p>
+              <CardRows className="pt-1">
+                {selfServiceAgents.map((agent) => (
+                  <li key={agent.id}>
+                    <Link href={`/assets/agents-templates/agent/${agent.id}`} className="flex items-center gap-3 px-6 py-4 text-brand-ink no-underline transition-colors hover:bg-brand-chip">
+                      <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-lime text-brand-ink">
+                        <Sparkles className="size-4" strokeWidth={1.75} />
+                      </span>
+                      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                        <span className="text-[15px]">{agent.name}</span>
+                        {agent.description && <span className="text-[13px] leading-[1.5] text-brand-ink-2">{agent.description}</span>}
+                      </span>
+                      <StatusPill>Self-service</StatusPill>
+                      <ChevronRight className="size-4 shrink-0 text-brand-ink-2" strokeWidth={1.75} />
+                    </Link>
+                  </li>
+                ))}
+              </CardRows>
+            </SectionCard>
+          )}
 
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold">Your agents ({agents.length})</h2>
-          <p className="text-sm text-muted-foreground">Custom-built for your brand — each agent learns from your brand OS and past projects.</p>
-        </div>
-      </div>
-
-      {agents.length === 0 ? (
-        <Card className="p-6">
-          <p className="text-sm text-muted-foreground">No agent activity recorded for your account yet.</p>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {agents.map(({ agent, count, lastRun }) => (
-            <Link key={agent.id} href={`/assets/agents-templates/agent/${agent.id}`}>
-              <Card className="flex h-full flex-col gap-3 p-4 transition-colors hover:border-ink/30">
-                <div className="flex items-center justify-between">
-                  <span className="flex size-8 items-center justify-center rounded-full bg-accent-soft text-xs font-semibold text-ink">
-                    {agent.name.slice(0, 2).toUpperCase()}
-                  </span>
-                  <Badge tone="success">Live</Badge>
+          <SectionCard title="Your agents" meta={agents.length > 0 ? <span className="font-brand-mono text-[12px] text-brand-ink-2">{agents.length}</span> : undefined}>
+            {agents.length === 0 ? (
+              <CardNote>No agent activity recorded for your account yet.</CardNote>
+            ) : (
+              <>
+                <p className="m-0 px-6 pt-4 text-[13px] leading-[1.5] text-brand-ink-2">Custom-built for your brand. Each agent learns from your Brand OS and past projects.</p>
+                <CardRows className="pt-1">
+                  {agents.map(({ agent, count, lastRun }) => (
+                    <li key={agent.id}>
+                      <Link href={`/assets/agents-templates/agent/${agent.id}`} className="flex items-center gap-3 px-6 py-4 text-brand-ink no-underline transition-colors hover:bg-brand-chip">
+                        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-brand-chip font-brand-mono text-[11px] text-brand-ink">
+                          {agent.name.slice(0, 2).toUpperCase()}
+                        </span>
+                        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                          <span className="text-[15px]">{agent.name}</span>
+                          {agent.description && <span className="text-[13px] leading-[1.5] text-brand-ink-2">{agent.description}</span>}
+                          <span className="font-brand-mono text-[11px] text-brand-ink-2">
+                            USED {count}× · {formatDate(lastRun).toUpperCase()}
+                          </span>
+                        </span>
+                        <StatusPill tone="success">Live</StatusPill>
+                        <ChevronRight className="size-4 shrink-0 text-brand-ink-2" strokeWidth={1.75} />
+                      </Link>
+                    </li>
+                  ))}
+                </CardRows>
+              </>
+            )}
+          </SectionCard>
+        </>
+      }
+      side={
+        <SectionCard title="Klingit recommends">
+          <p className="m-0 px-6 pt-4 text-[13px] leading-[1.5] text-brand-ink-2">Based on your projects and brand, your account lead suggests building these next.</p>
+          <CardRows className="pt-1">
+            {SUGGESTIONS.map((s) => (
+              <li key={s.name} className="flex flex-col gap-2 px-6 py-4">
+                <span className="text-[15px] text-brand-ink">{s.name}</span>
+                <span className="text-[13px] leading-[1.5] text-brand-ink-2">{s.detail}</span>
+                <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
+                  <StatusPill tone="success">{s.tag}</StatusPill>
+                  <form action={requestAgentBuildAction}>
+                    <input type="hidden" name="name" value={s.name} />
+                    <button type="submit" className={pillClass("secondary", "sm")}>
+                      Request build
+                    </button>
+                  </form>
                 </div>
-                <div>
-                  <p className="text-sm font-semibold">{agent.name}</p>
-                  <p className="text-sm text-muted-foreground">{agent.description}</p>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Used {count}× · {formatDate(lastRun)}
-                </p>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      )}
-
-      <div className="flex flex-col gap-3 rounded-2xl bg-fade-purple-green p-5">
-        <SectionLabel>Klingit recommends</SectionLabel>
-        <p className="-mt-2 text-sm text-ink">Based on your projects and brand, your account lead suggests building these next.</p>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {SUGGESTIONS.map((s) => (
-            <Card key={s.name} className="flex flex-col gap-2 p-4">
-              <p className="text-sm font-semibold">{s.name}</p>
-              <p className="text-sm text-muted-foreground">{s.detail}</p>
-              <div className="mt-1 flex items-center justify-between">
-                <Badge tone="success">{s.tag}</Badge>
-                <form action={requestAgentBuildAction}>
-                  <input type="hidden" name="name" value={s.name} />
-                  <Button type="submit" size="sm" variant="secondary">
-                    Request build
-                  </Button>
-                </form>
-              </div>
-            </Card>
-          ))}
-        </div>
-      </div>
-    </div>
+              </li>
+            ))}
+          </CardRows>
+        </SectionCard>
+      }
+    />
   );
 }

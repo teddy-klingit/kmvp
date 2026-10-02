@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
-import { Card, SectionLabel } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { KpiTile } from "@/components/portal/kpi-tile";
+import { Card, SectionCard, CardRows, CardNote } from "@/components/ds/card";
+import { Button } from "@/components/ds/button";
+import { StatusPill } from "@/components/ds/status-pill";
+import { StatTiles, type Stat } from "@/components/ds/stats";
+import { FilterChips } from "@/components/ds/filter-chips";
+import { PageGrid } from "@/components/ds/page-grid";
+import { monoLink } from "@/components/ds/pill-link";
 import { PlatformBadge } from "@/components/portal/platform-icon";
 import { CampaignDetailDialog } from "@/components/portal/campaign-detail-dialog";
 import { PostDetailDialog } from "@/components/portal/post-detail-dialog";
@@ -15,8 +18,8 @@ import { saveReportAction, deleteSavedReportAction } from "@/lib/actions/report-
 import { DATE_RANGE_PRESETS, resolveDateRange, previousPeriod, pctChange, filtersToQueryString, type ReportFilters } from "@/lib/report-filters";
 import { campaignMetricsForRange } from "@/lib/campaign-history";
 import { sampleImageUrl } from "@/lib/sample-image";
-import { cn, formatDate, formatMoney } from "@/lib/utils";
-import { Trash2, X, Users, Heart, LayoutGrid, Video as VideoIcon, DollarSign, Eye, Target, Percent, TrendingUp, TrendingDown, Lightbulb } from "lucide-react";
+import { formatDate, formatMoney } from "@/lib/utils";
+import { Trash2, TrendingUp, TrendingDown, Lightbulb } from "lucide-react";
 
 function average(values: number[]) {
   if (!values.length) return null;
@@ -179,249 +182,245 @@ export default async function CustomReportPage({
   if (followerGrowthDelta !== null && followerGrowthDelta > 0) actions.push("Follower growth is accelerating — this is the moment to lean into whatever format is driving it.");
   if (actions.length === 0) actions.push("No red flags this period — stay the course and revisit this report next cycle.");
 
+  // Only metrics with data become tiles: no "—", no $0 / 0-conversion placeholders.
+  const vsPrev = (pct: number | null) => (pct !== null ? { pct, vs: "previous period" } : null);
+  const contentTiles: Stat[] = [
+    ...(current.blendedFollowerGrowthPct !== null
+      ? [{ label: "Follower growth", value: `${current.blendedFollowerGrowthPct >= 0 ? "+" : ""}${current.blendedFollowerGrowthPct}%`, change: vsPrev(followerGrowthDelta) }]
+      : []),
+    ...(current.avgEngagementRate !== null ? [{ label: "Avg. engagement rate", value: `${current.avgEngagementRate}%`, change: vsPrev(engagementDelta) }] : []),
+    ...(current.contentVolume > 0 ? [{ label: "Content published", value: String(current.contentVolume), change: vsPrev(contentVolumeDelta) }] : []),
+    ...(current.avgVideoViews !== null ? [{ label: "Avg. video views", value: Math.round(current.avgVideoViews).toLocaleString("en-GB"), change: vsPrev(videoViewsDelta) }] : []),
+  ];
+  const paidTiles: Stat[] = [
+    ...(summary.spend > 0 ? [{ label: "Spend", value: formatMoney(summary.spend, "USD"), change: vsPrev(spendDelta) }] : []),
+    ...(summary.impressions > 0 ? [{ label: "Impressions", value: summary.impressions.toLocaleString(), change: vsPrev(pctChange(summary.impressions, prevSummary.impressions)) }] : []),
+    ...(summary.conversions > 0 ? [{ label: "Conversions", value: String(summary.conversions), change: vsPrev(conversionsDelta) }] : []),
+    ...(summary.impressions > 0 ? [{ label: "Blended CTR", value: `${blendedCtr}%`, change: vsPrev(ctrDelta) }] : []),
+  ];
+
+  const presetActive = (key: string) => (filters.preset ?? "30d") === key && !filters.from;
+  const filterRows = [
+    {
+      label: "Date range",
+      chips: DATE_RANGE_PRESETS.map((p) => ({ label: p.label, href: qs({ preset: p.key }), active: presetActive(p.key) })),
+    },
+    {
+      label: "Platform",
+      chips: [{ label: "All", href: qs({ platform: undefined }), active: !filters.platform }, ...platforms.map((p) => ({ label: p, href: qs({ platform: p }), active: filters.platform === p }))],
+    },
+    ...(contentTypes.length > 0
+      ? [
+          {
+            label: "Content type",
+            chips: [{ label: "All", href: qs({ contentType: undefined }), active: !filters.contentType }, ...contentTypes.map((ct) => ({ label: ct, href: qs({ contentType: ct }), active: filters.contentType === ct }))],
+          },
+        ]
+      : []),
+  ];
+  const rangeMeta = <span className="text-[13px] text-brand-ink-2">{range.label}</span>;
+
   return (
     <div className="flex flex-col gap-6 print:gap-4">
       {/* The Reports header (layout) holds Send to; print stays with the builder. */}
-      <div className="flex items-center justify-between gap-3 print:hidden">
+      <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
         <span className="font-brand-mono text-[12px] text-brand-ink-2">CUSTOM REPORT · {range.label.toUpperCase()}</span>
         <PrintButton />
       </div>
 
       {sp.sent === "1" && (
-        <Card className="flex items-center gap-2 border-l-4 border-l-success p-3 text-sm print:hidden">
-          <p>Sent — your team will find it in the channel you picked.</p>
+        <Card tone="muted" className="px-6 py-4 text-[14px] print:hidden">
+          Sent. Your team will find it in the channel you picked.
         </Card>
       )}
       {sp.saved === "1" && (
-        <Card className="flex items-center justify-between border-l-4 border-l-success p-3 text-sm print:hidden">
-          <p>Saved — you&apos;ll find it in &quot;My saved reports&quot; below.</p>
+        <Card tone="muted" className="px-6 py-4 text-[14px] print:hidden">
+          Saved. You&apos;ll find it in &quot;My saved reports&quot; below.
         </Card>
       )}
 
-      <Card className="flex flex-col gap-3 p-4 print:hidden">
-        <div>
-          <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Date range</p>
-          <div className="flex flex-wrap items-center gap-1.5 rounded-full border border-border bg-card p-0.5 w-fit">
-            {DATE_RANGE_PRESETS.map((p) => (
-              <Link
-                key={p.key}
-                href={qs({ preset: p.key })}
-                className={cn(
-                  "rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
-                  (filters.preset ?? "30d") === p.key && !filters.from ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {p.label}
-              </Link>
-            ))}
-          </div>
-        </div>
-        <div>
-          <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Platform</p>
-          <div className="flex flex-wrap items-center gap-1.5 rounded-full border border-border bg-card p-0.5 w-fit">
-            <Link href={qs({ platform: undefined })} className={cn("rounded-full px-3 py-1.5 text-xs font-medium transition-colors", !filters.platform ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>
-              All
+      <SectionCard
+        title="Filters"
+        className="print:hidden"
+        action={
+          (filters.platform || filters.contentType || filters.preset) && (
+            <Link href="/reports/custom" className={monoLink}>
+              CLEAR ALL FILTERS
             </Link>
-            {platforms.map((p) => (
-              <Link key={p} href={qs({ platform: p })} className={cn("flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors", filters.platform === p ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>
-                <PlatformBadge platform={p} className="size-4" />
-                {p}
-              </Link>
-            ))}
-          </div>
-        </div>
-        {contentTypes.length > 0 && (
-          <div>
-            <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Content type</p>
-            <div className="flex flex-wrap items-center gap-1.5 rounded-full border border-border bg-card p-0.5 w-fit">
-              <Link href={qs({ contentType: undefined })} className={cn("rounded-full px-3 py-1.5 text-xs font-medium transition-colors", !filters.contentType ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>
-                All
-              </Link>
-              {contentTypes.map((ct) => (
-                <Link key={ct} href={qs({ contentType: ct })} className={cn("rounded-full px-3 py-1.5 text-xs font-medium transition-colors", filters.contentType === ct ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>
-                  {ct}
-                </Link>
-              ))}
+          )
+        }
+      >
+        <div className="flex flex-col gap-4 px-6 py-5">
+          {filterRows.map((row) => (
+            <div key={row.label} className="flex flex-col gap-2">
+              <span className="font-brand-mono text-[11px] uppercase text-brand-ink-2">{row.label}</span>
+              <FilterChips label={row.label} items={row.chips} />
             </div>
-          </div>
-        )}
-        {(filters.platform || filters.contentType || filters.preset) && (
-          <Link href="/reports/custom" className="flex w-fit items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-            <X className="size-3" />
-            Clear all filters
-          </Link>
-        )}
-      </Card>
+          ))}
+        </div>
+      </SectionCard>
 
       <div className="hidden flex-col gap-1 print:flex">
-        <h1 className="font-display text-xl font-light">{viewer.client.name} — Custom report</h1>
-        <p className="text-sm text-muted-foreground">
+        <h1 className="m-0 text-[24px] font-light">{viewer.client.name} — Custom report</h1>
+        <p className="m-0 text-[13px] text-brand-ink-2">
           {range.label} · {filters.platform ?? "All platforms"} · {filters.contentType ?? "All content types"} — vs. {formatDate(prevRange.from)}–{formatDate(prevRange.to)}
         </p>
       </div>
 
-      <SectionLabel>How it&apos;s gone — {range.label}, vs. the equivalent period before</SectionLabel>
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 print:grid-cols-4">
-        <KpiTile icon={Users} label="Follower growth" value={current.blendedFollowerGrowthPct !== null ? `${current.blendedFollowerGrowthPct >= 0 ? "+" : ""}${current.blendedFollowerGrowthPct}%` : "—"} delta={followerGrowthDelta} sublabel="vs. previous period" />
-        <KpiTile icon={Heart} label="Avg. engagement rate" value={current.avgEngagementRate !== null ? `${current.avgEngagementRate}%` : "—"} delta={engagementDelta} sublabel="vs. previous period" />
-        <KpiTile icon={LayoutGrid} label="Content published" value={String(current.contentVolume)} delta={contentVolumeDelta} sublabel="vs. previous period" />
-        <KpiTile icon={VideoIcon} label="Avg. video views" value={current.avgVideoViews !== null ? current.avgVideoViews.toLocaleString() : "—"} delta={videoViewsDelta} sublabel="vs. previous period" />
-      </div>
+      <SectionCard title="How it's gone" meta={<span className="text-[13px] text-brand-ink-2">{range.label}, vs. the equivalent period before</span>}>
+        {contentTiles.length > 0 ? <StatTiles tiles={contentTiles} /> : <CardNote>Nothing published in {range.label.toLowerCase()} yet.</CardNote>}
+      </SectionCard>
 
       {campaignData.campaigns.length > 0 && (
-        <div className="flex flex-col gap-3">
-          <SectionLabel>Paid campaign performance — {range.label}</SectionLabel>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 print:grid-cols-4">
-            <KpiTile icon={DollarSign} label="Spend" value={formatMoney(summary.spend, "USD")} delta={spendDelta} sublabel="vs. previous period" />
-            <KpiTile icon={Eye} label="Impressions" value={summary.impressions.toLocaleString()} delta={pctChange(summary.impressions, prevSummary.impressions)} sublabel="vs. previous period" />
-            <KpiTile icon={Target} label="Conversions" value={String(summary.conversions)} delta={conversionsDelta} sublabel="vs. previous period" />
-            <KpiTile icon={Percent} label="Blended CTR" value={`${blendedCtr}%`} delta={ctrDelta} sublabel="vs. previous period" />
-          </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 print:grid-cols-2">
+        <SectionCard title="Paid campaigns" meta={rangeMeta}>
+          {paidTiles.length > 0 && <StatTiles tiles={paidTiles} className="border-b border-brand-line" />}
+          <div className="grid grid-cols-1 gap-3 px-6 py-5 sm:grid-cols-2 print:grid-cols-2">
             {campaignData.campaigns.map((c) => (
               <CampaignDetailDialog key={c.campaignId} campaign={c} isStrong={false} isWeak={false} avgCtr={avgCampaignCtr} avgCostPerConversion={avgCampaignCost} />
             ))}
           </div>
-        </div>
+        </SectionCard>
       )}
       {campaignData.campaigns.length === 0 && !filters.contentType && paidInScope && (
-        <Card className="p-4">
-          <p className="text-sm text-muted-foreground">No paid-campaign history recorded for {range.label.toLowerCase()} yet.</p>
-        </Card>
+        <SectionCard title="Paid campaigns" meta={rangeMeta}>
+          <CardNote>No paid-campaign history recorded for {range.label.toLowerCase()} yet.</CardNote>
+        </SectionCard>
       )}
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 print:grid-cols-2">
-        <div className="flex flex-col gap-3">
-          <SectionLabel>Insights &amp; trends</SectionLabel>
-          <Card className="flex flex-col gap-2.5 p-4">
-            {trendLines.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Not enough history yet to compare against a previous period.</p>
-            ) : (
-              trendLines.map((line, i) => (
-                <div key={i} className="flex items-start gap-2 text-sm">
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2 print:grid-cols-2 print:gap-4">
+        <SectionCard title="Insights & trends">
+          {trendLines.length === 0 ? (
+            <CardNote>Not enough history yet to compare against a previous period.</CardNote>
+          ) : (
+            <CardRows>
+              {trendLines.map((line, i) => (
+                <li key={i} className="flex items-start gap-3 px-6 py-3.5 text-[14px]">
                   {line.includes("up") || line.includes("increased") || line.includes("accelerated") ? (
-                    <TrendingUp className="mt-0.5 size-3.5 shrink-0 text-success-foreground" />
+                    <TrendingUp className="mt-0.5 size-4 shrink-0 text-ds-success-text" strokeWidth={1.75} />
                   ) : (
-                    <TrendingDown className="mt-0.5 size-3.5 shrink-0 text-ink" />
+                    <TrendingDown className="mt-0.5 size-4 shrink-0 text-brand-ink" strokeWidth={1.75} />
                   )}
-                  <p className="text-muted-foreground">{line}</p>
-                </div>
-              ))
-            )}
-            {brief?.summary && <p className="mt-1 border-t border-border pt-2.5 text-sm text-muted-foreground">{brief.summary}</p>}
-          </Card>
-        </div>
-        <div className="flex flex-col gap-3">
-          <SectionLabel>Actions</SectionLabel>
-          <Card className="flex flex-col gap-2.5 p-4">
+                  <span className="text-brand-ink-2">{line}</span>
+                </li>
+              ))}
+            </CardRows>
+          )}
+          {brief?.summary && <p className="m-0 border-t border-brand-line px-6 py-4 text-[14px] text-brand-ink-2">{brief.summary}</p>}
+        </SectionCard>
+        <SectionCard title="Actions">
+          <CardRows>
             {actions.map((a, i) => (
-              <div key={i} className="flex items-start gap-2 text-sm">
-                <Lightbulb className="mt-0.5 size-3.5 shrink-0 text-ink" />
-                <p className="text-muted-foreground">{a}</p>
-              </div>
+              <li key={i} className="flex items-start gap-3 px-6 py-3.5 text-[14px]">
+                <Lightbulb className="mt-0.5 size-4 shrink-0 text-brand-ink" strokeWidth={1.75} />
+                <span className="text-brand-ink-2">{a}</span>
+              </li>
             ))}
-          </Card>
-        </div>
+          </CardRows>
+        </SectionCard>
       </div>
 
       {followerChartData.length > 1 && (
-        <div className="flex flex-col gap-3">
-          <SectionLabel>Follower growth — {range.label}</SectionLabel>
-          <Card className="p-5">
+        <SectionCard title="Follower growth" meta={rangeMeta}>
+          <div className="px-6 py-5">
             <FollowerGrowthChart data={followerChartData} platforms={followerGrowth.map((f) => f.platform)} />
-          </Card>
-        </div>
+          </div>
+        </SectionCard>
       )}
 
       {outcomesInRange.length > 0 && (
-        <div className="flex flex-col gap-3">
-          <SectionLabel>Business outcomes — {range.label}</SectionLabel>
-          <Card className="p-5">
+        <SectionCard title="Business outcomes" meta={rangeMeta}>
+          <div className="px-6 py-5">
             <DiscreteMetricBars
               data={outcomesInRange.map((o) => ({ period: formatDate(o.periodStart, { month: "short", day: "2-digit" }), value: hasRevenue ? (o.revenue ?? 0) : (o.leadsGenerated ?? 0) }))}
               label={hasRevenue ? "Revenue" : "Leads"}
             />
-          </Card>
-        </div>
+          </div>
+        </SectionCard>
       )}
 
-      <div className="flex flex-col gap-3">
-        <SectionLabel>Content in range ({postsInRange.length})</SectionLabel>
-        {postsInRange.length === 0 ? (
-          <Card className="p-5">
-            <p className="text-sm text-muted-foreground">No content matches this filter selection.</p>
-          </Card>
-        ) : (
-          <Card className="divide-y divide-border p-0">
-            {postsInRange.slice(0, 20).map((p) => (
-              <PostDetailDialog key={p.id} post={p}>
-                <div className="flex cursor-pointer items-center gap-3 px-5 py-3.5 text-sm transition-colors hover:bg-muted/40 print:cursor-default">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={sampleImageUrl(p.id)} alt="" className="size-11 shrink-0 rounded-lg object-cover" />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">{p.title}</p>
-                    <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <PlatformBadge platform={p.platform} className="size-3.5" />
-                      {p.platform}
-                      {p.contentType ? ` · ${p.contentType}` : ""}
-                    </p>
-                  </div>
-                  <Badge tone={p.status === "PUBLISHED" ? "success" : "neutral"}>{p.status === "PUBLISHED" ? "Published" : "Scheduled"}</Badge>
-                  <span className="shrink-0 text-xs text-muted-foreground">{formatDate(p.publishedDate ?? p.scheduledDate ?? p.createdAt)}</span>
-                </div>
-              </PostDetailDialog>
-            ))}
-          </Card>
-        )}
-      </div>
+      <PageGrid
+        main={
+          <SectionCard title="Content in range" meta={<span className="font-brand-mono text-[12px] text-brand-ink-2">{postsInRange.length}</span>}>
+            {postsInRange.length === 0 ? (
+              <CardNote>No content matches this filter selection.</CardNote>
+            ) : (
+              <CardRows as="div">
+                {postsInRange.slice(0, 20).map((p) => (
+                  <PostDetailDialog key={p.id} post={p}>
+                    <div className="flex cursor-pointer items-center gap-3 px-6 py-3.5 transition-colors hover:bg-brand-chip print:cursor-default">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={sampleImageUrl(p.id)} alt="" className="size-11 shrink-0 rounded-[8px] object-cover" />
+                      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                        <span className="truncate text-[15px]">{p.title}</span>
+                        <span className="flex items-center gap-1 text-[13px] text-brand-ink-2">
+                          <PlatformBadge platform={p.platform} className="size-3.5" />
+                          {p.platform}
+                          {p.contentType ? ` · ${p.contentType}` : ""}
+                          <span className="sm:hidden print:hidden"> · {formatDate(p.publishedDate ?? p.scheduledDate ?? p.createdAt)}</span>
+                        </span>
+                      </div>
+                      <StatusPill tone={p.status === "PUBLISHED" ? "success" : "neutral"}>{p.status === "PUBLISHED" ? "Published" : "Scheduled"}</StatusPill>
+                      <span className="hidden shrink-0 font-brand-mono text-[11px] text-brand-ink-2 sm:inline print:inline">{formatDate(p.publishedDate ?? p.scheduledDate ?? p.createdAt)}</span>
+                    </div>
+                  </PostDetailDialog>
+                ))}
+              </CardRows>
+            )}
+          </SectionCard>
+        }
+        side={
+          <>
+            <SectionCard title="Save this report" className="print:hidden">
+              <form action={saveReportAction} className="flex flex-col gap-3 px-6 py-5">
+                <input type="hidden" name="preset" value={filters.preset ?? ""} />
+                <input type="hidden" name="from" value={filters.from ?? ""} />
+                <input type="hidden" name="to" value={filters.to ?? ""} />
+                <input type="hidden" name="platform" value={filters.platform ?? ""} />
+                <input type="hidden" name="contentType" value={filters.contentType ?? ""} />
+                <input
+                  type="text"
+                  name="name"
+                  required
+                  aria-label="Report name"
+                  placeholder={`e.g. "${filters.platform ?? "All"} — ${range.label}"`}
+                  className="h-11 w-full rounded-[8px] border border-brand-outline bg-white px-3 text-[14px] outline-none placeholder:text-brand-ink-2 focus:border-brand-ink sm:h-9"
+                />
+                <Button type="submit" variant="primary" size="sm" className="self-start">
+                  Save
+                </Button>
+              </form>
+            </SectionCard>
 
-      <Card className="flex flex-col gap-3 p-4 print:hidden">
-        <SectionLabel>Save this report</SectionLabel>
-        <form action={saveReportAction} className="flex flex-wrap items-center gap-2">
-          <input type="hidden" name="preset" value={filters.preset ?? ""} />
-          <input type="hidden" name="from" value={filters.from ?? ""} />
-          <input type="hidden" name="to" value={filters.to ?? ""} />
-          <input type="hidden" name="platform" value={filters.platform ?? ""} />
-          <input type="hidden" name="contentType" value={filters.contentType ?? ""} />
-          <input
-            type="text"
-            name="name"
-            required
-            placeholder={`e.g. "${filters.platform ?? "All"} — ${range.label}"`}
-            className="h-9 min-w-[240px] flex-1 rounded-md border border-border bg-card px-3 text-sm outline-none focus:border-accent"
-          />
-          <Button type="submit" size="sm">Save</Button>
-        </form>
-      </Card>
-
-      {savedReports.length > 0 && (
-        <div className="flex flex-col gap-3 print:hidden">
-          <SectionLabel>My saved reports</SectionLabel>
-          <Card className="divide-y divide-border p-0">
-            {savedReports.map((r) => {
-              const f = r.filters as ReportFilters;
-              return (
-                <div key={r.id} className="flex items-center justify-between gap-3 px-5 py-3 text-sm">
-                  <Link href={`/reports/custom?${filtersToQueryString(f)}`} className="min-w-0 flex-1">
-                    <p className="truncate font-medium hover:text-ink">{r.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {resolveDateRange(f).label}
-                      {f.platform ? ` · ${f.platform}` : ""}
-                      {f.contentType ? ` · ${f.contentType}` : ""} · saved {formatDate(r.createdAt)}
-                    </p>
-                  </Link>
-                  <form action={deleteSavedReportAction}>
-                    <input type="hidden" name="id" value={r.id} />
-                    <button type="submit" className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-ink" title="Delete">
-                      <Trash2 className="size-3.5" />
-                    </button>
-                  </form>
-                </div>
-              );
-            })}
-          </Card>
-        </div>
-      )}
+            {savedReports.length > 0 && (
+              <SectionCard title="My saved reports" className="print:hidden">
+                <CardRows>
+                  {savedReports.map((r) => {
+                    const f = r.filters as ReportFilters;
+                    return (
+                      <li key={r.id} className="flex items-center justify-between gap-3 py-1 pl-6 pr-3">
+                        <Link href={`/reports/custom?${filtersToQueryString(f)}`} className="flex min-w-0 flex-1 flex-col gap-0.5 py-2.5 text-brand-ink no-underline hover:underline">
+                          <span className="truncate text-[15px]">{r.name}</span>
+                          <span className="text-[12px] text-brand-ink-2">
+                            {resolveDateRange(f).label}
+                            {f.platform ? ` · ${f.platform}` : ""}
+                            {f.contentType ? ` · ${f.contentType}` : ""} · saved {formatDate(r.createdAt)}
+                          </span>
+                        </Link>
+                        <form action={deleteSavedReportAction}>
+                          <input type="hidden" name="id" value={r.id} />
+                          <Button type="submit" variant="ghost" size="icon" title="Delete" aria-label={`Delete ${r.name}`}>
+                            <Trash2 strokeWidth={1.75} />
+                          </Button>
+                        </form>
+                      </li>
+                    );
+                  })}
+                </CardRows>
+              </SectionCard>
+            )}
+          </>
+        }
+      />
     </div>
   );
 }

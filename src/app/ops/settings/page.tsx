@@ -1,11 +1,11 @@
 import { requireOpsPage } from "@/lib/authz";
-import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { OpsPage } from "@/components/ops/ops-page";
-import { PageHeader } from "@/components/shared/page-header";
-import { Card, SectionLabel } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ds/page-header";
+import { Card, SectionCard, CardRows } from "@/components/ds/card";
+import { StatusPill } from "@/components/ds/status-pill";
+import { Button } from "@/components/ds/button";
+import { PillLink } from "@/components/ds/pill-link";
 import { INTERNAL_ROLE_LABEL } from "@/lib/labels";
 import { formatDate } from "@/lib/utils";
 
@@ -23,6 +23,30 @@ const ROLE_PERMISSIONS: { role: keyof typeof INTERNAL_ROLE_LABEL; can: string[] 
   { role: "PROJECT_MANAGER", can: ["Manage pipeline stages", "Resolve QA flags"] },
 ];
 
+/** One connection row: name and one-line detail on the left, its state or Connect on the right. */
+function ConnectionRow({ name, detail, children }: { name: string; detail: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <li className="flex flex-wrap items-center gap-x-4 gap-y-3 px-6 py-4">
+      <div className="flex min-w-0 flex-1 basis-[260px] flex-col gap-0.5">
+        <span className="text-[15px]">{name}</span>
+        <span className="text-[13px] leading-[1.5] text-brand-ink-2">{detail}</span>
+      </div>
+      <span className="shrink-0">{children}</span>
+    </li>
+  );
+}
+
+function Notice({ ok, children }: { ok: boolean; children: React.ReactNode }) {
+  return (
+    <Card as="div" className="flex items-center gap-3 px-6 py-4" role="status">
+      <StatusPill tone={ok ? "success" : "danger"} dot>
+        {ok ? "Connected" : "Failed"}
+      </StatusPill>
+      <p className="m-0 text-[14px]">{children}</p>
+    </Card>
+  );
+}
+
 export default async function WorkspaceSettingsPage({
   searchParams,
 }: {
@@ -35,144 +59,114 @@ export default async function WorkspaceSettingsPage({
   const metaConfigured = Boolean(process.env.META_ADS_ACCESS_TOKEN);
   const googleConfigured = Boolean(process.env.GOOGLE_ADS_DEVELOPER_TOKEN && process.env.GOOGLE_ADS_CLIENT_ID);
   const bigQueryConfigured = Boolean(process.env.GOOGLE_BIGQUERY_SERVICE_ACCOUNT_KEY);
+  const adConnected = [metaConfigured, Boolean(linkedInConnection), Boolean(googleAdsConnection), bigQueryConfigured].filter(Boolean).length;
 
   return (
     <OpsPage>
-      <div className="flex flex-col gap-6">
-        <PageHeader title="Workspace settings" actions={<div />} />
+      <PageHeader eyebrow={`${adConnected} of 4 ad sources connected`} title="Workspace settings" />
 
-        {linkedin === "connected" && (
-          <Card className="border-l-4 border-l-success p-4">
-            <p className="text-sm font-medium">LinkedIn connected successfully.</p>
-          </Card>
-        )}
-        {linkedin === "error" && (
-          <Card className="border-l-4 border-l-danger p-4">
-            <p className="text-sm font-medium">Couldn&apos;t connect LinkedIn — the authorization was cancelled or failed.</p>
-          </Card>
-        )}
-        {google === "connected" && (
-          <Card className="border-l-4 border-l-success p-4">
-            <p className="text-sm font-medium">Google Ads connected successfully.</p>
-          </Card>
-        )}
-        {google === "error" && (
-          <Card className="border-l-4 border-l-danger p-4">
-            <p className="text-sm font-medium">Couldn&apos;t connect Google Ads — the authorization was cancelled or failed.</p>
-          </Card>
-        )}
+      {linkedin === "connected" && <Notice ok>LinkedIn connected successfully.</Notice>}
+      {linkedin === "error" && <Notice ok={false}>Couldn&apos;t connect LinkedIn. The authorization was cancelled or failed.</Notice>}
+      {google === "connected" && <Notice ok>Google Ads connected successfully.</Notice>}
+      {google === "error" && <Notice ok={false}>Couldn&apos;t connect Google Ads. The authorization was cancelled or failed.</Notice>}
 
-        <div className="flex flex-col gap-3">
-          <SectionLabel>Ad platform connections</SectionLabel>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Card className="flex items-center justify-between p-5">
-              <div>
-                <p className="text-sm font-semibold">Meta Ads</p>
-                <p className="text-sm text-muted-foreground">Powers live campaign performance in client Insights.</p>
-              </div>
-              {metaConfigured ? <Badge tone="success">Connected</Badge> : <Badge tone="neutral">Not configured</Badge>}
-            </Card>
-            <Card className="flex items-center justify-between p-5">
-              <div>
-                <p className="text-sm font-semibold">LinkedIn Ads</p>
-                <p className="text-sm text-muted-foreground">
-                  {linkedInConnection
-                    ? `Connected ${formatDate(linkedInConnection.connectedAt, { day: "2-digit", month: "short" })}`
-                    : "Powers live campaign performance in client Insights."}
-                </p>
-              </div>
-              {linkedInConnection ? (
-                <Badge tone="success">Connected</Badge>
+      <SectionCard title="Ad platform connections">
+        <CardRows>
+          <ConnectionRow name="Meta Ads" detail="Powers live campaign performance in client Insights.">
+            {metaConfigured ? <StatusPill tone="success">Connected</StatusPill> : <StatusPill>Not configured</StatusPill>}
+          </ConnectionRow>
+          <ConnectionRow
+            name="LinkedIn Ads"
+            detail={
+              linkedInConnection
+                ? `Connected ${formatDate(linkedInConnection.connectedAt, { day: "2-digit", month: "short" })}`
+                : "Powers live campaign performance in client Insights."
+            }
+          >
+            {linkedInConnection ? (
+              <StatusPill tone="success">Connected</StatusPill>
+            ) : (
+              <PillLink href="/api/integrations/linkedin/connect" size="sm">
+                Connect
+              </PillLink>
+            )}
+          </ConnectionRow>
+          <ConnectionRow
+            name="Google Ads"
+            detail={
+              !googleConfigured
+                ? "Needs GOOGLE_ADS_DEVELOPER_TOKEN + OAuth client credentials configured first."
+                : googleAdsConnection
+                  ? `Connected ${formatDate(googleAdsConnection.connectedAt, { day: "2-digit", month: "short" })}`
+                  : "Powers live campaign performance in client Insights."
+            }
+          >
+            {googleAdsConnection ? (
+              <StatusPill tone="success">Connected</StatusPill>
+            ) : googleConfigured ? (
+              <PillLink href="/api/integrations/google-ads/connect" size="sm">
+                Connect
+              </PillLink>
+            ) : (
+              <StatusPill>Not configured</StatusPill>
+            )}
+          </ConnectionRow>
+          <ConnectionRow
+            name="Google Ads Transparency (competitor data)"
+            detail="BigQuery service account: powers competitor ad data from Google in Market Intelligence. Billed to a GCP project, no per-user connect step."
+          >
+            {bigQueryConfigured ? <StatusPill tone="success">Configured</StatusPill> : <StatusPill>Not configured</StatusPill>}
+          </ConnectionRow>
+        </CardRows>
+      </SectionCard>
+
+      <SectionCard title="Integrations">
+        <CardRows>
+          {INTEGRATIONS.map((i) => (
+            <ConnectionRow key={i.name} name={i.name} detail={i.detail}>
+              {i.connected ? (
+                <StatusPill tone="success">Connected</StatusPill>
               ) : (
-                <Button asChild size="sm" variant="secondary">
-                  <Link href="/api/integrations/linkedin/connect">Connect</Link>
+                <Button size="sm" variant="secondary">
+                  Connect
                 </Button>
               )}
-            </Card>
-            <Card className="flex items-center justify-between p-5">
-              <div>
-                <p className="text-sm font-semibold">Google Ads</p>
-                <p className="text-sm text-muted-foreground">
-                  {!googleConfigured
-                    ? "Needs GOOGLE_ADS_DEVELOPER_TOKEN + OAuth client credentials configured first."
-                    : googleAdsConnection
-                      ? `Connected ${formatDate(googleAdsConnection.connectedAt, { day: "2-digit", month: "short" })}`
-                      : "Powers live campaign performance in client Insights."}
-                </p>
-              </div>
-              {googleAdsConnection ? (
-                <Badge tone="success">Connected</Badge>
-              ) : googleConfigured ? (
-                <Button asChild size="sm" variant="secondary">
-                  <Link href="/api/integrations/google-ads/connect">Connect</Link>
-                </Button>
-              ) : (
-                <Badge tone="neutral">Not configured</Badge>
-              )}
-            </Card>
-            <Card className="flex items-center justify-between p-5">
-              <div>
-                <p className="text-sm font-semibold">Google Ads Transparency (competitor data)</p>
-                <p className="text-sm text-muted-foreground">
-                  BigQuery service account — powers competitor ad data from Google in Market Intelligence. Billed to a GCP project, no per-user connect step.
-                </p>
-              </div>
-              {bigQueryConfigured ? <Badge tone="success">Configured</Badge> : <Badge tone="neutral">Not configured</Badge>}
-            </Card>
-          </div>
-        </div>
+            </ConnectionRow>
+          ))}
+        </CardRows>
+      </SectionCard>
 
-        <div className="flex flex-col gap-3">
-          <SectionLabel>Integrations</SectionLabel>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {INTEGRATIONS.map((i) => (
-              <Card key={i.name} className="flex items-center justify-between p-5">
-                <div>
-                  <p className="text-sm font-semibold">{i.name}</p>
-                  <p className="text-sm text-muted-foreground">{i.detail}</p>
-                </div>
-                {i.connected ? <Badge tone="success">Connected</Badge> : <Button size="sm" variant="secondary">Connect</Button>}
-              </Card>
-            ))}
-          </div>
-        </div>
+      <SectionCard title="Security policy">
+        <CardRows>
+          <li className="flex items-center justify-between gap-4 px-6 py-4 text-[14px]">
+            <span>Require 2FA for all internal staff</span>
+            <StatusPill tone="success">Enabled</StatusPill>
+          </li>
+          <li className="flex items-center justify-between gap-4 px-6 py-4 text-[14px]">
+            <span>Session timeout</span>
+            <span className="tabular-nums text-brand-ink-2">12 hours</span>
+          </li>
+          <li className="flex items-center justify-between gap-4 px-6 py-4 text-[14px]">
+            <span>SSO (Google Workspace)</span>
+            <StatusPill>Not configured</StatusPill>
+          </li>
+        </CardRows>
+      </SectionCard>
 
-        <div className="flex flex-col gap-3">
-          <SectionLabel>Security policy</SectionLabel>
-          <Card className="flex flex-col gap-4 p-5">
-            <div className="flex items-center justify-between text-sm">
-              <span>Require 2FA for all internal staff</span>
-              <Badge tone="success">Enabled</Badge>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span>Session timeout</span>
-              <span className="text-muted-foreground">12 hours</span>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span>SSO (Google Workspace)</span>
-              <Badge tone="neutral">Not configured</Badge>
-            </div>
-          </Card>
-        </div>
-
-        <div className="flex flex-col gap-3">
-          <SectionLabel>Internal roles &amp; permissions</SectionLabel>
-          <Card className="divide-y divide-border p-0">
-            {ROLE_PERMISSIONS.map((r) => (
-              <div key={r.role} className="flex flex-col gap-1.5 px-5 py-3.5">
-                <p className="text-sm font-semibold">{INTERNAL_ROLE_LABEL[r.role]}</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {r.can.map((c) => (
-                    <Badge key={c} tone="neutral">
-                      {c}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </Card>
-        </div>
-      </div>
+      <SectionCard title="Internal roles & permissions">
+        <CardRows>
+          {ROLE_PERMISSIONS.map((r) => (
+            <li key={r.role} className="flex flex-col gap-2 px-6 py-4">
+              <span className="text-[15px]">{INTERNAL_ROLE_LABEL[r.role]}</span>
+              <span className="flex flex-wrap gap-1.5">
+                {r.can.map((c) => (
+                  <StatusPill key={c}>{c}</StatusPill>
+                ))}
+              </span>
+            </li>
+          ))}
+        </CardRows>
+      </SectionCard>
     </OpsPage>
   );
 }

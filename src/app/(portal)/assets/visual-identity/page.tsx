@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
-import { Card } from "@/components/ui/card";
+import { Card, CardHeader, SectionCard } from "@/components/ds/card";
+import { PageGrid } from "@/components/ds/page-grid";
 import { jsonArray } from "@/lib/utils";
 import { VISUAL_IDENTITY_FOLDERS } from "@/lib/brand-iq-taxonomy";
 import { Palette, Type, Image as ImageIcon, Shapes, Grid3x3, Video, Sparkles } from "lucide-react";
@@ -53,46 +54,52 @@ export default async function VisualIdentityPage() {
   };
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h2 className="text-lg font-semibold">Visual identity</h2>
-        <p className="text-sm text-muted-foreground">
-          The complete visual system — logos, colour, type, photography, and motion.
-        </p>
-      </div>
-      <FigmaDesignSystemSlot
-        source={figma.sources.at(-1) ?? null}
-        figmaConnected={figmaConnected}
-        connected={figma.connected}
-        linkedCount={figma.sources.length}
-      />
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        {VISUAL_IDENTITY_FOLDERS.map((folder, i) => {
-          const Icon = ICON_FOR[folder.slug] ?? Shapes;
-          const count = countFor(folder.slug);
-          return (
-            <Link
-              key={folder.slug}
-              href={`/assets/visual-identity/${folder.slug}`}
-              className="animate-in fade-in slide-in-from-bottom-1 duration-300"
-              style={{ animationDelay: `${i * 40}ms`, animationFillMode: "backwards" }}
-            >
-              <Card className="flex flex-col gap-3 p-5 transition-colors hover:border-ink/30">
-                <span className="flex size-9 items-center justify-center rounded-lg bg-muted text-foreground">
-                  <Icon className="size-5" />
-                </span>
-                <div>
-                  <p className="text-sm font-semibold">{folder.label}</p>
-                  <p className="text-xs text-muted-foreground">{count} item{count === 1 ? "" : "s"}</p>
-                </div>
-              </Card>
-            </Link>
-          );
-        })}
-      </div>
-      <Card className="p-6">
-        <SourcesRow section="visual-identity" sources={linked.sources} connected={linked.connected} divider={false} />
-      </Card>
-    </div>
+    <PageGrid
+      main={
+        <>
+          <FigmaDesignSystemSlot
+            source={figma.sources.at(-1) ?? null}
+            figmaConnected={figmaConnected}
+            connected={figma.connected}
+            linkedCount={figma.sources.length}
+          />
+          <SectionCard title="Visual identity" action={<span className="font-brand-mono text-[12px] text-brand-ink-2">{VISUAL_IDENTITY_FOLDERS.length} FOLDERS</span>}>
+            <ul className="m-0 grid list-none grid-cols-2 gap-3 px-6 py-5 @min-[560px]/col:grid-cols-3">
+              {VISUAL_IDENTITY_FOLDERS.map((folder, i) => {
+                const Icon = ICON_FOR[folder.slug] ?? Shapes;
+                const count = countFor(folder.slug);
+                return (
+                  <li key={folder.slug} className="animate-in fade-in slide-in-from-bottom-1 duration-300" style={{ animationDelay: `${i * 40}ms`, animationFillMode: "backwards" }}>
+                    <Link
+                      href={`/assets/visual-identity/${folder.slug}`}
+                      className="flex h-full flex-col gap-3 rounded-[10px] bg-brand-chip p-4 text-brand-ink no-underline transition-colors hover:bg-brand-line"
+                    >
+                      <span className="flex size-9 items-center justify-center rounded-[8px] bg-white text-brand-ink">
+                        <Icon className="size-[18px]" />
+                      </span>
+                      <span className="flex flex-col gap-0.5">
+                        <span className="text-[15px]">{folder.label}</span>
+                        <span className="font-brand-mono text-[11px] text-brand-ink-2">
+                          {count} ITEM{count === 1 ? "" : "S"}
+                        </span>
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </SectionCard>
+        </>
+      }
+      side={
+        // Card (not SectionCard): the add-source popover must not be clipped.
+        <Card aria-label="Sources">
+          <CardHeader title="Sources" />
+          <div className="px-6 py-5">
+            <SourcesRow section="visual-identity" sources={linked.sources} connected={linked.connected} divider={false} />
+          </div>
+        </Card>
+      }
+    />
   );
 }

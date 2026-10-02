@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { Card, SectionLabel } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
+import { SectionCard, CardBody } from "@/components/ds/card";
+import { StatusPill } from "@/components/ds/status-pill";
+import { Button } from "@/components/ds/button";
+import { Field, textareaClass } from "@/components/ops/form-field";
 import { jsonArray } from "@/lib/utils";
 import { updateBrandOSAction } from "@/lib/actions/ops-brand-os-actions";
 
@@ -13,63 +13,72 @@ export default async function BrandOSEditorPage({ params }: { params: Promise<{ 
   if (!client) notFound();
 
   const b = client.brandOS;
+  const colors = jsonArray<string>(b?.approvedColors);
 
   return (
-    <>
-      <div className="flex flex-col gap-6">
+    <form action={updateBrandOSAction} className="flex flex-col gap-6">
+      <input type="hidden" name="clientId" value={clientId} />
 
-        <form action={updateBrandOSAction} className="flex flex-col gap-6">
-          <input type="hidden" name="clientId" value={clientId} />
+      <SectionCard title="Voice & typography">
+        <CardBody className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+          <Field label="Tone rules" htmlFor="toneRules">
+            <textarea id="toneRules" name="toneRules" defaultValue={jsonArray<string>(b?.toneRules).join("\n")} className={`${textareaClass} min-h-32`} placeholder="One rule per line" />
+          </Field>
+          <Field label="Approved typography" htmlFor="approvedTypography">
+            <textarea
+              id="approvedTypography"
+              name="approvedTypography"
+              defaultValue={jsonArray<string>(b?.approvedTypography).join("\n")}
+              className={`${textareaClass} min-h-32`}
+              placeholder="One typeface per line"
+            />
+          </Field>
+        </CardBody>
+      </SectionCard>
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <div className="flex flex-col gap-1.5">
-              <SectionLabel>Tone rules</SectionLabel>
-              <Textarea name="toneRules" defaultValue={jsonArray<string>(b?.toneRules).join("\n")} className="min-h-32" placeholder="One rule per line" />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <SectionLabel>Approved typography</SectionLabel>
-              <Textarea name="approvedTypography" defaultValue={jsonArray<string>(b?.approvedTypography).join("\n")} className="min-h-32" placeholder="One typeface per line" />
-            </div>
-          </div>
+      <SectionCard title="Do's and don'ts">
+        <CardBody className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+          <Field label="Do's" htmlFor="dos">
+            <textarea id="dos" name="dos" defaultValue={jsonArray<string>(b?.dos).join("\n")} className={`${textareaClass} min-h-28`} placeholder="One per line" />
+          </Field>
+          <Field label="Don'ts" htmlFor="donts">
+            <textarea id="donts" name="donts" defaultValue={jsonArray<string>(b?.donts).join("\n")} className={`${textareaClass} min-h-28`} placeholder="One per line" />
+          </Field>
+        </CardBody>
+      </SectionCard>
 
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Do&apos;s</Label>
-              <Textarea name="dos" defaultValue={jsonArray<string>(b?.dos).join("\n")} className="min-h-28" placeholder="One per line" />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Don&apos;ts</Label>
-              <Textarea name="donts" defaultValue={jsonArray<string>(b?.donts).join("\n")} className="min-h-28" placeholder="One per line" />
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <SectionLabel>Approved colors (hex, one per line)</SectionLabel>
-            <Textarea name="approvedColors" defaultValue={jsonArray<string>(b?.approvedColors).join("\n")} className="min-h-20" />
-            <div className="mt-1 flex gap-2">
-              {jsonArray<string>(b?.approvedColors).map((c) => (
-                <span key={c} className="size-6 rounded-full border border-border" style={{ backgroundColor: c }} title={c} />
+      <SectionCard title="Approved colours" meta={colors.length > 0 ? <span className="font-brand-mono text-[12px] text-brand-ink-2">{colors.length}</span> : undefined}>
+        <CardBody className="flex flex-col gap-3">
+          <Field label="Hex values, one per line" htmlFor="approvedColors">
+            <textarea id="approvedColors" name="approvedColors" defaultValue={colors.join("\n")} className={`${textareaClass} min-h-20 font-brand-mono text-[13px]`} />
+          </Field>
+          {colors.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {colors.map((c) => (
+                <span key={c} className="size-7 rounded-full ring-1 ring-inset ring-black/10" style={{ backgroundColor: c }} title={c} />
               ))}
             </div>
-          </div>
+          )}
+        </CardBody>
+      </SectionCard>
 
-          <Card className="flex items-center justify-between p-5">
-            <div>
-              <p className="text-sm font-semibold">Figma sync</p>
-              <p className="text-sm text-muted-foreground">
-                {b?.lastSyncedAt ? "Connected — last synced automatically from the component library." : "Not connected yet."}
-              </p>
-            </div>
-            <Button type="button" variant="secondary">
-              {b?.figmaSyncConfig ? "Reconfigure" : "Connect Figma"}
-            </Button>
-          </Card>
-
-          <Button type="submit" className="self-start">
-            Save changes
+      <SectionCard
+        title="Figma sync"
+        meta={b?.lastSyncedAt ? <StatusPill tone="success">Connected</StatusPill> : <StatusPill>Not connected</StatusPill>}
+        action={
+          <Button type="button" variant="secondary" size="sm">
+            {b?.figmaSyncConfig ? "Reconfigure" : "Connect Figma"}
           </Button>
-        </form>
-      </div>
-    </>
+        }
+      >
+        <p className="m-0 px-6 py-5 text-[14px] text-brand-ink-2">
+          {b?.lastSyncedAt ? "Last synced automatically from the component library." : "Connect the client's component library to sync it into Brand OS."}
+        </p>
+      </SectionCard>
+
+      <Button type="submit" variant="primary" size="lg" className="self-start">
+        Save changes
+      </Button>
+    </form>
   );
 }

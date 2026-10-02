@@ -1,21 +1,27 @@
 import { requireOpsPage } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
+import { clientHealthMap } from "@/lib/client-health";
 import { OpsPage } from "@/components/ops/ops-page";
-import { PageHeader } from "@/components/shared/page-header";
-import { Card, SectionLabel } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { PageHeader } from "@/components/ds/page-header";
+import { SectionCard, CardBody, CardNote } from "@/components/ds/card";
+import { DataTable, HealthDot } from "@/components/ds/data-table";
+import { StatTiles, type Stat } from "@/components/ds/stats";
 import { RevenueByClientChart } from "@/components/ops/revenue-by-client-chart";
 
 export default async function AnalyticsPage() {
   await requireOpsPage(["ADMIN"]);
-  const clients = await prisma.client.findMany({
-    include: { projects: { include: { assets: true } } },
-  });
+  const [clients, health] = await Promise.all([
+    prisma.client.findMany({
+      include: { projects: { include: { assets: true } } },
+    }),
+    clientHealthMap(),
+  ]);
 
   const revenueByClient = clients.map((c) => ({
     client: c.name,
     revenue: c.projects.reduce((sum, p) => sum + (p.priceAmount ?? 0), 0),
   }));
+  const totalRevenue = revenueByClient.reduce((s, r) => s + r.revenue, 0);
 
   const delivered = clients.flatMap((c) => c.projects).filter((p) => p.deliveredAt && p.startedAt);
   const avgTurnaround =
@@ -26,60 +32,63 @@ export default async function AnalyticsPage() {
             86400000) *
             10
         ) / 10
-      : 0;
+      : null;
 
   const agentRunCount = await prisma.agentRun.count();
   const hoursSaved = agentRunCount * 1.5; // heuristic: ~1.5h saved per automated agent run
 
-  const churnRisk = clients.filter((c) => c.healthScore < 75);
+  // Computed health (src/lib/client-health.ts), never the stored score.
+  const churnRisk = clients.filter((c) => health.get(c.id)?.atRisk);
+
+  const tiles: Stat[] = [
+    { label: "Total revenue booked", value: `€${totalRevenue.toLocaleString()}` },
+    ...(avgTurnaround !== null ? [{ label: "Avg turnaround", value: `${avgTurnaround}d`, note: `${delivered.length} delivered project${delivered.length === 1 ? "" : "s"}` }] : []),
+    ...(agentRunCount > 0 ? [{ label: "Agent hours saved", value: `${Math.round(hoursSaved)}h`, note: "Estimate: 1.5h per run" }] : []),
+    { label: "Churn-risk accounts", value: String(churnRisk.length) },
+  ];
 
   return (
     <OpsPage>
-      <div className="flex flex-col gap-6">
-        <PageHeader title="Analytics & reporting" addHref="/ops/analytics" />
+      <PageHeader eyebrow={`${clients.length} client${clients.length === 1 ? "" : "s"} · ${churnRisk.length} at risk`} title="Analytics & reporting" />
 
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <Card className="border border-border bg-paper p-4">
-            <p className="font-display text-2xl font-light">
-              €{revenueByClient.reduce((s, r) => s + r.revenue, 0).toLocaleString()}
-            </p>
-            <p className="text-xs text-muted-foreground">Total revenue booked</p>
-          </Card>
-          <Card className="border border-border bg-paper p-4">
-            <p className="font-display text-2xl font-light">{avgTurnaround}d</p>
-            <p className="text-xs text-muted-foreground">Avg turnaround</p>
-          </Card>
-          <Card className="border border-border bg-paper p-4">
-            <p className="font-display text-2xl font-light">{Math.round(hoursSaved)}h</p>
-            <p className="text-xs text-muted-foreground">Agent hours saved (est.)</p>
-          </Card>
-          <Card className="border border-border bg-paper p-4">
-            <p className="font-display text-2xl font-light text-ink">{churnRisk.length}</p>
-            <p className="text-xs text-muted-foreground">Churn-risk accounts</p>
-          </Card>
-        </div>
+      <SectionCard title="Overview">
+        <StatTiles tiles={tiles} />
+      </SectionCard>
 
-        <div className="flex flex-col gap-3">
-          <SectionLabel>Revenue by client</SectionLabel>
-          <Card className="p-5">
+      <SectionCard title="Revenue by client">
+        {totalRevenue > 0 ? (
+          <CardBody>
             <RevenueByClientChart data={revenueByClient} />
-          </Card>
-        </div>
-
-        {churnRisk.length > 0 && (
-          <div className="flex flex-col gap-3">
-            <SectionLabel>Churn-risk flags</SectionLabel>
-            <Card className="divide-y divide-border p-0">
-              {churnRisk.map((c) => (
-                <div key={c.id} className="flex items-center justify-between px-5 py-3.5">
-                  <p className="text-sm font-medium">{c.name}</p>
-                  <Badge tone="danger">Health {c.healthScore}</Badge>
-                </div>
-              ))}
-            </Card>
-          </div>
+          </CardBody>
+        ) : (
+          <CardNote>No priced projects yet.</CardNote>
         )}
-      </div>
+      </SectionCard>
+
+      {churnRisk.length > 0 && (
+        <SectionCard title="Churn-risk flags" meta={<span className="font-brand-mono text-[12px] text-brand-ink-2">{churnRisk.length}</span>}>
+          <DataTable
+            label="Churn-risk clients"
+            columns={[
+              { key: "client", label: "Client" },
+              { key: "health", label: "Health", className: "w-[120px]" },
+              { key: "why", label: "Why" },
+            ]}
+            rows={churnRisk.map((c) => {
+              const h = health.get(c.id)!;
+              return {
+                id: c.id,
+                href: `/ops/clients/${c.id}/dashboard`,
+                cells: {
+                  client: <span className="text-[15px]">{c.name}</span>,
+                  health: <HealthDot score={h.score} />,
+                  why: <span className="text-[13px] text-brand-ink-2">{h.reasons.join(" · ")}</span>,
+                },
+              };
+            })}
+          />
+        </SectionCard>
+      )}
     </OpsPage>
   );
 }

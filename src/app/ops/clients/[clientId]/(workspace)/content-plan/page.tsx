@@ -1,16 +1,18 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { Card, SectionLabel } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { SectionCard, CardBody, CardRows } from "@/components/ds/card";
+import { StatTiles } from "@/components/ds/stats";
+import { StatusPill } from "@/components/ds/status-pill";
+import { Button } from "@/components/ds/button";
+import { Field, fieldClass } from "@/components/ops/form-field";
 import { formatDate } from "@/lib/utils";
 import {
   setContentPlanTargetAction,
   logBusinessOutcomeAction,
   createContentPostAction,
 } from "@/lib/actions/content-calendar-actions";
+
+const count = (n: number) => <span className="font-brand-mono text-[12px] text-brand-ink-2">{n}</span>;
 
 export default async function ClientContentPlanPage({ params }: { params: Promise<{ clientId: string }> }) {
   const { clientId } = await params;
@@ -25,158 +27,130 @@ export default async function ClientContentPlanPage({ params }: { params: Promis
 
   return (
     <>
-      <div className="flex flex-col gap-6">
-
-        <div className="flex flex-col gap-3">
-          <SectionLabel>Weekly plan targets</SectionLabel>
-          <Card className="p-5">
-            <form action={setContentPlanTargetAction} className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <input type="hidden" name="clientId" value={clientId} />
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="platform">Platform</Label>
-                <Input id="platform" name="platform" placeholder="e.g. LinkedIn" required />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="weeklyVolume">Posts / week</Label>
-                <Input id="weeklyVolume" name="weeklyVolume" type="number" min={0} required />
-              </div>
-              <div className="flex items-end">
-                <Button type="submit">Set target</Button>
-              </div>
-            </form>
-          </Card>
-          {planTargets.length > 0 && (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {planTargets.map((t) => (
-                <Card key={t.id} className="p-4">
-                  <p className="text-lg font-semibold">
-                    {t.weeklyVolume}
-                    <span className="text-xs font-normal text-muted-foreground">/wk</span>
-                  </p>
-                  <p className="text-xs text-muted-foreground">{t.platform}</p>
-                </Card>
-              ))}
+      <SectionCard title="Weekly plan targets" meta={planTargets.length > 0 ? count(planTargets.length) : undefined}>
+        {planTargets.length > 0 && <StatTiles className="border-b border-brand-line" tiles={planTargets.map((t) => ({ label: t.platform, value: `${t.weeklyVolume}/wk` }))} />}
+        <CardBody>
+          <form action={setContentPlanTargetAction} className="grid grid-cols-1 items-end gap-4 sm:grid-cols-3">
+            <input type="hidden" name="clientId" value={clientId} />
+            <Field label="Platform" htmlFor="platform">
+              <input id="platform" name="platform" placeholder="e.g. LinkedIn" required className={fieldClass} />
+            </Field>
+            <Field label="Posts / week" htmlFor="weeklyVolume">
+              <input id="weeklyVolume" name="weeklyVolume" type="number" min={0} required className={fieldClass} />
+            </Field>
+            <div>
+              <Button type="submit" variant="primary">
+                Set target
+              </Button>
             </div>
-          )}
-        </div>
+          </form>
+        </CardBody>
+      </SectionCard>
 
-        <div className="flex flex-col gap-3">
-          <SectionLabel>Log a business outcome</SectionLabel>
-          <Card className="p-5">
-            <form action={logBusinessOutcomeAction} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <input type="hidden" name="clientId" value={clientId} />
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="periodStart">Period start</Label>
-                <Input id="periodStart" name="periodStart" type="date" required />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="periodEnd">Period end</Label>
-                <Input id="periodEnd" name="periodEnd" type="date" required />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="revenue">Revenue</Label>
-                <Input id="revenue" name="revenue" type="number" step="0.01" />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="leadsGenerated">Leads generated</Label>
-                <Input id="leadsGenerated" name="leadsGenerated" type="number" />
-              </div>
-              <div className="flex flex-col gap-1.5 sm:col-span-2">
-                <Label htmlFor="note">Note (optional)</Label>
-                <Input id="note" name="note" placeholder="Where this number came from" />
-              </div>
-              <div className="sm:col-span-2">
-                <Button type="submit">Log outcome</Button>
-              </div>
-            </form>
-          </Card>
-          {outcomes.length > 0 && (
-            <Card className="divide-y divide-border p-0">
-              {outcomes.map((o) => (
-                <div key={o.id} className="flex items-center justify-between px-5 py-3 text-sm">
-                  <span className="text-muted-foreground">
+      <SectionCard title="Business outcomes" meta={outcomes.length > 0 ? count(outcomes.length) : undefined}>
+        <CardBody>
+          <form action={logBusinessOutcomeAction} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <input type="hidden" name="clientId" value={clientId} />
+            <Field label="Period start" htmlFor="periodStart">
+              <input id="periodStart" name="periodStart" type="date" required className={fieldClass} />
+            </Field>
+            <Field label="Period end" htmlFor="periodEnd">
+              <input id="periodEnd" name="periodEnd" type="date" required className={fieldClass} />
+            </Field>
+            <Field label="Revenue" htmlFor="revenue">
+              <input id="revenue" name="revenue" type="number" step="0.01" className={fieldClass} />
+            </Field>
+            <Field label="Leads generated" htmlFor="leadsGenerated">
+              <input id="leadsGenerated" name="leadsGenerated" type="number" className={fieldClass} />
+            </Field>
+            <Field label="Note (optional)" htmlFor="note" className="sm:col-span-2">
+              <input id="note" name="note" placeholder="Where this number came from" className={fieldClass} />
+            </Field>
+            <div className="sm:col-span-2">
+              <Button type="submit" variant="primary">
+                Log outcome
+              </Button>
+            </div>
+          </form>
+        </CardBody>
+        {outcomes.length > 0 && (
+          <CardRows className="border-t border-brand-line">
+            {outcomes.map((o) => {
+              const figures = [o.revenue !== null ? `$${o.revenue.toLocaleString()}` : null, o.leadsGenerated !== null ? `${o.leadsGenerated} leads` : null].filter(Boolean);
+              return (
+                <li key={o.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-6 py-3.5 text-[14px]">
+                  <span className="text-brand-ink-2">
                     {formatDate(o.periodStart)} – {formatDate(o.periodEnd)}
                   </span>
-                  <span>
-                    {o.revenue !== null ? `$${o.revenue.toLocaleString()}` : "—"}
-                    {o.leadsGenerated !== null ? ` · ${o.leadsGenerated} leads` : ""}
+                  {figures.length > 0 && <span className="tabular-nums">{figures.join(" · ")}</span>}
+                </li>
+              );
+            })}
+          </CardRows>
+        )}
+      </SectionCard>
+
+      <SectionCard title="Content posts" meta={posts.length > 0 ? count(posts.length) : undefined}>
+        <CardBody>
+          <form action={createContentPostAction} className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <input type="hidden" name="clientId" value={clientId} />
+            <Field label="Title" htmlFor="postTitle">
+              <input id="postTitle" name="title" required className={fieldClass} />
+            </Field>
+            <Field label="Platform" htmlFor="postPlatform">
+              <input id="postPlatform" name="platform" placeholder="e.g. Instagram" required className={fieldClass} />
+            </Field>
+            <Field label="Content type" htmlFor="contentType">
+              <input id="contentType" name="contentType" placeholder="e.g. Reel" className={fieldClass} />
+            </Field>
+            <Field label="Channel type" htmlFor="channelType">
+              <select id="channelType" name="channelType" className={fieldClass}>
+                <option value="ORGANIC">Organic</option>
+                <option value="PAID">Paid</option>
+              </select>
+            </Field>
+            <Field label="Status" htmlFor="postStatus">
+              <select id="postStatus" name="status" className={fieldClass}>
+                <option value="PLANNED">Planned</option>
+                <option value="PUBLISHED">Published</option>
+              </select>
+            </Field>
+            <Field label="Scheduled date" htmlFor="scheduledDate">
+              <input id="scheduledDate" name="scheduledDate" type="date" className={fieldClass} />
+            </Field>
+            <Field label="Impressions" htmlFor="impressions">
+              <input id="impressions" name="impressions" type="number" className={fieldClass} />
+            </Field>
+            <Field label="Engagement rate %" htmlFor="engagementRate">
+              <input id="engagementRate" name="engagementRate" type="number" step="0.1" className={fieldClass} />
+            </Field>
+            <Field label="Video views" htmlFor="videoViews">
+              <input id="videoViews" name="videoViews" type="number" className={fieldClass} />
+            </Field>
+            <div className="sm:col-span-3">
+              <Button type="submit" variant="primary">
+                Add post
+              </Button>
+            </div>
+          </form>
+        </CardBody>
+        {posts.length > 0 && (
+          <CardRows className="border-t border-brand-line">
+            {posts.map((p) => (
+              <li key={p.id} className="flex items-center justify-between gap-4 px-6 py-3.5">
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <span className="truncate text-[15px]">{p.title}</span>
+                  <span className="text-[13px] text-brand-ink-2">
+                    {p.platform}
+                    {p.contentType ? ` · ${p.contentType}` : ""}
                   </span>
                 </div>
-              ))}
-            </Card>
-          )}
-        </div>
-
-        <div className="flex flex-col gap-3">
-          <SectionLabel>Log a content post</SectionLabel>
-          <Card className="p-5">
-            <form action={createContentPostAction} className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <input type="hidden" name="clientId" value={clientId} />
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="postTitle">Title</Label>
-                <Input id="postTitle" name="title" required />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="postPlatform">Platform</Label>
-                <Input id="postPlatform" name="platform" placeholder="e.g. Instagram" required />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="contentType">Content type</Label>
-                <Input id="contentType" name="contentType" placeholder="e.g. Reel" />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="channelType">Channel type</Label>
-                <select id="channelType" name="channelType" className="h-9 rounded-md border border-border bg-card px-3 text-sm">
-                  <option value="ORGANIC">Organic</option>
-                  <option value="PAID">Paid</option>
-                </select>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="postStatus">Status</Label>
-                <select id="postStatus" name="status" className="h-9 rounded-md border border-border bg-card px-3 text-sm">
-                  <option value="PLANNED">Planned</option>
-                  <option value="PUBLISHED">Published</option>
-                </select>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="scheduledDate">Scheduled date</Label>
-                <Input id="scheduledDate" name="scheduledDate" type="date" />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="impressions">Impressions</Label>
-                <Input id="impressions" name="impressions" type="number" />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="engagementRate">Engagement rate %</Label>
-                <Input id="engagementRate" name="engagementRate" type="number" step="0.1" />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <Label htmlFor="videoViews">Video views</Label>
-                <Input id="videoViews" name="videoViews" type="number" />
-              </div>
-              <div className="sm:col-span-3">
-                <Button type="submit">Add post</Button>
-              </div>
-            </form>
-          </Card>
-          {posts.length > 0 && (
-            <Card className="divide-y divide-border p-0">
-              {posts.map((p) => (
-                <div key={p.id} className="flex items-center justify-between px-5 py-3 text-sm">
-                  <div>
-                    <p className="font-medium">{p.title}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {p.platform}
-                      {p.contentType ? ` · ${p.contentType}` : ""}
-                    </p>
-                  </div>
-                  <Badge tone={p.status === "PUBLISHED" ? "success" : "neutral"}>{p.status}</Badge>
-                </div>
-              ))}
-            </Card>
-          )}
-        </div>
-      </div>
+                <StatusPill tone={p.status === "PUBLISHED" ? "success" : "neutral"}>{p.status === "PUBLISHED" ? "Published" : p.status === "PLANNED" ? "Planned" : p.status}</StatusPill>
+              </li>
+            ))}
+          </CardRows>
+        )}
+      </SectionCard>
     </>
   );
 }

@@ -1,14 +1,12 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
-import { Card } from "@/components/ui/card";
+import { SectionCard, CardBody, CardNote } from "@/components/ds/card";
 import { ColorSwatch } from "@/components/portal/color-swatch";
 import { AssetTile } from "@/components/portal/asset-tile-dialog";
 import { AddAssetButton } from "@/components/portal/add-asset-button";
-import { EmptyState } from "@/components/shared/empty-state";
 import { jsonArray } from "@/lib/utils";
 import { VISUAL_IDENTITY_FOLDERS } from "@/lib/brand-iq-taxonomy";
-import { FolderOpen } from "lucide-react";
 import type { BrandAssetCategory } from "@/generated/prisma";
 
 type PaletteColor = { hex: string; name: string; role: "primary" | "secondary" };
@@ -57,53 +55,50 @@ export default async function VisualIdentityFolderPage({
     return (
       <FolderShell title={folder.label} count={totalCount + gradients.length}>
         {palette.length === 0 ? (
-          <Card className="flex flex-wrap gap-6 p-5">
+          <CardBody className="flex flex-wrap gap-6">
             {legacyColors.map((c) => (
               <ColorSwatch key={c} hex={c} showCmyk />
             ))}
-          </Card>
+          </CardBody>
         ) : (
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col [&>*+*]:border-t [&>*+*]:border-brand-line">
             {primary.length > 0 && (
-              <div className="flex flex-col gap-3">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Primary</p>
-                <Card className="flex flex-wrap gap-6 p-5">
+              <SwatchGroup label="PRIMARY">
+                <div className="flex flex-wrap gap-6">
                   {primary.map((c) => (
                     <ColorSwatch key={c.hex} hex={c.hex} name={c.name} showCmyk />
                   ))}
-                </Card>
-              </div>
+                </div>
+              </SwatchGroup>
             )}
             {secondary.length > 0 && (
-              <div className="flex flex-col gap-3">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Secondary</p>
-                <Card className="flex flex-wrap gap-6 p-5">
+              <SwatchGroup label="SECONDARY">
+                <div className="flex flex-wrap gap-6">
                   {secondary.map((c) => (
                     <ColorSwatch key={c.hex} hex={c.hex} name={c.name} showCmyk />
                   ))}
-                </Card>
-              </div>
+                </div>
+              </SwatchGroup>
             )}
             {gradients.length > 0 && (
-              <div className="flex flex-col gap-3">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Gradients</p>
+              <SwatchGroup label="GRADIENTS">
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                   {gradients.map((g) => (
                     <div key={g.name} className="flex flex-col gap-2">
                       <div
-                        className="aspect-square rounded-xl border border-border shadow-sm"
+                        className="aspect-square rounded-[10px] border border-brand-line"
                         style={{ backgroundImage: `linear-gradient(135deg, ${g.from}, ${g.to})` }}
                       />
-                      <div>
-                        <p className="text-xs font-medium">{g.name}</p>
-                        <p className="text-[11px] text-muted-foreground">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[13px] text-brand-ink">{g.name}</span>
+                        <span className="font-brand-mono text-[11px] text-brand-ink-2">
                           {g.from.toUpperCase()} → {g.to.toUpperCase()}
-                        </p>
+                        </span>
                       </div>
                     </div>
                   ))}
                 </div>
-              </div>
+              </SwatchGroup>
             )}
           </div>
         )}
@@ -119,16 +114,16 @@ export default async function VisualIdentityFolderPage({
         {fonts.length === 0 ? (
           <EmptyFolder />
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <CardBody className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {fonts.map((font) => (
-              <Card key={font} className="p-5">
-                <p className="font-display text-2xl font-light" style={{ fontFamily: font }}>
+              <div key={font} className="flex flex-col gap-1 rounded-[10px] bg-brand-chip p-5">
+                <p className="m-0 text-[28px] font-light leading-[1.2] text-brand-ink" style={{ fontFamily: font }}>
                   Aa Bb Cc
                 </p>
-                <p className="mt-1 text-sm text-muted-foreground">{font}</p>
-              </Card>
+                <p className="m-0 text-[13px] text-brand-ink-2">{font}</p>
+              </div>
             ))}
-          </div>
+          </CardBody>
         )}
       </FolderShell>
     );
@@ -144,11 +139,11 @@ export default async function VisualIdentityFolderPage({
       {assets.length === 0 ? (
         <EmptyFolder />
       ) : (
-        <div className="grid grid-cols-3 gap-4 sm:grid-cols-4 lg:grid-cols-6">
+        <CardBody className="grid grid-cols-3 gap-4 sm:grid-cols-4 lg:grid-cols-6">
           {assets.map((a) => (
             <AssetTile key={a.id} asset={a} transparent={TRANSPARENT_CATEGORIES.has(category)} />
           ))}
-        </div>
+        </CardBody>
       )}
     </FolderShell>
   );
@@ -166,23 +161,31 @@ function FolderShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold">{title}</h2>
-          <p className="text-sm text-muted-foreground">
-            {count} item{count === 1 ? "" : "s"}
-          </p>
-        </div>
-        {action}
-      </div>
+    <SectionCard
+      title={title}
+      meta={
+        count > 0 ? (
+          <span className="font-brand-mono text-[12px] text-brand-ink-2">
+            {count} ITEM{count === 1 ? "" : "S"}
+          </span>
+        ) : undefined
+      }
+      action={action}
+    >
+      {children}
+    </SectionCard>
+  );
+}
+
+function SwatchGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-4 px-6 py-5">
+      <span className="font-brand-mono text-[11px] text-brand-ink-2">{label}</span>
       {children}
     </div>
   );
 }
 
 function EmptyFolder() {
-  return (
-    <EmptyState icon={FolderOpen} title="Nothing here yet" description="Assets in this folder will show up here once added." />
-  );
+  return <CardNote>Nothing in this folder yet. Assets show up here once they&apos;re added.</CardNote>;
 }

@@ -1,9 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
-import { PageHeader } from "@/components/shared/page-header";
-import { Card, SectionLabel } from "@/components/ui/card";
-import { PersonAvatar } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ds/page-header";
+import { PageGrid } from "@/components/ds/page-grid";
+import { SectionCard, CardRows } from "@/components/ds/card";
+import { Avatar } from "@/components/ds/avatar";
+import { Button } from "@/components/ds/button";
 import { Textarea } from "@/components/ui/textarea";
 
 const FAQS = [
@@ -13,53 +14,58 @@ const FAQS = [
   { q: "Can I add more teammates?", a: "Yes — invite them from Account > Team with the right approval permission." },
 ];
 
+/** Help & support: FAQs, the account lead and a message box. Linked from Account. */
 export default async function HelpPage() {
   const viewer = await getPortalViewer();
   const client = await prisma.client.findUnique({ where: { id: viewer.clientId }, include: { accountLead: { include: { user: true } } } });
+  const lead = client?.accountLead?.user;
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Help & support" actions={<div />} />
+      <PageHeader back={{ href: "/account", label: "Account" }} eyebrow="Support" title="Help & support" />
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="flex flex-col gap-3">
-          <SectionLabel>Your account lead</SectionLabel>
-          <Card className="flex items-center justify-between gap-4 p-5">
-            {client?.accountLead && (
-              <div className="flex items-center gap-3">
-                <PersonAvatar name={client.accountLead.user.name} />
-                <div>
-                  <p className="text-sm font-semibold">{client.accountLead.user.name}</p>
-                  <p className="text-sm text-muted-foreground">{client.accountLead.user.email}</p>
-                </div>
+      <PageGrid
+        main={
+          <SectionCard title="Frequently asked questions">
+            <CardRows>
+              {FAQS.map((f) => (
+                <li key={f.q} className="flex flex-col gap-1 px-6 py-4">
+                  <span className="text-[15px] text-brand-ink">{f.q}</span>
+                  <span className="text-[14px] text-brand-ink-2">{f.a}</span>
+                </li>
+              ))}
+            </CardRows>
+          </SectionCard>
+        }
+        side={
+          <>
+            <SectionCard title="Your account lead">
+              <div className="flex flex-col gap-4 px-6 py-5">
+                {lead && (
+                  <div className="flex min-w-0 items-center gap-3">
+                    <Avatar name={lead.name} size={36} />
+                    <div className="flex min-w-0 flex-col">
+                      <span className="truncate text-[15px]">{lead.name}</span>
+                      <span className="truncate text-[13px] text-brand-ink-2">{lead.email}</span>
+                    </div>
+                  </div>
+                )}
+                <Button variant="secondary" size="sm" className="self-start">
+                  Schedule a call
+                </Button>
               </div>
-            )}
-            <Button variant="secondary" size="sm">
-              Schedule a call
-            </Button>
-          </Card>
-        </div>
-
-        <div className="flex flex-col gap-3">
-          <SectionLabel>Send a message</SectionLabel>
-          <Card className="flex flex-col gap-3 p-5">
-            <Textarea placeholder="How can we help?" className="min-h-24" />
-            <Button className="self-start">Send</Button>
-          </Card>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-3">
-        <SectionLabel>Frequently asked questions</SectionLabel>
-        <Card className="divide-y divide-border p-0">
-          {FAQS.map((f) => (
-            <div key={f.q} className="px-5 py-4">
-              <p className="text-sm font-semibold">{f.q}</p>
-              <p className="text-sm text-muted-foreground">{f.a}</p>
-            </div>
-          ))}
-        </Card>
-      </div>
+            </SectionCard>
+            <SectionCard title="Send a message">
+              <div className="flex flex-col gap-3 px-6 py-5">
+                <Textarea placeholder="How can we help?" className="min-h-24" aria-label="Your message" />
+                <Button variant="primary" className="self-start">
+                  Send
+                </Button>
+              </div>
+            </SectionCard>
+          </>
+        }
+      />
     </div>
   );
 }

@@ -1,20 +1,28 @@
 import { requireOpsPage } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { OpsPage } from "@/components/ops/ops-page";
-import { PageHeader } from "@/components/shared/page-header";
-import { Card, SectionLabel } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
+import { PageHeader } from "@/components/ds/page-header";
+import { SectionCard, CardRows, CardNote } from "@/components/ds/card";
+import { DataTable } from "@/components/ds/data-table";
+import { StatTiles } from "@/components/ds/stats";
+import { StatusPill, type PillTone } from "@/components/ds/status-pill";
+import { pillClass } from "@/components/ds/button";
 import { formatDate } from "@/lib/utils";
 import { generateInvoiceAction, markInvoicePaidAction } from "@/lib/actions/ops-billing-actions";
 
-const STATUS_TONE = { PAID: "success", SENT: "info", OVERDUE: "danger", DRAFT: "neutral" } as const;
+const STATUS: Record<string, { label: string; tone: PillTone }> = {
+  PAID: { label: "Paid", tone: "success" },
+  SENT: { label: "Sent", tone: "info" },
+  OVERDUE: { label: "Overdue", tone: "danger" },
+  DRAFT: { label: "Draft", tone: "neutral" },
+};
 const PLAN_PRICING = [
   { tier: "Starter", credits: 16, price: "€2,400/mo" },
   { tier: "Growth", credits: 40, price: "€5,600/mo" },
   { tier: "Scale", credits: 80, price: "€10,400/mo" },
 ];
+
+const short = (d: Date) => formatDate(d, { day: "numeric", month: "short", year: "numeric" });
 
 export default async function BillingPage() {
   await requireOpsPage(["ADMIN"]);
@@ -28,111 +36,88 @@ export default async function BillingPage() {
 
   const overdue = invoices.filter((i) => i.status === "SENT" && i.dueAt && i.dueAt < new Date());
   const outstanding = invoices.filter((i) => i.status !== "PAID").reduce((sum, i) => sum + i.amount, 0);
+  const paid = invoices.filter((i) => i.status === "PAID").length;
 
   return (
     <OpsPage>
-      <div className="flex flex-col gap-6">
-        <PageHeader title="Billing & invoicing" addHref="/ops/billing" />
+      <PageHeader
+        eyebrow={`${invoices.length} invoice${invoices.length === 1 ? "" : "s"} · ${overdue.length} overdue`}
+        title="Billing & invoicing"
+      />
 
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <Card className="border border-border bg-paper p-4">
-            <p className="font-display text-2xl font-light">€{outstanding.toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground">Outstanding</p>
-          </Card>
-          <Card className="border border-border bg-paper p-4">
-            <p className="font-display text-2xl font-light text-ink">{overdue.length}</p>
-            <p className="text-xs text-muted-foreground">Overdue invoices</p>
-          </Card>
-          <Card className="border border-border bg-paper p-4">
-            <p className="font-display text-2xl font-light">{invoices.filter((i) => i.status === "PAID").length}</p>
-            <p className="text-xs text-muted-foreground">Paid this year</p>
-          </Card>
-          <Card className="border border-border bg-paper p-4">
-            <p className="font-display text-2xl font-light">{uninvoicedProjects.length}</p>
-            <p className="text-xs text-muted-foreground">Awaiting invoice</p>
-          </Card>
-        </div>
+      <SectionCard title="Overview">
+        <StatTiles
+          tiles={[
+            { label: "Outstanding", value: `€${outstanding.toLocaleString()}` },
+            { label: "Overdue invoices", value: String(overdue.length) },
+            { label: "Paid invoices", value: String(paid) },
+            { label: "Awaiting invoice", value: String(uninvoicedProjects.length) },
+          ]}
+        />
+      </SectionCard>
 
-        {uninvoicedProjects.length > 0 && (
-          <div className="flex flex-col gap-3">
-            <SectionLabel>Delivered — ready to invoice</SectionLabel>
-            <Card className="divide-y divide-border p-0">
-              {uninvoicedProjects.map((p) => (
-                <div key={p.id} className="flex items-center justify-between px-5 py-3.5">
-                  <div>
-                    <p className="text-sm font-medium">{p.client.name} — {p.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {p.priceCurrency} {p.priceAmount?.toLocaleString()}
-                    </p>
-                  </div>
-                  <form action={generateInvoiceAction}>
-                    <input type="hidden" name="projectId" value={p.id} />
-                    <Button type="submit" size="sm">
-                      Generate invoice
-                    </Button>
-                  </form>
+      {uninvoicedProjects.length > 0 && (
+        <SectionCard title="Delivered, ready to invoice" meta={<span className="font-brand-mono text-[12px] text-brand-ink-2">{uninvoicedProjects.length}</span>}>
+          <CardRows>
+            {uninvoicedProjects.map((p) => (
+              <li key={p.id} className="flex flex-wrap items-center gap-x-4 gap-y-3 px-6 py-4">
+                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="text-[15px]">{p.name}</span>
+                  <span className="text-[13px] text-brand-ink-2">
+                    {p.client.name} · {p.priceCurrency} {p.priceAmount?.toLocaleString()}
+                  </span>
                 </div>
-              ))}
-            </Card>
-          </div>
-        )}
-
-        <div className="flex flex-col gap-3">
-          <SectionLabel>Invoice history</SectionLabel>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Invoice</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead>Issued</TableHead>
-                <TableHead>Due</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {invoices.map((inv) => (
-                <TableRow key={inv.id}>
-                  <TableCell className="font-medium">{inv.number}</TableCell>
-                  <TableCell>{inv.client.name}</TableCell>
-                  <TableCell className="text-muted-foreground">{inv.issuedAt && formatDate(inv.issuedAt)}</TableCell>
-                  <TableCell className="text-muted-foreground">{inv.dueAt && formatDate(inv.dueAt)}</TableCell>
-                  <TableCell>
-                    {inv.currency} {inv.amount.toLocaleString()}
-                  </TableCell>
-                  <TableCell>
-                    <Badge tone={STATUS_TONE[inv.status]}>{inv.status}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    {inv.status === "SENT" && (
-                      <form action={markInvoicePaidAction}>
-                        <input type="hidden" name="invoiceId" value={inv.id} />
-                        <Button type="submit" size="sm" variant="ghost">
-                          Mark paid
-                        </Button>
-                      </form>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-
-        <div className="flex flex-col gap-3">
-          <SectionLabel>Plan-tier pricing</SectionLabel>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {PLAN_PRICING.map((p) => (
-              <Card key={p.tier} className="p-5">
-                <p className="text-sm font-semibold">{p.tier}</p>
-                <p className="font-display text-2xl font-light">{p.price}</p>
-                <p className="text-xs text-muted-foreground">{p.credits} credits / month</p>
-              </Card>
+                <form action={generateInvoiceAction}>
+                  <input type="hidden" name="projectId" value={p.id} />
+                  <button type="submit" className={pillClass("primary", "sm")}>
+                    Generate invoice
+                  </button>
+                </form>
+              </li>
             ))}
-          </div>
-        </div>
-      </div>
+          </CardRows>
+        </SectionCard>
+      )}
+
+      <SectionCard title="Invoice history">
+        <DataTable
+          label="Invoices"
+          empty={<CardNote>No invoices issued yet.</CardNote>}
+          columns={[
+            { key: "number", label: "Invoice" },
+            { key: "client", label: "Client" },
+            { key: "issued", label: "Issued" },
+            { key: "due", label: "Due" },
+            { key: "amount", label: "Amount", align: "right" },
+            { key: "status", label: "Status" },
+            { key: "action", label: "", className: "w-[120px]" },
+          ]}
+          rows={invoices.map((inv) => ({
+            id: inv.id,
+            cells: {
+              number: <span className="font-brand-mono text-[12px]">{inv.number}</span>,
+              client: inv.client.name,
+              issued: inv.issuedAt ? <span className="text-brand-ink-2">{short(inv.issuedAt)}</span> : null,
+              due: inv.dueAt ? <span className="text-brand-ink-2">{short(inv.dueAt)}</span> : null,
+              amount: `${inv.currency} ${inv.amount.toLocaleString()}`,
+              status: <StatusPill tone={STATUS[inv.status]?.tone}>{STATUS[inv.status]?.label ?? inv.status}</StatusPill>,
+              action:
+                inv.status === "SENT" ? (
+                  <form action={markInvoicePaidAction}>
+                    <input type="hidden" name="invoiceId" value={inv.id} />
+                    <button type="submit" className={pillClass("secondary", "sm")}>
+                      Mark paid
+                    </button>
+                  </form>
+                ) : null,
+            },
+          }))}
+        />
+      </SectionCard>
+
+      <SectionCard title="Plan-tier pricing">
+        <StatTiles tiles={PLAN_PRICING.map((p) => ({ label: p.tier, value: p.price, note: `${p.credits} credits / month` }))} />
+      </SectionCard>
     </OpsPage>
   );
 }

@@ -283,6 +283,30 @@ const J4_OPS: [string, string][] = [
   ["11-notifications", "/ops/notifications"],
   ["12-account", "/ops/account"],
 ];
+/** Item 1 sweep: pages that got the theme in J1 but no rebuild. */
+const J5_CLIENT: [string, string][] = [
+  ["c01-visual-identity", "/assets/visual-identity"],
+  ["c02-visual-identity-logotype", "/assets/visual-identity/logotype"],
+  ["c03-sources", "/assets/sources"],
+  ["c04-agents", "/assets/agents-templates"],
+  ["c05-agents-templates", "/assets/agents-templates/templates"],
+  ["c06-agents-brand-os", "/assets/agents-templates/brand-os"],
+  ["c07-templates", "/assets/templates"],
+  ["c08-custom-apps", "/apps"],
+  ["c09-help", "/help"],
+  ["c10-search", "/search?q=summer"],
+  ["c11-new-project", "/projects/new"],
+  ["c12-inspiration", "/projects/inspiration"],
+  ["c13-reports-custom", "/reports/custom"],
+];
+const J5_OPS: [string, string][] = [
+  ["o01-projects", "/ops/projects"],
+  ["o02-billing", "/ops/billing"],
+  ["o03-analytics", "/ops/analytics"],
+  ["o04-settings", "/ops/settings"],
+  ["o05-clients-new", "/ops/clients/new"],
+  ["o06-projects-new", "/ops/projects/new"],
+];
 const pageFilter = args.find((a) => a.startsWith("--pages="))?.split("=")[1]?.split(",");
 
 async function phaseList(outDir: string, client: [string, string][], ops: [string, string][] = []) {
@@ -319,6 +343,15 @@ async function main() {
     await prisma.$disconnect();
     const ws: [string, string][] = ["dashboard", "delivery", "brand-os", "admin"].map((v, i) => [`2${i}-workspace-${v}`, `/ops/clients/${klarna.id}/${v}`]);
     return phaseList("screenshots/j4", [], [...J4_OPS, ...ws]);
+  }
+  if (phase === "j5") {
+    const prisma = new PrismaClient({ datasourceUrl: "file:./prisma/screens.db" });
+    const klarna = await prisma.client.findFirstOrThrow({ where: { name: "Klarna" }, select: { id: true } });
+    const agent = await prisma.agent.findFirstOrThrow({ where: { key: "brief_agent" }, select: { id: true } });
+    await prisma.$disconnect();
+    const ws: [string, string][] = ["brand-assets", "delivery", "project-files", "brand-os", "content-plan", "custom-apps"].map((v, i) => [`w${i}-workspace-${v}`, `/ops/clients/${klarna.id}/${v}`]);
+    const pick = <T extends [string, string]>(l: T[]) => l.filter(([n]) => !pageFilter || pageFilter.some((f) => n.startsWith(f)));
+    return phaseList("screenshots/j5", pick(J5_CLIENT), pick([...J5_OPS, ["o07-agent-detail", `/ops/agents/${agent.id}`] as [string, string], ...ws]));
   }
   if (phase === "j2") return phaseList("screenshots/j2", J2_PAGES.filter(([n]) => !pageFilter || pageFilter.some((f) => n.startsWith(f))));
   if (phase === "i") return phaseI();

@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { Card, SectionLabel } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { SectionCard, CardRows, CardNote } from "@/components/ds/card";
+import { StatusPill } from "@/components/ds/status-pill";
 import { formatDate } from "@/lib/utils";
 import { FileText } from "lucide-react";
 
@@ -13,27 +13,30 @@ export default async function ProjectFilesPage({ params }: { params: Promise<{ c
   });
 
   return (
-    <div className="flex flex-col gap-3">
-      <SectionLabel>Project documents</SectionLabel>
-      <Card className="divide-y divide-border p-0">
-        {projects.map((p) => (
-          <div key={p.id} className="flex items-center justify-between px-5 py-3.5">
-            <div className="flex items-center gap-3">
-              <FileText className="size-4 text-muted-foreground" />
-              <div>
-                <p className="text-sm font-medium">{p.name} — brief & estimate</p>
-                <p className="text-xs text-muted-foreground">
-                  Updated {formatDate(p.updatedAt, { day: "2-digit", month: "short", year: "numeric" })}
-                </p>
+    <SectionCard title="Project documents" meta={<span className="font-brand-mono text-[12px] text-brand-ink-2">{projects.length}</span>}>
+      {projects.length === 0 ? (
+        <CardNote>No projects for this client yet.</CardNote>
+      ) : (
+        <CardRows>
+          {projects.map((p) => (
+            <li key={p.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-6 py-4">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-[8px] bg-brand-chip">
+                <FileText className="size-4 text-brand-ink-2" strokeWidth={1.75} />
+              </span>
+              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <span className="truncate text-[15px]">{p.name}: brief &amp; estimate</span>
+                <span className="text-[13px] text-brand-ink-2">Updated {formatDate(p.updatedAt, { day: "2-digit", month: "short", year: "numeric" })}</span>
               </div>
-            </div>
-            <div className="flex gap-2">
-              {p.brief && <Badge tone="neutral">Brief</Badge>}
-              {p.estimate && <Badge tone="neutral">Estimate</Badge>}
-            </div>
-          </div>
-        ))}
-      </Card>
-    </div>
+              {(p.brief || p.estimate) && (
+                <span className="flex gap-1.5">
+                  {p.brief && <StatusPill>Brief</StatusPill>}
+                  {p.estimate && <StatusPill>Estimate</StatusPill>}
+                </span>
+              )}
+            </li>
+          ))}
+        </CardRows>
+      )}
+    </SectionCard>
   );
 }
