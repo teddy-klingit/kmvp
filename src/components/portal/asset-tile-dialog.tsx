@@ -58,7 +58,9 @@ export function AssetTile({ asset, transparent = false }: { asset: BrandAssetLik
             className="flex aspect-square items-center justify-center overflow-hidden rounded-lg border border-border transition-colors group-hover:border-ink/40"
             style={transparent ? CHECKERBOARD : asset.fileUrl ? undefined : { backgroundColor: asset.previewColor }}
           >
-            {asset.fileUrl ? (
+            {asset.fileUrl && asset.format === "MP4" ? (
+              <video src={asset.fileUrl} muted loop playsInline autoPlay aria-label={asset.name} className="size-full object-cover" />
+            ) : asset.fileUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={asset.fileUrl} alt={asset.name} className={transparent ? "size-2/3 object-contain" : "size-full object-cover"} />
             ) : (
@@ -86,7 +88,9 @@ export function AssetTile({ asset, transparent = false }: { asset: BrandAssetLik
           className="mb-4 flex aspect-video items-center justify-center overflow-hidden rounded-lg border border-border"
           style={transparent ? CHECKERBOARD : asset.fileUrl ? undefined : { backgroundColor: asset.previewColor }}
         >
-          {asset.fileUrl ? (
+          {asset.fileUrl && asset.format === "MP4" ? (
+            <video src={asset.fileUrl} controls playsInline aria-label={asset.name} className="size-full bg-black object-contain" />
+          ) : asset.fileUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={asset.fileUrl} alt={asset.name} className={transparent ? "size-1/2 object-contain" : "size-full object-cover"} />
           ) : (

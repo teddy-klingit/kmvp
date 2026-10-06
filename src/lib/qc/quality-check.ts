@@ -1,5 +1,6 @@
 import type { AssetVersion, QcFlag } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
+import { isClientVisibleVersion } from "@/lib/qc/visibility";
 import { logDecision } from "@/lib/decision-log";
 import { postProjectEvent } from "@/lib/project-events";
 import { createStaffNote } from "@/lib/staff-notes";
@@ -28,7 +29,13 @@ export async function loadQcSet(projectId: string): Promise<QcVersion[]> {
 }
 
 /** Flags that still need a decision before the version can go: open ones, and ones the designer is fixing. */
-export const blockingFlags = (v: Pick<QcVersion, "flags">) => v.flags.filter((f) => !f.late && f.status !== "ACCEPTED");
+/**
+ * Flags that hold a version back from the client. A version already sent has none: it could only be sent once its
+ * flags were dealt with, so any left on it were fixed before sending (late flags, raised after, are separate).
+ */
+export const blockingFlags = (v: Pick<QcVersion, "flags" | "state">) => (isClientVisibleVersion(v.state) ? [] : v.flags.filter((f) => !f.late && f.status !== "ACCEPTED"));
+/** On a sent version: the flags the designer fixed before it was sent. */
+export const fixedBeforeSend = (v: Pick<QcVersion, "flags" | "state">) => (isClientVisibleVersion(v.state) ? v.flags.filter((f) => !f.late && f.status === "SENT_TO_DESIGNER") : []);
 
 export type Gate = { canSend: boolean; toSend: QcVersion[]; blockers: string[] };
 
@@ -124,6 +131,8 @@ export async function sendToClient(projectId: string, actorUserId: string) {
   return { ok: true as const, sent: n };
 }
 
+export type VideoMeta = { durationSeconds: number | null; fps: number | null; hasAudio: boolean | null; width?: number | null; height?: number | null; posterKey: string | null; thumbStripKey: string | null };
+
 /** A designer's upload: a new asset (v1) or the next version of one. Returns the version to check. */
 export async function addAssetVersion(args: {
   projectId: string;
@@ -133,25 +142,29 @@ export async function addAssetVersion(args: {
   format: string;
   file: { storageKey: string; mimeType: string; sizeBytes: number };
   uploadedByUserId: string;
+  /** A video's metadata: from the MP4 header, with the poster and strip the browser drew at upload. */
+  video?: VideoMeta | null;
 }) {
   const type = args.file.mimeType.startsWith("video/") ? "VIDEO" : "IMAGE";
+  const meta = args.video ?? {};
+  const duration = args.video?.durationSeconds ? { durationSeconds: Math.round(args.video.durationSeconds) } : {};
   if (args.assetId) {
     const asset = await prisma.asset.findFirst({ where: { id: args.assetId, projectId: args.projectId, status: { not: "ARCHIVED" } }, include: { versions: { orderBy: { number: "desc" }, take: 1 } } });
     if (!asset) return null;
     const number = Math.max(asset.version, asset.versions[0]?.number ?? 0) + 1;
-    const version = await prisma.assetVersion.create({ data: { assetId: asset.id, projectId: args.projectId, number, state: "CHECKING", ...args.file, uploadedByUserId: args.uploadedByUserId } });
+    const version = await prisma.assetVersion.create({ data: { assetId: asset.id, projectId: args.projectId, number, state: "CHECKING", ...args.file, ...meta, uploadedByUserId: args.uploadedByUserId } });
     // The client keeps the file they were sent; an unsent asset just shows its newest file to staff.
     await prisma.asset.update({
       where: { id: asset.id },
-      data: { version: number, ...(asset.sentVersion === null ? { ...args.file, type, uploadedByUserId: args.uploadedByUserId, fileUrl: `/api/assets/${asset.id}/download?inline=1` } : {}) },
+      data: { version: number, ...(asset.sentVersion === null ? { ...args.file, ...duration, type, uploadedByUserId: args.uploadedByUserId, fileUrl: `/api/assets/${asset.id}/download?inline=1` } : {}) },
     });
     return version;
   }
   const asset = await prisma.asset.create({
-    data: { projectId: args.projectId, clientId: args.clientId, name: args.name, format: args.format, type, status: "IN_REVIEW", ...args.file, uploadedByUserId: args.uploadedByUserId, sentVersion: null },
+    data: { projectId: args.projectId, clientId: args.clientId, name: args.name, format: args.format, type, status: "IN_REVIEW", ...args.file, ...duration, uploadedByUserId: args.uploadedByUserId, sentVersion: null },
   });
   await prisma.asset.update({ where: { id: asset.id }, data: { fileUrl: `/api/assets/${asset.id}/download?inline=1` } });
-  return prisma.assetVersion.create({ data: { assetId: asset.id, projectId: args.projectId, number: 1, state: "CHECKING", ...args.file, uploadedByUserId: args.uploadedByUserId } });
+  return prisma.assetVersion.create({ data: { assetId: asset.id, projectId: args.projectId, number: 1, state: "CHECKING", ...args.file, ...meta, uploadedByUserId: args.uploadedByUserId } });
 }
 
 /** What the client's "Quality checked by Klingit" chip lists: the checks on the versions they have, all passed or accepted. Never a reason. */

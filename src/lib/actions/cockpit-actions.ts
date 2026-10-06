@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
-import { addAssetVersion } from "@/lib/qc/quality-check";
+import { addAssetVersion, type VideoMeta } from "@/lib/qc/quality-check";
+import { readMp4 } from "@/lib/media/mp4";
 import { runBrandCheck } from "@/lib/qc/brand-check";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -428,6 +429,25 @@ export async function updateDatesAction(_prev: CockpitState, formData: FormData)
 
 // ─── Assets ─────────────────────────────────────────────────────────────────
 
+/** A video's metadata: duration, fps and sound from the MP4 header; the poster and strip the browser drew. */
+async function videoMeta(projectId: string, file: File, formData: FormData): Promise<VideoMeta> {
+  const info = readMp4(Buffer.from(await file.arrayBuffer()));
+  const image = async (name: string) => {
+    const f = formData.get(name);
+    return f instanceof File && f.size > 0 && f.size <= 5 * 1024 * 1024 && f.type.startsWith("image/") ? (await saveUpload(projectId, f)).storageKey : null;
+  };
+  const browserDuration = Number(formData.get("durationSeconds"));
+  return {
+    durationSeconds: info?.durationSeconds ?? (browserDuration > 0 ? browserDuration : null),
+    fps: info?.fps ?? null,
+    hasAudio: info?.hasAudio ?? null,
+    width: info?.width ?? null,
+    height: info?.height ?? null,
+    posterKey: await image("poster"),
+    thumbStripKey: await image("strip"),
+  };
+}
+
 export async function uploadAssetAction(_prev: CockpitState, formData: FormData): Promise<CockpitState> {
   const viewer = await requireOpsRole(["ADMIN", "PM", "CREATOR"]);
   const projectId = String(formData.get("projectId") ?? "");
@@ -443,7 +463,8 @@ export async function uploadAssetAction(_prev: CockpitState, formData: FormData)
   if (!assetId && (!name || !format)) return { error: "Add a title and a format." };
 
   const saved = await saveUpload(projectId, file);
-  const version = await addAssetVersion({ projectId, clientId: project.clientId, assetId, name, format, file: saved, uploadedByUserId: viewer.userId });
+  const video = file.type.startsWith("video/") ? await videoMeta(projectId, file, formData) : null;
+  const version = await addAssetVersion({ projectId, clientId: project.clientId, assetId, name, format, file: saved, uploadedByUserId: viewer.userId, video });
   if (!version) return { error: "That asset isn't in this project." };
   const asset = await prisma.asset.findUniqueOrThrow({ where: { id: version.assetId } });
   await logDecision({ projectId, actorUserId: viewer.userId, area: "assets", action: `Uploaded ${asset.name} v${version.number}`, after: { assetId: asset.id, version: version.number, sizeBytes: saved.sizeBytes, mimeType: saved.mimeType } });

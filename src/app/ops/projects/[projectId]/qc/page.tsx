@@ -4,7 +4,8 @@ import { AlertCircle, Check, Loader2, Play, X } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireOpsPage } from "@/lib/authz";
 import { assetTitle, formatLabel } from "@/lib/asset-display";
-import { blockingFlags, loadQcSet, qcGate, type QcVersion } from "@/lib/qc/quality-check";
+import { isClientVisibleVersion } from "@/lib/qc/visibility";
+import { blockingFlags, fixedBeforeSend, loadQcSet, qcGate, type QcVersion } from "@/lib/qc/quality-check";
 import { expectedShape } from "@/lib/qc/specs";
 import type { StoredCheck } from "@/lib/qc/brand-check";
 import { backToDesignerAction, sendFlagToDesignerAction } from "@/lib/actions/qc-actions";
@@ -58,6 +59,9 @@ export default async function QualityCheckPage({ params, searchParams }: { param
   const withDesigner = set.flatMap((v) => v.flags.filter((f) => !f.late && f.status === "SENT_TO_DESIGNER" && v.state === "DRAFT").map((f) => ({ f, v })));
   const accepted = checked.flatMap((v) => v.flags.filter((f) => !f.late && f.status === "ACCEPTED").map((f) => ({ f, v })));
   const late = set.flatMap((v) => v.flags.filter((f) => f.late && f.status === "OPEN").map((f) => ({ f, v })));
+  // Nothing new waiting: the result of the check on what the client has, and what was fixed before it was sent.
+  const sentChecks = pending.length === 0 ? set.filter((v) => isClientVisibleVersion(v.state)).flatMap(checksOf) : [];
+  const fixed = set.flatMap((v) => fixedBeforeSend(v).map((f) => ({ f, v })));
   const passedGroups = [...new Map(allChecks.filter((c) => c.passed && !allChecks.some((x) => x.key === c.key && !x.passed)).map((c) => [c.label, c.source])).entries()];
   const toLook = open.length;
   const back = `/ops/projects/${projectId}`;
@@ -150,6 +154,7 @@ export default async function QualityCheckPage({ params, searchParams }: { param
                             if (!cell) return <td key={col} />;
                             const flags = asClient ? [] : blockingFlags(cell.v);
                             const lateFlags = asClient ? [] : cell.v.flags.filter((f) => f.late && f.status === "OPEN");
+                            const fixed = asClient ? [] : fixedBeforeSend(cell.v);
                             const h = ROW_H;
                             const w = Math.min(172, Math.round(h * cell.ratio));
                             return (
@@ -160,7 +165,13 @@ export default async function QualityCheckPage({ params, searchParams }: { param
                                     style={{ width: w, height: Math.round(w / cell.ratio), backgroundColor: `color-mix(in srgb, ${cell.v.asset.thumbnailColor} 22%, white)` }}
                                   >
                                     {cell.v.asset.type === "VIDEO" ? (
-                                      <Play className="absolute inset-0 m-auto size-6 text-brand-ink/50" />
+                                      <>
+                                        {cell.v.posterKey && (
+                                          // eslint-disable-next-line @next/next/no-img-element -- access-checked poster frame
+                                          <img src={`${fileUrl(cell.v)}&part=poster`} alt={`${r.title} ${col}`} className="size-full object-cover" loading="lazy" />
+                                        )}
+                                        <Play className={cn("absolute inset-0 m-auto size-6", cell.v.posterKey ? "text-white drop-shadow" : "text-brand-ink/50")} fill={cell.v.posterKey ? "currentColor" : "none"} />
+                                      </>
                                     ) : (
                                       // eslint-disable-next-line @next/next/no-img-element -- access-checked version file
                                       <img src={asClient && cell.v.asset.sentVersion && cell.v.state === "DRAFT" ? fileUrl(cell.v, cell.v.asset.sentVersion) : fileUrl(cell.v)} alt={`${r.title} ${col}`} className="size-full object-cover" loading="lazy" />
@@ -171,8 +182,8 @@ export default async function QualityCheckPage({ params, searchParams }: { param
                                       </span>
                                     )}
                                   </span>
-                                  <span className={cn("max-w-[150px] truncate text-[13px]", flags.length || lateFlags.length ? "text-brand-orange-text" : "text-brand-mute")}>
-                                    {flags[0]?.label ?? lateFlags[0]?.label ?? `v${cell.v.number}`}
+                                  <span title={fixed.map((f) => `${f.source}: ${f.label}`).join("\n") || undefined} className={cn("max-w-[190px] truncate text-[13px]", flags.length || lateFlags.length ? "text-brand-orange-text" : "text-brand-mute")}>
+                                    {flags[0]?.label ?? lateFlags[0]?.label ?? (fixed.length ? `v${cell.v.number} · ${fixed.length} fixed before sending` : `v${cell.v.number}`)}
                                   </span>
                                 </span>
                               </td>
@@ -251,8 +262,35 @@ export default async function QualityCheckPage({ params, searchParams }: { param
                     </span>
                     <span className="text-[13px] leading-[1.5] text-brand-mute">Runs on every new version · Brand OS + platform specs · the client never sees this panel</span>
                   </div>
+                ) : sentChecks.length > 0 ? (
+                  <div className="flex flex-col gap-3">
+                    <span className="flex items-baseline gap-2">
+                      <span className="text-[40px] font-semibold leading-none tabular-nums">{sentChecks.filter((c) => c.passed).length}</span>
+                      <span className="text-[15px] text-brand-ink-2">of {sentChecks.length} checks passed</span>
+                    </span>
+                    <span className="text-[13px] leading-[1.5] text-brand-mute">On the version{set.length === 1 ? "" : "s"} with the client · the client never sees this panel</span>
+                  </div>
                 ) : (
                   <span className="text-[14px] text-brand-ink-2">{set.some((v) => v.state === "CHECKING") ? "The check is running on the new versions." : "No checks ran: nothing new is waiting, or the files have no image the check can read."}</span>
+                )}
+
+                {fixed.length > 0 && (
+                  <section className="flex flex-col gap-3">
+                    <h3 className="m-0 text-[14px] font-normal text-brand-mute">Fixed before sending</h3>
+                    {fixed.map(({ f, v }) => (
+                      <span key={f.id} className="flex gap-3">
+                        <span aria-hidden className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-[#8D9E47]">
+                          <Check className="size-3.5 text-white" strokeWidth={3} />
+                        </span>
+                        <span className="flex flex-col">
+                          <span className="text-[14px] leading-[1.4]">
+                            {assetTitle(v.asset.name, v.asset.format)} {expectedShape(v.asset.format)?.label ?? ""} v{v.number}: {f.detail}
+                          </span>
+                          <span className="text-[13px] text-brand-mute">{f.source}</span>
+                        </span>
+                      </span>
+                    ))}
+                  </section>
                 )}
 
                 {open.length > 0 && (

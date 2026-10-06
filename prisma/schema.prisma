@@ -139,16 +139,16 @@ model Client {
   creditBalance          Int          @default(0)
   healthScore            Int          @default(80) // 0-100
   /// Data sources filled with dummy data for the demo (e.g. ["LinkedIn", "Google Analytics"]). The UI labels them "demo"; there is no real connection.
-  demoSources        Json?
+  demoSources            Json?
   /// Card on file, as shown in Account. Dummy for the demo when cardIsDemo; no real payment data is ever stored.
-  cardBrand          String?
-  cardLast4          String?
-  cardExpiry         String?
-  cardIsDemo         Boolean  @default(false)
+  cardBrand              String?
+  cardLast4              String?
+  cardExpiry             String?
+  cardIsDemo             Boolean      @default(false)
   isSampleAccount        Boolean      @default(false) // pitch/demo client — Insights shows seeded sample data styled as this client, never Klingit's own real connected ad accounts
   /// A demo account (e.g. the ouhers demo client): never reads live integrations, never runs scheduled agents,
   /// and nothing goes out from it (src/lib/notifier.ts). Seeded by prisma/seed-demo-ouhers.ts.
-  isDemo                 Boolean   @default(false)
+  isDemo                 Boolean      @default(false)
   paidMediaInScope       Boolean      @default(true) // false = this client's engagement is contractually organic-only — Performance/Reports hide all paid-ad sections rather than showing irrelevant spend/CTR data
   accountLeadId          String?
   renewalDate            DateTime?
@@ -610,16 +610,16 @@ model ContentPlanSuggestion {
 // reports and what "good" looks like per metric (e.g. Spotify's RFP: weekly
 // Slack report, follower growth %, engagement rate, video views target).
 model ClientReportingConfig {
-  id         String   @id @default(cuid())
-  clientId   String   @unique
-  cadence    String   @default("WEEKLY") // WEEKLY | BIWEEKLY | MONTHLY
-  kpiTargets Json? // [{ metric, target, platform? }]
+  id               String   @id @default(cuid())
+  clientId         String   @unique
+  cadence          String   @default("WEEKLY") // WEEKLY | BIWEEKLY | MONTHLY
+  kpiTargets       Json? // [{ metric, target, platform? }]
   /// Send schedule (Reports side card): ISO weekday 1–7 and "HH:MM" in Europe/Stockholm.
   sendDay          Int      @default(1)
   sendTime         String   @default("08:00")
   /// User ids of the client's team who get the report. Null = the account's owners.
   recipientUserIds Json?
-  updatedAt  DateTime @updatedAt
+  updatedAt        DateTime @updatedAt
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 }
@@ -1249,6 +1249,12 @@ model AssetVersion {
   checks           Json?
   checkRunId       String?
   checkedAt        DateTime?
+  // Video only: read from the file on upload (MP4 header) and the browser (poster, strip).
+  durationSeconds  Float?
+  fps              Float?
+  hasAudio         Boolean?
+  posterKey        String?
+  thumbStripKey    String?
   sentAt           DateTime?
   sentByUserId     String?
   createdAt        DateTime          @default(now())
@@ -1298,29 +1304,30 @@ enum CommentKind {
 }
 
 model Comment {
-  id                 String      @id @default(cuid())
-  projectId          String
-  assetId            String?
-  authorUserId       String?
-  authorClientUserId String?
-  body               String
-  resolved           Boolean     @default(false)
-  agentPriority      String? // "High" | "Medium" | "Low" — set by the Feedback agent
-  agentTaskSummary   String? // Feedback agent's structured task description
-  xPercent           Float? // pin (or region top-left) position on the asset preview, 0-100 — null = a general (unpinned) comment
-  yPercent           Float?
-  widthPercent       Float? // set only for a drawn region comment (Figma-style marquee), not a single point pin
-  heightPercent      Float?
-  timestampSeconds   Float? // set only for a video/motion asset comment — the moment in playback being referenced
-  archivedAt         DateTime? // soft delete — archived comments are hidden everywhere but kept for restore
+  id                  String      @id @default(cuid())
+  projectId           String
+  assetId             String?
+  authorUserId        String?
+  authorClientUserId  String?
+  body                String
+  resolved            Boolean     @default(false)
+  agentPriority       String? // "High" | "Medium" | "Low" — set by the Feedback agent
+  agentTaskSummary    String? // Feedback agent's structured task description
+  xPercent            Float? // pin (or region top-left) position on the asset preview, 0-100 — null = a general (unpinned) comment
+  yPercent            Float?
+  widthPercent        Float? // set only for a drawn region comment (Figma-style marquee), not a single point pin
+  heightPercent       Float?
+  timestampSeconds    Float? // set only for a video/motion asset comment — the moment in playback being referenced
+  timestampEndSeconds Float? // set for a range on a video (timestampSeconds → timestampEndSeconds)
+  archivedAt          DateTime? // soft delete — archived comments are hidden everywhere but kept for restore
   // SYSTEM rows are project events shown as centred chips ("Estimate v1 sent").
-  kind               CommentKind @default(MESSAGE)
+  kind                CommentKind @default(MESSAGE)
   // What the message is about, for the context chip: e.g. contextKind
   // "estimate_line", contextRef = line item id, contextLabel shown verbatim.
-  contextKind        String?
-  contextRef         String?
-  contextLabel       String?
-  createdAt          DateTime    @default(now())
+  contextKind         String?
+  contextRef          String?
+  contextLabel        String?
+  createdAt           DateTime    @default(now())
 
   project      Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
   asset        Asset?      @relation(fields: [assetId], references: [id], onDelete: Cascade)

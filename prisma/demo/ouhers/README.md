@@ -10,11 +10,11 @@ A complete, fictional client account for demoing every part of Klingit 2.0. Ever
 |---|---|
 | `brand/logo/` | Wordmark and "oh." monogram as outlined SVG + PNG, 8 variants |
 | `photos/` | 21 brand photos: people, textures, rituals, product packshots, range, gift set, bathroom shelf |
-| `creatives/` | 40 finished assets, one folder per project, plus `manifest.json` (concept, size, version, internal flag) |
+| `creatives/` | 40 finished images, one folder per project, plus `manifest.json` (concept, size, version, internal flag). `p12-brand-film/` holds the motion asset: a 15 s brand film in 9:16 and 1:1 (MP4, H.264 + AAC, with a soft original music pad), a poster frame and a thumbnail strip |
 | `data/account.json` | Client, plan (Scale, 3 active slots, credits), client users, Klingit team, connections |
-| `data/brand-os.json` | Brand platform (7 of 8 sections written, Market position left empty for the "Draft with AI" demo), personas, visual identity, voice, products, sources, library, competitors |
+| `data/brand-os.json` | Brand platform (7 of 8 sections written; Visual identity now includes motion rules; Market position left empty for the "Draft with AI" demo), personas, visual identity, voice, products, sources, library, competitors |
 | `data/price-list.json` | Placeholder Price List rows used by the estimates |
-| `data/projects.json` | 12 projects covering every stage (see below) |
+| `data/projects.json` | 13 projects covering every stage (see below) |
 | `data/insights.json` | 6 campaigns with 318 rows of daily data (totals = the sum of the days), creative performance, CTR by format, fatigue, takeaways, What to do, market signals, competitors, trends, ideas |
 | `data/audience.json`, `data/seo.json` | Connected-state data for Audience and SEO & AI visibility |
 | `data/calendar.json`, `reports.json`, `agents.json`, `notifications.json`, `pm.json` | Calendar items, weekly reports, agents & templates, notifications, PM inbox and the automated decision log |
@@ -35,6 +35,7 @@ A complete, fictional client account for demoing every part of Klingit 2.0. Ever
 | Retail display | Queued #2 | "Approve estimate" (the client's action) |
 | Spring 2027 ideas | Draft | Brief studio mid-conversation, quality 46 |
 | Seasonal content agent | Agent build, Building | Agent project view, test output, build log |
+| Brand film: dewy by default | In review (v1, 1 of 2 rounds) | Video review: timecoded comments and ranges, a pin on a paused frame, a Klingit note, QC with a safe-zone fix before sending, 9:16 + 1:1 versions |
 
 ## Rules for loading it
 - Demo-only: flag the client `isDemo` and never send real emails or notifications for it.

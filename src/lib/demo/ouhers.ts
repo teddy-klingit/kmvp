@@ -50,9 +50,9 @@ type PackProject = Json & {
   brief?: Json;
   estimate?: { lines: { deliverable: string; qty?: number; credits: number }[]; total: number; approvedBy?: string; approvedAt?: string; status?: string; sentAt?: string };
   versions?: { n: number; sentToClient: string; qc: { passed: number; total: number; accepted?: number; fixedBeforeSend?: number; flags?: { asset: string; check: string; text: string; resolution: string }[] }; changes?: string[] }[];
-  assets?: { file: string; concept: string; size: string; version: number; frame: number | null; slide: number | null; clientVisible: boolean }[];
+  assets?: { file: string; kind?: string; concept: string; size: string; version: number; frame?: number | null; slide?: number | null; clientVisible: boolean; durationSec?: number; fps?: number; width?: number; height?: number; hasAudio?: boolean; poster?: string; thumbStrip?: string }[];
   approvals?: { by: string; at: string; scope: string; concept?: string }[];
-  comments?: { pin: number | null; asset: string | null; x?: number; y?: number; region?: { w: number; h: number }; scope?: string; thread: { author: string; at: string; text: string; channel: string; source: string }[]; resolved?: boolean }[];
+  comments?: { pin: number | null; asset: string | null; x?: number; y?: number; t?: number; tEnd?: number; kind?: string; region?: { w: number; h: number }; scope?: string; thread: { author: string; at: string; text: string; channel: string; source: string }[]; resolved?: boolean }[];
   copy?: { elements: { element: string; sv: string; no: string; da: string; status: string; suggestion?: { by: string; lang: string; from: string; to: string } }[] };
 };
 
@@ -71,7 +71,7 @@ const ROLE: Record<string, { title: InternalRole; onProject: string; skills?: st
   "Web developer": { title: "ART_DIRECTOR", onProject: "Web developer", skills: ["web development"] },
 };
 const PERMISSION: Record<string, ClientPermission> = { admin: "OWNER", editor: "APPROVER", viewer: "VIEWER" };
-const MIME: Record<string, string> = { ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".svg": "image/svg+xml" };
+const MIME: Record<string, string> = { ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".svg": "image/svg+xml", ".mp4": "video/mp4" };
 
 /** Where each pack stage lands in our model. */
 function statusFor(p: PackProject): ProjectStatus {
@@ -97,7 +97,7 @@ const STAGE_AT: Record<ProjectStatus, PipelineStageName | null> = {
   ARCHIVED: null,
 };
 
-const typeFor = (t: string): ProjectType => (/video/i.test(t) ? "MOTION_VIDEO" : /web/i.test(t) ? "DEVELOPMENT" : /ad set|launch|carousel|social/i.test(t) ? "CAMPAIGN" : "OTHER");
+const typeFor = (t: string): ProjectType => (/video|motion/i.test(t) ? "MOTION_VIDEO" : /web/i.test(t) ? "DEVELOPMENT" : /ad set|launch|carousel|social/i.test(t) ? "CAMPAIGN" : "OTHER");
 
 export async function seedOuhers(opts: { dir?: string; shift?: boolean; log?: (s: string) => void } = {}): Promise<SeedReport> {
   const dir = opts.dir ?? path.join(process.cwd(), "prisma/demo/ouhers");
@@ -252,7 +252,14 @@ export async function seedOuhers(opts: { dir?: string; shift?: boolean; log?: (s
     const a = await prisma.brandAsset.create({ data: { clientId: OUHERS_CLIENT_ID, name: l.file, category: "PHOTOGRAPHY", variant: l.tags.join(", "), format: "JPG", previewColor: "#FBF6F0" } });
     await prisma.brandAsset.update({ where: { id: a.id }, data: { fileUrl: `/api/brand-assets/${a.id}` } });
   }
-  say(`Brand OS · ${brand.visualIdentity.logos.length} logos, ${brand.library.length} photos uploaded`);
+  // Motion rules (new in the pack): the reference film goes in Visual identity → Animation.
+  const motion = brand.visualIdentity.motion as { rules: string[]; reference?: string } | undefined;
+  if (motion?.reference && existsSync(path.join(dir, motion.reference))) {
+    await store(motion.reference);
+    const a = await prisma.brandAsset.create({ data: { clientId: OUHERS_CLIENT_ID, name: motion.reference, category: "ANIMATION", variant: `Motion reference · ${motion.rules.length} motion rules`, format: "MP4", dimensions: "1080 x 1920", previewColor: "#F6CDB8" } });
+    await prisma.brandAsset.update({ where: { id: a.id }, data: { fileUrl: `/api/brand-assets/${a.id}` } });
+  }
+  say(`Brand OS · ${brand.visualIdentity.logos.length} logos, ${brand.library.length} photos${motion?.reference ? ", the motion reference" : ""} uploaded`);
 
   // ─── Projects ────────────────────────────────────────────────────────────
   const prices: PriceEntry[] = (await prisma.priceListItem.findMany({ where: { archivedAt: null } })).map((x) => ({ deliverableType: x.deliverableType, complexityTier: x.complexityTier, creditCost: x.creditCost, leadTimeDays: x.leadTimeDays }));
@@ -427,7 +434,8 @@ export async function seedOuhers(opts: { dir?: string; shift?: boolean; log?: (s
           name: first.frame ? `${first.concept} ${first.frame}` : first.slide ? `${first.concept}, slide ${first.slide}` : first.concept,
           format,
           platform: channels.find((c) => c !== "Web") ?? null,
-          type: "IMAGE",
+          type: first.kind === "video" ? "VIDEO" : "IMAGE",
+          durationSeconds: first.durationSec ? Math.round(first.durationSec) : null,
           status: assetStatus,
           version: latest.version,
           sentVersion: visible ? latest.version : null,
@@ -442,7 +450,11 @@ export async function seedOuhers(opts: { dir?: string; shift?: boolean; log?: (s
         const sentInfo = pr.versions?.find((v) => v.n === f.version);
         const isLatest = f === latest;
         const state: AssetVersionState = !f.clientVisible ? "QC_READY" : !isLatest ? "CHANGES_REQUESTED" : approved ? "APPROVED" : "SENT_TO_CLIENT";
-        const checks = specChecks({ format, platform: channels[0] ?? null, mimeType: saved.mimeType, sizeBytes: saved.sizeBytes, width: dims?.width ?? null, height: dims?.height ?? null });
+        const width = f.width ?? dims?.width ?? null;
+        const height = f.height ?? dims?.height ?? null;
+        const checks = specChecks({ format, platform: channels[0] ?? null, mimeType: saved.mimeType, sizeBytes: saved.sizeBytes, width, height });
+        // A video: the pack's poster and thumbnail strip (the real upload draws them in the browser).
+        const video = f.kind === "video" ? { durationSeconds: f.durationSec ?? null, fps: f.fps ?? null, hasAudio: f.hasAudio ?? null, posterKey: f.poster ? (await store(f.poster)).storageKey : null, thumbStripKey: f.thumbStrip ? (await store(f.thumbStrip)).storageKey : null } : {};
         checkTotals = { passed: checkTotals.passed + checks.filter((c) => c.passed).length, total: checkTotals.total + checks.length };
         const v = await prisma.assetVersion.create({
           data: {
@@ -453,8 +465,9 @@ export async function seedOuhers(opts: { dir?: string; shift?: boolean; log?: (s
             storageKey: saved.storageKey,
             mimeType: saved.mimeType,
             sizeBytes: saved.sizeBytes,
-            width: dims?.width ?? null,
-            height: dims?.height ?? null,
+            width,
+            height,
+            ...video,
             uploadedByUserId: team[0]?.userId ?? null,
             checks: checks.map(({ key, label, source, passed }) => ({ key, label, source, passed })),
             checkedAt: sentInfo ? at(sentInfo.sentToClient) : now,
@@ -519,6 +532,9 @@ export async function seedOuhers(opts: { dir?: string; shift?: boolean; log?: (s
             yPercent: i === 0 && c.y != null ? c.y * 100 : null,
             widthPercent: i === 0 && c.region ? c.region.w * 100 : null,
             heightPercent: i === 0 && c.region ? c.region.h * 100 : null,
+            // A video comment: the moment (t) or range (t → tEnd), with an optional pin on the paused frame.
+            timestampSeconds: i === 0 && c.t != null ? c.t : null,
+            timestampEndSeconds: i === 0 && c.tEnd != null ? c.tEnd : null,
             ...(i > 0 && rootId ? { contextKind: "reply", contextRef: rootId } : !assetId ? { contextKind: "set" } : {}),
             createdAt: at(m.at),
           },

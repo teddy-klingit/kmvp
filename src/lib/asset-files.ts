@@ -68,6 +68,39 @@ export async function assetFile(asset: { name: string; format: string; storageKe
   return { data: new TextEncoder().encode(svg), mimeType: "image/svg+xml", filename: `${slug(title)}.svg` };
 }
 
+/**
+ * The file as a response. Honours a Range header (206), which a <video> needs to seek and to start playing before
+ * the whole file is in.
+ */
+export function fileResponse(req: Request, file: { data: Uint8Array; mimeType: string; filename: string }, inline: boolean) {
+  const headers: Record<string, string> = {
+    "Content-Type": file.mimeType,
+    "Content-Disposition": inline ? "inline" : attachment(file.filename),
+    "Cache-Control": "private, max-age=300",
+    "X-Content-Type-Options": "nosniff",
+    "Accept-Ranges": "bytes",
+  };
+  const size = file.data.byteLength;
+  const range = req.headers.get("range")?.match(/^bytes=(\d*)-(\d*)$/);
+  if (range && (range[1] || range[2])) {
+    const start = range[1] ? Number(range[1]) : Math.max(0, size - Number(range[2]));
+    const end = range[1] && range[2] ? Math.min(Number(range[2]), size - 1) : size - 1;
+    if (start >= size || start > end) return new Response(null, { status: 416, headers: { ...headers, "Content-Range": `bytes */${size}` } });
+    return new Response(Buffer.from(file.data.subarray(start, end + 1)), { status: 206, headers: { ...headers, "Content-Range": `bytes ${start}-${end}/${size}`, "Content-Length": String(end - start + 1) } });
+  }
+  return new Response(Buffer.from(file.data), { headers: { ...headers, "Content-Length": String(size) } });
+}
+
+export type VideoPart = "poster" | "strip";
+export const videoPart = (v: string | null): VideoPart | null => (v === "poster" || v === "strip" ? v : null);
+
+/** A video version's poster frame or thumbnail strip (JPEG), or null when it has none. */
+export async function videoPartFile(version: { posterKey: string | null; thumbStripKey: string | null }, part: VideoPart) {
+  const key = part === "poster" ? version.posterKey : version.thumbStripKey;
+  const data = key ? await readUpload(key) : null;
+  return data ? { data: new Uint8Array(data), mimeType: key!.endsWith(".png") ? "image/png" : "image/jpeg", filename: `${part}.jpg` } : null;
+}
+
 export function attachment(filename: string) {
   return `attachment; filename="${filename.replace(/"/g, "")}"`;
 }

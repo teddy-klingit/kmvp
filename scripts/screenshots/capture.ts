@@ -624,6 +624,7 @@ async function main() {
       [
         ["16-pm-needs-you", "/ops"],
         ["17-qc-holiday", `/ops/projects/ouhers-p05-holiday-giftset/qc`],
+        ["17b-qc-brand-film", `/ops/projects/ouhers-p12-brand-film/qc`],
         ["18-ops-client", "/ops/clients/client-ouhers/dashboard"],
       ].map(([n, path]) => [n, path] as [string, string]).filter(([n]) => !pageFilter || pageFilter.some((f) => n.startsWith(f))),
       "maja@ouhers.demo"

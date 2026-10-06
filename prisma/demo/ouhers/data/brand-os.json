@@ -203,9 +203,22 @@
    "imagery": true,
    "packaging": true,
    "iconography": false,
-   "motion": false,
+   "motion": true,
    "layoutGrid": true,
    "photography": true
+  },
+  "motion": {
+   "status": "done",
+   "rules": [
+    "Calm, never bouncy: ease-out (cubic) for things arriving, ease-in-out for crossfades",
+    "Text fades in and rises 40 px over 0.6 s; lines stagger 0.15 s",
+    "Scene changes are 0.4 s crossfades, no wipes or zooms between scenes",
+    "Photos move with a slow push-in, max 12% over a scene",
+    "End card: wordmark reveals left to right over 1 s, then the tagline, then one CTA pill",
+    "Sound: a soft warm pad with a light \"dew\" pluck on each cut; no voice-over unless the brief asks",
+    "Keep text and CTAs above the platform UI zone on 9:16"
+   ],
+   "reference": "creatives/p12-brand-film/dewy-by-default-9x16-v1.mp4"
   }
  },
  "voice": {
@@ -506,7 +519,7 @@
   "note": "Computed by computeBrandHealth from the fields above; listed only for checking the seed",
   "expected": {
    "platform": "7/8",
-   "visualIdentity": "7/9",
+   "visualIdentity": "8/9",
    "voiceTone": "4/4",
    "sources": "6/6",
    "performanceData": "4/5"

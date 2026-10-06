@@ -1385,5 +1385,223 @@
     "text": "Requested from Klingit recommends"
    }
   ]
+ },
+ {
+  "id": "p12-brand-film",
+  "title": "Brand film: dewy by default",
+  "clientStage": "in_review",
+  "internalStage": "review",
+  "type": "Motion",
+  "channels": [
+   "instagram",
+   "tiktok"
+  ],
+  "markets": [
+   "SE",
+   "NO",
+   "DK"
+  ],
+  "createdAt": "2026-09-18",
+  "dueAt": "2026-10-16",
+  "credits": {
+   "estimated": [
+    16,
+    20
+   ],
+   "reserved": 18
+  },
+  "team": [
+   "kl-sami",
+   "kl-anna"
+  ],
+  "brief": {
+   "task": "A 15-second brand film for Reels and TikTok (9:16) plus a 1:1 cut, introducing ouhers as soft, everyday skincare for every face, live 20 October.",
+   "whyNow": "Q4 brand push next to the cloud cream ads.",
+   "objective": {
+    "goal": "Brand awareness",
+    "metric": "video completion rate"
+   },
+   "audience": {
+    "personaId": "pe-maja",
+    "barrier": "Has never heard of ouhers"
+   },
+   "keyMessage": "dewy by default.",
+   "cta": "shop the range",
+   "material": "Library photos + packshots, animated by Klingit",
+   "quality": 85
+  },
+  "estimate": {
+   "lines": [
+    {
+     "deliverable": "Short video 9:16 (≤15 s)",
+     "credits": 12
+    },
+    {
+     "deliverable": "1:1 cut-down",
+     "credits": 4
+    },
+    {
+     "deliverable": "Music (temp pad, final licence later)",
+     "credits": 2
+    }
+   ],
+   "total": 18,
+   "approvedBy": "ou-maja",
+   "approvedAt": "2026-09-19"
+  },
+  "rounds": {
+   "used": 1,
+   "included": 2
+  },
+  "versions": [
+   {
+    "n": 1,
+    "sentToClient": "2026-10-06",
+    "qc": {
+     "passed": 14,
+     "total": 14,
+     "fixedBeforeSend": 1,
+     "flags": [
+      {
+       "asset": "9x16",
+       "check": "Platform safe zone",
+       "text": "Text cards sat in the Reels UI zone at 0:02 and 0:08",
+       "resolution": "fixed"
+      }
+     ]
+    },
+    "changes": []
+   }
+  ],
+  "assets": [
+   {
+    "file": "creatives/p12-brand-film/dewy-by-default-9x16-v1.mp4",
+    "kind": "video",
+    "concept": "dewy by default",
+    "size": "9x16",
+    "version": 1,
+    "durationSec": 15.0,
+    "fps": 30,
+    "width": 1080,
+    "height": 1920,
+    "hasAudio": true,
+    "poster": "creatives/p12-brand-film/poster-9x16.jpg",
+    "thumbStrip": "creatives/p12-brand-film/thumbstrip-9x16.jpg",
+    "clientVisible": true
+   },
+   {
+    "file": "creatives/p12-brand-film/dewy-by-default-1x1-v1.mp4",
+    "kind": "video",
+    "concept": "dewy by default",
+    "size": "1x1",
+    "version": 1,
+    "durationSec": 15.0,
+    "fps": 30,
+    "width": 1080,
+    "height": 1080,
+    "hasAudio": true,
+    "clientVisible": true
+   }
+  ],
+  "scenes": [
+   {
+    "t": 0.0,
+    "name": "oh. opener"
+   },
+   {
+    "t": 2.0,
+    "name": "dewy by default."
+   },
+   {
+    "t": 5.2,
+    "name": "whipped, weightless."
+   },
+   {
+    "t": 8.0,
+    "name": "for every face."
+   },
+   {
+    "t": 10.4,
+    "name": "meet the first five."
+   },
+   {
+    "t": 12.4,
+    "name": "end card"
+   }
+  ],
+  "comments": [
+   {
+    "pin": 1,
+    "asset": "creatives/p12-brand-film/dewy-by-default-9x16-v1.mp4",
+    "t": 2.0,
+    "tEnd": 5.4,
+    "thread": [
+     {
+      "author": "ou-maja",
+      "at": "2026-10-06T13:20:00+02:00",
+      "text": "Love this opener. Can \"dewy by default.\" stay on screen a little longer?",
+      "channel": "with_klingit",
+      "source": "klingit"
+     }
+    ],
+    "resolved": false
+   },
+   {
+    "pin": 2,
+    "asset": "creatives/p12-brand-film/dewy-by-default-9x16-v1.mp4",
+    "t": 9.4,
+    "x": 0.33,
+    "y": 0.63,
+    "thread": [
+     {
+      "author": "ou-elin",
+      "at": "2026-10-06T13:34:00+02:00",
+      "text": "The \"for every face.\" card could be bigger, it is small on my phone.",
+      "channel": "with_klingit",
+      "source": "klingit"
+     }
+    ],
+    "resolved": false
+   },
+   {
+    "pin": 3,
+    "asset": "creatives/p12-brand-film/dewy-by-default-9x16-v1.mp4",
+    "t": 10.6,
+    "tEnd": 12.4,
+    "thread": [
+     {
+      "author": "ou-oscar",
+      "at": "2026-10-06T13:41:00+02:00",
+      "text": "Hold the range shot about a second longer so people can read the product names.",
+      "channel": "with_klingit",
+      "source": "klingit"
+     },
+     {
+      "author": "kl-sami",
+      "at": "2026-10-06T14:02:00+02:00",
+      "text": "Will do, I will take it from the texture scene.",
+      "channel": "with_klingit",
+      "source": "klingit"
+     }
+    ],
+    "resolved": false
+   },
+   {
+    "pin": 4,
+    "asset": "creatives/p12-brand-film/dewy-by-default-9x16-v1.mp4",
+    "t": 12.4,
+    "kind": "team",
+    "thread": [
+     {
+      "author": "kl-sami",
+      "at": "2026-10-06T12:55:00+02:00",
+      "text": "The music is a temp pad. The final licensed track comes with v2.",
+      "channel": "with_klingit",
+      "source": "klingit"
+     }
+    ],
+    "resolved": false
+   }
+  ]
  }
 ]

@@ -70,7 +70,12 @@ function ThreadCard({ thread: t, active, onSelect }: { thread: Thread; active: b
           <span aria-hidden className={cn("flex size-6 shrink-0 items-center justify-center rounded-[8px_8px_8px_2px] text-[12px] font-semibold text-white", t.number == null ? "bg-brand-chip text-brand-ink-2" : fromClient ? "bg-brand-orange" : "bg-brand-ink")}>
             {t.number ?? "·"}
           </span>
-          {t.timestamp != null && <span className="rounded-full bg-brand-ink px-2 py-0.5 font-brand-mono text-[12px] text-white">{timecode(t.timestamp)}</span>}
+          {t.timestamp != null && (
+            <span className="whitespace-nowrap rounded-full bg-brand-ink px-2 py-0.5 font-brand-mono text-[12px] text-white">
+              {timecode(t.timestamp)}
+              {t.timestampEnd != null && `–${timecode(t.timestampEnd)}`}
+            </span>
+          )}
           <span className="truncate text-[14px] text-brand-ink-2">{t.label}</span>
         </button>
         <form action={resolveThreadAction}>

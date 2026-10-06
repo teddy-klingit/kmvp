@@ -37,6 +37,8 @@ export type ReviewItem = {
   version: number;
   changed: boolean;
   durationSeconds: number | null;
+  /** Video: poster frame and thumbnail strip of the sent version, frame rate and whether it has sound. */
+  video: { poster: string | null; strip: string | null; fps: number | null; hasAudio: boolean | null } | null;
   copy: { element: string; locked: boolean; lines: CopyLine[]; suggestions: CopySuggestion[] } | null;
 };
 
@@ -48,6 +50,8 @@ export type Thread = {
   number: number | null;
   pin: { x: number; y: number; w: number | null; h: number | null } | null;
   timestamp: number | null;
+  /** The end of a range on a video (timestamp → timestampEnd). */
+  timestampEnd: number | null;
   resolved: boolean;
   messages: ThreadMessage[];
 };
@@ -99,7 +103,7 @@ export async function loadReview(projectId: string, clientId: string) {
     prisma.asset.findMany({
       where: { projectId, ...clientVisibleAsset },
       orderBy: { createdAt: "asc" },
-      include: { versions: { where: clientVisibleVersion, orderBy: { number: "desc" }, take: 1, select: { width: true, height: true } } },
+      include: { versions: { where: clientVisibleVersion, orderBy: { number: "desc" }, take: 1, select: { width: true, height: true, durationSeconds: true, fps: true, hasAudio: true, posterKey: true, thumbStripKey: true } } },
     }),
     prisma.comment.findMany({
       where: { projectId, archivedAt: null, kind: "MESSAGE", OR: [{ assetId: { not: null } }, { contextKind: "set" }] },
@@ -134,7 +138,11 @@ export async function loadReview(projectId: string, clientId: string) {
       hasFile: Boolean(a.storageKey),
       version: a.sentVersion ?? a.version,
       changed: (a.sentVersion ?? 1) > 1,
-      durationSeconds: a.durationSeconds,
+      durationSeconds: v?.durationSeconds ?? a.durationSeconds,
+      video:
+        a.type === "VIDEO"
+          ? { poster: v?.posterKey ? `/api/assets/${a.id}/download?part=poster` : null, strip: v?.thumbStripKey ? `/api/assets/${a.id}/download?part=strip` : null, fps: v?.fps ?? null, hasAudio: v?.hasAudio ?? null }
+          : null,
       copy:
         kind === "copy"
           ? {
@@ -149,7 +157,12 @@ export async function loadReview(projectId: string, clientId: string) {
 
   // Threads: a comment on an asset (or on the whole set) starts one; replies point at it (contextKind "reply").
   const roots = comments.filter((c) => c.contextKind !== "reply");
-  let pinNo = 0;
+  // Numbers follow the work: asset by asset, and on a video in timecode order (as in the film, not as written).
+  const order = new Map(items.map((i, n) => [i.id, n]));
+  const numbered = roots
+    .filter((c) => (c.xPercent != null && c.yPercent != null) || c.timestampSeconds != null)
+    .sort((a, b) => (order.get(a.assetId ?? "") ?? 0) - (order.get(b.assetId ?? "") ?? 0) || (a.timestampSeconds ?? 0) - (b.timestampSeconds ?? 0) || a.createdAt.getTime() - b.createdAt.getTime());
+  const numberOf = new Map(numbered.map((c, n) => [c.id, n + 1]));
   const threads: Thread[] = roots.map((c) => {
     const pinned = c.xPercent != null && c.yPercent != null;
     const msg = (m: (typeof comments)[number]): ThreadMessage => ({
@@ -166,9 +179,10 @@ export async function loadReview(projectId: string, clientId: string) {
       id: c.id,
       assetId: c.assetId,
       label: c.contextKind === "set" || !c.asset ? "Whole set" : item ? `${item.concept} · ${item.size}` : assetTitle(c.asset.name, c.asset.format),
-      number: pinned || c.timestampSeconds != null ? ++pinNo : null,
+      number: numberOf.get(c.id) ?? null,
       pin: pinned ? { x: c.xPercent!, y: c.yPercent!, w: c.widthPercent, h: c.heightPercent } : null,
       timestamp: c.timestampSeconds,
+      timestampEnd: c.timestampEndSeconds,
       resolved: c.resolved,
       messages: [msg(c), ...replies.map(msg)],
     };
@@ -178,6 +192,8 @@ export async function loadReview(projectId: string, clientId: string) {
   const markets = jsonArray<{ key: string; items?: string[] }>(project.brief?.sections).find((s) => s.key === "markets")?.items ?? [];
   // "Version 2 sent · a · b": the change notes of the latest version.
   const changes = events[0]?.body.split(" · ").slice(1).filter((x) => !/quality checked/i.test(x)) ?? [];
+  // Numbered threads in their number order (a film's comments in timecode order), then the rest as written.
+  threads.sort((a, b) => (a.number ?? Infinity) - (b.number ?? Infinity));
   return { project: { id: project.id, name: project.name, status: project.status }, canReview: project.status === "AWAITING_REVIEW", items, threads, kinds, markets, checks, changes };
 }
 

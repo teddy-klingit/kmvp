@@ -4,6 +4,9 @@ import { setMockSession } from "./setup";
 import { createSecurityFixtures } from "./fixtures";
 import { kindOf, loadReview } from "@/lib/review";
 import { textDiff } from "@/lib/review-text";
+import { readFileSync } from "fs";
+import { readMp4 } from "@/lib/media/mp4";
+import { postTimestampCommentAction } from "@/lib/actions/project-actions";
 import { acceptAllCopyAction, approveReviewItemsAction, replyThreadAction, requestReviewChangesAction, resolveCopySuggestionAction, resolveThreadAction, suggestCopyAction } from "@/lib/actions/review-actions";
 
 type Fx = Awaited<ReturnType<typeof createSecurityFixtures>>;
@@ -49,6 +52,14 @@ describe("textDiff", () => {
 
   it("returns the text unchanged when nothing changed", () => {
     expect(textDiff("Hent appen", "Hent appen")).toEqual([{ type: "same", text: "Hent appen" }]);
+  });
+});
+
+describe("video files", () => {
+  it("reads duration, frame rate, size and sound from an MP4 header", () => {
+    const info = readMp4(readFileSync("prisma/demo/ouhers/creatives/p12-brand-film/dewy-by-default-9x16-v1.mp4"));
+    expect(info).toEqual({ durationSeconds: 15, fps: 30, width: 1080, height: 1920, hasAudio: true });
+    expect(readMp4(Buffer.from("not a video"))).toBeNull();
   });
 });
 
@@ -166,5 +177,22 @@ describe("review actions", () => {
 
     asClientB();
     expect((await suggestCopyAction({}, form({ assetId: p.copy.id, lang: "sv", text: "Hej" }))).error).toMatch(/isn't in your review/);
+  });
+
+  it("video comments: a moment, a range with a pin on the frame; a range must end after it starts", async () => {
+    const p = await reviewProject();
+    const film = await prisma.asset.create({ data: { projectId: p.project.id, clientId: fx.clientA.id, name: "Film", format: "Story 9:16", type: "VIDEO", sentVersion: 1, durationSeconds: 15 } });
+    await prisma.assetVersion.create({ data: { assetId: film.id, projectId: p.project.id, number: 1, state: "SENT_TO_CLIENT" } });
+    asClientA();
+    const post = (o: Record<string, string>) => postTimestampCommentAction({}, form({ projectId: p.project.id, assetId: film.id, ...o }));
+    await post({ body: "Later", timestampSeconds: "8" });
+    await post({ body: "Hold longer", timestampSeconds: "2", timestampEndSeconds: "5.4", xPercent: "33", yPercent: "63" });
+    await post({ body: "Backwards range", timestampSeconds: "6", timestampEndSeconds: "4" });
+    const threads = (await loadReview(p.project.id, fx.clientA.id))!.threads.filter((t) => t.assetId === film.id);
+    expect(threads.map((t) => [t.number, t.timestamp, t.timestampEnd, t.pin && [t.pin.x, t.pin.y], t.messages[0].body])).toEqual([
+      [1, 2, 5.4, [33, 63], "Hold longer"],
+      [2, 6, null, null, "Backwards range"],
+      [3, 8, null, null, "Later"],
+    ]);
   });
 });

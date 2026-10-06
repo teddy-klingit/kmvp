@@ -11,6 +11,7 @@ import {
   uploadAssetAction,
   type CockpitState,
 } from "@/lib/actions/cockpit-actions";
+import { videoFrames } from "@/lib/media/video-frames";
 
 const fieldCls = "rounded-[8px] border border-ds-control-border bg-white px-3 text-[14px] text-ds-text outline-none focus:border-ds-text-3";
 
@@ -106,7 +107,19 @@ export function DatesForm({
 
 /** A designer's upload: a new asset, or the next version of one. Either way the Brand OS check runs on it. */
 export function UploadAssetForm({ projectId, assets = [] }: { projectId: string; assets?: { id: string; label: string }[] }) {
-  const [state, action, pending] = useActionState<CockpitState, FormData>(uploadAssetAction, {});
+  // A video gets its poster frame and thumbnail strip drawn here, in the browser, and sent with the file.
+  const [state, action, pending] = useActionState<CockpitState, FormData>(async (prev, fd) => {
+    const file = fd.get("file");
+    if (file instanceof File && file.type.startsWith("video/")) {
+      const frames = await videoFrames(file);
+      if (frames) {
+        fd.set("poster", frames.poster, "poster.jpg");
+        fd.set("strip", frames.strip, "strip.jpg");
+        fd.set("durationSeconds", String(frames.durationSeconds));
+      }
+    }
+    return uploadAssetAction(prev, fd);
+  }, {});
   const [assetId, setAssetId] = useState("");
   return (
     <form action={action} className="flex flex-col gap-3">
@@ -143,7 +156,7 @@ export function UploadAssetForm({ projectId, assets = [] }: { projectId: string;
         </label>
         <Button type="submit" variant="secondary" size="md" disabled={pending}>
           <Upload strokeWidth={1.75} />
-          Upload
+          {pending ? "Uploading…" : "Upload"}
         </Button>
       </div>
       <Status state={state} />

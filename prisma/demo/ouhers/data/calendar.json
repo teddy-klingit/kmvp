@@ -1,6 +1,12 @@
 {
  "items": [
   {
+   "date": "2026-10-20",
+   "title": "Brand film live",
+   "kind": "klingit",
+   "project": "p12-brand-film"
+  },
+  {
    "date": "2026-10-09",
    "title": "Holiday: first draft",
    "kind": "klingit",

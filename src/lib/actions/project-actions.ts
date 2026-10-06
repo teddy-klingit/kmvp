@@ -224,13 +224,23 @@ export async function postTimestampCommentAction(_prev: EmptyState, formData: Fo
   const assetId = String(formData.get("assetId") ?? "");
   const body = String(formData.get("body") ?? "").trim();
   const timestampSeconds = Number(formData.get("timestampSeconds") ?? NaN);
-  if (!body || !assetId || Number.isNaN(timestampSeconds)) return EMPTY;
+  if (!body || !assetId || Number.isNaN(timestampSeconds) || timestampSeconds < 0) return EMPTY;
+  // Optional: the end of a range, and a pin on the paused frame (0–100 %).
+  const num = (k: string) => {
+    const v = formData.get(k);
+    return v === null || v === "" ? null : Number(v);
+  };
+  const end = num("timestampEndSeconds");
+  const timestampEndSeconds = end != null && Number.isFinite(end) && end > timestampSeconds ? end : null;
+  const x = num("xPercent");
+  const y = num("yPercent");
+  const pin = x != null && y != null && x >= 0 && x <= 100 && y >= 0 && y <= 100 ? { xPercent: x, yPercent: y } : {};
 
   const asset = await prisma.asset.findFirst({ where: { id: assetId, projectId, ...clientVisibleAsset, client: { id: viewer.clientId } } });
   if (!asset) return EMPTY;
 
   await prisma.comment.create({
-    data: { projectId, assetId, authorClientUserId: viewer.id, body, timestampSeconds },
+    data: { projectId, assetId, authorClientUserId: viewer.id, body, timestampSeconds, timestampEndSeconds, ...pin },
   });
 
   revalidatePath(`/projects/${projectId}`, "layout");
