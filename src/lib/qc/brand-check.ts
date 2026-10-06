@@ -3,6 +3,7 @@ import { readUpload } from "@/lib/uploads";
 import { imageSize } from "@/lib/qc/image-size";
 import { specChecks, type CheckResult } from "@/lib/qc/specs";
 import { visionChecks } from "@/lib/qc/vision-check";
+import { notifyMany } from "@/lib/notifier";
 
 /**
  * The Brand OS check, run on every new version before anyone sends it: platform specs (deterministic) plus the
@@ -91,8 +92,7 @@ export async function recheckSentVersions(clientId: string) {
     await prisma.qcFlag.createMany({ data: add.map((r) => ({ versionId: v.id, projectId: v.projectId, checkKey: r.key, label: r.flag!.label, detail: r.flag!.detail, source: r.source, late: true })) });
     raised += add.length;
     const pms = await projectPmUserIds(v.projectId);
-    await prisma.notification.createMany({
-      data: pms.map((userId) => ({
+    await notifyMany(pms.map((userId) => ({
         userId,
         clientId,
         projectId: v.projectId,
@@ -101,8 +101,7 @@ export async function recheckSentVersions(clientId: string) {
         body: `${v.asset.name} v${v.number}: ${add.map((r) => r.flag!.detail).join("; ")}. The client hasn't been told.`,
         actionUrl: `/ops/projects/${v.projectId}/qc`,
         actionLabel: "Open quality check",
-      })),
-    });
+      })));
   }
   return raised;
 }

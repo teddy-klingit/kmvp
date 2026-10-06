@@ -1,0 +1,1389 @@
+[
+ {
+  "id": "p00-prelaunch-teaser",
+  "title": "Pre-launch teaser",
+  "clientStage": "archived",
+  "internalStage": "delivered",
+  "type": "Social posts",
+  "channels": [
+   "instagram"
+  ],
+  "markets": [
+   "SE"
+  ],
+  "createdAt": "2026-03-04",
+  "deliveredAt": "2026-03-20",
+  "archivedAt": "2026-04-15",
+  "credits": {
+   "estimated": [
+    4,
+    6
+   ],
+   "final": 5
+  },
+  "team": [
+   "kl-anna",
+   "kl-lea"
+  ],
+  "brief": {
+   "task": "2 teaser posts for Instagram in Sweden that build curiosity before launch, using only the monogram and one line.",
+   "whyNow": "Launch on 12 May; build a waitlist first.",
+   "objective": {
+    "goal": "Waitlist sign-ups",
+    "metric": "sign-ups"
+   },
+   "quality": 74
+  },
+  "assets": [
+   {
+    "file": "creatives/p00-prelaunch-teaser/teaser-1x1.jpg",
+    "concept": "teaser",
+    "size": "1x1",
+    "version": 1,
+    "slide": null,
+    "frame": null,
+    "clientVisible": true
+   },
+   {
+    "file": "creatives/p00-prelaunch-teaser/teaser-9x16.jpg",
+    "concept": "teaser",
+    "size": "9x16",
+    "version": 1,
+    "slide": null,
+    "frame": null,
+    "clientVisible": true
+   }
+  ],
+  "approvals": [
+   {
+    "by": "ou-maja",
+    "at": "2026-03-19",
+    "scope": "all"
+   }
+  ]
+ },
+ {
+  "id": "p01-launch-first-five",
+  "title": "Launch: the first five",
+  "clientStage": "delivered",
+  "internalStage": "delivered",
+  "type": "Launch kit",
+  "channels": [
+   "meta",
+   "web"
+  ],
+  "markets": [
+   "SE",
+   "NO",
+   "DK"
+  ],
+  "createdAt": "2026-04-01",
+  "deliveredAt": "2026-05-08",
+  "credits": {
+   "estimated": [
+    40,
+    52
+   ],
+   "final": 47
+  },
+  "team": [
+   "kl-anna",
+   "kl-lea",
+   "kl-sami"
+  ],
+  "brief": {
+   "task": "A launch kit for the five first products in SE, NO and DK: hero ads for Meta, five packshot cards for product pages, launching 12 May.",
+   "whyNow": "Brand launch on 12 May.",
+   "objective": {
+    "goal": "Launch awareness and first sales",
+    "metric": "reach and purchases",
+    "target": "first 1,000 orders (client goal)"
+   },
+   "audience": {
+    "personaId": "pe-maja",
+    "barrier": "Has never heard of ouhers"
+   },
+   "keyMessage": "meet the first five.",
+   "cta": "shop the range → ouhers.demo",
+   "material": "Klingit shot the packshots",
+   "quality": 88
+  },
+  "estimate": {
+   "lines": [
+    {
+     "deliverable": "Packshot set (5 products)",
+     "credits": 10
+    },
+    {
+     "deliverable": "Ad concept, 4 sizes",
+     "qty": 2,
+     "credits": 14
+    },
+    {
+     "deliverable": "Short video 9:16 (≤15 s)",
+     "credits": 12
+    },
+    {
+     "deliverable": "Copy, per language",
+     "qty": 3,
+     "credits": 3
+    },
+    {
+     "deliverable": "Product page cards",
+     "credits": 8
+    }
+   ],
+   "total": 47,
+   "approvedBy": "ou-maja",
+   "approvedAt": "2026-04-03"
+  },
+  "versions": [
+   {
+    "n": 1,
+    "sentToClient": "2026-04-24",
+    "qc": {
+     "passed": 22,
+     "total": 24,
+     "accepted": 2
+    }
+   },
+   {
+    "n": 2,
+    "sentToClient": "2026-05-04",
+    "qc": {
+     "passed": 24,
+     "total": 24
+    }
+   }
+  ],
+  "assets": [
+   {
+    "file": "creatives/p01-launch-first-five/hero-9x16.jpg",
+    "concept": "meet the first five",
+    "size": "9x16",
+    "version": 2,
+    "slide": null,
+    "frame": null,
+    "clientVisible": true
+   },
+   {
+    "file": "creatives/p01-launch-first-five/hero-191x1.jpg",
+    "concept": "meet the first five",
+    "size": "191x1",
+    "version": 2,
+    "slide": null,
+    "frame": null,
+    "clientVisible": true
+   },
+   {
+    "file": "creatives/p01-launch-first-five/pdp-milkwash-1x1.jpg",
+    "concept": "milk wash",
+    "size": "1x1",
+    "version": 2,
+    "slide": null,
+    "frame": null,
+    "clientVisible": true
+   },
+   {
+    "file": "creatives/p01-launch-first-five/pdp-dewdrop-1x1.jpg",
+    "concept": "dew drop",
+    "size": "1x1",
+    "version": 2,
+    "slide": null,
+    "frame": null,
+    "clientVisible": true
+   },
+   {
+    "file": "creatives/p01-launch-first-five/pdp-cloudcream-1x1.jpg",
+    "concept": "cloud cream",
+    "size": "1x1",
+    "version": 2,
+    "slide": null,
+    "frame": null,
+    "clientVisible": true
+   },
+   {
+    "file": "creatives/p01-launch-first-five/pdp-lipours-1x1.jpg",
+    "concept": "lip ours",
+    "size": "1x1",
+    "version": 2,
+    "slide": null,
+    "frame": null,
+    "clientVisible": true
+   },
+   {
+    "file": "creatives/p01-launch-first-five/pdp-sunday-1x1.jpg",
+    "concept": "sun day",
+    "size": "1x1",
+    "version": 2,
+    "slide": null,
+    "frame": null,
+    "clientVisible": true
+   }
+  ],
+  "approvals": [
+   {
+    "by": "ou-maja",
+    "at": "2026-05-06",
+    "scope": "all"
+   }
+  ],
+  "delivery": {
+   "package": "ouhers_launch_first-five_v2.zip",
+   "naming": "ouhers_{concept}_{size}_{market}_v2",
+   "pushedTo": [
+    "google_drive",
+    "meta_ads"
+   ]
+  }
+ },
+ {
+  "id": "p02-summer-sunday",
+  "title": "Summer: sun day, every day",
+  "clientStage": "delivered",
+  "internalStage": "delivered",
+  "type": "Ad set",
+  "channels": [
+   "meta",
+   "tiktok"
+  ],
+  "markets": [
+   "SE",
+   "NO",
+   "DK"
+  ],
+  "createdAt": "2026-06-02",
+  "deliveredAt": "2026-06-26",
+  "credits": {
+   "estimated": [
+    24,
+    30
+   ],
+   "final": 28
+  },
+  "team": [
+   "kl-anna",
+   "kl-lea"
+  ],
+  "brief": {
+   "task": "2 concepts × 4 sizes for Meta and TikTok in SE, NO and DK that make sun day the everyday SPF, live 1 July.",
+   "whyNow": "Summer season and the sun day launch.",
+   "objective": {
+    "goal": "Purchases of sun day",
+    "metric": "ROAS",
+    "target": "compare with launch campaign"
+   },
+   "audience": {
+    "personaId": "pe-maja",
+    "barrier": "Thinks SPF leaves a white cast"
+   },
+   "keyMessage": "sun day, every day.",
+   "proofOffer": "No white cast, SPF 30",
+   "cta": "get sun day",
+   "material": "Klingit shoot on location",
+   "quality": 91
+  },
+  "estimate": {
+   "lines": [
+    {
+     "deliverable": "Ad concept, 4 sizes",
+     "qty": 2,
+     "credits": 14
+    },
+    {
+     "deliverable": "Location photo day",
+     "credits": 10
+    },
+    {
+     "deliverable": "Copy, per language",
+     "qty": 3,
+     "credits": 3
+    }
+   ],
+   "total": 27,
+   "approvedBy": "ou-maja",
+   "approvedAt": "2026-06-03"
+  },
+  "versions": [
+   {
+    "n": 1,
+    "sentToClient": "2026-06-18",
+    "qc": {
+     "passed": 23,
+     "total": 24,
+     "accepted": 0,
+     "fixedBeforeSend": 1
+    }
+   },
+   {
+    "n": 2,
+    "sentToClient": "2026-06-24",
+    "qc": {
+     "passed": 24,
+     "total": 24
+    }
+   }
+  ],
+  "assets": [
+   {
+    "file": "creatives/p02-summer-sunday/seaside-9x16.jpg",
+    "concept": "sun day, every day",
+    "size": "9x16",
+    "version": 2,
+    "slide": null,
+    "frame": null,
+    "clientVisible": true
+   },
+   {
+    "file": "creatives/p02-summer-sunday/seaside-4x5.jpg",
+    "concept": "sun day, every day",
+    "size": "4x5",
+    "version": 2,
+    "slide": null,
+    "frame": null,
+    "clientVisible": true
+   },
+   {
+    "file": "creatives/p02-summer-sunday/seaside-1x1.jpg",
+    "concept": "sun day, every day",
+    "size": "1x1",
+    "version": 2,
+    "slide": null,
+    "frame": null,
+    "clientVisible": true
+   },
+   {
+    "file": "creatives/p02-summer-sunday/seaside-191x1.jpg",
+    "concept": "sun day, every day",
+    "size": "191x1",
+    "version": 2,
+    "slide": null,
+    "frame": null,
+    "clientVisible": true
+   },
+   {
+    "file": "creatives/p02-summer-sunday/product-9x16.jpg",
+    "concept": "spf that feels like nothing",
+    "size": "9x16",
+    "version": 2,
+    "slide": null,
+    "frame": null,
+    "clientVisible": true
+   },
+   {
+    "file": "creatives/p02-summer-sunday/product-4x5.jpg",
+    "concept": "spf that feels like nothing",
+    "size": "4x5",
+    "version": 2,
+    "slide": null,
+    "frame": null,
+    "clientVisible": true
+   },
+   {
+    "file": "creatives/p02-summer-sunday/product-1x1.jpg",
+    "concept": "spf that feels like nothing",
+    "size": "1x1",
+    "version": 2,
+    "slide": null,
+    "frame": null,
+    "clientVisible": true
+   },
+   {
+    "file": "creatives/p02-summer-sunday/product-191x1.jpg",
+    "concept": "spf that feels like nothing",
+    "size": "191x1",
+    "version": 2,
+    "slide": null,
+    "frame": null,
+    "clientVisible": true
+   }
+  ],
+  "approvals": [
+   {
+    "by": "ou-maja",
+    "at": "2026-06-25",
+    "scope": "all"
+   }
+  ],
+  "comments": [
+   {
+    "pin": 1,
+    "asset": "creatives/p02-summer-sunday/seaside-9x16.jpg",
+    "x": 0.35,
+    "y": 0.72,
+    "thread": [
+     {
+      "author": "ou-elin",
+      "at": "2026-06-19T09:12:00+02:00",
+      "text": "Can the CTA sit a bit higher? Reels covers it on my phone.",
+      "channel": "with_klingit",
+      "source": "klingit"
+     },
+     {
+      "author": "kl-anna",
+      "at": "2026-06-19T11:40:00+02:00",
+      "text": "Moved it up in v2, above the Reels UI.",
+      "channel": "with_klingit",
+      "source": "figma"
+     }
+    ],
+    "resolved": true
+   }
+  ]
+ },
+ {
+  "id": "p03-lipours-shade-vote",
+  "title": "lip ours: you voted",
+  "clientStage": "delivered",
+  "internalStage": "delivered",
+  "type": "Carousel",
+  "channels": [
+   "instagram"
+  ],
+  "markets": [
+   "SE",
+   "NO",
+   "DK"
+  ],
+  "createdAt": "2026-07-28",
+  "deliveredAt": "2026-08-14",
+  "credits": {
+   "estimated": [
+    8,
+    10
+   ],
+   "final": 9
+  },
+  "team": [
+   "kl-anna",
+   "kl-lea"
+  ],
+  "brief": {
+   "task": "A 4-slide Instagram carousel revealing the four lip ours shades the community voted for, live 18 August.",
+   "whyNow": "lip ours launch, shades chosen by a community vote.",
+   "objective": {
+    "goal": "Engagement and saves",
+    "metric": "saves and comments"
+   },
+   "audience": {
+    "personaId": "pe-maja",
+    "barrier": "Lip balms all look the same"
+   },
+   "keyMessage": "you voted. it's here.",
+   "quality": 84
+  },
+  "versions": [
+   {
+    "n": 1,
+    "sentToClient": "2026-08-07",
+    "qc": {
+     "passed": 12,
+     "total": 12
+    }
+   },
+   {
+    "n": 2,
+    "sentToClient": "2026-08-12",
+    "qc": {
+     "passed": 12,
+     "total": 12
+    }
+   }
+  ],
+  "assets": [
+   {
+    "file": "creatives/p03-lipours-shade-vote/carousel-1.jpg",
+    "concept": "shade vote carousel",
+    "size": "1x1",
+    "version": 2,
+    "slide": 1,
+    "frame": null,
+    "clientVisible": true
+   },
+   {
+    "file": "creatives/p03-lipours-shade-vote/carousel-2.jpg",
+    "concept": "shade vote carousel",
+    "size": "1x1",
+    "version": 2,
+    "slide": 2,
+    "frame": null,
+    "clientVisible": true
+   },
+   {
+    "file": "creatives/p03-lipours-shade-vote/carousel-3.jpg",
+    "concept": "shade vote carousel",
+    "size": "1x1",
+    "version": 2,
+    "slide": 3,
+    "frame": null,
+    "clientVisible": true
+   },
+   {
+    "file": "creatives/p03-lipours-shade-vote/carousel-4.jpg",
+    "concept": "shade vote carousel",
+    "size": "1x1",
+    "version": 2,
+    "slide": 4,
+    "frame": null,
+    "clientVisible": true
+   }
+  ],
+  "approvals": [
+   {
+    "by": "ou-elin",
+    "at": "2026-08-13",
+    "scope": "all"
+   }
+  ]
+ },
+ {
+  "id": "p04-q4-cloudcream",
+  "title": "Q4: cloud cream push",
+  "clientStage": "in_review",
+  "internalStage": "review",
+  "type": "Ad set",
+  "channels": [
+   "meta",
+   "tiktok"
+  ],
+  "markets": [
+   "SE",
+   "NO",
+   "DK"
+  ],
+  "createdAt": "2026-09-08",
+  "dueAt": "2026-10-14",
+  "credits": {
+   "estimated": [
+    24,
+    30
+   ],
+   "reserved": 27
+  },
+  "team": [
+   "kl-anna",
+   "kl-lea"
+  ],
+  "brief": {
+   "task": "3 concepts × 4 sizes for Meta and TikTok in SE, NO and DK that get existing shoppers to add cloud cream, by showing it works for every face.",
+   "whyNow": "Q4 push before Black Friday; cloud cream repeat purchases are flat.",
+   "objective": {
+    "goal": "cloud cream purchases",
+    "metric": "ROAS",
+    "target": "beat Summer sun day ROAS"
+   },
+   "audience": {
+    "personaId": "pe-jon",
+    "barrier": "Feels skincare marketing is not for him"
+   },
+   "keyMessage": "whipped, weightless, for every face.",
+   "cta": "shop cloud cream",
+   "material": "Mix of library photos and a new portrait",
+   "quality": 86
+  },
+  "estimate": {
+   "lines": [
+    {
+     "deliverable": "Ad concept, 4 sizes",
+     "qty": 3,
+     "credits": 21
+    },
+    {
+     "deliverable": "Copy, per language",
+     "qty": 3,
+     "credits": 3
+    },
+    {
+     "deliverable": "Portrait shoot (half day)",
+     "credits": 3
+    }
+   ],
+   "total": 27,
+   "approvedBy": "ou-maja",
+   "approvedAt": "2026-09-10"
+  },
+  "rounds": {
+   "used": 2,
+   "included": 2
+  },
+  "versions": [
+   {
+    "n": 1,
+    "sentToClient": "2026-09-26",
+    "qc": {
+     "passed": 24,
+     "total": 24
+    },
+    "changes": []
+   },
+   {
+    "n": 2,
+    "sentToClient": "2026-10-04",
+    "qc": {
+     "passed": 22,
+     "total": 24,
+     "fixedBeforeSend": 2,
+     "flags": [
+      {
+       "asset": "c3-9x16",
+       "check": "Platform safe zone",
+       "text": "CTA sat under the Reels UI",
+       "resolution": "fixed"
+      },
+      {
+       "asset": "c2-191x1",
+       "check": "Size check",
+       "text": "Headline cropped",
+       "resolution": "fixed"
+      }
+     ]
+    },
+    "changes": [
+     "Headline \"whipped, weightless.\" replaces \"whipped and weightless.\"",
+     "New concept 3: your morning, but softer.",
+     "CTA moved above platform UI in all 9:16"
+    ]
+   }
+  ],
+  "assets": [
+   {
+    "file": "creatives/p04-q4-cloudcream/c1-9x16-v2.jpg",
+    "concept": "whipped, weightless.",
+    "size": "9x16",
+    "version": 2,
+    "slide": null,
+    "frame": null,
+    "clientVisible": true
+   },
+   {
+    "file": "creatives/p04-q4-cloudcream/c1-4x5-v2.jpg",
+    "concept": "whipped, weightless.",
+    "size": "4x5",
+    "version": 2,
+    "slide": null,
+    "frame": null,
+    "clientVisible": true
+   },
+   {
+    "file": "creatives/p04-q4-cloudcream/c1-1x1-v2.jpg",
+    "concept": "whipped, weightless.",
+    "size": "1x1",
+    "version": 2,
+    "slide": null,
+    "frame": null,
+    "clientVisible": true
+   },
+   {
+    "file": "creatives/p04-q4-cloudcream/c1-191x1-v2.jpg",
+    "concept": "whipped, weightless.",
+    "size": "191x1",
+    "version": 2,
+    "slide": null,
+    "frame": null,
+    "clientVisible": true
+   },
+   {
+    "file": "creatives/p04-q4-cloudcream/c2-9x16-v2.jpg",
+    "concept": "for every face.",
+    "size": "9x16",
+    "version": 2,
+    "slide": null,
+    "frame": null,
+    "clientVisible": true
+   },
+   {
+    "file": "creatives/p04-q4-cloudcream/c2-4x5-v2.jpg",
+    "concept": "for every face.",
+    "size": "4x5",
+    "version": 2,
+    "slide": null,
+    "frame": null,
+    "clientVisible": true
+   },
+   {
+    "file": "creatives/p04-q4-cloudcream/c2-1x1-v2.jpg",
+    "concept": "for every face.",
+    "size": "1x1",
+    "version": 2,
+    "slide": null,
+    "frame": null,
+    "clientVisible": true
+   },
+   {
+    "file": "creatives/p04-q4-cloudcream/c2-191x1-v2.jpg",
+    "concept": "for every face.",
+    "size": "191x1",
+    "version": 2,
+    "slide": null,
+    "frame": null,
+    "clientVisible": true
+   },
+   {
+    "file": "creatives/p04-q4-cloudcream/c3-9x16-v2.jpg",
+    "concept": "your morning, but softer.",
+    "size": "9x16",
+    "version": 2,
+    "slide": null,
+    "frame": null,
+    "clientVisible": true
+   },
+   {
+    "file": "creatives/p04-q4-cloudcream/c3-4x5-v2.jpg",
+    "concept": "your morning, but softer.",
+    "size": "4x5",
+    "version": 2,
+    "slide": null,
+    "frame": null,
+    "clientVisible": true
+   },
+   {
+    "file": "creatives/p04-q4-cloudcream/c3-1x1-v2.jpg",
+    "concept": "your morning, but softer.",
+    "size": "1x1",
+    "version": 2,
+    "slide": null,
+    "frame": null,
+    "clientVisible": true
+   },
+   {
+    "file": "creatives/p04-q4-cloudcream/c3-191x1-v2.jpg",
+    "concept": "your morning, but softer.",
+    "size": "191x1",
+    "version": 2,
+    "slide": null,
+    "frame": null,
+    "clientVisible": true
+   },
+   {
+    "file": "creatives/p04-q4-cloudcream/c1-4x5-v1.jpg",
+    "concept": "whipped, weightless.",
+    "size": "4x5",
+    "version": 1,
+    "slide": null,
+    "frame": null,
+    "clientVisible": true
+   }
+  ],
+  "approvals": [
+   {
+    "by": "ou-maja",
+    "at": "2026-10-05",
+    "scope": "concept",
+    "concept": "whipped, weightless."
+   }
+  ],
+  "comments": [
+   {
+    "pin": 1,
+    "asset": "creatives/p04-q4-cloudcream/c2-1x1-v2.jpg",
+    "x": 0.55,
+    "y": 0.42,
+    "thread": [
+     {
+      "author": "ou-maja",
+      "at": "2026-10-05T15:02:00+02:00",
+      "text": "Love this one. Can the product be a bit bigger in 1:1?",
+      "channel": "with_klingit",
+      "source": "klingit"
+     }
+    ],
+    "resolved": false
+   },
+   {
+    "pin": 2,
+    "asset": "creatives/p04-q4-cloudcream/c3-9x16-v2.jpg",
+    "x": 0.5,
+    "y": 0.3,
+    "region": {
+     "w": 0.4,
+     "h": 0.2
+    },
+    "thread": [
+     {
+      "author": "ou-elin",
+      "at": "2026-10-05T16:20:00+02:00",
+      "text": "The sink feels a bit cold. Warmer light?",
+      "channel": "with_klingit",
+      "source": "klingit"
+     },
+     {
+      "author": "kl-anna",
+      "at": "2026-10-05T17:05:00+02:00",
+      "text": "Yes, warming it up in v3.",
+      "channel": "with_klingit",
+      "source": "figma"
+     }
+    ],
+    "resolved": false
+   },
+   {
+    "pin": null,
+    "asset": null,
+    "scope": "whole set",
+    "thread": [
+     {
+      "author": "kl-teddy",
+      "at": "2026-10-04T14:40:00+02:00",
+      "text": "All sizes are quality checked. Summer picks-style CTA was moved above the Reels UI before sending.",
+      "channel": "with_klingit",
+      "source": "klingit"
+     }
+    ],
+    "resolved": false
+   }
+  ],
+  "copy": {
+   "elements": [
+    {
+     "element": "Headline",
+     "sv": "Vispad, viktlös.",
+     "no": "Pisket, vektløs.",
+     "da": "Pisket, vægtløs.",
+     "status": "approved"
+    },
+    {
+     "element": "Primary text",
+     "sv": "Dela upp ingenting. Bara mjuk hud, varje dag.",
+     "no": "Bare myk hud, hver dag.",
+     "da": "Bare blød hud, hver dag.",
+     "status": "suggestion",
+     "suggestion": {
+      "by": "ou-oscar",
+      "lang": "sv",
+      "from": "Dela upp ingenting. ",
+      "to": ""
+     }
+    },
+    {
+     "element": "Call to action",
+     "sv": "Köp cloud cream",
+     "no": "Kjøp cloud cream",
+     "da": "Køb cloud cream",
+     "status": "approved"
+    },
+    {
+     "element": "Legal line",
+     "sv": "Ouhers AB (demo). Villkor gäller.",
+     "no": "Ouhers AB (demo). Vilkår gjelder.",
+     "da": "Ouhers AB (demo). Vilkår gælder.",
+     "status": "locked"
+    }
+   ]
+  }
+ },
+ {
+  "id": "p05-holiday-giftset",
+  "title": "Holiday: the soft set",
+  "clientStage": "active",
+  "internalStage": "production",
+  "type": "Ad set + email",
+  "channels": [
+   "meta",
+   "email"
+  ],
+  "markets": [
+   "SE",
+   "NO",
+   "DK"
+  ],
+  "createdAt": "2026-09-22",
+  "dueAt": "2026-10-24",
+  "firstDraftAt": "2026-10-09",
+  "credits": {
+   "estimated": [
+    26,
+    32
+   ],
+   "reserved": 29
+  },
+  "team": [
+   "kl-anna",
+   "kl-lea"
+  ],
+  "brief": {
+   "task": "2 concepts × 4 sizes plus one launch email for the limited soft set gift box, live 3 November in SE, NO and DK.",
+   "whyNow": "Holiday gifting season; the soft set is limited to 3,000 boxes (client figure).",
+   "objective": {
+    "goal": "Gift set sales",
+    "metric": "sell-through"
+   },
+   "audience": {
+    "personaId": "pe-sara",
+    "barrier": "Gift sets feel like leftovers in a box"
+   },
+   "keyMessage": "three favourites, one soft box.",
+   "cta": "gift it",
+   "material": "Gift box photographed by Klingit",
+   "quality": 82
+  },
+  "estimate": {
+   "lines": [
+    {
+     "deliverable": "Ad concept, 4 sizes",
+     "qty": 2,
+     "credits": 14
+    },
+    {
+     "deliverable": "Email design + copy",
+     "credits": 6
+    },
+    {
+     "deliverable": "Product photo (gift box)",
+     "credits": 6
+    },
+    {
+     "deliverable": "Copy, per language",
+     "qty": 3,
+     "credits": 3
+    }
+   ],
+   "total": 29,
+   "approvedBy": "ou-maja",
+   "approvedAt": "2026-09-24"
+  },
+  "progress": {
+   "step": "In production",
+   "percent": 55
+  },
+  "assets": [
+   {
+    "file": "creatives/p05-holiday-giftset/wip-c1-4x5-v1.jpg",
+    "concept": "wrap it up softly",
+    "size": "4x5",
+    "version": 1,
+    "slide": null,
+    "frame": null,
+    "clientVisible": false
+   },
+   {
+    "file": "creatives/p05-holiday-giftset/wip-c2-9x16-v1.jpg",
+    "concept": "three favourites, one soft box",
+    "size": "9x16",
+    "version": 1,
+    "slide": null,
+    "frame": null,
+    "clientVisible": false
+   }
+  ],
+  "internalNote": "WIP assets are internal only until QC and Send to client."
+ },
+ {
+  "id": "p06-dewdrop-creators",
+  "title": "dew drop × creators",
+  "clientStage": "active",
+  "internalStage": "production",
+  "type": "Creator videos",
+  "channels": [
+   "tiktok",
+   "instagram"
+  ],
+  "markets": [
+   "SE",
+   "NO"
+  ],
+  "createdAt": "2026-09-15",
+  "dueAt": "2026-10-31",
+  "credits": {
+   "estimated": [
+    30,
+    36
+   ],
+   "reserved": 33
+  },
+  "team": [
+   "kl-sami",
+   "kl-lea"
+  ],
+  "brief": {
+   "task": "3 creator videos (9:16, ≤15 s) for TikTok and Reels in SE and NO that make dew drop the easy first serum.",
+   "whyNow": "TikTok is the best-performing channel since July.",
+   "objective": {
+    "goal": "dew drop purchases from TikTok",
+    "metric": "cost per purchase"
+   },
+   "audience": {
+    "personaId": "pe-maja",
+    "barrier": "Serums feel advanced"
+   },
+   "keyMessage": "pov: your skin drank a glass of water.",
+   "cta": "link in bio",
+   "material": "Creators film at home; Klingit edits",
+   "quality": 80
+  },
+  "estimate": {
+   "lines": [
+    {
+     "deliverable": "Creator content package (3 creators)",
+     "credits": 30
+    },
+    {
+     "deliverable": "Copy, per language",
+     "qty": 2,
+     "credits": 2
+    }
+   ],
+   "total": 32,
+   "approvedBy": "ou-oscar",
+   "approvedAt": "2026-09-17"
+  },
+  "progress": {
+   "step": "Creators filming",
+   "percent": 35
+  },
+  "assets": [
+   {
+    "file": "creatives/p06-dewdrop-creators/storyboard-1.jpg",
+    "concept": "creator storyboard",
+    "size": "9x16",
+    "version": 1,
+    "slide": null,
+    "frame": 1,
+    "clientVisible": true
+   },
+   {
+    "file": "creatives/p06-dewdrop-creators/storyboard-2.jpg",
+    "concept": "creator storyboard",
+    "size": "9x16",
+    "version": 1,
+    "slide": null,
+    "frame": 2,
+    "clientVisible": true
+   },
+   {
+    "file": "creatives/p06-dewdrop-creators/storyboard-3.jpg",
+    "concept": "creator storyboard",
+    "size": "9x16",
+    "version": 1,
+    "slide": null,
+    "frame": 3,
+    "clientVisible": true
+   }
+  ],
+  "creators": [
+   {
+    "handle": "@fridaglows (demo)",
+    "status": "filming"
+   },
+   {
+    "handle": "@skinbyamina (demo)",
+    "status": "brief sent"
+   },
+   {
+    "handle": "@noahbare (demo)",
+    "status": "confirmed"
+   }
+  ]
+ },
+ {
+  "id": "p07-website-pdp",
+  "title": "Website: product pages",
+  "clientStage": "active",
+  "internalStage": "production",
+  "type": "Web design + build",
+  "channels": [
+   "web"
+  ],
+  "markets": [
+   "SE",
+   "NO",
+   "DK"
+  ],
+  "createdAt": "2026-09-01",
+  "dueAt": "2026-11-06",
+  "credits": {
+   "estimated": [
+    44,
+    56
+   ],
+   "reserved": 50
+  },
+  "team": [
+   "kl-anna",
+   "kl-jonas"
+  ],
+  "brief": {
+   "task": "A new product page template for all five products, designed and built, with ingredients, shades and reviews.",
+   "whyNow": "Add-to-cart rate drops on product pages (GA).",
+   "objective": {
+    "goal": "Product page → checkout rate",
+    "metric": "add-to-cart rate"
+   },
+   "audience": {
+    "personaId": "pe-sara",
+    "barrier": "Can't find the full ingredient list"
+   },
+   "keyMessage": "everything you want to know, nothing you don't.",
+   "quality": 84
+  },
+  "estimate": {
+   "lines": [
+    {
+     "deliverable": "Landing / product page design",
+     "credits": 18
+    },
+    {
+     "deliverable": "Web build per page",
+     "qty": 2,
+     "credits": 28
+    },
+    {
+     "deliverable": "Copy, per language",
+     "qty": 3,
+     "credits": 3
+    }
+   ],
+   "total": 49,
+   "approvedBy": "ou-maja",
+   "approvedAt": "2026-09-03"
+  },
+  "progress": {
+   "step": "Design approved, building",
+   "percent": 60
+  },
+  "assets": [
+   {
+    "file": "creatives/p07-website-pdp/pdp-cloudcream-1440.jpg",
+    "concept": "product page",
+    "size": "web 1440",
+    "version": 2,
+    "clientVisible": true
+   }
+  ]
+ },
+ {
+  "id": "p08-blackfriday-email",
+  "title": "Black Friday email series",
+  "clientStage": "queued",
+  "queuePosition": 1,
+  "internalStage": "estimated",
+  "type": "Email",
+  "channels": [
+   "email"
+  ],
+  "markets": [
+   "SE",
+   "NO",
+   "DK"
+  ],
+  "createdAt": "2026-09-29",
+  "wantedBy": "2026-11-20",
+  "credits": {
+   "estimated": [
+    20,
+    24
+   ]
+  },
+  "team": [],
+  "brief": {
+   "task": "3 emails (teaser, launch, last call) for the Black Friday week in SE, NO and DK, using the soft set and 20% on bundles.",
+   "whyNow": "Black Friday 27 November.",
+   "objective": {
+    "goal": "Email revenue",
+    "metric": "revenue per send"
+   },
+   "proofOffer": "20% on bundles (client offer)",
+   "quality": 78
+  },
+  "estimate": {
+   "lines": [
+    {
+     "deliverable": "Email design + copy",
+     "qty": 3,
+     "credits": 18
+    },
+    {
+     "deliverable": "Copy, per language",
+     "qty": 3,
+     "credits": 3
+    }
+   ],
+   "total": 21,
+   "approvedBy": "ou-oscar",
+   "approvedAt": "2026-10-01"
+  },
+  "waitingFor": "a free slot (3 of 3 active)"
+ },
+ {
+  "id": "p09-retail-display",
+  "title": "Retail display: department store",
+  "clientStage": "queued",
+  "queuePosition": 2,
+  "internalStage": "estimate_sent",
+  "type": "Retail / print",
+  "channels": [
+   "print"
+  ],
+  "markets": [
+   "SE"
+  ],
+  "createdAt": "2026-10-02",
+  "wantedBy": "2026-11-30",
+  "credits": {
+   "estimated": [
+    26,
+    32
+   ]
+  },
+  "team": [],
+  "brief": {
+   "task": "A counter display and shelf strip for a Stockholm department store, showing the five products and the soft set.",
+   "whyNow": "First retail listing from December.",
+   "objective": {
+    "goal": "Retail sell-in and sell-through",
+    "metric": "units sold"
+   },
+   "material": "Dielines from the store (to come)",
+   "reference": "photos/bathroom-shelf.jpg",
+   "quality": 64
+  },
+  "estimate": {
+   "lines": [
+    {
+     "deliverable": "Retail display design",
+     "credits": 20
+    },
+    {
+     "deliverable": "Print-ready files + proof round",
+     "credits": 6
+    },
+    {
+     "deliverable": "Copy, per language",
+     "credits": 1
+    }
+   ],
+   "total": 27,
+   "status": "waiting_for_client_approval",
+   "sentAt": "2026-10-05"
+  },
+  "needsYou": "Approve estimate"
+ },
+ {
+  "id": "p10-spring-2027",
+  "title": "Spring 2027 ideas",
+  "clientStage": "draft",
+  "internalStage": "brief",
+  "type": "Unclear yet",
+  "channels": [],
+  "markets": [
+   "SE"
+  ],
+  "createdAt": "2026-10-03",
+  "credits": {
+   "estimated": null
+  },
+  "brief": {
+   "task": null,
+   "whyNow": "Plan spring early",
+   "objective": null,
+   "quality": 46,
+   "missing": [
+    "what is being made",
+    "objective",
+    "audience barrier"
+   ],
+   "conversation": [
+    {
+     "author": "ou-elin",
+     "at": "2026-10-03T13:10:00+02:00",
+     "text": "I need ideas for spring, maybe a new product teaser?",
+     "channel": "brief_agent",
+     "source": "klingit"
+    },
+    {
+     "author": "agent",
+     "at": "2026-10-03T13:10:20+02:00",
+     "text": "I started your brief from Brand OS. Where will this run?",
+     "channel": "brief_agent",
+     "source": "klingit"
+    }
+   ]
+  }
+ },
+ {
+  "id": "p11-agent-seasonal",
+  "kind": "agent_build",
+  "title": "Seasonal content agent",
+  "clientStage": "active",
+  "internalStage": "building",
+  "type": "Custom agent",
+  "createdAt": "2026-09-30",
+  "credits": {
+   "buildCost": 24,
+   "perRunEstimate": 2
+  },
+  "team": [
+   "kl-teddy",
+   "kl-anna"
+  ],
+  "agentStage": "building",
+  "stages": [
+   {
+    "name": "Request",
+    "date": "2026-09-30",
+    "done": true
+   },
+   {
+    "name": "Scoping",
+    "date": "2026-10-01",
+    "done": true
+   },
+   {
+    "name": "Building",
+    "date": "now"
+   },
+   {
+    "name": "Testing",
+    "date": "2026-10-09"
+   },
+   {
+    "name": "Live",
+    "date": "2026-10-14"
+   }
+  ],
+  "spec": {
+   "whatItDoes": "Watches the calendar and past campaigns and drafts a seasonal brief 6 weeks before each key moment.",
+   "whatItUses": "Brand OS, the last 12 months of projects and their performance, the content calendar.",
+   "whatYouGet": "A draft brief in Drafts with quality ≥ 70 and a notification. Nothing is sent without you.",
+   "runs": "Every Monday, or on demand."
+  },
+  "testOutput": {
+   "title": "Black Friday: checkout-moment stories",
+   "quality": 78,
+   "text": "Stories 9:16 for SE and NO, live 20 Nov. Builds on the sun day seaside concept (best CTR). Key message: soft prices, softer skin."
+  },
+  "conversation": [
+   {
+    "author": "kl-teddy",
+    "at": "2026-10-01T10:00:00+02:00",
+    "text": "Spec is locked. Should Black Friday drafts start 6 or 8 weeks out?",
+    "channel": "with_klingit",
+    "source": "klingit"
+   },
+   {
+    "author": "ou-maja",
+    "at": "2026-10-01T10:30:00+02:00",
+    "text": "8 weeks.",
+    "channel": "with_klingit",
+    "source": "klingit"
+   }
+  ],
+  "log": [
+   {
+    "at": "2026-10-02",
+    "text": "Test run 1 ready for your review"
+   },
+   {
+    "at": "2026-10-01",
+    "text": "Spec approved by Maja Lind"
+   },
+   {
+    "at": "2026-10-01",
+    "text": "Scoping call with Teddy W."
+   },
+   {
+    "at": "2026-09-30",
+    "text": "Requested from Klingit recommends"
+   }
+  ]
+ }
+]

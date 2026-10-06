@@ -9,6 +9,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "db:seed": "tsx prisma/seed.ts",
+    "seed:ouhers": "tsx prisma/seed-demo-ouhers.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {

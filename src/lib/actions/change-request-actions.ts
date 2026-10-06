@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
+import { notify } from "@/lib/notifier";
 
 export async function submitChangeRequestAction(formData: FormData) {
   const viewer = await getPortalViewer();
@@ -17,16 +18,14 @@ export async function submitChangeRequestAction(formData: FormData) {
 
   const client = await prisma.client.findUnique({ where: { id: viewer.clientId }, include: { accountLead: true } });
   if (client?.accountLead) {
-    await prisma.notification.create({
-      data: {
+    await notify({
         userId: client.accountLead.userId,
         clientId: viewer.clientId,
         projectId,
         type: "SYSTEM",
         title: "New change request",
         body: `${viewer.user.name} requested additional scope on "${project.name}": ${description}`,
-      },
-    });
+      });
   }
 
   revalidatePath(`/projects/${projectId}`, "layout");

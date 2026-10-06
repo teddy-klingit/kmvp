@@ -1,0 +1,166 @@
+{
+ "demo": true,
+ "client": {
+  "id": "client-ouhers",
+  "name": "ouhers",
+  "legalName": "Ouhers AB (demo)",
+  "industry": "Skincare / beauty",
+  "website": "https://ouhers.demo",
+  "markets": [
+   "SE",
+   "NO",
+   "DK"
+  ],
+  "languages": [
+   "sv",
+   "no",
+   "da",
+   "en"
+  ],
+  "currency": "SEK",
+  "clientSince": "2026-03-02",
+  "logo": "brand/logo/ouhers-monogram-oh-apricot.png"
+ },
+ "plan": {
+  "name": "Scale",
+  "activeSlots": 3,
+  "monthlyCredits": 120,
+  "creditBalance": 54,
+  "renews": "2026-11-01",
+  "creditsUsedByMonth": {
+   "2026-04": 64,
+   "2026-05": 118,
+   "2026-06": 92,
+   "2026-07": 120,
+   "2026-08": 87,
+   "2026-09": 111,
+   "2026-10": 38
+  },
+  "placeholderNote": "Plan values are placeholders until the real plans are set"
+ },
+ "clientUsers": [
+  {
+   "id": "ou-maja",
+   "name": "Maja Lind",
+   "email": "maja@ouhers.demo",
+   "role": "Head of Brand",
+   "permission": "admin",
+   "decisionOwner": true,
+   "initials": "ML",
+   "color": "#A85C46"
+  },
+  {
+   "id": "ou-elin",
+   "name": "Elin Berg",
+   "email": "elin@ouhers.demo",
+   "role": "Social lead",
+   "permission": "editor",
+   "initials": "EB",
+   "color": "#B0384C"
+  },
+  {
+   "id": "ou-oscar",
+   "name": "Oscar Nyström",
+   "email": "oscar@ouhers.demo",
+   "role": "Growth manager",
+   "permission": "editor",
+   "initials": "ON",
+   "color": "#2F7F7A"
+  },
+  {
+   "id": "ou-ida",
+   "name": "Ida Svensson",
+   "email": "ida@ouhers.demo",
+   "role": "Founder & CEO",
+   "permission": "viewer",
+   "initials": "IS",
+   "color": "#3B2B26"
+  }
+ ],
+ "klingitTeam": [
+  {
+   "id": "kl-teddy",
+   "name": "Teddy W.",
+   "role": "Account lead · PM",
+   "initials": "TW",
+   "color": "#B98A16"
+  },
+  {
+   "id": "kl-anna",
+   "name": "Anna B.",
+   "role": "Designer",
+   "initials": "AB",
+   "color": "#3B6FB6"
+  },
+  {
+   "id": "kl-sami",
+   "name": "Sami K.",
+   "role": "Motion designer",
+   "initials": "SK",
+   "color": "#2F7F7A"
+  },
+  {
+   "id": "kl-lea",
+   "name": "Lea M.",
+   "role": "Copywriter",
+   "initials": "LM",
+   "color": "#B0384C"
+  },
+  {
+   "id": "kl-jonas",
+   "name": "Jonas P.",
+   "role": "Web developer",
+   "initials": "JP",
+   "color": "#6B5BA8"
+  }
+ ],
+ "accountLead": "kl-teddy",
+ "connections": [
+  {
+   "source": "meta_ads",
+   "status": "connected",
+   "account": "ouhers ads (demo)",
+   "since": "2026-04-20"
+  },
+  {
+   "source": "tiktok_ads",
+   "status": "connected",
+   "account": "ouhers tiktok (demo)",
+   "since": "2026-06-28"
+  },
+  {
+   "source": "instagram",
+   "status": "connected",
+   "handle": "@ouhers.demo",
+   "since": "2026-04-20"
+  },
+  {
+   "source": "google_analytics",
+   "status": "connected",
+   "property": "ouhers.demo",
+   "since": "2026-05-01"
+  },
+  {
+   "source": "linkedin",
+   "status": "not_connected"
+  },
+  {
+   "source": "figma",
+   "status": "connected",
+   "file": "ouhers · client review (demo)",
+   "since": "2026-03-05"
+  },
+  {
+   "source": "google_drive",
+   "status": "connected",
+   "folder": "ouhers / brand",
+   "since": "2026-03-03"
+  },
+  {
+   "source": "notion",
+   "status": "connected",
+   "pages": 2,
+   "since": "2026-03-03"
+  }
+ ]
+}

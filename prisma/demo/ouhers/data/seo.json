@@ -1,0 +1,98 @@
+{
+ "demo": true,
+ "auditRun": "2026-10-02",
+ "pagesCrawled": 48,
+ "seoHealth": 78,
+ "pageSpeedMobileLcpSeconds": 2.6,
+ "aiCrawlersAllowed": {
+  "allowed": 4,
+  "total": 5
+ },
+ "checks": {
+  "passed": 44,
+  "warnings": 7,
+  "errors": 2
+ },
+ "topFixes": [
+  {
+   "text": "Add product schema (price, reviews) to product pages",
+   "impact": "high"
+  },
+  {
+   "text": "Write ingredient pages for niacinamide and squalane",
+   "impact": "high"
+  },
+  {
+   "text": "Compress hero images on the home page",
+   "impact": "medium"
+  }
+ ],
+ "aiVisibility": {
+  "questionsAsked": 20,
+  "assistants": [
+   "ChatGPT",
+   "Claude",
+   "Gemini",
+   "Perplexity"
+  ],
+  "shareMentioned": {
+   "ouhers": 30,
+   "Plume Skin (demo)": 40,
+   "Dewlab (demo)": 35,
+   "Kind Ritual (demo)": 20
+  },
+  "sample": [
+   {
+    "q": "gentle cleanser for sensitive skin sweden",
+    "mentioned": [
+     true,
+     true,
+     false,
+     true
+    ]
+   },
+   {
+    "q": "best fragrance free moisturiser",
+    "mentioned": [
+     false,
+     true,
+     false,
+     true
+    ]
+   },
+   {
+    "q": "spf without white cast",
+    "mentioned": [
+     true,
+     true,
+     true,
+     true
+    ]
+   },
+   {
+    "q": "skincare for men simple routine",
+    "mentioned": [
+     false,
+     false,
+     false,
+     false
+    ]
+   },
+   {
+    "q": "is ouhers good",
+    "mentioned": [
+     true,
+     true,
+     true,
+     true
+    ]
+   }
+  ]
+ },
+ "vsCompetitors": {
+  "ouhers": 78,
+  "Plume Skin (demo)": 84,
+  "Dewlab (demo)": 81,
+  "Kind Ritual (demo)": 70
+ }
+}

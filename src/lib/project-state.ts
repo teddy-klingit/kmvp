@@ -390,8 +390,10 @@ export function getProjectState(input: ProjectStateInput, now: Date = new Date()
   const effectiveStatus: ProjectStatus = paused ? (input.pausedFromStatus ?? "BRIEFING") : input.status;
 
   const brief = getBriefProgress(input.brief);
+  // Once the first draft has been delivered (its stage completed) there's no first-draft date left to keep or miss.
+  const draftDelivered = input.pipelineStages.some((s) => s.name === "FIRST_DRAFT_DELIVERY" && s.completedAt);
   const firstDraftEta =
-    input.team?.confirmed && input.team.confirmedAt ? addBusinessDays(input.team.confirmedAt, FIRST_DRAFT_BUSINESS_DAYS) : null;
+    !draftDelivered && input.team?.confirmed && input.team.confirmedAt ? addBusinessDays(input.team.confirmedAt, FIRST_DRAFT_BUSINESS_DAYS) : null;
   const estimateCredits =
     input.estimate && (input.estimate.status === "SENT" || input.estimate.status === "APPROVED")
       ? input.estimate.totalCredits

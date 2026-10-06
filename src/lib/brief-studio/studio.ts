@@ -46,6 +46,7 @@ import {
   type PlannerContext,
 } from "@/lib/brief-studio/planner";
 import { clientVisibleAsset } from "@/lib/qc/visibility";
+import { notify } from "@/lib/notifier";
 
 /**
  * The Brief studio on the server. Not a "use server" module: everything here takes a viewer the caller resolved
@@ -747,8 +748,7 @@ export async function inviteTeammate(viewer: PortalViewer, projectId: string, cl
   if (!mate) return null;
   // A member can see the draft even when it's confidential.
   await prisma.projectMember.upsert({ where: { projectId_clientUserId: { projectId, clientUserId: mate.id } }, update: {}, create: { projectId, clientUserId: mate.id } });
-  await prisma.notification.create({
-    data: {
+  await notify({
       userId: mate.userId,
       clientId: viewer.clientId,
       projectId,
@@ -757,8 +757,7 @@ export async function inviteTeammate(viewer: PortalViewer, projectId: string, cl
       body: `"${draft.project.name}": answer the open questions or edit any section.`,
       actionUrl: `/brief/${projectId}`,
       actionLabel: "Open brief",
-    },
-  });
+    });
   return mutate(viewer, projectId, (state, { now }) => ({
     ...state,
     messages: [...state.messages, { id: newId("say"), role: "agent", text: `${mate.user.name.split(" ")[0]} is invited and can answer here too.`, at: now.toISOString() }],

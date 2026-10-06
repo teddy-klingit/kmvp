@@ -1,0 +1,83 @@
+{
+ "items": [
+  {
+   "date": "2026-10-09",
+   "title": "Holiday: first draft",
+   "kind": "klingit",
+   "project": "p05-holiday-giftset"
+  },
+  {
+   "date": "2026-10-09",
+   "title": "Seasonal agent: test version",
+   "kind": "klingit",
+   "project": "p11-agent-seasonal"
+  },
+  {
+   "date": "2026-10-14",
+   "title": "Q4 cloud cream live",
+   "kind": "klingit",
+   "project": "p04-q4-cloudcream"
+  },
+  {
+   "date": "2026-10-16",
+   "title": "Newsletter: autumn routine",
+   "kind": "client_plan"
+  },
+  {
+   "date": "2026-10-20",
+   "title": "Influencer seeding, soft set",
+   "kind": "client_plan"
+  },
+  {
+   "date": "2026-10-24",
+   "title": "Holiday: final delivery",
+   "kind": "klingit",
+   "project": "p05-holiday-giftset"
+  },
+  {
+   "date": "2026-10-31",
+   "title": "dew drop creator videos",
+   "kind": "klingit",
+   "project": "p06-dewdrop-creators"
+  },
+  {
+   "date": "2026-11-03",
+   "title": "Soft set goes live",
+   "kind": "client_plan"
+  },
+  {
+   "date": "2026-11-06",
+   "title": "Product pages live",
+   "kind": "klingit",
+   "project": "p07-website-pdp"
+  },
+  {
+   "date": "2026-11-11",
+   "title": "Singles day post",
+   "kind": "suggested",
+   "reason": "Your audience is most active on 11.11 last year (demo)"
+  },
+  {
+   "date": "2026-11-20",
+   "title": "Black Friday teaser email",
+   "kind": "klingit",
+   "project": "p08-blackfriday-email"
+  },
+  {
+   "date": "2026-11-27",
+   "title": "Black Friday",
+   "kind": "client_plan"
+  },
+  {
+   "date": "2026-10-28",
+   "title": "Refill pouch teaser",
+   "kind": "suggested",
+   "reason": "Refillable packaging trend"
+  }
+ ],
+ "planCoverage": {
+  "month": "2026-10",
+  "planned": 9,
+  "sowMinimum": 8
+ }
+}

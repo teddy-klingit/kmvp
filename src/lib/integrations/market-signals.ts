@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import type { AdLibraryResult } from "@/lib/integrations/meta-ad-library";
 import type { LinkedInAdLibraryResult } from "@/lib/integrations/linkedin-ad-library";
 import type { NewsItem } from "@/lib/integrations/industry-news";
+import { notify } from "@/lib/notifier";
 
 const SNAPSHOT_STALE_MS = 6 * 60 * 60 * 1000; // don't re-diff competitors more than once per 6h
 const SPIKE_NOTIFY_THRESHOLD = 0.5; // notify the client when volume is up 50%+
@@ -26,8 +27,7 @@ async function competitorAlertedRecently(clientId: string, brand: string) {
 async function notifyClientOwner(clientId: string, title: string, body: string) {
   const owner = await prisma.clientUser.findFirst({ where: { clientId, permission: "OWNER" } });
   if (!owner) return;
-  await prisma.notification.create({
-    data: {
+  await notify({
       userId: owner.userId,
       clientId,
       type: "SYSTEM",
@@ -35,8 +35,7 @@ async function notifyClientOwner(clientId: string, title: string, body: string) 
       body,
       actionUrl: "/insights/market/competitors",
       actionLabel: "View",
-    },
-  });
+    });
 }
 
 /**

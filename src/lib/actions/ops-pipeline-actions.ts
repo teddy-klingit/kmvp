@@ -6,6 +6,7 @@ import { sendToClient } from "@/lib/qc/quality-check";
 import { requireOpsRole } from "@/lib/authz";
 import { postProjectEvent } from "@/lib/project-events";
 import { addBusinessDays, formatDay, FIRST_DRAFT_BUSINESS_DAYS } from "@/lib/project-state";
+import { notify } from "@/lib/notifier";
 
 async function completeStage(projectId: string, name: string) {
   await prisma.pipelineStage.updateMany({
@@ -69,8 +70,7 @@ export async function sendEstimateToClientAction(formData: FormData) {
 
   const clientUser = await prisma.clientUser.findFirst({ where: { clientId, permission: "OWNER" } });
   if (clientUser) {
-    await prisma.notification.create({
-      data: {
+    await notify({
         userId: clientUser.userId,
         clientId,
         projectId: estimate.projectId,
@@ -79,8 +79,7 @@ export async function sendEstimateToClientAction(formData: FormData) {
         body: `Review ${estimate.project.name} · ${estimate.totalCredits} credits`,
         actionUrl: `/projects/${estimate.projectId}`,
         actionLabel: "Review",
-      },
-    });
+      });
   }
 
   await postProjectEvent(estimate.projectId, "Estimate v1 sent");
@@ -189,8 +188,7 @@ export async function sendSignOffReminderAction(formData: FormData) {
 
   const clientUser = await prisma.clientUser.findFirst({ where: { clientId, permission: "OWNER" } });
   if (clientUser) {
-    await prisma.notification.create({
-      data: {
+    await notify({
         userId: clientUser.userId,
         clientId,
         projectId,
@@ -199,8 +197,7 @@ export async function sendSignOffReminderAction(formData: FormData) {
         body: `${viewer.user.name} sent a reminder to review and sign off on your delivered project.`,
         actionUrl: `/projects/${projectId}`,
         actionLabel: "Review",
-      },
-    });
+      });
   }
   revalidateClient(clientId);
 }

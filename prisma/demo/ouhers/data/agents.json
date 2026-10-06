@@ -1,0 +1,91 @@
+{
+ "readyToUse": [
+  {
+   "name": "Ad gen",
+   "category": "Visual",
+   "usage": "Used 9× this month"
+  },
+  {
+   "name": "Brief generator",
+   "category": "Briefs",
+   "usage": "Used 4×"
+  },
+  {
+   "name": "Email copy",
+   "category": "Copy",
+   "usage": "Used 2×"
+  },
+  {
+   "name": "Image gen",
+   "category": "Visual",
+   "usage": "Used 6×"
+  },
+  {
+   "name": "Instagram caption",
+   "category": "Social",
+   "usage": "Used 14×"
+  },
+  {
+   "name": "Landing page copy",
+   "category": "Copy",
+   "usage": "Used 1×"
+  },
+  {
+   "name": "LinkedIn post",
+   "category": "Social",
+   "usage": "Not used yet"
+  }
+ ],
+ "yourAgents": [
+  {
+   "name": "ouhers tone checker",
+   "status": "live",
+   "meta": "Run 31×",
+   "what": "Checks any copy against the voice rules"
+  },
+  {
+   "name": "Community poll summariser",
+   "status": "live",
+   "meta": "Every Friday",
+   "what": "Summarises poll results and DMs into product insights"
+  },
+  {
+   "name": "Shade name generator",
+   "status": "paused",
+   "meta": "Last run 12 Aug",
+   "what": "Proposes on-voice names for new shades"
+  }
+ ],
+ "templates": [
+  {
+   "name": "Story ad · 9:16",
+   "format": "Display",
+   "uses": 8
+  },
+  {
+   "name": "Product card · 1:1",
+   "format": "Social",
+   "uses": 5
+  },
+  {
+   "name": "Launch email",
+   "format": "Copy",
+   "uses": 2
+  }
+ ],
+ "beingBuilt": [
+  {
+   "project": "p11-agent-seasonal",
+   "name": "Seasonal content agent",
+   "step": 3,
+   "of": 5
+  }
+ ],
+ "recommended": [
+  {
+   "name": "Review reply agent",
+   "tag": "Based on 1,380 comments",
+   "what": "Drafts on-voice replies to comments and reviews for Elin to approve."
+  }
+ ]
+}

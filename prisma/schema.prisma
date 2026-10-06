@@ -146,6 +146,9 @@ model Client {
   cardExpiry         String?
   cardIsDemo         Boolean  @default(false)
   isSampleAccount        Boolean      @default(false) // pitch/demo client — Insights shows seeded sample data styled as this client, never Klingit's own real connected ad accounts
+  /// A demo account (e.g. the ouhers demo client): never reads live integrations, never runs scheduled agents,
+  /// and nothing goes out from it (src/lib/notifier.ts). Seeded by prisma/seed-demo-ouhers.ts.
+  isDemo                 Boolean   @default(false)
   paidMediaInScope       Boolean      @default(true) // false = this client's engagement is contractually organic-only — Performance/Reports hide all paid-ad sections rather than showing irrelevant spend/CTR data
   accountLeadId          String?
   renewalDate            DateTime?
@@ -483,6 +486,8 @@ model CommunityManagementSnapshot {
   sentimentNeutralPct  Int
   sentimentNegativePct Int
   escalations          Int      @default(0)
+  /// Top comment themes for the period: [{ theme, count }].
+  themes               Json?
   createdAt            DateTime @default(now())
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
@@ -1821,6 +1826,8 @@ model WebsiteAnalyticsSnapshot {
   avgSessionSeconds    Int?
   socialReferralVisits Int?
   topSource            String?
+  /// The ad-to-purchase funnel for the period: { visitsFromAds, productPage, addToCart, checkout, purchase }.
+  funnel               Json?
   createdAt            DateTime @default(now())
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)

@@ -19,6 +19,9 @@ type OnPageChecks = {
   structuredDataTypes: string[];
   hasSitemap: boolean;
   aiCrawlerAccess: Record<string, "allowed" | "blocked">;
+  /** From a full crawl, when the audit had one. */
+  pagesCrawled?: number;
+  lcpSeconds?: number;
 };
 type Fix = { title: string; detail: string; impact?: "High" | "Medium" | "Low" };
 type Result = "pass" | "warn" | "error";
@@ -97,9 +100,13 @@ export default async function SeoPage() {
       {(run.length > 0 || own) && (
         <div className="grid grid-cols-2 gap-4 min-[1000px]:grid-cols-4">
           {run.length > 0 && <StatTile icon="ai" label="Mentioned by AI assistants" value={`${ownHits} of ${run.length}`} context="answers to buyer questions" />}
-          {own?.seoScore != null && <StatTile icon="seo" label="SEO health" value={String(own.seoScore)} context="of 100 · Lighthouse" />}
+          {own?.seoScore != null && <StatTile icon="seo" label="SEO health" value={String(own.seoScore)} context={onPage?.pagesCrawled ? `of 100 · ${onPage.pagesCrawled} pages` : "of 100 · Lighthouse"} />}
           {crawlers.length > 0 && <StatTile icon="crawlers" label="AI crawlers allowed" value={`${crawlers.filter((c) => c === "allowed").length} of ${crawlers.length}`} context="robots.txt" />}
-          {own?.performanceScore != null && <StatTile icon="speed" label="Page speed (mobile)" value={String(own.performanceScore)} context="Lighthouse performance score" />}
+          {onPage?.lcpSeconds != null ? (
+            <StatTile icon="speed" label="Page speed (mobile)" value={`${onPage.lcpSeconds} s`} context="largest content paint" />
+          ) : (
+            own?.performanceScore != null && <StatTile icon="speed" label="Page speed (mobile)" value={String(own.performanceScore)} context="Lighthouse performance score" />
+          )}
         </div>
       )}
 

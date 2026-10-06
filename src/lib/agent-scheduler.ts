@@ -13,7 +13,8 @@ import { syncDailyAdMetrics } from "@/lib/integrations/ad-daily";
 const RETRY_AFTER_MS = 30 * 60 * 1000;
 
 export async function runScheduledAgents(now = new Date()) {
-  const clients = await prisma.client.findMany({ where: { status: { in: ["ACTIVE", "ONBOARDING"] } }, select: { id: true, name: true } });
+  // Demo accounts are seeded and stay as seeded: no scheduled agent ever writes to them.
+  const clients = await prisma.client.findMany({ where: { status: { in: ["ACTIVE", "ONBOARDING"] }, isDemo: false }, select: { id: true, name: true } });
   const done: string[] = [];
   for (const c of clients) {
     try {

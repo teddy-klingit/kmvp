@@ -17,6 +17,7 @@ export type ExceptionKind =
   | "out_of_scope"
   | "estimate_send"
   | "second_change_request"
+  | "quality_check"
   | "deadline_at_risk";
 
 export type OpsException = {
@@ -44,6 +45,7 @@ const KIND: Record<ExceptionKind, { label: string; short: string; tone: OpsExcep
   out_of_scope: { label: "Out of scope", short: "PRICE", tone: "turn", rank: 2 },
   estimate_send: { label: "Estimate", short: "EST", tone: "turn", rank: 3 },
   second_change_request: { label: "Repeat change request", short: "REV", tone: "turn", rank: 3 },
+  quality_check: { label: "Quality check", short: "QC", tone: "turn", rank: 2 },
   deadline_at_risk: { label: "Deadline at risk", short: "DATE", tone: "neutral", rank: 4 },
 };
 
@@ -73,7 +75,7 @@ export async function loadOpsProjects(where: { id?: string } = {}, now = new Dat
   });
   if (projects.length === 0) return [];
   const ids = projects.map((p) => p.id);
-  const [comments, assets, failedRuns] = await Promise.all([
+  const [comments, assets, failedRuns, qcVersions, lateFlags] = await Promise.all([
     prisma.comment.findMany({
       where: { projectId: { in: ids }, kind: "MESSAGE", archivedAt: null },
       include: { clientAuthor: { include: { user: true } } },
@@ -85,6 +87,9 @@ export async function loadOpsProjects(where: { id?: string } = {}, now = new Dat
       include: { agent: true },
       orderBy: { createdAt: "desc" },
     }),
+    // Checked versions waiting for a PM to send them, and late flags on work the client already has.
+    prisma.assetVersion.findMany({ where: { projectId: { in: ids }, state: "QC_READY", asset: { status: { not: "ARCHIVED" } } }, select: { projectId: true, number: true, checkedAt: true, createdAt: true } }),
+    prisma.qcFlag.findMany({ where: { projectId: { in: ids }, late: true, status: "OPEN" }, select: { projectId: true, createdAt: true, detail: true } }),
   ]);
 
   const out: OpsProject[] = [];
@@ -185,7 +190,28 @@ export async function loadOpsProjects(where: { id?: string } = {}, now = new Dat
       });
     }
 
-    // 7. Deadline at risk: overdue or due within 24h on the client's side, or due within 3 days before production is done.
+    // 7. Quality check: checked work waiting to be sent, or a check that now fails on work the client has.
+    const ready = qcVersions.filter((v) => v.projectId === project.id);
+    if (ready.length) {
+      const first = state.keyFacts.firstDraftEta;
+      add("quality_check", {
+        title: `Quality check before sending v${Math.max(...ready.map((v) => v.number))}`,
+        detail: `${ready.length} checked version${ready.length === 1 ? "" : "s"} waiting to be sent to the client${first ? ` · first draft due ${new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(first)}` : ""}.`,
+        since: ready.reduce((d, v) => ((v.checkedAt ?? v.createdAt) < d ? (v.checkedAt ?? v.createdAt) : d), ready[0].checkedAt ?? ready[0].createdAt),
+        action: { label: "Open quality check", href: cockpit(project.id, "/qc") },
+      });
+    }
+    const late = lateFlags.filter((f) => f.projectId === project.id);
+    if (late.length) {
+      add("quality_check", {
+        title: `${late.length} sent asset${late.length === 1 ? "" : "s"} no longer pass${late.length === 1 ? "es" : ""} the Brand OS check`,
+        detail: `${late[0].detail}. The client hasn't been told.`,
+        since: late[0].createdAt,
+        action: { label: "Open quality check", href: cockpit(project.id, "/qc") },
+      });
+    }
+
+    // 8. Deadline at risk: overdue or due within 24h on the client's side, or due within 3 days before production is done.
     const due = project.dueDate;
     const early = ["briefing", "estimating", "awaiting_approval", "staffing", "production"].includes(state.stage);
     if (state.urgency || (due && early && due.getTime() - now.getTime() < 3 * 86400000)) {

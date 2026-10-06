@@ -1,0 +1,35 @@
+[
+ {
+  "at": "2026-10-05T15:30:00+02:00",
+  "to": "client",
+  "text": "Estimate ready: Retail display (27 credits)",
+  "action": "Approve estimate",
+  "project": "p09-retail-display",
+  "yourAction": true
+ },
+ {
+  "at": "2026-10-04T14:41:00+02:00",
+  "to": "client",
+  "text": "Q4 cloud cream version 2 is ready for review",
+  "project": "p04-q4-cloudcream",
+  "yourAction": true
+ },
+ {
+  "at": "2026-10-02T09:00:00+02:00",
+  "to": "client",
+  "text": "Seasonal content agent: test run 1 ready",
+  "project": "p11-agent-seasonal",
+  "yourAction": true
+ },
+ {
+  "at": "2026-10-01T08:00:00+02:00",
+  "to": "client",
+  "text": "Weekly report, week 39"
+ },
+ {
+  "at": "2026-09-24T11:00:00+02:00",
+  "to": "client",
+  "text": "Holiday: the soft set is now active (slot 3 of 3)",
+  "project": "p05-holiday-giftset"
+ }
+]

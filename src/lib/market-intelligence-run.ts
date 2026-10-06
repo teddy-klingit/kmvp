@@ -45,6 +45,7 @@ async function ownMarketFacts(clientId: string) {
  * buttons (market-intelligence-actions.ts) and scripts; never exported from a "use server" file.
  */
 export async function runMarketIntelligence(client: Client): Promise<{ error: string | null }> {
+  if (client.isDemo) return { error: "This is a demo account: its market read is seeded. Reset the demo to start over." };
   const competitorBrands = jsonArray<string>(client.competitorBrands);
 
   const [news, adLibraryResults, linkedInAdResults, topFormat] = await Promise.all([

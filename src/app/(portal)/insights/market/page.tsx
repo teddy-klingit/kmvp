@@ -42,13 +42,15 @@ export default async function MarketFeedPage({ searchParams }: { searchParams: P
   const competitorBrands = jsonArray<string>(client.competitorBrands);
   const newsQuery = client.industry ? `${client.industry} marketing` : client.name;
 
+  // A demo account's signals are seeded: no live news or ad-library checks.
+  const live = !client.isDemo;
   const [news, adLibraryResults, linkedInAdResults, brief] = await Promise.all([
-    getIndustryNews(newsQuery),
-    competitorBrands.length ? getCompetitorAdLibraryActivity(competitorBrands) : Promise.resolve([]),
-    competitorBrands.length ? getLinkedInCompetitorAds(competitorBrands) : Promise.resolve([]),
+    live ? getIndustryNews(newsQuery) : Promise.resolve([]),
+    live && competitorBrands.length ? getCompetitorAdLibraryActivity(competitorBrands) : Promise.resolve([]),
+    live && competitorBrands.length ? getLinkedInCompetitorAds(competitorBrands) : Promise.resolve([]),
     prisma.marketIntelligenceBrief.findUnique({ where: { clientId: viewer.clientId } }),
   ]);
-  await Promise.all([recordCompetitorSnapshots(client.id, adLibraryResults, linkedInAdResults), recordNewsSignals(client.id, news)]);
+  if (live) await Promise.all([recordCompetitorSnapshots(client.id, adLibraryResults, linkedInAdResults), recordNewsSignals(client.id, news)]);
   const weeks = weeksFor(days);
   const signals = await loadSignals(client.id, weeks);
   const perWeek = signalsPerWeek(signals, weeks);

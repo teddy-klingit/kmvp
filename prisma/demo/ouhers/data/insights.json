@@ -1,0 +1,3623 @@
+{
+ "demo": true,
+ "asOf": "2026-10-06T10:19:00+02:00",
+ "campaigns": [
+  {
+   "id": "cmp-launch",
+   "name": "launch | first five | SE-NO-DK",
+   "platform": "meta",
+   "project": "p01-launch-first-five",
+   "start": "2026-05-12",
+   "end": "2026-06-08",
+   "totals": {
+    "spend": 24491,
+    "impressions": 394122,
+    "clicks": 3711,
+    "purchases": 74,
+    "revenue": 38480,
+    "ctr": 0.94,
+    "cpc": 6.6,
+    "roas": 1.57,
+    "cpa": 331.0
+   }
+  },
+  {
+   "id": "cmp-sunday-meta",
+   "name": "summer | sun day | SE-NO-DK",
+   "platform": "meta",
+   "project": "p02-summer-sunday",
+   "start": "2026-07-01",
+   "end": "2026-08-15",
+   "totals": {
+    "spend": 33492,
+    "impressions": 542781,
+    "clicks": 6954,
+    "purchases": 180,
+    "revenue": 73800,
+    "ctr": 1.28,
+    "cpc": 4.82,
+    "roas": 2.2,
+    "cpa": 186.1
+   }
+  },
+  {
+   "id": "cmp-sunday-tiktok",
+   "name": "summer | sun day | TikTok SE-NO",
+   "platform": "tiktok",
+   "project": "p02-summer-sunday",
+   "start": "2026-07-01",
+   "end": "2026-08-15",
+   "totals": {
+    "spend": 22713,
+    "impressions": 471833,
+    "clicks": 8325,
+    "purchases": 185,
+    "revenue": 70300,
+    "ctr": 1.76,
+    "cpc": 2.73,
+    "roas": 3.1,
+    "cpa": 122.8
+   }
+  },
+  {
+   "id": "cmp-lipours",
+   "name": "lip ours | you voted | IG",
+   "platform": "meta",
+   "project": "p03-lipours-shade-vote",
+   "start": "2026-08-18",
+   "end": "2026-09-14",
+   "totals": {
+    "spend": 10736,
+    "impressions": 172672,
+    "clicks": 1830,
+    "purchases": 56,
+    "revenue": 16240,
+    "ctr": 1.06,
+    "cpc": 5.87,
+    "roas": 1.51,
+    "cpa": 191.7
+   }
+  },
+  {
+   "id": "cmp-alwayson",
+   "name": "always-on | best performers | SE-NO-DK",
+   "platform": "meta",
+   "project": null,
+   "start": "2026-06-09",
+   "end": "2026-10-05",
+   "totals": {
+    "spend": 41286,
+    "impressions": 668367,
+    "clicks": 5235,
+    "purchases": 118,
+    "revenue": 53100,
+    "ctr": 0.78,
+    "cpc": 7.89,
+    "roas": 1.29,
+    "cpa": 349.9
+   }
+  },
+  {
+   "id": "cmp-tiktok-ao",
+   "name": "always-on | TikTok | SE-NO",
+   "platform": "tiktok",
+   "project": null,
+   "start": "2026-08-16",
+   "end": "2026-10-05",
+   "totals": {
+    "spend": 14921,
+    "impressions": 306910,
+    "clicks": 4466,
+    "purchases": 79,
+    "revenue": 28440,
+    "ctr": 1.46,
+    "cpc": 3.34,
+    "roas": 1.91,
+    "cpa": 188.9
+   }
+  }
+ ],
+ "daily": [
+  {
+   "date": "2026-05-12",
+   "campaign": "cmp-launch",
+   "platform": "meta",
+   "spend": 509,
+   "impressions": 7585,
+   "clicks": 76,
+   "purchases": 1,
+   "revenue": 520
+  },
+  {
+   "date": "2026-05-13",
+   "campaign": "cmp-launch",
+   "platform": "meta",
+   "spend": 636,
+   "impressions": 10548,
+   "clicks": 118,
+   "purchases": 2,
+   "revenue": 1040
+  },
+  {
+   "date": "2026-05-14",
+   "campaign": "cmp-launch",
+   "platform": "meta",
+   "spend": 709,
+   "impressions": 10575,
+   "clicks": 102,
+   "purchases": 2,
+   "revenue": 1040
+  },
+  {
+   "date": "2026-05-15",
+   "campaign": "cmp-launch",
+   "platform": "meta",
+   "spend": 754,
+   "impressions": 11575,
+   "clicks": 121,
+   "purchases": 3,
+   "revenue": 1560
+  },
+  {
+   "date": "2026-05-16",
+   "campaign": "cmp-launch",
+   "platform": "meta",
+   "spend": 850,
+   "impressions": 13905,
+   "clicks": 167,
+   "purchases": 3,
+   "revenue": 1560
+  },
+  {
+   "date": "2026-05-17",
+   "campaign": "cmp-launch",
+   "platform": "meta",
+   "spend": 955,
+   "impressions": 15891,
+   "clicks": 172,
+   "purchases": 3,
+   "revenue": 1560
+  },
+  {
+   "date": "2026-05-18",
+   "campaign": "cmp-launch",
+   "platform": "meta",
+   "spend": 982,
+   "impressions": 15424,
+   "clicks": 140,
+   "purchases": 2,
+   "revenue": 1040
+  },
+  {
+   "date": "2026-05-19",
+   "campaign": "cmp-launch",
+   "platform": "meta",
+   "spend": 963,
+   "impressions": 15790,
+   "clicks": 164,
+   "purchases": 4,
+   "revenue": 2080
+  },
+  {
+   "date": "2026-05-20",
+   "campaign": "cmp-launch",
+   "platform": "meta",
+   "spend": 907,
+   "impressions": 15736,
+   "clicks": 149,
+   "purchases": 3,
+   "revenue": 1560
+  },
+  {
+   "date": "2026-05-21",
+   "campaign": "cmp-launch",
+   "platform": "meta",
+   "spend": 959,
+   "impressions": 15761,
+   "clicks": 163,
+   "purchases": 4,
+   "revenue": 2080
+  },
+  {
+   "date": "2026-05-22",
+   "campaign": "cmp-launch",
+   "platform": "meta",
+   "spend": 937,
+   "impressions": 14014,
+   "clicks": 126,
+   "purchases": 2,
+   "revenue": 1040
+  },
+  {
+   "date": "2026-05-23",
+   "campaign": "cmp-launch",
+   "platform": "meta",
+   "spend": 824,
+   "impressions": 12722,
+   "clicks": 124,
+   "purchases": 2,
+   "revenue": 1040
+  },
+  {
+   "date": "2026-05-24",
+   "campaign": "cmp-launch",
+   "platform": "meta",
+   "spend": 924,
+   "impressions": 14580,
+   "clicks": 149,
+   "purchases": 3,
+   "revenue": 1560
+  },
+  {
+   "date": "2026-05-25",
+   "campaign": "cmp-launch",
+   "platform": "meta",
+   "spend": 858,
+   "impressions": 14805,
+   "clicks": 141,
+   "purchases": 3,
+   "revenue": 1560
+  },
+  {
+   "date": "2026-05-26",
+   "campaign": "cmp-launch",
+   "platform": "meta",
+   "spend": 841,
+   "impressions": 14061,
+   "clicks": 120,
+   "purchases": 2,
+   "revenue": 1040
+  },
+  {
+   "date": "2026-05-27",
+   "campaign": "cmp-launch",
+   "platform": "meta",
+   "spend": 988,
+   "impressions": 16292,
+   "clicks": 149,
+   "purchases": 3,
+   "revenue": 1560
+  },
+  {
+   "date": "2026-05-28",
+   "campaign": "cmp-launch",
+   "platform": "meta",
+   "spend": 962,
+   "impressions": 16201,
+   "clicks": 137,
+   "purchases": 2,
+   "revenue": 1040
+  },
+  {
+   "date": "2026-05-29",
+   "campaign": "cmp-launch",
+   "platform": "meta",
+   "spend": 867,
+   "impressions": 13464,
+   "clicks": 112,
+   "purchases": 3,
+   "revenue": 1560
+  },
+  {
+   "date": "2026-05-30",
+   "campaign": "cmp-launch",
+   "platform": "meta",
+   "spend": 968,
+   "impressions": 15149,
+   "clicks": 154,
+   "purchases": 3,
+   "revenue": 1560
+  },
+  {
+   "date": "2026-05-31",
+   "campaign": "cmp-launch",
+   "platform": "meta",
+   "spend": 975,
+   "impressions": 15622,
+   "clicks": 145,
+   "purchases": 3,
+   "revenue": 1560
+  },
+  {
+   "date": "2026-06-01",
+   "campaign": "cmp-launch",
+   "platform": "meta",
+   "spend": 911,
+   "impressions": 14135,
+   "clicks": 123,
+   "purchases": 3,
+   "revenue": 1560
+  },
+  {
+   "date": "2026-06-02",
+   "campaign": "cmp-launch",
+   "platform": "meta",
+   "spend": 882,
+   "impressions": 13586,
+   "clicks": 127,
+   "purchases": 3,
+   "revenue": 1560
+  },
+  {
+   "date": "2026-06-03",
+   "campaign": "cmp-launch",
+   "platform": "meta",
+   "spend": 826,
+   "impressions": 12357,
+   "clicks": 96,
+   "purchases": 2,
+   "revenue": 1040
+  },
+  {
+   "date": "2026-06-04",
+   "campaign": "cmp-launch",
+   "platform": "meta",
+   "spend": 953,
+   "impressions": 15179,
+   "clicks": 115,
+   "purchases": 2,
+   "revenue": 1040
+  },
+  {
+   "date": "2026-06-05",
+   "campaign": "cmp-launch",
+   "platform": "meta",
+   "spend": 989,
+   "impressions": 16025,
+   "clicks": 144,
+   "purchases": 3,
+   "revenue": 1560
+  },
+  {
+   "date": "2026-06-06",
+   "campaign": "cmp-launch",
+   "platform": "meta",
+   "spend": 812,
+   "impressions": 13559,
+   "clicks": 128,
+   "purchases": 3,
+   "revenue": 1560
+  },
+  {
+   "date": "2026-06-07",
+   "campaign": "cmp-launch",
+   "platform": "meta",
+   "spend": 858,
+   "impressions": 14150,
+   "clicks": 117,
+   "purchases": 2,
+   "revenue": 1040
+  },
+  {
+   "date": "2026-06-08",
+   "campaign": "cmp-launch",
+   "platform": "meta",
+   "spend": 892,
+   "impressions": 15431,
+   "clicks": 132,
+   "purchases": 3,
+   "revenue": 1560
+  },
+  {
+   "date": "2026-07-01",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 413,
+   "impressions": 6318,
+   "clicks": 97,
+   "purchases": 3,
+   "revenue": 1230
+  },
+  {
+   "date": "2026-07-02",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 486,
+   "impressions": 8012,
+   "clicks": 115,
+   "purchases": 3,
+   "revenue": 1230
+  },
+  {
+   "date": "2026-07-03",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 632,
+   "impressions": 10257,
+   "clicks": 152,
+   "purchases": 4,
+   "revenue": 1640
+  },
+  {
+   "date": "2026-07-04",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 624,
+   "impressions": 9781,
+   "clicks": 138,
+   "purchases": 4,
+   "revenue": 1640
+  },
+  {
+   "date": "2026-07-05",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 807,
+   "impressions": 13706,
+   "clicks": 205,
+   "purchases": 4,
+   "revenue": 1640
+  },
+  {
+   "date": "2026-07-06",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 807,
+   "impressions": 13946,
+   "clicks": 176,
+   "purchases": 5,
+   "revenue": 2050
+  },
+  {
+   "date": "2026-07-07",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 685,
+   "impressions": 11509,
+   "clicks": 166,
+   "purchases": 4,
+   "revenue": 1640
+  },
+  {
+   "date": "2026-07-08",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 746,
+   "impressions": 12128,
+   "clicks": 157,
+   "purchases": 5,
+   "revenue": 2050
+  },
+  {
+   "date": "2026-07-09",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 738,
+   "impressions": 11354,
+   "clicks": 155,
+   "purchases": 4,
+   "revenue": 1640
+  },
+  {
+   "date": "2026-07-10",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 705,
+   "impressions": 11028,
+   "clicks": 163,
+   "purchases": 4,
+   "revenue": 1640
+  },
+  {
+   "date": "2026-07-11",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 741,
+   "impressions": 11985,
+   "clicks": 166,
+   "purchases": 4,
+   "revenue": 1640
+  },
+  {
+   "date": "2026-07-12",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 726,
+   "impressions": 11875,
+   "clicks": 167,
+   "purchases": 4,
+   "revenue": 1640
+  },
+  {
+   "date": "2026-07-13",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 686,
+   "impressions": 11296,
+   "clicks": 141,
+   "purchases": 4,
+   "revenue": 1640
+  },
+  {
+   "date": "2026-07-14",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 804,
+   "impressions": 12077,
+   "clicks": 151,
+   "purchases": 4,
+   "revenue": 1640
+  },
+  {
+   "date": "2026-07-15",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 707,
+   "impressions": 10732,
+   "clicks": 153,
+   "purchases": 4,
+   "revenue": 1640
+  },
+  {
+   "date": "2026-07-16",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 746,
+   "impressions": 12580,
+   "clicks": 174,
+   "purchases": 4,
+   "revenue": 1640
+  },
+  {
+   "date": "2026-07-17",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 690,
+   "impressions": 11006,
+   "clicks": 140,
+   "purchases": 4,
+   "revenue": 1640
+  },
+  {
+   "date": "2026-07-18",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 784,
+   "impressions": 12995,
+   "clicks": 205,
+   "purchases": 4,
+   "revenue": 1640
+  },
+  {
+   "date": "2026-07-19",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 735,
+   "impressions": 11550,
+   "clicks": 177,
+   "purchases": 4,
+   "revenue": 1640
+  },
+  {
+   "date": "2026-07-20",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 704,
+   "impressions": 11261,
+   "clicks": 141,
+   "purchases": 3,
+   "revenue": 1230
+  },
+  {
+   "date": "2026-07-21",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 712,
+   "impressions": 12261,
+   "clicks": 153,
+   "purchases": 5,
+   "revenue": 2050
+  },
+  {
+   "date": "2026-07-22",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 758,
+   "impressions": 11346,
+   "clicks": 156,
+   "purchases": 5,
+   "revenue": 2050
+  },
+  {
+   "date": "2026-07-23",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 820,
+   "impressions": 14128,
+   "clicks": 188,
+   "purchases": 4,
+   "revenue": 1640
+  },
+  {
+   "date": "2026-07-24",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 748,
+   "impressions": 11511,
+   "clicks": 140,
+   "purchases": 3,
+   "revenue": 1230
+  },
+  {
+   "date": "2026-07-25",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 732,
+   "impressions": 12723,
+   "clicks": 167,
+   "purchases": 5,
+   "revenue": 2050
+  },
+  {
+   "date": "2026-07-26",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 743,
+   "impressions": 11836,
+   "clicks": 177,
+   "purchases": 6,
+   "revenue": 2460
+  },
+  {
+   "date": "2026-07-27",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 758,
+   "impressions": 12653,
+   "clicks": 143,
+   "purchases": 3,
+   "revenue": 1230
+  },
+  {
+   "date": "2026-07-28",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 820,
+   "impressions": 13393,
+   "clicks": 163,
+   "purchases": 5,
+   "revenue": 2050
+  },
+  {
+   "date": "2026-07-29",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 684,
+   "impressions": 11180,
+   "clicks": 134,
+   "purchases": 4,
+   "revenue": 1640
+  },
+  {
+   "date": "2026-07-30",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 699,
+   "impressions": 12105,
+   "clicks": 132,
+   "purchases": 3,
+   "revenue": 1230
+  },
+  {
+   "date": "2026-07-31",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 764,
+   "impressions": 12668,
+   "clicks": 142,
+   "purchases": 3,
+   "revenue": 1230
+  },
+  {
+   "date": "2026-08-01",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 809,
+   "impressions": 12518,
+   "clicks": 168,
+   "purchases": 5,
+   "revenue": 2050
+  },
+  {
+   "date": "2026-08-02",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 738,
+   "impressions": 12062,
+   "clicks": 159,
+   "purchases": 5,
+   "revenue": 2050
+  },
+  {
+   "date": "2026-08-03",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 706,
+   "impressions": 11780,
+   "clicks": 130,
+   "purchases": 3,
+   "revenue": 1230
+  },
+  {
+   "date": "2026-08-04",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 776,
+   "impressions": 12115,
+   "clicks": 135,
+   "purchases": 4,
+   "revenue": 1640
+  },
+  {
+   "date": "2026-08-05",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 686,
+   "impressions": 10990,
+   "clicks": 138,
+   "purchases": 4,
+   "revenue": 1640
+  },
+  {
+   "date": "2026-08-06",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 686,
+   "impressions": 10556,
+   "clicks": 114,
+   "purchases": 3,
+   "revenue": 1230
+  },
+  {
+   "date": "2026-08-07",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 807,
+   "impressions": 13805,
+   "clicks": 152,
+   "purchases": 3,
+   "revenue": 1230
+  },
+  {
+   "date": "2026-08-08",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 800,
+   "impressions": 13323,
+   "clicks": 171,
+   "purchases": 5,
+   "revenue": 2050
+  },
+  {
+   "date": "2026-08-09",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 773,
+   "impressions": 11485,
+   "clicks": 153,
+   "purchases": 4,
+   "revenue": 1640
+  },
+  {
+   "date": "2026-08-10",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 775,
+   "impressions": 13377,
+   "clicks": 137,
+   "purchases": 3,
+   "revenue": 1230
+  },
+  {
+   "date": "2026-08-11",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 691,
+   "impressions": 11240,
+   "clicks": 118,
+   "purchases": 3,
+   "revenue": 1230
+  },
+  {
+   "date": "2026-08-12",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 783,
+   "impressions": 12030,
+   "clicks": 135,
+   "purchases": 3,
+   "revenue": 1230
+  },
+  {
+   "date": "2026-08-13",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 748,
+   "impressions": 12846,
+   "clicks": 149,
+   "purchases": 3,
+   "revenue": 1230
+  },
+  {
+   "date": "2026-08-14",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 739,
+   "impressions": 11493,
+   "clicks": 111,
+   "purchases": 3,
+   "revenue": 1230
+  },
+  {
+   "date": "2026-08-15",
+   "campaign": "cmp-sunday-meta",
+   "platform": "meta",
+   "spend": 771,
+   "impressions": 11961,
+   "clicks": 150,
+   "purchases": 4,
+   "revenue": 1640
+  },
+  {
+   "date": "2026-07-01",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 271,
+   "impressions": 5202,
+   "clicks": 92,
+   "purchases": 2,
+   "revenue": 760
+  },
+  {
+   "date": "2026-07-02",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 365,
+   "impressions": 7659,
+   "clicks": 158,
+   "purchases": 4,
+   "revenue": 1520
+  },
+  {
+   "date": "2026-07-03",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 372,
+   "impressions": 7288,
+   "clicks": 135,
+   "purchases": 3,
+   "revenue": 1140
+  },
+  {
+   "date": "2026-07-04",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 490,
+   "impressions": 10797,
+   "clicks": 250,
+   "purchases": 5,
+   "revenue": 1900
+  },
+  {
+   "date": "2026-07-05",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 475,
+   "impressions": 9266,
+   "clicks": 209,
+   "purchases": 5,
+   "revenue": 1900
+  },
+  {
+   "date": "2026-07-06",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 491,
+   "impressions": 10426,
+   "clicks": 184,
+   "purchases": 5,
+   "revenue": 1900
+  },
+  {
+   "date": "2026-07-07",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 536,
+   "impressions": 12017,
+   "clicks": 240,
+   "purchases": 6,
+   "revenue": 2280
+  },
+  {
+   "date": "2026-07-08",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 452,
+   "impressions": 9773,
+   "clicks": 177,
+   "purchases": 5,
+   "revenue": 1900
+  },
+  {
+   "date": "2026-07-09",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 530,
+   "impressions": 11684,
+   "clicks": 231,
+   "purchases": 5,
+   "revenue": 1900
+  },
+  {
+   "date": "2026-07-10",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 529,
+   "impressions": 10329,
+   "clicks": 205,
+   "purchases": 5,
+   "revenue": 1900
+  },
+  {
+   "date": "2026-07-11",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 472,
+   "impressions": 10331,
+   "clicks": 211,
+   "purchases": 4,
+   "revenue": 1520
+  },
+  {
+   "date": "2026-07-12",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 530,
+   "impressions": 10560,
+   "clicks": 196,
+   "purchases": 4,
+   "revenue": 1520
+  },
+  {
+   "date": "2026-07-13",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 483,
+   "impressions": 10649,
+   "clicks": 212,
+   "purchases": 4,
+   "revenue": 1520
+  },
+  {
+   "date": "2026-07-14",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 514,
+   "impressions": 10536,
+   "clicks": 209,
+   "purchases": 5,
+   "revenue": 1900
+  },
+  {
+   "date": "2026-07-15",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 544,
+   "impressions": 10635,
+   "clicks": 209,
+   "purchases": 4,
+   "revenue": 1520
+  },
+  {
+   "date": "2026-07-16",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 546,
+   "impressions": 10948,
+   "clicks": 180,
+   "purchases": 4,
+   "revenue": 1520
+  },
+  {
+   "date": "2026-07-17",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 523,
+   "impressions": 10571,
+   "clicks": 192,
+   "purchases": 4,
+   "revenue": 1520
+  },
+  {
+   "date": "2026-07-18",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 489,
+   "impressions": 10312,
+   "clicks": 194,
+   "purchases": 5,
+   "revenue": 1900
+  },
+  {
+   "date": "2026-07-19",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 450,
+   "impressions": 10013,
+   "clicks": 198,
+   "purchases": 5,
+   "revenue": 1900
+  },
+  {
+   "date": "2026-07-20",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 524,
+   "impressions": 11214,
+   "clicks": 190,
+   "purchases": 3,
+   "revenue": 1140
+  },
+  {
+   "date": "2026-07-21",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 516,
+   "impressions": 10457,
+   "clicks": 174,
+   "purchases": 4,
+   "revenue": 1520
+  },
+  {
+   "date": "2026-07-22",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 522,
+   "impressions": 10527,
+   "clicks": 174,
+   "purchases": 4,
+   "revenue": 1520
+  },
+  {
+   "date": "2026-07-23",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 490,
+   "impressions": 9874,
+   "clicks": 156,
+   "purchases": 3,
+   "revenue": 1140
+  },
+  {
+   "date": "2026-07-24",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 544,
+   "impressions": 11654,
+   "clicks": 214,
+   "purchases": 5,
+   "revenue": 1900
+  },
+  {
+   "date": "2026-07-25",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 480,
+   "impressions": 10076,
+   "clicks": 172,
+   "purchases": 3,
+   "revenue": 1140
+  },
+  {
+   "date": "2026-07-26",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 493,
+   "impressions": 10402,
+   "clicks": 202,
+   "purchases": 4,
+   "revenue": 1520
+  },
+  {
+   "date": "2026-07-27",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 494,
+   "impressions": 9820,
+   "clicks": 163,
+   "purchases": 4,
+   "revenue": 1520
+  },
+  {
+   "date": "2026-07-28",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 530,
+   "impressions": 10458,
+   "clicks": 159,
+   "purchases": 4,
+   "revenue": 1520
+  },
+  {
+   "date": "2026-07-29",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 513,
+   "impressions": 10405,
+   "clicks": 182,
+   "purchases": 4,
+   "revenue": 1520
+  },
+  {
+   "date": "2026-07-30",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 517,
+   "impressions": 10296,
+   "clicks": 158,
+   "purchases": 3,
+   "revenue": 1140
+  },
+  {
+   "date": "2026-07-31",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 474,
+   "impressions": 9835,
+   "clicks": 171,
+   "purchases": 3,
+   "revenue": 1140
+  },
+  {
+   "date": "2026-08-01",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 491,
+   "impressions": 10441,
+   "clicks": 178,
+   "purchases": 4,
+   "revenue": 1520
+  },
+  {
+   "date": "2026-08-02",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 499,
+   "impressions": 9969,
+   "clicks": 185,
+   "purchases": 3,
+   "revenue": 1140
+  },
+  {
+   "date": "2026-08-03",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 525,
+   "impressions": 11410,
+   "clicks": 168,
+   "purchases": 4,
+   "revenue": 1520
+  },
+  {
+   "date": "2026-08-04",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 468,
+   "impressions": 10464,
+   "clicks": 166,
+   "purchases": 3,
+   "revenue": 1140
+  },
+  {
+   "date": "2026-08-05",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 475,
+   "impressions": 10447,
+   "clicks": 163,
+   "purchases": 4,
+   "revenue": 1520
+  },
+  {
+   "date": "2026-08-06",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 517,
+   "impressions": 11611,
+   "clicks": 185,
+   "purchases": 5,
+   "revenue": 1900
+  },
+  {
+   "date": "2026-08-07",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 539,
+   "impressions": 11431,
+   "clicks": 185,
+   "purchases": 4,
+   "revenue": 1520
+  },
+  {
+   "date": "2026-08-08",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 533,
+   "impressions": 11189,
+   "clicks": 209,
+   "purchases": 5,
+   "revenue": 1900
+  },
+  {
+   "date": "2026-08-09",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 497,
+   "impressions": 9955,
+   "clicks": 162,
+   "purchases": 4,
+   "revenue": 1520
+  },
+  {
+   "date": "2026-08-10",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 527,
+   "impressions": 11016,
+   "clicks": 172,
+   "purchases": 3,
+   "revenue": 1140
+  },
+  {
+   "date": "2026-08-11",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 458,
+   "impressions": 9214,
+   "clicks": 133,
+   "purchases": 3,
+   "revenue": 1140
+  },
+  {
+   "date": "2026-08-12",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 504,
+   "impressions": 9892,
+   "clicks": 140,
+   "purchases": 3,
+   "revenue": 1140
+  },
+  {
+   "date": "2026-08-13",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 521,
+   "impressions": 10097,
+   "clicks": 148,
+   "purchases": 3,
+   "revenue": 1140
+  },
+  {
+   "date": "2026-08-14",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 492,
+   "impressions": 9769,
+   "clicks": 142,
+   "purchases": 4,
+   "revenue": 1520
+  },
+  {
+   "date": "2026-08-15",
+   "campaign": "cmp-sunday-tiktok",
+   "platform": "tiktok",
+   "spend": 508,
+   "impressions": 10914,
+   "clicks": 192,
+   "purchases": 5,
+   "revenue": 1900
+  },
+  {
+   "date": "2026-08-18",
+   "campaign": "cmp-lipours",
+   "platform": "meta",
+   "spend": 215,
+   "impressions": 3193,
+   "clicks": 36,
+   "purchases": 1,
+   "revenue": 290
+  },
+  {
+   "date": "2026-08-19",
+   "campaign": "cmp-lipours",
+   "platform": "meta",
+   "spend": 289,
+   "impressions": 4999,
+   "clicks": 57,
+   "purchases": 2,
+   "revenue": 580
+  },
+  {
+   "date": "2026-08-20",
+   "campaign": "cmp-lipours",
+   "platform": "meta",
+   "spend": 323,
+   "impressions": 5295,
+   "clicks": 57,
+   "purchases": 2,
+   "revenue": 580
+  },
+  {
+   "date": "2026-08-21",
+   "campaign": "cmp-lipours",
+   "platform": "meta",
+   "spend": 365,
+   "impressions": 5443,
+   "clicks": 60,
+   "purchases": 2,
+   "revenue": 580
+  },
+  {
+   "date": "2026-08-22",
+   "campaign": "cmp-lipours",
+   "platform": "meta",
+   "spend": 392,
+   "impressions": 5983,
+   "clicks": 75,
+   "purchases": 2,
+   "revenue": 580
+  },
+  {
+   "date": "2026-08-23",
+   "campaign": "cmp-lipours",
+   "platform": "meta",
+   "spend": 410,
+   "impressions": 6112,
+   "clicks": 75,
+   "purchases": 2,
+   "revenue": 580
+  },
+  {
+   "date": "2026-08-24",
+   "campaign": "cmp-lipours",
+   "platform": "meta",
+   "spend": 362,
+   "impressions": 5972,
+   "clicks": 61,
+   "purchases": 2,
+   "revenue": 580
+  },
+  {
+   "date": "2026-08-25",
+   "campaign": "cmp-lipours",
+   "platform": "meta",
+   "spend": 364,
+   "impressions": 5757,
+   "clicks": 60,
+   "purchases": 2,
+   "revenue": 580
+  },
+  {
+   "date": "2026-08-26",
+   "campaign": "cmp-lipours",
+   "platform": "meta",
+   "spend": 421,
+   "impressions": 6658,
+   "clicks": 76,
+   "purchases": 3,
+   "revenue": 870
+  },
+  {
+   "date": "2026-08-27",
+   "campaign": "cmp-lipours",
+   "platform": "meta",
+   "spend": 380,
+   "impressions": 5719,
+   "clicks": 56,
+   "purchases": 2,
+   "revenue": 580
+  },
+  {
+   "date": "2026-08-28",
+   "campaign": "cmp-lipours",
+   "platform": "meta",
+   "spend": 440,
+   "impressions": 6926,
+   "clicks": 76,
+   "purchases": 3,
+   "revenue": 870
+  },
+  {
+   "date": "2026-08-29",
+   "campaign": "cmp-lipours",
+   "platform": "meta",
+   "spend": 412,
+   "impressions": 6915,
+   "clicks": 89,
+   "purchases": 2,
+   "revenue": 580
+  },
+  {
+   "date": "2026-08-30",
+   "campaign": "cmp-lipours",
+   "platform": "meta",
+   "spend": 362,
+   "impressions": 5513,
+   "clicks": 60,
+   "purchases": 2,
+   "revenue": 580
+  },
+  {
+   "date": "2026-08-31",
+   "campaign": "cmp-lipours",
+   "platform": "meta",
+   "spend": 405,
+   "impressions": 6237,
+   "clicks": 67,
+   "purchases": 2,
+   "revenue": 580
+  },
+  {
+   "date": "2026-09-01",
+   "campaign": "cmp-lipours",
+   "platform": "meta",
+   "spend": 373,
+   "impressions": 6119,
+   "clicks": 66,
+   "purchases": 2,
+   "revenue": 580
+  },
+  {
+   "date": "2026-09-02",
+   "campaign": "cmp-lipours",
+   "platform": "meta",
+   "spend": 426,
+   "impressions": 7381,
+   "clicks": 69,
+   "purchases": 2,
+   "revenue": 580
+  },
+  {
+   "date": "2026-09-03",
+   "campaign": "cmp-lipours",
+   "platform": "meta",
+   "spend": 385,
+   "impressions": 6385,
+   "clicks": 70,
+   "purchases": 2,
+   "revenue": 580
+  },
+  {
+   "date": "2026-09-04",
+   "campaign": "cmp-lipours",
+   "platform": "meta",
+   "spend": 417,
+   "impressions": 6269,
+   "clicks": 65,
+   "purchases": 2,
+   "revenue": 580
+  },
+  {
+   "date": "2026-09-05",
+   "campaign": "cmp-lipours",
+   "platform": "meta",
+   "spend": 368,
+   "impressions": 6194,
+   "clicks": 73,
+   "purchases": 2,
+   "revenue": 580
+  },
+  {
+   "date": "2026-09-06",
+   "campaign": "cmp-lipours",
+   "platform": "meta",
+   "spend": 370,
+   "impressions": 6429,
+   "clicks": 74,
+   "purchases": 2,
+   "revenue": 580
+  },
+  {
+   "date": "2026-09-07",
+   "campaign": "cmp-lipours",
+   "platform": "meta",
+   "spend": 394,
+   "impressions": 6223,
+   "clicks": 60,
+   "purchases": 2,
+   "revenue": 580
+  },
+  {
+   "date": "2026-09-08",
+   "campaign": "cmp-lipours",
+   "platform": "meta",
+   "spend": 428,
+   "impressions": 7259,
+   "clicks": 64,
+   "purchases": 2,
+   "revenue": 580
+  },
+  {
+   "date": "2026-09-09",
+   "campaign": "cmp-lipours",
+   "platform": "meta",
+   "spend": 411,
+   "impressions": 6977,
+   "clicks": 68,
+   "purchases": 2,
+   "revenue": 580
+  },
+  {
+   "date": "2026-09-10",
+   "campaign": "cmp-lipours",
+   "platform": "meta",
+   "spend": 419,
+   "impressions": 7261,
+   "clicks": 64,
+   "purchases": 2,
+   "revenue": 580
+  },
+  {
+   "date": "2026-09-11",
+   "campaign": "cmp-lipours",
+   "platform": "meta",
+   "spend": 403,
+   "impressions": 6482,
+   "clicks": 59,
+   "purchases": 2,
+   "revenue": 580
+  },
+  {
+   "date": "2026-09-12",
+   "campaign": "cmp-lipours",
+   "platform": "meta",
+   "spend": 381,
+   "impressions": 6490,
+   "clicks": 71,
+   "purchases": 2,
+   "revenue": 580
+  },
+  {
+   "date": "2026-09-13",
+   "campaign": "cmp-lipours",
+   "platform": "meta",
+   "spend": 431,
+   "impressions": 6666,
+   "clicks": 67,
+   "purchases": 2,
+   "revenue": 580
+  },
+  {
+   "date": "2026-09-14",
+   "campaign": "cmp-lipours",
+   "platform": "meta",
+   "spend": 390,
+   "impressions": 5815,
+   "clicks": 55,
+   "purchases": 1,
+   "revenue": 290
+  },
+  {
+   "date": "2026-06-09",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 181,
+   "impressions": 3058,
+   "clicks": 27,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-06-10",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 246,
+   "impressions": 3825,
+   "clicks": 31,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-06-11",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 257,
+   "impressions": 4291,
+   "clicks": 39,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-06-12",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 336,
+   "impressions": 5545,
+   "clicks": 50,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-06-13",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 322,
+   "impressions": 4962,
+   "clicks": 52,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-06-14",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 356,
+   "impressions": 5717,
+   "clicks": 58,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-06-15",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 367,
+   "impressions": 5759,
+   "clicks": 54,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-06-16",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 333,
+   "impressions": 5044,
+   "clicks": 42,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-06-17",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 353,
+   "impressions": 5932,
+   "clicks": 49,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-06-18",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 349,
+   "impressions": 5831,
+   "clicks": 57,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-06-19",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 335,
+   "impressions": 5057,
+   "clicks": 42,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-06-20",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 328,
+   "impressions": 4879,
+   "clicks": 48,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-06-21",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 383,
+   "impressions": 6230,
+   "clicks": 64,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-06-22",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 376,
+   "impressions": 6055,
+   "clicks": 57,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-06-23",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 348,
+   "impressions": 5559,
+   "clicks": 45,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-06-24",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 381,
+   "impressions": 6123,
+   "clicks": 57,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-06-25",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 320,
+   "impressions": 5268,
+   "clicks": 42,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-06-26",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 354,
+   "impressions": 5530,
+   "clicks": 53,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-06-27",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 369,
+   "impressions": 6052,
+   "clicks": 62,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-06-28",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 352,
+   "impressions": 5632,
+   "clicks": 54,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-06-29",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 384,
+   "impressions": 6000,
+   "clicks": 53,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-06-30",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 367,
+   "impressions": 6343,
+   "clicks": 51,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-07-01",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 361,
+   "impressions": 5503,
+   "clicks": 44,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-07-02",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 315,
+   "impressions": 5040,
+   "clicks": 44,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-07-03",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 331,
+   "impressions": 5515,
+   "clicks": 49,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-07-04",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 363,
+   "impressions": 6251,
+   "clicks": 63,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-07-05",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 361,
+   "impressions": 6226,
+   "clicks": 58,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-07-06",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 360,
+   "impressions": 6185,
+   "clicks": 55,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-07-07",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 327,
+   "impressions": 5111,
+   "clicks": 45,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-07-08",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 335,
+   "impressions": 5078,
+   "clicks": 44,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-07-09",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 381,
+   "impressions": 6145,
+   "clicks": 51,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-07-10",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 318,
+   "impressions": 5073,
+   "clicks": 40,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-07-11",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 321,
+   "impressions": 5560,
+   "clicks": 55,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-07-12",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 382,
+   "impressions": 6653,
+   "clicks": 64,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-07-13",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 318,
+   "impressions": 5339,
+   "clicks": 43,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-07-14",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 379,
+   "impressions": 5801,
+   "clicks": 48,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-07-15",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 349,
+   "impressions": 5260,
+   "clicks": 41,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-07-16",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 362,
+   "impressions": 6172,
+   "clicks": 48,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-07-17",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 335,
+   "impressions": 5788,
+   "clicks": 50,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-07-18",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 347,
+   "impressions": 5430,
+   "clicks": 47,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-07-19",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 343,
+   "impressions": 5545,
+   "clicks": 55,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-07-20",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 353,
+   "impressions": 5614,
+   "clicks": 42,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-07-21",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 368,
+   "impressions": 6054,
+   "clicks": 51,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-07-22",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 353,
+   "impressions": 6083,
+   "clicks": 48,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-07-23",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 323,
+   "impressions": 5604,
+   "clicks": 45,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-07-24",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 326,
+   "impressions": 5300,
+   "clicks": 42,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-07-25",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 384,
+   "impressions": 6602,
+   "clicks": 58,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-07-26",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 373,
+   "impressions": 6014,
+   "clicks": 55,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-07-27",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 334,
+   "impressions": 5675,
+   "clicks": 49,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-07-28",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 354,
+   "impressions": 5603,
+   "clicks": 47,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-07-29",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 377,
+   "impressions": 6434,
+   "clicks": 48,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-07-30",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 344,
+   "impressions": 5933,
+   "clicks": 46,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-07-31",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 335,
+   "impressions": 5229,
+   "clicks": 41,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-08-01",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 349,
+   "impressions": 5312,
+   "clicks": 46,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-08-02",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 354,
+   "impressions": 5749,
+   "clicks": 49,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-08-03",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 328,
+   "impressions": 5457,
+   "clicks": 42,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-08-04",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 369,
+   "impressions": 5517,
+   "clicks": 44,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-08-05",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 372,
+   "impressions": 5890,
+   "clicks": 46,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-08-06",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 384,
+   "impressions": 6188,
+   "clicks": 42,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-08-07",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 356,
+   "impressions": 6081,
+   "clicks": 49,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-08-08",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 352,
+   "impressions": 5638,
+   "clicks": 49,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-08-09",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 361,
+   "impressions": 5500,
+   "clicks": 46,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-08-10",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 339,
+   "impressions": 5636,
+   "clicks": 43,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-08-11",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 375,
+   "impressions": 6396,
+   "clicks": 46,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-08-12",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 365,
+   "impressions": 6131,
+   "clicks": 49,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-08-13",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 320,
+   "impressions": 5269,
+   "clicks": 42,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-08-14",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 367,
+   "impressions": 5856,
+   "clicks": 39,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-08-15",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 376,
+   "impressions": 6009,
+   "clicks": 51,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-08-16",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 318,
+   "impressions": 5372,
+   "clicks": 42,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-08-17",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 325,
+   "impressions": 5268,
+   "clicks": 39,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-08-18",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 327,
+   "impressions": 4918,
+   "clicks": 38,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-08-19",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 332,
+   "impressions": 5708,
+   "clicks": 38,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-08-20",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 333,
+   "impressions": 5160,
+   "clicks": 33,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-08-21",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 378,
+   "impressions": 6270,
+   "clicks": 42,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-08-22",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 339,
+   "impressions": 5544,
+   "clicks": 45,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-08-23",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 333,
+   "impressions": 5667,
+   "clicks": 42,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-08-24",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 349,
+   "impressions": 5392,
+   "clicks": 39,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-08-25",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 384,
+   "impressions": 5990,
+   "clicks": 46,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-08-26",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 334,
+   "impressions": 5443,
+   "clicks": 40,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-08-27",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 318,
+   "impressions": 5216,
+   "clicks": 36,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-08-28",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 335,
+   "impressions": 5661,
+   "clicks": 40,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-08-29",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 360,
+   "impressions": 5918,
+   "clicks": 48,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-08-30",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 361,
+   "impressions": 6137,
+   "clicks": 49,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-08-31",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 360,
+   "impressions": 5628,
+   "clicks": 38,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-09-01",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 366,
+   "impressions": 5516,
+   "clicks": 36,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-09-02",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 327,
+   "impressions": 4963,
+   "clicks": 34,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-09-03",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 352,
+   "impressions": 6053,
+   "clicks": 44,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-09-04",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 373,
+   "impressions": 5998,
+   "clicks": 43,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-09-05",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 339,
+   "impressions": 5131,
+   "clicks": 42,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-09-06",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 383,
+   "impressions": 6533,
+   "clicks": 51,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-09-07",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 383,
+   "impressions": 6478,
+   "clicks": 42,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-09-08",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 316,
+   "impressions": 5126,
+   "clicks": 34,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-09-09",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 362,
+   "impressions": 5917,
+   "clicks": 42,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-09-10",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 323,
+   "impressions": 4987,
+   "clicks": 30,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-09-11",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 354,
+   "impressions": 6089,
+   "clicks": 38,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-09-12",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 373,
+   "impressions": 6410,
+   "clicks": 45,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-09-13",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 325,
+   "impressions": 5616,
+   "clicks": 39,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-09-14",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 322,
+   "impressions": 5515,
+   "clicks": 33,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-09-15",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 362,
+   "impressions": 6065,
+   "clicks": 43,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-09-16",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 367,
+   "impressions": 5592,
+   "clicks": 35,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-09-17",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 349,
+   "impressions": 5546,
+   "clicks": 39,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-09-18",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 341,
+   "impressions": 5450,
+   "clicks": 38,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-09-19",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 322,
+   "impressions": 5347,
+   "clicks": 38,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-09-20",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 340,
+   "impressions": 5394,
+   "clicks": 36,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-09-21",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 374,
+   "impressions": 5988,
+   "clicks": 39,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-09-22",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 357,
+   "impressions": 5317,
+   "clicks": 35,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-09-23",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 324,
+   "impressions": 5279,
+   "clicks": 30,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-09-24",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 330,
+   "impressions": 5080,
+   "clicks": 34,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-09-25",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 325,
+   "impressions": 5577,
+   "clicks": 31,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-09-26",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 325,
+   "impressions": 4931,
+   "clicks": 32,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-09-27",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 361,
+   "impressions": 5380,
+   "clicks": 33,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-09-28",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 332,
+   "impressions": 5203,
+   "clicks": 30,
+   "purchases": 0,
+   "revenue": 0
+  },
+  {
+   "date": "2026-09-29",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 367,
+   "impressions": 5944,
+   "clicks": 38,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-09-30",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 369,
+   "impressions": 5964,
+   "clicks": 33,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-10-01",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 381,
+   "impressions": 5696,
+   "clicks": 36,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-10-02",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 352,
+   "impressions": 5639,
+   "clicks": 37,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-10-03",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 349,
+   "impressions": 5540,
+   "clicks": 39,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-10-04",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 379,
+   "impressions": 5695,
+   "clicks": 35,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-10-05",
+   "campaign": "cmp-alwayson",
+   "platform": "meta",
+   "spend": 320,
+   "impressions": 4975,
+   "clicks": 30,
+   "purchases": 1,
+   "revenue": 450
+  },
+  {
+   "date": "2026-08-16",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 159,
+   "impressions": 3574,
+   "clicks": 64,
+   "purchases": 1,
+   "revenue": 360
+  },
+  {
+   "date": "2026-08-17",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 207,
+   "impressions": 4035,
+   "clicks": 67,
+   "purchases": 1,
+   "revenue": 360
+  },
+  {
+   "date": "2026-08-18",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 247,
+   "impressions": 5367,
+   "clicks": 89,
+   "purchases": 1,
+   "revenue": 360
+  },
+  {
+   "date": "2026-08-19",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 275,
+   "impressions": 5480,
+   "clicks": 84,
+   "purchases": 1,
+   "revenue": 360
+  },
+  {
+   "date": "2026-08-20",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 295,
+   "impressions": 5747,
+   "clicks": 89,
+   "purchases": 2,
+   "revenue": 720
+  },
+  {
+   "date": "2026-08-21",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 292,
+   "impressions": 5745,
+   "clicks": 97,
+   "purchases": 1,
+   "revenue": 360
+  },
+  {
+   "date": "2026-08-22",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 320,
+   "impressions": 6232,
+   "clicks": 100,
+   "purchases": 2,
+   "revenue": 720
+  },
+  {
+   "date": "2026-08-23",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 319,
+   "impressions": 6705,
+   "clicks": 118,
+   "purchases": 2,
+   "revenue": 720
+  },
+  {
+   "date": "2026-08-24",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 290,
+   "impressions": 5676,
+   "clicks": 85,
+   "purchases": 2,
+   "revenue": 720
+  },
+  {
+   "date": "2026-08-25",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 315,
+   "impressions": 6948,
+   "clicks": 111,
+   "purchases": 2,
+   "revenue": 720
+  },
+  {
+   "date": "2026-08-26",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 306,
+   "impressions": 6223,
+   "clicks": 96,
+   "purchases": 2,
+   "revenue": 720
+  },
+  {
+   "date": "2026-08-27",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 309,
+   "impressions": 6153,
+   "clicks": 86,
+   "purchases": 2,
+   "revenue": 720
+  },
+  {
+   "date": "2026-08-28",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 292,
+   "impressions": 6338,
+   "clicks": 97,
+   "purchases": 2,
+   "revenue": 720
+  },
+  {
+   "date": "2026-08-29",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 321,
+   "impressions": 7195,
+   "clicks": 129,
+   "purchases": 2,
+   "revenue": 720
+  },
+  {
+   "date": "2026-08-30",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 309,
+   "impressions": 5949,
+   "clicks": 108,
+   "purchases": 2,
+   "revenue": 720
+  },
+  {
+   "date": "2026-08-31",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 286,
+   "impressions": 5653,
+   "clicks": 87,
+   "purchases": 1,
+   "revenue": 360
+  },
+  {
+   "date": "2026-09-01",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 290,
+   "impressions": 5564,
+   "clicks": 88,
+   "purchases": 2,
+   "revenue": 720
+  },
+  {
+   "date": "2026-09-02",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 294,
+   "impressions": 5774,
+   "clicks": 87,
+   "purchases": 1,
+   "revenue": 360
+  },
+  {
+   "date": "2026-09-03",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 315,
+   "impressions": 6263,
+   "clicks": 90,
+   "purchases": 2,
+   "revenue": 720
+  },
+  {
+   "date": "2026-09-04",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 292,
+   "impressions": 6299,
+   "clicks": 97,
+   "purchases": 2,
+   "revenue": 720
+  },
+  {
+   "date": "2026-09-05",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 275,
+   "impressions": 5319,
+   "clicks": 80,
+   "purchases": 2,
+   "revenue": 720
+  },
+  {
+   "date": "2026-09-06",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 310,
+   "impressions": 6222,
+   "clicks": 103,
+   "purchases": 2,
+   "revenue": 720
+  },
+  {
+   "date": "2026-09-07",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 297,
+   "impressions": 5962,
+   "clicks": 90,
+   "purchases": 1,
+   "revenue": 360
+  },
+  {
+   "date": "2026-09-08",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 296,
+   "impressions": 5952,
+   "clicks": 88,
+   "purchases": 2,
+   "revenue": 720
+  },
+  {
+   "date": "2026-09-09",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 310,
+   "impressions": 5988,
+   "clicks": 83,
+   "purchases": 2,
+   "revenue": 720
+  },
+  {
+   "date": "2026-09-10",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 270,
+   "impressions": 5446,
+   "clicks": 72,
+   "purchases": 1,
+   "revenue": 360
+  },
+  {
+   "date": "2026-09-11",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 285,
+   "impressions": 5774,
+   "clicks": 73,
+   "purchases": 1,
+   "revenue": 360
+  },
+  {
+   "date": "2026-09-12",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 281,
+   "impressions": 5741,
+   "clicks": 93,
+   "purchases": 2,
+   "revenue": 720
+  },
+  {
+   "date": "2026-09-13",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 320,
+   "impressions": 6993,
+   "clicks": 99,
+   "purchases": 2,
+   "revenue": 720
+  },
+  {
+   "date": "2026-09-14",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 273,
+   "impressions": 5249,
+   "clicks": 78,
+   "purchases": 2,
+   "revenue": 720
+  },
+  {
+   "date": "2026-09-15",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 305,
+   "impressions": 6428,
+   "clicks": 91,
+   "purchases": 2,
+   "revenue": 720
+  },
+  {
+   "date": "2026-09-16",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 277,
+   "impressions": 5328,
+   "clicks": 70,
+   "purchases": 1,
+   "revenue": 360
+  },
+  {
+   "date": "2026-09-17",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 307,
+   "impressions": 6735,
+   "clicks": 99,
+   "purchases": 1,
+   "revenue": 360
+  },
+  {
+   "date": "2026-09-18",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 321,
+   "impressions": 6412,
+   "clicks": 88,
+   "purchases": 2,
+   "revenue": 720
+  },
+  {
+   "date": "2026-09-19",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 294,
+   "impressions": 5939,
+   "clicks": 86,
+   "purchases": 1,
+   "revenue": 360
+  },
+  {
+   "date": "2026-09-20",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 280,
+   "impressions": 5843,
+   "clicks": 80,
+   "purchases": 1,
+   "revenue": 360
+  },
+  {
+   "date": "2026-09-21",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 324,
+   "impressions": 6587,
+   "clicks": 91,
+   "purchases": 2,
+   "revenue": 720
+  },
+  {
+   "date": "2026-09-22",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 319,
+   "impressions": 6365,
+   "clicks": 77,
+   "purchases": 1,
+   "revenue": 360
+  },
+  {
+   "date": "2026-09-23",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 306,
+   "impressions": 6640,
+   "clicks": 89,
+   "purchases": 1,
+   "revenue": 360
+  },
+  {
+   "date": "2026-09-24",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 316,
+   "impressions": 6577,
+   "clicks": 90,
+   "purchases": 2,
+   "revenue": 720
+  },
+  {
+   "date": "2026-09-25",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 297,
+   "impressions": 6607,
+   "clicks": 86,
+   "purchases": 2,
+   "revenue": 720
+  },
+  {
+   "date": "2026-09-26",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 307,
+   "impressions": 6768,
+   "clicks": 99,
+   "purchases": 2,
+   "revenue": 720
+  },
+  {
+   "date": "2026-09-27",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 274,
+   "impressions": 5655,
+   "clicks": 77,
+   "purchases": 1,
+   "revenue": 360
+  },
+  {
+   "date": "2026-09-28",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 273,
+   "impressions": 5694,
+   "clicks": 69,
+   "purchases": 1,
+   "revenue": 360
+  },
+  {
+   "date": "2026-09-29",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 273,
+   "impressions": 5989,
+   "clicks": 69,
+   "purchases": 1,
+   "revenue": 360
+  },
+  {
+   "date": "2026-09-30",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 321,
+   "impressions": 6810,
+   "clicks": 85,
+   "purchases": 2,
+   "revenue": 720
+  },
+  {
+   "date": "2026-10-01",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 303,
+   "impressions": 6607,
+   "clicks": 88,
+   "purchases": 2,
+   "revenue": 720
+  },
+  {
+   "date": "2026-10-02",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 319,
+   "impressions": 6807,
+   "clicks": 81,
+   "purchases": 1,
+   "revenue": 360
+  },
+  {
+   "date": "2026-10-03",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 279,
+   "impressions": 5405,
+   "clicks": 68,
+   "purchases": 1,
+   "revenue": 360
+  },
+  {
+   "date": "2026-10-04",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 291,
+   "impressions": 6270,
+   "clicks": 85,
+   "purchases": 1,
+   "revenue": 360
+  },
+  {
+   "date": "2026-10-05",
+   "campaign": "cmp-tiktok-ao",
+   "platform": "tiktok",
+   "spend": 285,
+   "impressions": 5878,
+   "clicks": 70,
+   "purchases": 1,
+   "revenue": 360
+  }
+ ],
+ "last30": {
+  "spend": 23007,
+  "impressions": 412546,
+  "clicks": 4194,
+  "purchases": 90,
+  "revenue": 33820,
+  "ctr": 1.02,
+  "cpc": 5.49,
+  "roas": 1.47
+ },
+ "previous30": {
+  "spend": 35037,
+  "impressions": 609815,
+  "clicks": 7224,
+  "purchases": 169,
+  "revenue": 63040,
+  "ctr": 1.18,
+  "cpc": 4.85,
+  "roas": 1.8
+ },
+ "creativePerformance": [
+  {
+   "file": "creatives/p01-launch-first-five/hero-9x16.jpg",
+   "campaign": "cmp-launch",
+   "impressions": 177354,
+   "clicks": 2075,
+   "ctr": 1.17,
+   "status": "above"
+  },
+  {
+   "file": "creatives/p01-launch-first-five/hero-191x1.jpg",
+   "campaign": "cmp-launch",
+   "impressions": 98530,
+   "clicks": 670,
+   "ctr": 0.68,
+   "status": "below"
+  },
+  {
+   "file": "creatives/p01-launch-first-five/pdp-cloudcream-1x1.jpg",
+   "campaign": "cmp-launch",
+   "impressions": 59118,
+   "clicks": 555,
+   "ctr": 0.94,
+   "status": "below"
+  },
+  {
+   "file": "creatives/p01-launch-first-five/pdp-dewdrop-1x1.jpg",
+   "campaign": "cmp-launch",
+   "impressions": 59118,
+   "clicks": 502,
+   "ctr": 0.85,
+   "status": "below"
+  },
+  {
+   "file": "creatives/p02-summer-sunday/seaside-9x16.jpg",
+   "campaign": "cmp-sunday-meta",
+   "impressions": 173689,
+   "clicks": 3074,
+   "ctr": 1.77,
+   "status": "top"
+  },
+  {
+   "file": "creatives/p02-summer-sunday/seaside-4x5.jpg",
+   "campaign": "cmp-sunday-meta",
+   "impressions": 108556,
+   "clicks": 1530,
+   "ctr": 1.41,
+   "status": "top"
+  },
+  {
+   "file": "creatives/p02-summer-sunday/seaside-1x1.jpg",
+   "campaign": "cmp-sunday-meta",
+   "impressions": 65133,
+   "clicks": 794,
+   "ctr": 1.22,
+   "status": "above"
+  },
+  {
+   "file": "creatives/p02-summer-sunday/product-9x16.jpg",
+   "campaign": "cmp-sunday-meta",
+   "impressions": 97700,
+   "clicks": 1104,
+   "ctr": 1.13,
+   "status": "above"
+  },
+  {
+   "file": "creatives/p02-summer-sunday/product-4x5.jpg",
+   "campaign": "cmp-sunday-meta",
+   "impressions": 54278,
+   "clicks": 488,
+   "ctr": 0.9,
+   "status": "below"
+  },
+  {
+   "file": "creatives/p02-summer-sunday/seaside-191x1.jpg",
+   "campaign": "cmp-sunday-meta",
+   "impressions": 43422,
+   "clicks": 303,
+   "ctr": 0.7,
+   "status": "below"
+  },
+  {
+   "file": "creatives/p03-lipours-shade-vote/carousel-1.jpg",
+   "campaign": "cmp-lipours",
+   "impressions": 172672,
+   "clicks": 1830,
+   "ctr": 1.06,
+   "status": "below"
+  }
+ ],
+ "creativeAverageCtr": 1.08,
+ "ctrByFormat": {
+  "9x16": 1.39,
+  "191x1": 0.69,
+  "1x1": 1.03,
+  "4x5": 1.24
+ },
+ "fatigue": [
+  {
+   "campaign": "cmp-alwayson",
+   "before": 0.93,
+   "now": 0.63
+  }
+ ],
+ "takeaways": [
+  {
+   "tag": "Creative",
+   "metric": "2.0×",
+   "headline": "9:16 beats wide formats",
+   "action": {
+    "label": "Brief more 9:16",
+    "type": "brief"
+   },
+   "why": "9:16 CTR 1.39% vs 1.91:1 0.69% across delivered work."
+  },
+  {
+   "tag": "Fatigue",
+   "metric": "0.93% → 0.63%",
+   "headline": "always-on ads are tiring",
+   "action": {
+    "label": "Brief a refresh",
+    "type": "brief"
+   },
+   "why": "CTR first 14 days vs last 7 days of the always-on campaign."
+  },
+  {
+   "tag": "Channel",
+   "metric": "ROAS 3.1",
+   "headline": "TikTok is pulling its weight",
+   "action": {
+    "label": "See campaigns",
+    "type": "link"
+   },
+   "why": "Summer TikTok campaign ROAS vs Meta."
+  }
+ ],
+ "whatToDo": [
+  {
+   "text": "Move the seaside 9:16 into the always-on set",
+   "chip": "1.77% CTR"
+  },
+  {
+   "text": "Refresh always-on creative before Black Friday",
+   "chip": "0.93% → 0.63%"
+  },
+  {
+   "text": "Shift 20% of Meta budget to TikTok for dew drop",
+   "chip": "TikTok ROAS higher"
+  }
+ ],
+ "market": {
+  "signals": [
+   {
+    "date": "2026-10-05",
+    "type": "competitor",
+    "title": "Kind Ritual (demo) launched 4 new creator ads on TikTok",
+    "relevance": "high"
+   },
+   {
+    "date": "2026-10-04",
+    "type": "your_ads",
+    "title": "always-on CTR down vs its first two weeks",
+    "relevance": "high",
+    "before": 0.93,
+    "now": 0.63
+   },
+   {
+    "date": "2026-10-02",
+    "type": "trend",
+    "title": "\"skin minimalism\" searches keep rising in the Nordics",
+    "source": "Beauty Wire (demo)",
+    "relevance": "high"
+   },
+   {
+    "date": "2026-09-30",
+    "type": "competitor",
+    "title": "Plume Skin (demo) started a gift set campaign on Meta",
+    "relevance": "medium"
+   },
+   {
+    "date": "2026-09-27",
+    "type": "trend",
+    "title": "Refillable packaging becomes a holiday talking point",
+    "source": "Nordic Retail Notes (demo)",
+    "relevance": "medium"
+   },
+   {
+    "date": "2026-09-22",
+    "type": "trend",
+    "title": "Men's skincare grows fastest among 25–34",
+    "source": "Beauty Wire (demo)",
+    "relevance": "high"
+   },
+   {
+    "date": "2026-09-18",
+    "type": "competitor",
+    "title": "Dewlab (demo) cut serum prices by 15%",
+    "relevance": "medium"
+   },
+   {
+    "date": "2026-09-10",
+    "type": "your_ads",
+    "title": "lip ours carousel saved 2× more than your average post",
+    "relevance": "medium"
+   }
+  ],
+  "competitors": [
+   {
+    "name": "Kind Ritual (demo)",
+    "newAds30d": {
+     "meta": 3,
+     "tiktok": 4,
+     "google": 0
+    },
+    "positioning": "Wellness ritual, heavy creator use"
+   },
+   {
+    "name": "Plume Skin (demo)",
+    "newAds30d": {
+     "meta": 5,
+     "tiktok": 0,
+     "google": 2
+    },
+    "positioning": "Premium Nordic minimalism, gift sets"
+   },
+   {
+    "name": "Dewlab (demo)",
+    "newAds30d": {
+     "meta": 2,
+     "tiktok": 1,
+     "google": 3
+    },
+    "positioning": "Science-led, price cuts on serums"
+   }
+  ],
+  "categoryBenchmark": {
+   "ctr": 1.1,
+   "label": "AI estimate",
+   "note": "No third-party benchmark for this category"
+  },
+  "trends": [
+   {
+    "theme": "Skin minimalism",
+    "headlines": 3,
+    "relevance": "high"
+   },
+   {
+    "theme": "Men's skincare",
+    "headlines": 2,
+    "relevance": "high"
+   },
+   {
+    "theme": "Refillable packaging",
+    "headlines": 2,
+    "relevance": "medium"
+   },
+   {
+    "theme": "Creator-led launches",
+    "headlines": 1,
+    "relevance": "medium"
+   }
+  ],
+  "ideas": [
+   {
+    "title": "cloud cream for him",
+    "why": "\"for every face.\" concept + men's skincare trend.",
+    "evidence": [
+     "Men's skincare trend",
+     "Persona: Low-effort Jon"
+    ],
+    "credits": [
+     14,
+     18
+    ]
+   },
+   {
+    "title": "Refill pouch teaser",
+    "why": "Refillable packaging is a holiday talking point; Plume Skin hasn't claimed it.",
+    "evidence": [
+     "2 headlines",
+     "Competitor gap"
+    ],
+    "credits": [
+     8,
+     10
+    ]
+   },
+   {
+    "title": "Creator duets for dew drop",
+    "why": "TikTok ROAS is your strongest; Kind Ritual is moving there.",
+    "evidence": [
+     "TikTok ROAS",
+     "4 competitor creator ads"
+    ],
+    "credits": [
+     24,
+     30
+    ]
+   }
+  ]
+ }
+}

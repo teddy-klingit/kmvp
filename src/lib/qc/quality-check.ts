@@ -4,6 +4,7 @@ import { logDecision } from "@/lib/decision-log";
 import { postProjectEvent } from "@/lib/project-events";
 import { createStaffNote } from "@/lib/staff-notes";
 import type { StoredCheck } from "@/lib/qc/brand-check";
+import { notify } from "@/lib/notifier";
 
 /**
  * The quality check (QCAdSet.dc.html): Klingit's step between the designer's upload and the client. Each asset's
@@ -59,9 +60,7 @@ export async function sendFlagToDesigner(flagId: string, actorUserId: string) {
   const task = `Fix ${v.asset.name} v${v.number}: ${flag.detail} (${flag.source}). Upload a new version when it's done.`;
   await createStaffNote(v.projectId, task);
   if (v.uploadedByUserId && v.uploadedByUserId !== actorUserId) {
-    await prisma.notification.create({
-      data: { userId: v.uploadedByUserId, projectId: v.projectId, clientId: v.asset.clientId, type: "SYSTEM", title: `Fix needed: ${v.asset.name}`, body: task, actionUrl: `/ops/projects/${v.projectId}/qc`, actionLabel: "Open quality check" },
-    });
+    await notify({ userId: v.uploadedByUserId, projectId: v.projectId, clientId: v.asset.clientId, type: "SYSTEM", title: `Fix needed: ${v.asset.name}`, body: task, actionUrl: `/ops/projects/${v.projectId}/qc`, actionLabel: "Open quality check" });
   }
   await logDecision({ projectId: v.projectId, actorUserId, area: "assets", action: `Sent back to the designer: ${v.asset.name} v${v.number} · ${flag.label}` });
   return { ok: true as const };
@@ -110,8 +109,7 @@ export async function sendToClient(projectId: string, actorUserId: string) {
   await postProjectEvent(projectId, `${first ? "First draft" : `${n} updated asset${n === 1 ? "" : "s"}`} sent · quality checked by Klingit`);
   const owner = await prisma.clientUser.findFirst({ where: { clientId: project.clientId, permission: "OWNER" } });
   if (owner) {
-    await prisma.notification.create({
-      data: {
+    await notify({
         userId: owner.userId,
         clientId: project.clientId,
         projectId,
@@ -120,8 +118,7 @@ export async function sendToClient(projectId: string, actorUserId: string) {
         body: `${project.name}: quality checked by Klingit${checks ? ` (${checks} checks)` : ""}.`,
         actionUrl: `/projects/${projectId}/work`,
         actionLabel: "Review",
-      },
-    });
+      });
   }
   await logDecision({ projectId, actorUserId, area: "assets", action: `Sent ${n} asset${n === 1 ? "" : "s"} to the client`, after: { versions: gate.toSend.map((v) => `${v.asset.name} v${v.number}`) } });
   return { ok: true as const, sent: n };

@@ -43,6 +43,11 @@ export type ReviewAsset = {
   type: string;
   durationSeconds: number | null;
   comments: PinComment[];
+  /** The file the client was sent (images only), and its width / height. */
+  fileUrl?: string | null;
+  aspect?: number | null;
+  /** A copy element: its text per language and an open suggestion. */
+  copy?: { lines: { lang: string; text: string }[]; suggestion: string | null } | null;
 };
 
 /** `canReview` comes from getProjectState: review actions only render while the client has assets to review. */
@@ -264,9 +269,13 @@ function AssetViewer({ asset, projectId, index, total, onPrev, onNext, onClose }
           <div
             ref={previewRef}
             onMouseDown={handleMouseDown}
-            className="relative aspect-square w-full max-w-md cursor-crosshair select-none overflow-hidden rounded-xl"
-            style={{ backgroundColor: asset.thumbnailColor }}
+            className="relative w-full max-w-md cursor-crosshair select-none overflow-hidden rounded-xl"
+            style={{ backgroundColor: asset.thumbnailColor, aspectRatio: String(asset.aspect ?? 1), maxWidth: asset.aspect && asset.aspect < 1 ? `${Math.round(448 * asset.aspect * 1.4)}px` : undefined }}
           >
+            {asset.fileUrl && (
+              // eslint-disable-next-line @next/next/no-img-element -- the access-checked file the client was sent
+              <img src={asset.fileUrl} alt={asset.name} draggable={false} className="pointer-events-none absolute inset-0 size-full object-cover" />
+            )}
             <span className="absolute bottom-3 left-3 rounded-full bg-black/40 px-2 py-0.5 text-xs font-medium text-white">
               {asset.format}
             </span>

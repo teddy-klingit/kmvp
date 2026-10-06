@@ -65,8 +65,8 @@ export function signalSource(s: Pick<MarketSignal, "type" | "summary" | "source"
   return s.summary.match(/^Covered by (.+?)\.?$/)?.[1] ?? "Industry news";
 }
 
-/** Channel colours for competitor ads: Meta, LinkedIn, Google (Google has no stored history, so no new-ad counts). */
-export const CHANNEL_COLOR: Record<string, string> = { Meta: SERIES[0], LinkedIn: SERIES[1], Google: SERIES[3] };
+/** Channel colours for competitor ads, in the categorical order. New ads are counted wherever snapshots are stored. */
+export const CHANNEL_COLOR: Record<string, string> = { Meta: SERIES[0], LinkedIn: SERIES[1], TikTok: SERIES[2], Google: SERIES[3] };
 
 /**
  * New ads per competitor and channel in the last `days`: for each stored snapshot inside the window, the ads it

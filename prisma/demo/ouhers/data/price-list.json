@@ -1,0 +1,65 @@
+{
+ "placeholder": true,
+ "rows": [
+  {
+   "deliverable": "Static ad, master + resizes",
+   "tier": "standard",
+   "credits": 4
+  },
+  {
+   "deliverable": "Ad concept, 4 sizes",
+   "tier": "standard",
+   "credits": 7
+  },
+  {
+   "deliverable": "Carousel, up to 5 slides",
+   "tier": "standard",
+   "credits": 6
+  },
+  {
+   "deliverable": "Short video 9:16 (≤15 s)",
+   "tier": "standard",
+   "credits": 12
+  },
+  {
+   "deliverable": "Creator content package (3 creators)",
+   "tier": "complex",
+   "credits": 30
+  },
+  {
+   "deliverable": "Email design + copy",
+   "tier": "standard",
+   "credits": 6
+  },
+  {
+   "deliverable": "Landing / product page design",
+   "tier": "complex",
+   "credits": 18
+  },
+  {
+   "deliverable": "Web build per page",
+   "tier": "complex",
+   "credits": 14
+  },
+  {
+   "deliverable": "Packshot set (5 products)",
+   "tier": "standard",
+   "credits": 10
+  },
+  {
+   "deliverable": "Retail display design",
+   "tier": "complex",
+   "credits": 20
+  },
+  {
+   "deliverable": "Copy, per language",
+   "tier": "simple",
+   "credits": 1
+  },
+  {
+   "deliverable": "Custom agent build",
+   "tier": "complex",
+   "credits": 24
+  }
+ ]
+}

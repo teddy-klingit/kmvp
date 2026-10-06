@@ -7,6 +7,9 @@ import { getPortalViewer } from "@/lib/current-viewer";
 import { PIPELINE_STAGE_ORDER } from "@/lib/labels";
 import { enqueue } from "@/lib/active-slots";
 import { postProjectEvent } from "@/lib/project-events";
+import { notify } from "@/lib/notifier";
+import { agentBuildOf, stepIndex, type AgentBuild } from "@/lib/agent-build";
+import type { Prisma } from "@/generated/prisma";
 
 /**
  * "Request build" (a recommendation) or "Request a custom agent" (in the client's words): an agent build is a
@@ -33,8 +36,7 @@ export async function requestAgentBuildAction(formData: FormData) {
 
   const client = await prisma.client.findUnique({ where: { id: viewer.clientId }, include: { accountLead: true } });
   if (client?.accountLead) {
-    await prisma.notification.create({
-      data: {
+    await notify({
         userId: client.accountLead.userId,
         clientId: viewer.clientId,
         projectId: project.id,
@@ -43,10 +45,38 @@ export async function requestAgentBuildAction(formData: FormData) {
         body: `${viewer.user.name} at ${client.name} requested "${name}".`,
         actionUrl: `/ops/projects/${project.id}`,
         actionLabel: "Open",
-      },
-    });
+      });
   }
   revalidatePath("/assets/agents-templates");
   revalidatePath("/projects");
   redirect(`/projects/${project.id}`);
+}
+
+/** "Looks right" on the latest test output: noted in the build log; after the last test the agent goes live. */
+export async function approveAgentTestAction(formData: FormData) {
+  const viewer = await getPortalViewer();
+  const projectId = String(formData.get("projectId") ?? "");
+  const project = await prisma.project.findFirst({ where: { id: projectId, clientId: viewer.clientId, agentBuild: true }, include: { brief: true } });
+  const build = agentBuildOf(project?.brief);
+  if (!project?.brief || !build) return;
+  const live = build.step === "Testing";
+  const next: AgentBuild = live ? { ...build, step: "Live", dates: { ...build.dates, Live: new Date().toISOString().slice(0, 10) } } : build;
+  await prisma.brief.update({ where: { id: project.brief.id }, data: { agentDrafts: { ...(project.brief.agentDrafts as object), agentBuild: next } as Prisma.InputJsonValue } });
+  await postProjectEvent(projectId, live ? `Approved by ${viewer.user.name}: the agent is live` : `Test output approved by ${viewer.user.name}`);
+  revalidatePath(`/projects/${projectId}`, "layout");
+  revalidatePath("/assets/agents-templates");
+}
+
+/** The client edits the agent spec: allowed until building starts. */
+export async function updateAgentSpecAction(formData: FormData) {
+  const viewer = await getPortalViewer();
+  const projectId = String(formData.get("projectId") ?? "");
+  const project = await prisma.project.findFirst({ where: { id: projectId, clientId: viewer.clientId, agentBuild: true }, include: { brief: true } });
+  const build = agentBuildOf(project?.brief);
+  if (!project?.brief || !build || stepIndex(build.step) >= stepIndex("Building")) return;
+  const field = (k: keyof AgentBuild["spec"]) => String(formData.get(k) ?? build.spec[k]).trim().slice(0, 600) || build.spec[k];
+  const spec = { whatItDoes: field("whatItDoes"), whatItUses: field("whatItUses"), whatYouGet: field("whatYouGet"), runs: field("runs") };
+  await prisma.brief.update({ where: { id: project.brief.id }, data: { agentDrafts: { ...(project.brief.agentDrafts as object), agentBuild: { ...build, spec } } as Prisma.InputJsonValue } });
+  await postProjectEvent(projectId, `Spec edited by ${viewer.user.name}`);
+  revalidatePath(`/projects/${projectId}`, "layout");
 }

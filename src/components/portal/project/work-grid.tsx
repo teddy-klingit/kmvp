@@ -67,10 +67,25 @@ export function WorkGrid({
                   className="relative flex aspect-[4/3] items-center justify-center border-b border-ds-divider"
                   style={{ backgroundColor: `color-mix(in srgb, ${a.thumbnailColor} 16%, white)` }}
                 >
-                  <StatusPill tone={status.tone} className="absolute left-3 top-3">
+                  {a.fileUrl && a.type === "IMAGE" && (
+                    // eslint-disable-next-line @next/next/no-img-element -- the access-checked file the client was sent
+                    <img src={a.fileUrl} alt="" loading="lazy" className="absolute inset-0 size-full object-contain p-3" />
+                  )}
+                  {a.copy && (
+                    <span className="absolute inset-0 flex flex-col justify-center gap-1.5 px-5 pt-8 text-left">
+                      {a.copy.lines.map((l) => (
+                        <span key={l.lang} className="line-clamp-2 text-[13px] leading-[1.4] text-ds-text">
+                          <span className="mr-1.5 font-semibold uppercase text-ds-text-2">{l.lang}</span>
+                          {l.text}
+                        </span>
+                      ))}
+                      {a.copy.suggestion && <span className="text-[12px] text-ds-text-2">Suggestion: {a.copy.suggestion}</span>}
+                    </span>
+                  )}
+                  <StatusPill tone={status.tone} className="absolute left-3 top-3 z-10">
                     {status.label}
                   </StatusPill>
-                  {a.type === "VIDEO" ? (
+                  {a.fileUrl || a.copy ? null : a.type === "VIDEO" ? (
                     <Play className="size-7 text-ds-text/35" strokeWidth={1.5} />
                   ) : (
                     <ImageIcon className="size-7 text-ds-text/35" strokeWidth={1.5} />

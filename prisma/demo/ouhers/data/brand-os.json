@@ -1,0 +1,515 @@
+{
+ "summary": "ouhers (said \"ours\") is everyday skincare built with its community. Milky, dewy, honest, a little bit soft. Real skin in every image.",
+ "tagline": "skin, ours.",
+ "platform": {
+  "ourBrand": {
+   "status": "done",
+   "text": "ouhers is everyday skincare made with the people who wear it. Every formula starts with a question to our community, and every image shows real skin."
+  },
+  "vision": {
+   "status": "done",
+   "text": "A world where people feel good in the skin they have, not the skin they are sold."
+  },
+  "mission": {
+   "status": "done",
+   "text": "Make five honest products people reach for every day, and decide the next ones together with them."
+  },
+  "coreValues": {
+   "status": "done",
+   "items": [
+    "made with you",
+    "skin first",
+    "soft, not silly",
+    "say what it does"
+   ]
+  },
+  "usps": {
+   "status": "done",
+   "items": [
+    "Community-named products and shades",
+    "Short, readable ingredient lists",
+    "Fragrance free across the range",
+    "Real-skin imagery, no skin retouching"
+   ]
+  },
+  "marketPosition": {
+   "status": "empty",
+   "text": ""
+  },
+  "targetAudience": {
+   "status": "done",
+   "text": "18–34, skincare-curious, more \"glow\" than \"routine\". Shops on mobile, discovers on TikTok and Instagram, trusts friends over experts."
+  },
+  "servicesProducts": {
+   "status": "done",
+   "text": "Five everyday basics: milk wash, dew drop, cloud cream, lip ours, sun day."
+  }
+ },
+ "personas": [
+  {
+   "id": "pe-maja",
+   "name": "Mobile-first Maja",
+   "age": "22–27",
+   "markets": [
+    "SE",
+    "NO"
+   ],
+   "summary": "Student / early career. Learns skincare from TikTok, buys one product at a time, wants it to look good on her shelf.",
+   "barrier": "Thinks good skincare is expensive and complicated.",
+   "channels": [
+    "TikTok",
+    "Instagram Stories"
+   ]
+  },
+  {
+   "id": "pe-jon",
+   "name": "Low-effort Jon",
+   "age": "25–34",
+   "markets": [
+    "SE",
+    "DK"
+   ],
+   "summary": "Wants one cream that works, no 10-step routine. Often buys what his partner already uses.",
+   "barrier": "Feels skincare marketing is not for him.",
+   "channels": [
+    "Instagram feed",
+    "YouTube"
+   ]
+  },
+  {
+   "id": "pe-sara",
+   "name": "Ingredient-curious Sara",
+   "age": "28–34",
+   "markets": [
+    "SE",
+    "NO",
+    "DK"
+   ],
+   "summary": "Reads INCI lists, saves posts, compares prices. Loyal once convinced.",
+   "barrier": "Distrusts vague claims.",
+   "channels": [
+    "Instagram feed",
+    "Newsletter",
+    "Google search"
+   ]
+  }
+ ],
+ "visualIdentity": {
+  "colorPalette": [
+   {
+    "name": "milk",
+    "hex": "#FBF6F0",
+    "role": "ground",
+    "share": 60
+   },
+   {
+    "name": "apricot milk",
+    "hex": "#F6CDB8",
+    "role": "signature",
+    "share": 20
+   },
+   {
+    "name": "dew",
+    "hex": "#E4ECEE",
+    "role": "support · serum",
+    "share": 8
+   },
+   {
+    "name": "butter",
+    "hex": "#F6E7B8",
+    "role": "support · SPF",
+    "share": 4
+   },
+   {
+    "name": "clay",
+    "hex": "#A85C46",
+    "role": "links, small labels",
+    "share": 3
+   },
+   {
+    "name": "cocoa",
+    "hex": "#3B2B26",
+    "role": "text, never pure black",
+    "share": 5
+   }
+  ],
+  "approvedTypography": [
+   {
+    "family": "Fraunces",
+    "use": "Headlines and product names, lowercase, italics for product names",
+    "settings": "SOFT 100, opsz 144, weight 380–420, tracking −3%",
+    "source": "Google Fonts"
+   },
+   {
+    "family": "Instrument Sans",
+    "use": "Body, UI, labels",
+    "weights": [
+     400,
+     500,
+     600
+    ],
+    "source": "Google Fonts"
+   }
+  ],
+  "logos": [
+   {
+    "file": "brand/logo/ouhers-wordmark-cocoa.svg",
+    "use": "primary, transparent"
+   },
+   {
+    "file": "brand/logo/ouhers-wordmark-cocoa-on-milk.svg",
+    "use": "on milk"
+   },
+   {
+    "file": "brand/logo/ouhers-wordmark-milk-on-cocoa.svg",
+    "use": "on dark"
+   },
+   {
+    "file": "brand/logo/ouhers-wordmark-cocoa-on-apricot.svg",
+    "use": "on apricot (milk dot)"
+   },
+   {
+    "file": "brand/logo/ouhers-wordmark-cocoa-on-dew.svg",
+    "use": "on dew (clay dot)"
+   },
+   {
+    "file": "brand/logo/ouhers-monogram-oh-apricot.svg",
+    "use": "monogram / avatar"
+   },
+   {
+    "file": "brand/logo/ouhers-monogram-oh-cocoa.svg",
+    "use": "app icon"
+   },
+   {
+    "file": "brand/logo/ouhers-monogram-oh-milk.svg",
+    "use": "stickers"
+   }
+  ],
+  "logoRules": [
+   "always lowercase",
+   "keep the dew-drop dot",
+   "clear space = height of the o",
+   "minimum 64 px / 18 mm, below that use \"oh.\""
+  ],
+  "imageryStyle": {
+   "status": "done",
+   "text": "Daylight, warm milk and apricot backdrops, real skin texture, a range of skin tones in every shoot. No studio flash, heavy makeup or before/after."
+  },
+  "packaging": "Frosted milky packs, one apricot part (cap, pump or lid). Serum in dew tint, SPF in butter. Product names in Fraunces italic.",
+  "parts": {
+   "colours": true,
+   "type": true,
+   "logo": true,
+   "imagery": true,
+   "packaging": true,
+   "iconography": false,
+   "motion": false,
+   "layoutGrid": true,
+   "photography": true
+  }
+ },
+ "voice": {
+  "voiceAttributes": [
+   "warm",
+   "honest",
+   "light"
+  ],
+  "toneRules": [
+   "brand and product names lowercase",
+   "headlines end with a full stop, no exclamation marks",
+   "claims need a number or a source",
+   "one emoji at most, only in social replies",
+   "say \"we\" and \"you\", never \"the consumer\""
+  ],
+  "wordsWeUse": [
+   "dewy",
+   "soft",
+   "ours",
+   "skin",
+   "glow",
+   "everyday",
+   "calm",
+   "milky"
+  ],
+  "wordsWeAvoid": [
+   "flawless",
+   "anti-ageing",
+   "perfect",
+   "fix",
+   "miracle",
+   "clinically proven (unless it is)"
+  ],
+  "examples": [
+   {
+    "context": "product line",
+    "text": "cloud cream. whipped, weightless, gone in ten seconds."
+   },
+   {
+    "context": "ad headline",
+    "text": "dewy by default."
+   },
+   {
+    "context": "ingredient copy",
+    "text": "3% niacinamide for calmer, more even skin. That's it. No glitter, no fragrance."
+   },
+   {
+    "context": "community",
+    "text": "You named it, we made it. Meet lip ours, in the shade you voted for."
+   }
+  ],
+  "mustInclude": [
+   {
+    "market": "SE",
+    "text": "Ouhers AB (demo). Villkor gäller."
+   },
+   {
+    "market": "NO",
+    "text": "Ouhers AB (demo). Vilkår gjelder."
+   },
+   {
+    "market": "DK",
+    "text": "Ouhers AB (demo). Vilkår gælder."
+   }
+  ]
+ },
+ "products": [
+  {
+   "id": "pr-milkwash",
+   "name": "milk wash",
+   "type": "gentle gel cleanser",
+   "size": "150 ml",
+   "priceSEK": 249,
+   "keyIngredients": [
+    "oat milk",
+    "glycerin"
+   ],
+   "image": "photos/product-milkwash.jpg",
+   "launched": "2026-05-12"
+  },
+  {
+   "id": "pr-dewdrop",
+   "name": "dew drop",
+   "type": "hydrating serum",
+   "size": "30 ml",
+   "priceSEK": 349,
+   "keyIngredients": [
+    "hyaluronic acid",
+    "3% niacinamide"
+   ],
+   "image": "photos/product-dewdrop.jpg",
+   "launched": "2026-05-12"
+  },
+  {
+   "id": "pr-cloudcream",
+   "name": "cloud cream",
+   "type": "whipped moisturiser",
+   "size": "50 ml",
+   "priceSEK": 329,
+   "keyIngredients": [
+    "squalane",
+    "ceramides"
+   ],
+   "image": "photos/product-cloudcream.jpg",
+   "launched": "2026-05-12"
+  },
+  {
+   "id": "pr-lipours",
+   "name": "lip ours",
+   "type": "tinted lip balm",
+   "size": "10 ml",
+   "priceSEK": 169,
+   "shades": [
+    "bare",
+    "rosy",
+    "apricot",
+    "berry"
+   ],
+   "keyIngredients": [
+    "shea butter"
+   ],
+   "image": "photos/product-lipours.jpg",
+   "launched": "2026-08-18"
+  },
+  {
+   "id": "pr-sunday",
+   "name": "sun day",
+   "type": "SPF 30 fluid",
+   "size": "50 ml",
+   "priceSEK": 299,
+   "keyIngredients": [
+    "mineral + chemical filters",
+    "no white cast"
+   ],
+   "image": "photos/product-sunday.jpg",
+   "launched": "2026-06-02"
+  }
+ ],
+ "sources": [
+  {
+   "type": "google_drive",
+   "name": "ouhers / brand",
+   "items": 42
+  },
+  {
+   "type": "figma",
+   "name": "ouhers · client review (demo)",
+   "items": 1
+  },
+  {
+   "type": "notion",
+   "name": "Community insights · Product roadmap",
+   "items": 2
+  },
+  {
+   "type": "website",
+   "name": "ouhers.demo",
+   "items": 1
+  },
+  {
+   "type": "upload",
+   "name": "Brand book v1.pdf",
+   "items": 1
+  },
+  {
+   "type": "upload",
+   "name": "Packaging dielines.zip",
+   "items": 1
+  }
+ ],
+ "library": [
+  {
+   "file": "photos/hero-portrait.jpg",
+   "tags": [
+    "people",
+    "hero"
+   ]
+  },
+  {
+   "file": "photos/friends.jpg",
+   "tags": [
+    "people",
+    "community"
+   ]
+  },
+  {
+   "file": "photos/him-cloudcream.jpg",
+   "tags": [
+    "people",
+    "cloud cream"
+   ]
+  },
+  {
+   "file": "photos/sunday-seaside.jpg",
+   "tags": [
+    "people",
+    "sun day",
+    "summer"
+   ]
+  },
+  {
+   "file": "photos/creator-dewdrop.jpg",
+   "tags": [
+    "ugc",
+    "dew drop"
+   ]
+  },
+  {
+   "file": "photos/ritual-hands.jpg",
+   "tags": [
+    "ritual"
+   ]
+  },
+  {
+   "file": "photos/bathroom-shelf.jpg",
+   "tags": [
+    "product",
+    "ritual"
+   ]
+  },
+  {
+   "file": "photos/lips.jpg",
+   "tags": [
+    "lip ours",
+    "close-up"
+   ]
+  },
+  {
+   "file": "photos/lip-swatches.jpg",
+   "tags": [
+    "lip ours",
+    "texture"
+   ]
+  },
+  {
+   "file": "photos/texture-cream.jpg",
+   "tags": [
+    "texture",
+    "cloud cream"
+   ]
+  },
+  {
+   "file": "photos/serum-drop.jpg",
+   "tags": [
+    "texture",
+    "dew drop"
+   ]
+  },
+  {
+   "file": "photos/flatlay.jpg",
+   "tags": [
+    "still life"
+   ]
+  },
+  {
+   "file": "photos/stilllife.jpg",
+   "tags": [
+    "still life"
+   ]
+  },
+  {
+   "file": "photos/holiday-giftset.jpg",
+   "tags": [
+    "product",
+    "holiday"
+   ]
+  },
+  {
+   "file": "photos/product-range.jpg",
+   "tags": [
+    "product",
+    "range"
+   ]
+  },
+  {
+   "file": "photos/product-inhand.jpg",
+   "tags": [
+    "product",
+    "people"
+   ]
+  }
+ ],
+ "competitors": [
+  {
+   "name": "Plume Skin (demo)",
+   "note": "Minimal Nordic skincare, premium price"
+  },
+  {
+   "name": "Dewlab (demo)",
+   "note": "Science-led serums, clinical look"
+  },
+  {
+   "name": "Kind Ritual (demo)",
+   "note": "Wellness-led, heavy influencer use"
+  }
+ ],
+ "health": {
+  "note": "Computed by computeBrandHealth from the fields above; listed only for checking the seed",
+  "expected": {
+   "platform": "7/8",
+   "visualIdentity": "7/9",
+   "voiceTone": "4/4",
+   "sources": "6/6",
+   "performanceData": "4/5"
+  }
+ }
+}

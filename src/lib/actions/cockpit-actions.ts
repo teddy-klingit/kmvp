@@ -19,6 +19,7 @@ import { addBusinessDays, formatDay, FIRST_DRAFT_BUSINESS_DAYS } from "@/lib/pro
 import { jsonArray } from "@/lib/utils";
 import { COMPLEXITY_LABEL } from "@/lib/estimate-display";
 import type { ComplexityTier } from "@/generated/prisma";
+import { notify } from "@/lib/notifier";
 
 export type CockpitState = { error?: string; ok?: string };
 
@@ -40,9 +41,7 @@ async function notifyClientOwner(projectId: string, title: string, body: string)
   if (!project) return;
   const owner = await prisma.clientUser.findFirst({ where: { clientId: project.clientId, permission: "OWNER" } });
   if (!owner) return;
-  await prisma.notification.create({
-    data: { userId: owner.userId, clientId: project.clientId, projectId, type: "APPROVAL_NEEDED", title, body, actionUrl: `/projects/${projectId}`, actionLabel: "Review" },
-  });
+  await notify({ userId: owner.userId, clientId: project.clientId, projectId, type: "APPROVAL_NEEDED", title, body, actionUrl: `/projects/${projectId}`, actionLabel: "Review" });
 }
 
 // ─── Autopilot ──────────────────────────────────────────────────────────────

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { PlatformCampaign } from "@/lib/performance";
+import { notify } from "@/lib/notifier";
 
 const SNAPSHOT_STALE_MS = 6 * 60 * 60 * 1000; // don't re-check more than once per 6h
 const BASELINE_MIN_AGE_MS = 4 * 24 * 60 * 60 * 1000; // only compare against snapshots at least 4 days old
@@ -17,9 +18,7 @@ export function performanceAlertKey(platform: string, campaignId: string) {
 async function notifyClientOwner(clientId: string, title: string, body: string) {
   const owner = await prisma.clientUser.findFirst({ where: { clientId, permission: "OWNER" } });
   if (!owner) return;
-  await prisma.notification.create({
-    data: { userId: owner.userId, clientId, type: "SYSTEM", title, body, actionUrl: "/insights/performance", actionLabel: "View" },
-  });
+  await notify({ userId: owner.userId, clientId, type: "SYSTEM", title, body, actionUrl: "/insights/performance", actionLabel: "View" });
 }
 
 /**

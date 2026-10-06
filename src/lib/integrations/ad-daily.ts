@@ -18,8 +18,10 @@ export async function dailyMetricsFreshness(clientId: string) {
 
 /** Fetches and stores the daily rows. Returns which platforms answered. */
 export async function syncDailyAdMetrics(clientId: string, opts: { force?: boolean } = {}) {
-  const client = await prisma.client.findUniqueOrThrow({ where: { id: clientId }, select: { isSampleAccount: true, paidMediaInScope: true } });
+  const client = await prisma.client.findUniqueOrThrow({ where: { id: clientId }, select: { isSampleAccount: true, paidMediaInScope: true, isDemo: true } });
   if (client.isSampleAccount || !client.paidMediaInScope) return { synced: [] as string[], skipped: "no live ad accounts for this client" };
+  // A demo account's days are seeded: never fill it from the platform's real ad accounts.
+  if (client.isDemo) return { synced: [] as string[], skipped: "demo account" };
   if (!opts.force && !(await dailyMetricsFreshness(clientId)).stale) return { synced: [] as string[], skipped: "fresh" };
 
   const [meta, linkedIn, google] = await Promise.all([getMetaDailyInsights(DAILY_WINDOW_DAYS), getLinkedInDailyInsights(DAILY_WINDOW_DAYS), getGoogleAdsDailyInsights(DAILY_WINDOW_DAYS)]);

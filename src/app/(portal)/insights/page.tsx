@@ -56,7 +56,8 @@ export default async function InsightsOverviewPage({ searchParams }: { searchPar
   const followers = kpis.followerGrowth.filter((f) => f.followerCount !== null);
   const own = audits.find((a) => a.subject === "Own site");
   const seoRows = audits.filter((a) => a.seoScore !== null);
-  const connectedCount = sources.filter((s) => s.state === "live" || s.state === "sample").length;
+  // A demo account's connections are all demo ones: they count as connected there (and say "Demo").
+  const connectedCount = sources.filter((s) => s.state === "live" || s.state === "sample" || (viewer.client.isDemo && s.state === "demo")).length;
   const firstBrief = takeaways.findIndex((t) => t.action.kind === "brief");
 
   return (

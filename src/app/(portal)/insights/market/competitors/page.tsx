@@ -18,7 +18,7 @@ import { ChartCard, SkeletonChart } from "@/components/insights/cards";
 import { BarList, Legend, StackBar } from "@/components/insights/charts";
 import { SERIES } from "@/components/insights/tokens";
 
-const CHANNELS = ["Meta", "Google", "LinkedIn"] as const;
+const CHANNELS = ["Meta", "TikTok", "Google", "LinkedIn"] as const;
 const firstSentence = (s: string) => s.split(/(?<=[.!?])\s/)[0];
 
 /**
@@ -33,8 +33,8 @@ export default async function MarketCompetitorsPage({ searchParams }: { searchPa
   const brands = jsonArray<string>(viewer.client.competitorBrands);
 
   const [meta, linkedIn, profiles, benchmark, suggestions, newAds, daily, { measured }] = await Promise.all([
-    brands.length ? getCompetitorAdLibraryActivity(brands) : Promise.resolve([]),
-    brands.length ? getLinkedInCompetitorAds(brands) : Promise.resolve([]),
+    brands.length && !viewer.client.isDemo ? getCompetitorAdLibraryActivity(brands) : Promise.resolve([]),
+    brands.length && !viewer.client.isDemo ? getLinkedInCompetitorAds(brands) : Promise.resolve([]),
     prisma.competitorProfile.findMany({ where: { clientId } }),
     prisma.performanceBenchmark.findUnique({ where: { clientId } }),
     prisma.suggestedCompetitor.findMany({ where: { clientId, status: "NEW" }, orderBy: { createdAt: "desc" } }),
@@ -143,7 +143,7 @@ export default async function MarketCompetitorsPage({ searchParams }: { searchPa
                         </Link>
                       ))
                     ) : (
-                      <span className="text-[13px] text-brand-mute">{r.checked.length ? `No ads found on ${r.checked.join(" or ")}` : "Ad libraries not connected yet"}</span>
+                      <span className="text-[13px] text-brand-mute">{r.checked.length ? `No ads found on ${r.checked.join(" or ")}` : viewer.client.isDemo ? "Ad previews aren't part of the demo" : "Ad libraries not connected yet"}</span>
                     )}
                   </span>
                 </article>

@@ -1,0 +1,73 @@
+{
+ "weekly": [
+  {
+   "week": "2026-09-28",
+   "totals": {
+    "spend": 4588,
+    "impressions": 83263,
+    "clicks": 793,
+    "purchases": 15,
+    "revenue": 5940,
+    "ctr": 0.95,
+    "cpc": 5.79,
+    "roas": 1.29
+   }
+  },
+  {
+   "week": "2026-09-21",
+   "totals": {
+    "spend": 4539,
+    "impressions": 82751,
+    "clicks": 843,
+    "purchases": 18,
+    "revenue": 7110,
+    "ctr": 1.02,
+    "cpc": 5.38,
+    "roas": 1.57
+   }
+  },
+  {
+   "week": "2026-09-14",
+   "totals": {
+    "spend": 4850,
+    "impressions": 86658,
+    "clicks": 909,
+    "purchases": 18,
+    "revenue": 7040,
+    "ctr": 1.05,
+    "cpc": 5.34,
+    "roas": 1.45
+   }
+  },
+  {
+   "week": "2026-09-07",
+   "totals": {
+    "spend": 7362,
+    "impressions": 129837,
+    "clicks": 1321,
+    "purchases": 32,
+    "revenue": 11170,
+    "ctr": 1.02,
+    "cpc": 5.57,
+    "roas": 1.52
+   }
+  }
+ ],
+ "latest": {
+  "title": "Week 40 · 28 Sep – 4 Oct",
+  "takeaways": [
+   "always-on CTR keeps sliding; refresh is in the Q4 brief.",
+   "TikTok delivers the cheapest purchases this week.",
+   "lip ours carousel is still being saved two weeks after launch."
+  ],
+  "topPosts": [
+   "creatives/p02-summer-sunday/seaside-9x16.jpg",
+   "creatives/p03-lipours-shade-vote/carousel-1.jpg",
+   "creatives/p01-launch-first-five/hero-9x16.jpg"
+  ]
+ },
+ "schedule": {
+  "weekly": "Monday 08:00 to maja@ouhers.demo, oscar@ouhers.demo",
+  "monthly": "First weekday, to the whole team"
+ }
+}

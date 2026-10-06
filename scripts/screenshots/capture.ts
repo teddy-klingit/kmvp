@@ -319,12 +319,12 @@ const J5_OPS: [string, string][] = [
 ];
 const pageFilter = args.find((a) => a.startsWith("--pages="))?.split("=")[1]?.split(",");
 
-async function phaseList(outDir: string, client: [string, string][], ops: [string, string][] = []) {
+async function phaseList(outDir: string, client: [string, string][], ops: [string, string][] = [], clientEmail = "jack.ross@klarna.com") {
   mkdirSync(outDir, { recursive: true });
   const browser = await chromium.launch();
   for (const width of widths.length > 1 || args.some((a) => a.startsWith("--widths=")) ? widths : [1440, 390]) {
     if (client.length) {
-      const { context, page } = await signInAs(browser, "jack.ross@klarna.com", width);
+      const { context, page } = await signInAs(browser, clientEmail, width);
       for (const [name, path] of client) {
         await shot(page, path, name, outDir, width);
         if (width < 768) await warnOverflow(page, name);
@@ -573,6 +573,36 @@ async function main() {
   if (phase === "studio") return phaseStudio();
   if (phase === "nav") return phaseNav();
   if (phase === "insights") return phaseList("screenshots/insights", INSIGHTS_PAGES);
+  if (phase === "ouhers") {
+    // The ouhers demo account (npm run seed:ouhers), as Maja and as Teddy (PM).
+    const P = (id: string) => `/projects/ouhers-${id}`;
+    return phaseList(
+      "screenshots/ouhers",
+      [
+        ["01-home", "/dashboard"],
+        ["02-projects", "/projects"],
+        ["03-q4-review", `${P("p04-q4-cloudcream")}/work`],
+        ["04-brief-studio", `/brief/ouhers-p10-spring-2027`],
+        ["05-brand-os", "/assets"],
+        ["06-agents-templates", "/assets/agents-templates"],
+        ["07-agent-build", P("p11-agent-seasonal")],
+        ["08-insights-overview", "/insights"],
+        ["09-insights-performance", "/insights/performance"],
+        ["10-insights-market", "/insights/market"],
+        ["11-insights-audience", "/insights/audience"],
+        ["12-insights-seo", "/insights/seo"],
+        ["13-calendar", "/calendar"],
+        ["14-reports", "/reports"],
+        ["15-account", "/account"],
+      ].map(([n, path]) => [n, path] as [string, string]).filter(([n]) => !pageFilter || pageFilter.some((f) => n.startsWith(f))),
+      [
+        ["16-pm-needs-you", "/ops"],
+        ["17-qc-holiday", `/ops/projects/ouhers-p05-holiday-giftset/qc`],
+        ["18-ops-client", "/ops/clients/client-ouhers/dashboard"],
+      ].map(([n, path]) => [n, path] as [string, string]).filter(([n]) => !pageFilter || pageFilter.some((f) => n.startsWith(f))),
+      "maja@ouhers.demo"
+    );
+  }
   if (phase === "qc" || phase === "qc-sent") {
     // The quality check on the Q3 set (seed it with scripts/screenshots/seed-qc.ts upload), then, after
     // "seed-qc.ts send", the client's Work page with the "Quality checked by Klingit" chip.

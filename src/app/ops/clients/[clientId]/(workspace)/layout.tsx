@@ -3,6 +3,9 @@ import { PageHeader } from "@/components/ds/page-header";
 import { getClientWorkspace } from "@/lib/data/ops-client-workspace";
 import { getOpsViewer } from "@/lib/current-viewer";
 import { PLAN_TIER_LABEL } from "@/lib/labels";
+import { roleTierFor } from "@/lib/role-tier";
+import { OUHERS_CLIENT_ID } from "@/lib/demo/ouhers";
+import { ResetDemoButton } from "@/components/ops/reset-demo-button";
 
 const STATUS: Record<string, string> = { ACTIVE: "Active", ONBOARDING: "Onboarding", PAUSED: "Paused", OFFBOARDED: "Offboarded" };
 
@@ -11,7 +14,7 @@ const STATUS: Record<string, string> = { ACTIVE: "Active", ONBOARDING: "Onboardi
  * two overlapping tab bars), and the intelligence rail on the right on wide screens.
  */
 export default async function ClientWorkspaceLayout({ children, params }: { children: React.ReactNode; params: Promise<{ clientId: string }> }) {
-  await getOpsViewer();
+  const viewer = await getOpsViewer();
   const { clientId } = await params;
   const workspace = await getClientWorkspace(clientId);
   const { client } = workspace;
@@ -23,7 +26,8 @@ export default async function ClientWorkspaceLayout({ children, params }: { chil
         <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-6">
           <PageHeader
             back={{ href: "/ops/clients", label: "Clients" }}
-            eyebrow={[PLAN_TIER_LABEL[client.planTier] ?? client.planTier, STATUS[client.status] ?? client.status].join(" · ")}
+            eyebrow={[PLAN_TIER_LABEL[client.planTier] ?? client.planTier, STATUS[client.status] ?? client.status, client.isDemo ? "Demo account" : null].filter(Boolean).join(" · ")}
+            actions={client.id === OUHERS_CLIENT_ID && roleTierFor(viewer.title) !== "CREATOR" ? <ResetDemoButton clientId={client.id} /> : undefined}
             title={client.name}
             tabsLabel="Client workspace"
             tabs={[

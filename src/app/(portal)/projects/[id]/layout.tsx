@@ -17,6 +17,8 @@ import { loadProjectConversation } from "@/lib/project-conversation";
 import { postCommentAction } from "@/lib/actions/project-actions";
 import { markChannelReadAction, postInternalMessageAction } from "@/lib/actions/conversation-actions";
 import { clientVisibleAsset } from "@/lib/qc/visibility";
+import { agentBuildOf } from "@/lib/agent-build";
+import { AgentBuildView } from "@/components/portal/project/agent-build-view";
 
 export default async function ProjectLayout({
   children,
@@ -30,6 +32,26 @@ export default async function ProjectLayout({
   const loaded = await loadProjectState(id, viewer.clientId, viewer.id);
   if (!loaded) notFound();
   const { project, state } = loaded;
+
+  // An agent build has its own project view (AgentProject.dc.html).
+  if (project.agentBuild) {
+    const build = agentBuildOf(await prisma.brief.findUnique({ where: { projectId: id }, select: { agentDrafts: true } }));
+    if (build)
+      return (
+        <AgentBuildView
+          projectId={id}
+          viewer={viewer}
+          build={build}
+          share={
+            <Suspense>
+              <ShareDialog projectName={project.name}>
+                <ProjectAccessPanel projectId={id} viewer={viewer} />
+              </ShareDialog>
+            </Suspense>
+          }
+        />
+      );
+  }
 
   scheduleAutopilot(id);
   const [conversation, assetCounts] = await Promise.all([

@@ -23,13 +23,16 @@ import { PlatformList } from "@/components/portal/platform-list";
 export default async function BrandOsOverviewPage() {
   const viewer = await getPortalViewer();
   const clientId = viewer.clientId;
-  const [client, brandOS, sources, connections, drafts] = await Promise.all([
+  const [client, brandOS, sources, connections, drafts, logos] = await Promise.all([
     prisma.client.findUniqueOrThrow({ where: { id: clientId } }),
     prisma.brandOS.findUnique({ where: { clientId } }),
     listBrandSources(clientId),
     listBrandConnections(clientId),
     prisma.brandSectionDraft.findMany({ where: { clientId, status: "PENDING" }, select: { section: true } }),
+    prisma.brandAsset.findMany({ where: { clientId, category: "LOGO", fileUrl: { not: null } }, select: { fileUrl: true, variant: true, name: true } }),
   ]);
+  // The brand's own mark when a logo file is uploaded (the monogram first), else its initial.
+  const mark = logos.find((l) => /monogram|avatar/i.test(l.variant ?? "") && /\.png$/i.test(l.name)) ?? logos.find((l) => /\.png$/i.test(l.name)) ?? null;
   const status = platformStatus({ brandSummary: client.brandSummary, brandOS });
   const drafted = new Set(drafts.map((d) => d.section));
   const colors = jsonArray<string>(brandOS?.approvedColors);
@@ -55,7 +58,12 @@ export default async function BrandOsOverviewPage() {
               className="flex size-[72px] shrink-0 items-center justify-center rounded-[10px] text-[28px] font-light text-brand-ink"
               style={{ backgroundColor: colors[0] ? `color-mix(in srgb, ${colors[0]} 45%, white)` : "var(--brand-pink)" }}
             >
-              {client.name.charAt(0)}
+              {mark?.fileUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element -- the client's own access-checked logo file
+                <img src={mark.fileUrl} alt="" className="size-full rounded-[10px] object-cover" />
+              ) : (
+                client.name.charAt(0)
+              )}
             </span>
             <div className="flex min-w-0 flex-1 basis-[260px] flex-col gap-1.5">
               <h2 className="m-0 text-[24px] font-normal leading-[1.25]">{client.name}</h2>

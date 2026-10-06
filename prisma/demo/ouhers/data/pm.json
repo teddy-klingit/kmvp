@@ -1,0 +1,46 @@
+{
+ "needsYou": [
+  {
+   "project": "p05-holiday-giftset",
+   "text": "QC before sending v1 (first draft due 9 Oct)"
+  },
+  {
+   "project": "p09-retail-display",
+   "text": "Estimate sent, waiting for client"
+  },
+  {
+   "project": "p04-q4-cloudcream",
+   "text": "2 open client comments on v2"
+  },
+  {
+   "project": "p11-agent-seasonal",
+   "text": "Test run 1 waiting for client feedback"
+  }
+ ],
+ "autoLog": [
+  {
+   "at": "2026-10-04T14:40:00+02:00",
+   "agent": "QC agent",
+   "decision": "Flagged 2 issues in Q4 v2; both fixed before sending",
+   "project": "p04-q4-cloudcream"
+  },
+  {
+   "at": "2026-10-01T09:12:00+02:00",
+   "agent": "Estimate agent",
+   "decision": "Estimated Black Friday emails at 21 credits from the Price List (placeholder)",
+   "project": "p08-blackfriday-email"
+  },
+  {
+   "at": "2026-09-24T11:00:00+02:00",
+   "agent": "Staffing agent",
+   "decision": "Assigned Anna B. + Lea M. to Holiday (availability and history match)",
+   "project": "p05-holiday-giftset"
+  },
+  {
+   "at": "2026-10-03T13:10:30+02:00",
+   "agent": "Brief agent",
+   "decision": "Started Spring 2027 draft from Brand OS; asked about channels first",
+   "project": "p10-spring-2027"
+  }
+ ]
+}

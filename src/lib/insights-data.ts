@@ -34,8 +34,13 @@ export type PaidMedia = {
 };
 
 export const loadPaidMedia = cache(async (clientId: string, rangePreset?: string): Promise<PaidMedia> => {
-  const client = await prisma.client.findUniqueOrThrow({ where: { id: clientId }, select: { isSampleAccount: true, paidMediaInScope: true } });
+  const client = await prisma.client.findUniqueOrThrow({ where: { id: clientId }, select: { isSampleAccount: true, paidMediaInScope: true, isDemo: true } });
   if (!client.paidMediaInScope) return { inScope: false, isSample: client.isSampleAccount, campaigns: [], connected: [], errors: [], trend: null };
+  // A demo account never reads the platform's real ad accounts: its campaigns are its own stored days.
+  if (client.isDemo) {
+    const campaigns = await demoCampaigns(clientId);
+    return { inScope: true, isSample: false, campaigns, connected: [...new Set(campaigns.map((c) => c.platform))], errors: [], trend: null };
+  }
 
   if (client.isSampleAccount) {
     const [{ campaigns }, trend] = await Promise.all([campaignMetricsForRange(clientId, resolveDateRange({ preset: rangePreset })), weeklyPerformanceTrend(clientId)]);
@@ -60,6 +65,23 @@ export const loadPaidMedia = cache(async (clientId: string, rangePreset?: string
     trend: null,
   };
 });
+
+/** The last 30 days of a demo account's stored daily rows, per campaign, in the shape the live accounts return. */
+async function demoCampaigns(clientId: string): Promise<PlatformCampaign[]> {
+  const since = new Date(Date.now() - 29 * 86400000).toISOString().slice(0, 10);
+  const rows = await prisma.adDailyMetric.groupBy({
+    by: ["platform", "accountName", "currency", "campaignId", "campaignName"],
+    where: { clientId, date: { gte: since } },
+    _sum: { impressions: true, clicks: true, spend: true, conversions: true },
+  });
+  return rows.map((r) => {
+    const impressions = r._sum.impressions ?? 0;
+    const clicks = r._sum.clicks ?? 0;
+    const spend = Math.round(r._sum.spend ?? 0);
+    const conversions = Math.round(r._sum.conversions ?? 0);
+    return { platform: r.platform, accountName: r.accountName, currency: r.currency, campaignId: r.campaignId, campaignName: r.campaignName, impressions, clicks, ctr: impressions ? Math.round((clicks / impressions) * 10000) / 100 : 0, spend, conversions, costPerConversion: conversions ? Math.round(spend / conversions) : null };
+  });
+}
 
 export const loadContentKpis = cache((clientId: string) => computeContentKpis(clientId));
 
@@ -189,15 +211,16 @@ export type SourceState = "live" | "sample" | "demo" | "connect";
 
 /** Every source Insights reads, with its real state. Demo-filled sources say "Demo", never "Live". */
 export async function dataSources(clientId: string) {
-  const [paid, audience, demo, kpis] = await Promise.all([loadPaidMedia(clientId), loadAudienceData(clientId), loadDemoSources(clientId), loadContentKpis(clientId)]);
+  const [paid, audience, demo, kpis, client] = await Promise.all([loadPaidMedia(clientId), loadAudienceData(clientId), loadDemoSources(clientId), loadContentKpis(clientId), prisma.client.findUniqueOrThrow({ where: { id: clientId }, select: { isDemo: true } })]);
+  // A demo account's connections are all demo, never "Live".
   const ad = (platform: string, name: string): { name: string; state: SourceState } => ({
     name,
-    state: paid.connected.includes(platform) ? (paid.isSample ? "sample" : "live") : demo.includes(platform) ? "demo" : "connect",
+    state: paid.connected.includes(platform) ? (client.isDemo ? "demo" : paid.isSample ? "sample" : "live") : demo.includes(platform) ? "demo" : "connect",
   });
   const social = kpis.followerGrowth.some((f) => f.followerCount !== null);
   const sources: { name: string; state: SourceState }[] = [
-    ...(paid.inScope ? [ad("Meta", "Meta Ads"), ad("LinkedIn", "LinkedIn"), ad("Google", "Google Ads")] : [{ name: "LinkedIn", state: (demo.includes("LinkedIn") ? "demo" : social ? "live" : "connect") as SourceState }]),
-    { name: "Google Analytics", state: demo.includes("Google Analytics") ? "demo" : audience.website.length ? "live" : "connect" },
+    ...(paid.inScope ? [ad("Meta", "Meta Ads"), ...(paid.connected.includes("TikTok") ? [ad("TikTok", "TikTok Ads")] : []), ad("LinkedIn", "LinkedIn"), ad("Google", "Google Ads")] : [{ name: "LinkedIn", state: (demo.includes("LinkedIn") ? "demo" : social ? "live" : "connect") as SourceState }]),
+    { name: "Google Analytics", state: demo.includes("Google Analytics") || (client.isDemo && audience.website.length) ? "demo" : audience.website.length ? "live" : "connect" },
   ];
   return sources;
 }

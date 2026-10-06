@@ -43,6 +43,7 @@ async function auditSubject(clientId: string, subject: string, domain: string) {
  * buyer questions asked to Claude and Perplexity, and the agent's fixes. Called by "Run audit" and scripts.
  */
 export async function runSeoAudit(client: Client): Promise<{ error: string | null }> {
+  if (client.isDemo) return { error: "This is a demo account: its audit is seeded. Reset the demo to start over." };
 
   if (!client.website) {
     return { error: "Add your website in Account settings first." };

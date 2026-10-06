@@ -39,11 +39,15 @@ export default async function InsightsLayout({ children }: { children: React.Rea
   ]);
   // After loadPaidMedia: reading the ad accounts may have just written a fresh snapshot.
   const updated = paid.isSample ? null : await lastUpdated(viewer.clientId);
-  const eyebrow = [
-    updated && updatedLabel(updated, new Date()),
-    paid.inScope ? (paid.connected.length ? `${paid.connected.join(" + ")} CONNECTED${paid.isSample ? " · SAMPLE DATA" : ""}` : "NO AD ACCOUNTS CONNECTED") : "ORGANIC ONLY",
-    demo.length ? `${demo.join(" + ")}: DEMO DATA` : null,
-  ]
+  const eyebrow = (
+    viewer.client.isDemo
+      ? ["DEMO ACCOUNT", paid.connected.length ? `${paid.connected.join(" + ")} CONNECTED · DEMO DATA` : null]
+      : [
+          updated && updatedLabel(updated, new Date()),
+          paid.inScope ? (paid.connected.length ? `${paid.connected.join(" + ")} CONNECTED${paid.isSample ? " · SAMPLE DATA" : ""}` : "NO AD ACCOUNTS CONNECTED") : "ORGANIC ONLY",
+          demo.length ? `${demo.join(" + ")}: DEMO DATA` : null,
+        ]
+  )
     .filter(Boolean)
     .join(" · ")
     .toUpperCase();

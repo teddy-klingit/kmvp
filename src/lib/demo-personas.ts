@@ -20,6 +20,13 @@ export const DEMO_PERSONAS = [
     homeHref: "/dashboard",
   },
   {
+    key: "ouhers",
+    email: "maja@ouhers.demo",
+    name: "Maja Lind",
+    subtitle: "Client — ouhers (demo account)",
+    homeHref: "/dashboard",
+  },
+  {
     key: "pm",
     email: "teddy@klingit.com",
     name: "Teddy W.",

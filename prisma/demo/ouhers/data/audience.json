@@ -1,0 +1,170 @@
+{
+ "demo": true,
+ "followersWeekly": [
+  {
+   "week": "2026-04-14",
+   "instagramK": 1.2,
+   "tiktokK": 0
+  },
+  {
+   "week": "2026-04-21",
+   "instagramK": 1.6,
+   "tiktokK": 0
+  },
+  {
+   "week": "2026-04-28",
+   "instagramK": 2.0,
+   "tiktokK": 0
+  },
+  {
+   "week": "2026-05-05",
+   "instagramK": 2.5,
+   "tiktokK": 0
+  },
+  {
+   "week": "2026-05-12",
+   "instagramK": 2.9,
+   "tiktokK": 0
+  },
+  {
+   "week": "2026-05-19",
+   "instagramK": 3.3,
+   "tiktokK": 0
+  },
+  {
+   "week": "2026-05-26",
+   "instagramK": 3.7,
+   "tiktokK": 0
+  },
+  {
+   "week": "2026-06-02",
+   "instagramK": 4.1,
+   "tiktokK": 0
+  },
+  {
+   "week": "2026-06-09",
+   "instagramK": 4.6,
+   "tiktokK": 0
+  },
+  {
+   "week": "2026-06-16",
+   "instagramK": 5.0,
+   "tiktokK": 0
+  },
+  {
+   "week": "2026-06-23",
+   "instagramK": 6.3,
+   "tiktokK": 0
+  },
+  {
+   "week": "2026-06-30",
+   "instagramK": 6.7,
+   "tiktokK": 0
+  },
+  {
+   "week": "2026-07-07",
+   "instagramK": 7.1,
+   "tiktokK": 0.8
+  },
+  {
+   "week": "2026-07-14",
+   "instagramK": 7.6,
+   "tiktokK": 1.4
+  },
+  {
+   "week": "2026-07-21",
+   "instagramK": 8.0,
+   "tiktokK": 1.9
+  },
+  {
+   "week": "2026-07-28",
+   "instagramK": 8.4,
+   "tiktokK": 2.5
+  },
+  {
+   "week": "2026-08-04",
+   "instagramK": 8.8,
+   "tiktokK": 3.0
+  },
+  {
+   "week": "2026-08-11",
+   "instagramK": 9.2,
+   "tiktokK": 3.5
+  },
+  {
+   "week": "2026-08-18",
+   "instagramK": 9.7,
+   "tiktokK": 4.1
+  },
+  {
+   "week": "2026-08-25",
+   "instagramK": 10.1,
+   "tiktokK": 5.7
+  },
+  {
+   "week": "2026-09-01",
+   "instagramK": 11.1,
+   "tiktokK": 6.2
+  },
+  {
+   "week": "2026-09-08",
+   "instagramK": 11.5,
+   "tiktokK": 6.8
+  },
+  {
+   "week": "2026-09-15",
+   "instagramK": 11.9,
+   "tiktokK": 7.3
+  },
+  {
+   "week": "2026-09-22",
+   "instagramK": 12.4,
+   "tiktokK": 7.9
+  },
+  {
+   "week": "2026-09-29",
+   "instagramK": 12.8,
+   "tiktokK": 8.4
+  },
+  {
+   "week": "2026-10-06",
+   "instagramK": 13.2,
+   "tiktokK": 8.9
+  }
+ ],
+ "engagementByPostType": {
+  "Reels": 5.8,
+  "Carousel": 4.6,
+  "Stories": 2.9,
+  "Single image": 2.1
+ },
+ "comments30d": 1380,
+ "engagementRate": 4.1,
+ "sentiment": {
+  "positive": 64,
+  "neutral": 27,
+  "negative": 9
+ },
+ "commentThemes": [
+  {
+   "theme": "texture / feel",
+   "count": 212
+  },
+  {
+   "theme": "shade requests",
+   "count": 141
+  },
+  {
+   "theme": "shipping times",
+   "count": 58
+  }
+ ],
+ "funnel30d": {
+  "visitsFromAds": 3858,
+  "productPage": 2276,
+  "addToCart": 540,
+  "checkout": 308,
+  "purchase": 90,
+  "note": "purchase = ad-attributed purchases in Insights last30"
+ }
+}

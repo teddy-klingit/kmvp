@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { postProjectEvent } from "@/lib/project-events";
 import { logDecision } from "@/lib/decision-log";
 import type { PlanTier, ProjectStatus } from "@/generated/prisma";
+import { notifyMany } from "@/lib/notifier";
 
 /**
  * Active slots: each plan works on a set number of a client's projects at once. A project holds a slot from
@@ -96,8 +97,7 @@ async function notifyActivated(clientId: string, projectId: string, name: string
   const owners = await prisma.clientUser.findMany({ where: { clientId, permission: "OWNER" }, select: { userId: true } });
   const userIds = new Set([project?.createdBy?.userId, ...(project?.members.map((m) => m.clientUser.userId) ?? []), ...owners.map((o) => o.userId)].filter((x): x is string => Boolean(x)));
   if (userIds.size === 0) return;
-  await prisma.notification.createMany({
-    data: [...userIds].map((userId) => ({
+  await notifyMany([...userIds].map((userId) => ({
       userId,
       clientId,
       projectId,
@@ -106,6 +106,5 @@ async function notifyActivated(clientId: string, projectId: string, name: string
       body: "It has an active slot, so Klingit has started on it. Your team gets picked next.",
       actionUrl: `/projects/${projectId}`,
       actionLabel: "Open project",
-    })),
-  });
+    })));
 }

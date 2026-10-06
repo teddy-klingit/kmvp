@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomBytes } from "node:crypto";
 
@@ -69,4 +69,17 @@ export function extensionFor(mimeType: string | null | undefined) {
     "video/webm": "webm",
   };
   return (mimeType && map[mimeType]) || "bin";
+}
+
+/** Writes a file at a fixed storage key (seeded demo files, so a re-seed overwrites instead of piling up). */
+export async function writeUploadAt(storageKey: string, data: Buffer) {
+  const full = resolveKey(storageKey);
+  await mkdir(path.dirname(full), { recursive: true });
+  await writeFile(full, data);
+  return { storageKey, sizeBytes: data.length };
+}
+
+/** Removes every stored file under a prefix (only the demo seed uses this, to replace its own files). */
+export async function removeUploadsUnder(prefix: string) {
+  await rm(resolveKey(prefix), { recursive: true, force: true });
 }

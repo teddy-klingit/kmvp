@@ -32,7 +32,7 @@ export type CampaignRow = {
 export type Totals = { spend: number; clicks: number; impressions: number; conversions: number; ctr: number; cpc: number | null };
 
 const iso = (d: Date) => d.toISOString().slice(0, 10);
-const daysBack = (n: number, from = new Date()) => iso(new Date(from.getTime() - n * 86400000));
+const daysBackFrom = (n: number, from = new Date()) => iso(new Date(from.getTime() - n * 86400000));
 
 function totals(points: { spend: number; clicks: number; impressions: number; conversions: number }[]): Totals {
   const t = points.reduce((a, p) => ({ spend: a.spend + p.spend, clicks: a.clicks + p.clicks, impressions: a.impressions + p.impressions, conversions: a.conversions + p.conversions }), { spend: 0, clicks: 0, impressions: 0, conversions: 0 });
@@ -62,9 +62,15 @@ async function ensureDaily(clientId: string) {
 }
 
 export const loadDaily = cache(async (clientId: string, days: RangeDays, platform?: string | null) => {
-  const client = await prisma.client.findUniqueOrThrow({ where: { id: clientId }, select: { isSampleAccount: true, paidMediaInScope: true } });
+  const client = await prisma.client.findUniqueOrThrow({ where: { id: clientId }, select: { isSampleAccount: true, paidMediaInScope: true, isDemo: true } });
+  // A demo account reads its stored (seeded) days like a live one, but never syncs.
   const live = !client.isSampleAccount && client.paidMediaInScope;
-  if (live) await ensureDaily(clientId);
+  if (live && !client.isDemo) await ensureDaily(clientId);
+  // Today only counts once it has numbers; until then the window ends yesterday, so a day not reported yet
+  // never reads as a zero day.
+  const today = daysBackFrom(0);
+  const shift = live && (await prisma.adDailyMetric.count({ where: { clientId, date: today, ...(platform ? { platform } : {}) } })) === 0 ? 1 : 0;
+  const daysBack = (n: number): string => daysBackFrom(n + shift);
   const since = daysBack(Math.min(DAILY_WINDOW_DAYS, days * 2) - 1);
   const rows = live ? await prisma.adDailyMetric.findMany({ where: { clientId, date: { gte: since }, ...(platform ? { platform } : {}) }, orderBy: { date: "asc" } }) : [];
   const platforms = live ? [...new Set((await prisma.adDailyMetric.findMany({ where: { clientId }, select: { platform: true }, distinct: ["platform"] })).map((r) => r.platform))] : [];
@@ -138,7 +144,8 @@ export function compact(v: number) {
   return v >= 1_000_000 ? `${(v / 1_000_000).toFixed(1).replace(/\.0$/, "")}M` : v >= 10_000 ? `${Math.round(v / 1000)}K` : new Intl.NumberFormat("en-GB").format(Math.round(v));
 }
 
-export const pct = (v: number, d = v < 1 ? 2 : 1) => `${v.toFixed(d).replace(/\.0+$/, "")}%`;
+/** "0.08%", "1.01%", "6.1%", "12%": two decimals under 10, trailing zeros dropped. */
+export const pct = (v: number, d = Math.abs(v) < 10 ? 2 : 1) => `${v.toFixed(d).replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "")}%`;
 
 /** A delta only against a real previous period. Only a change for the worse is flagged (orange). */
 export function delta(now: number, before: number | null | undefined, goodWhenUp: boolean | null = true): { text: string; tone: "good" | "bad" | "neutral" } | null {

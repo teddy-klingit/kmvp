@@ -1,0 +1,362 @@
+[
+ {
+  "file": "creatives/p00-prelaunch-teaser/teaser-1x1.jpg",
+  "project": "p00-prelaunch-teaser",
+  "concept": "teaser",
+  "size": "1x1",
+  "version": 1,
+  "width": 1080,
+  "height": 1080
+ },
+ {
+  "file": "creatives/p00-prelaunch-teaser/teaser-9x16.jpg",
+  "project": "p00-prelaunch-teaser",
+  "concept": "teaser",
+  "size": "9x16",
+  "version": 1,
+  "width": 1080,
+  "height": 1920
+ },
+ {
+  "file": "creatives/p01-launch-first-five/hero-9x16.jpg",
+  "project": "p01-launch-first-five",
+  "concept": "meet the first five",
+  "size": "9x16",
+  "version": 2,
+  "width": 1080,
+  "height": 1920
+ },
+ {
+  "file": "creatives/p01-launch-first-five/hero-191x1.jpg",
+  "project": "p01-launch-first-five",
+  "concept": "meet the first five",
+  "size": "191x1",
+  "version": 2,
+  "width": 1200,
+  "height": 628
+ },
+ {
+  "file": "creatives/p01-launch-first-five/pdp-milkwash-1x1.jpg",
+  "project": "p01-launch-first-five",
+  "concept": "milk wash",
+  "size": "1x1",
+  "version": 2,
+  "width": 1080,
+  "height": 1080
+ },
+ {
+  "file": "creatives/p01-launch-first-five/pdp-dewdrop-1x1.jpg",
+  "project": "p01-launch-first-five",
+  "concept": "dew drop",
+  "size": "1x1",
+  "version": 2,
+  "width": 1080,
+  "height": 1080
+ },
+ {
+  "file": "creatives/p01-launch-first-five/pdp-cloudcream-1x1.jpg",
+  "project": "p01-launch-first-five",
+  "concept": "cloud cream",
+  "size": "1x1",
+  "version": 2,
+  "width": 1080,
+  "height": 1080
+ },
+ {
+  "file": "creatives/p01-launch-first-five/pdp-lipours-1x1.jpg",
+  "project": "p01-launch-first-five",
+  "concept": "lip ours",
+  "size": "1x1",
+  "version": 2,
+  "width": 1080,
+  "height": 1080
+ },
+ {
+  "file": "creatives/p01-launch-first-five/pdp-sunday-1x1.jpg",
+  "project": "p01-launch-first-five",
+  "concept": "sun day",
+  "size": "1x1",
+  "version": 2,
+  "width": 1080,
+  "height": 1080
+ },
+ {
+  "file": "creatives/p02-summer-sunday/seaside-9x16.jpg",
+  "project": "p02-summer-sunday",
+  "concept": "sun day, every day",
+  "size": "9x16",
+  "version": 2,
+  "width": 1080,
+  "height": 1920
+ },
+ {
+  "file": "creatives/p02-summer-sunday/seaside-4x5.jpg",
+  "project": "p02-summer-sunday",
+  "concept": "sun day, every day",
+  "size": "4x5",
+  "version": 2,
+  "width": 1080,
+  "height": 1350
+ },
+ {
+  "file": "creatives/p02-summer-sunday/seaside-1x1.jpg",
+  "project": "p02-summer-sunday",
+  "concept": "sun day, every day",
+  "size": "1x1",
+  "version": 2,
+  "width": 1080,
+  "height": 1080
+ },
+ {
+  "file": "creatives/p02-summer-sunday/seaside-191x1.jpg",
+  "project": "p02-summer-sunday",
+  "concept": "sun day, every day",
+  "size": "191x1",
+  "version": 2,
+  "width": 1200,
+  "height": 628
+ },
+ {
+  "file": "creatives/p02-summer-sunday/product-9x16.jpg",
+  "project": "p02-summer-sunday",
+  "concept": "spf that feels like nothing",
+  "size": "9x16",
+  "version": 2,
+  "width": 1080,
+  "height": 1920
+ },
+ {
+  "file": "creatives/p02-summer-sunday/product-4x5.jpg",
+  "project": "p02-summer-sunday",
+  "concept": "spf that feels like nothing",
+  "size": "4x5",
+  "version": 2,
+  "width": 1080,
+  "height": 1350
+ },
+ {
+  "file": "creatives/p02-summer-sunday/product-1x1.jpg",
+  "project": "p02-summer-sunday",
+  "concept": "spf that feels like nothing",
+  "size": "1x1",
+  "version": 2,
+  "width": 1080,
+  "height": 1080
+ },
+ {
+  "file": "creatives/p02-summer-sunday/product-191x1.jpg",
+  "project": "p02-summer-sunday",
+  "concept": "spf that feels like nothing",
+  "size": "191x1",
+  "version": 2,
+  "width": 1200,
+  "height": 628
+ },
+ {
+  "file": "creatives/p03-lipours-shade-vote/carousel-1.jpg",
+  "project": "p03-lipours-shade-vote",
+  "concept": "shade vote carousel",
+  "size": "1x1",
+  "slide": 1,
+  "version": 2,
+  "width": 1080,
+  "height": 1080
+ },
+ {
+  "file": "creatives/p03-lipours-shade-vote/carousel-2.jpg",
+  "project": "p03-lipours-shade-vote",
+  "concept": "shade vote carousel",
+  "size": "1x1",
+  "slide": 2,
+  "version": 2,
+  "width": 1080,
+  "height": 1080
+ },
+ {
+  "file": "creatives/p03-lipours-shade-vote/carousel-3.jpg",
+  "project": "p03-lipours-shade-vote",
+  "concept": "shade vote carousel",
+  "size": "1x1",
+  "slide": 3,
+  "version": 2,
+  "width": 1080,
+  "height": 1080
+ },
+ {
+  "file": "creatives/p03-lipours-shade-vote/carousel-4.jpg",
+  "project": "p03-lipours-shade-vote",
+  "concept": "shade vote carousel",
+  "size": "1x1",
+  "slide": 4,
+  "version": 2,
+  "width": 1080,
+  "height": 1080
+ },
+ {
+  "file": "creatives/p04-q4-cloudcream/c1-9x16-v2.jpg",
+  "project": "p04-q4-cloudcream",
+  "concept": "whipped, weightless.",
+  "size": "9x16",
+  "version": 2,
+  "width": 1080,
+  "height": 1920
+ },
+ {
+  "file": "creatives/p04-q4-cloudcream/c1-4x5-v2.jpg",
+  "project": "p04-q4-cloudcream",
+  "concept": "whipped, weightless.",
+  "size": "4x5",
+  "version": 2,
+  "width": 1080,
+  "height": 1350
+ },
+ {
+  "file": "creatives/p04-q4-cloudcream/c1-1x1-v2.jpg",
+  "project": "p04-q4-cloudcream",
+  "concept": "whipped, weightless.",
+  "size": "1x1",
+  "version": 2,
+  "width": 1080,
+  "height": 1080
+ },
+ {
+  "file": "creatives/p04-q4-cloudcream/c1-191x1-v2.jpg",
+  "project": "p04-q4-cloudcream",
+  "concept": "whipped, weightless.",
+  "size": "191x1",
+  "version": 2,
+  "width": 1200,
+  "height": 628
+ },
+ {
+  "file": "creatives/p04-q4-cloudcream/c2-9x16-v2.jpg",
+  "project": "p04-q4-cloudcream",
+  "concept": "for every face.",
+  "size": "9x16",
+  "version": 2,
+  "width": 1080,
+  "height": 1920
+ },
+ {
+  "file": "creatives/p04-q4-cloudcream/c2-4x5-v2.jpg",
+  "project": "p04-q4-cloudcream",
+  "concept": "for every face.",
+  "size": "4x5",
+  "version": 2,
+  "width": 1080,
+  "height": 1350
+ },
+ {
+  "file": "creatives/p04-q4-cloudcream/c2-1x1-v2.jpg",
+  "project": "p04-q4-cloudcream",
+  "concept": "for every face.",
+  "size": "1x1",
+  "version": 2,
+  "width": 1080,
+  "height": 1080
+ },
+ {
+  "file": "creatives/p04-q4-cloudcream/c2-191x1-v2.jpg",
+  "project": "p04-q4-cloudcream",
+  "concept": "for every face.",
+  "size": "191x1",
+  "version": 2,
+  "width": 1200,
+  "height": 628
+ },
+ {
+  "file": "creatives/p04-q4-cloudcream/c3-9x16-v2.jpg",
+  "project": "p04-q4-cloudcream",
+  "concept": "your morning, but softer.",
+  "size": "9x16",
+  "version": 2,
+  "width": 1080,
+  "height": 1920
+ },
+ {
+  "file": "creatives/p04-q4-cloudcream/c3-4x5-v2.jpg",
+  "project": "p04-q4-cloudcream",
+  "concept": "your morning, but softer.",
+  "size": "4x5",
+  "version": 2,
+  "width": 1080,
+  "height": 1350
+ },
+ {
+  "file": "creatives/p04-q4-cloudcream/c3-1x1-v2.jpg",
+  "project": "p04-q4-cloudcream",
+  "concept": "your morning, but softer.",
+  "size": "1x1",
+  "version": 2,
+  "width": 1080,
+  "height": 1080
+ },
+ {
+  "file": "creatives/p04-q4-cloudcream/c3-191x1-v2.jpg",
+  "project": "p04-q4-cloudcream",
+  "concept": "your morning, but softer.",
+  "size": "191x1",
+  "version": 2,
+  "width": 1200,
+  "height": 628
+ },
+ {
+  "file": "creatives/p04-q4-cloudcream/c1-4x5-v1.jpg",
+  "project": "p04-q4-cloudcream",
+  "concept": "whipped, weightless.",
+  "size": "4x5",
+  "version": 1,
+  "width": 1080,
+  "height": 1350
+ },
+ {
+  "file": "creatives/p05-holiday-giftset/wip-c1-4x5-v1.jpg",
+  "project": "p05-holiday-giftset",
+  "concept": "wrap it up softly",
+  "size": "4x5",
+  "version": 1,
+  "internal": true,
+  "width": 1080,
+  "height": 1350
+ },
+ {
+  "file": "creatives/p05-holiday-giftset/wip-c2-9x16-v1.jpg",
+  "project": "p05-holiday-giftset",
+  "concept": "three favourites, one soft box",
+  "size": "9x16",
+  "version": 1,
+  "internal": true,
+  "width": 1080,
+  "height": 1920
+ },
+ {
+  "file": "creatives/p06-dewdrop-creators/storyboard-1.jpg",
+  "project": "p06-dewdrop-creators",
+  "concept": "creator storyboard",
+  "size": "9x16",
+  "frame": 1,
+  "version": 1,
+  "width": 1080,
+  "height": 1920
+ },
+ {
+  "file": "creatives/p06-dewdrop-creators/storyboard-2.jpg",
+  "project": "p06-dewdrop-creators",
+  "concept": "creator storyboard",
+  "size": "9x16",
+  "frame": 2,
+  "version": 1,
+  "width": 1080,
+  "height": 1920
+ },
+ {
+  "file": "creatives/p06-dewdrop-creators/storyboard-3.jpg",
+  "project": "p06-dewdrop-creators",
+  "concept": "creator storyboard",
+  "size": "9x16",
+  "frame": 3,
+  "version": 1,
+  "width": 1080,
+  "height": 1920
+ }
+]
