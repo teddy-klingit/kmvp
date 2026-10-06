@@ -99,12 +99,12 @@ export async function OverviewNextStep({ projectId, viewer, state }: PanelProps)
       <NextStepCard
         variant="turn"
         title={sentence(nextAction.label)}
-        description="Approve each asset, or ask for changes on it, in Work."
+        description="Approve each asset, or ask for changes on it, in the review."
         actions={
           <>
             {ask}
             <Button asChild variant="primary" size="lg">
-              <Link href={`/projects/${projectId}/work`}>Review in Work</Link>
+              <Link href={`/review/${projectId}`}>Open review</Link>
             </Button>
           </>
         }
@@ -389,7 +389,7 @@ export async function ActivityCard({ projectId, title = "What's happening" }: { 
   );
 }
 
-/** review — the assets waiting on the client, as thumbnails that open each one in Work. */
+/** review — the assets waiting on the client, as thumbnails that open each one in the review. */
 export async function WaitingForReviewCard({ projectId, viewer }: Omit<PanelProps, "state">) {
   const assets = await loadReviewAssets(projectId, viewer.clientId, ["IN_REVIEW"]);
   if (assets.length === 0) return null;
@@ -407,12 +407,24 @@ export async function WaitingForReviewCard({ projectId, viewer }: Omit<PanelProp
       <ul className="m-0 grid list-none grid-cols-2 gap-4 p-6 sm:grid-cols-4">
         {assets.map((a) => (
           <li key={a.id}>
-            <Link href={`/projects/${projectId}/work?asset=${a.id}`} className="group flex flex-col gap-1.5 no-underline">
+            <Link href={`/review/${projectId}?asset=${a.id}`} className="group flex flex-col gap-1.5 no-underline">
               <span
-                className="flex aspect-[4/3] items-center justify-center rounded-[8px] border border-ds-divider group-hover:border-ds-text-3"
+                className="relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-[8px] border border-ds-divider group-hover:border-ds-text-3"
                 style={{ backgroundColor: `color-mix(in srgb, ${a.thumbnailColor} 16%, white)` }}
               >
-                {a.type === "VIDEO" ? (
+                {a.fileUrl && a.type === "IMAGE" ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- the access-checked file the client was sent
+                  <img src={a.fileUrl} alt="" loading="lazy" className="absolute inset-0 size-full object-contain p-2" />
+                ) : a.copy ? (
+                  <span className="absolute inset-0 flex flex-col justify-center gap-1 px-3 text-left">
+                    {a.copy.lines.map((l) => (
+                      <span key={l.lang} className="line-clamp-1 text-[12px] leading-[1.4] text-ds-text">
+                        <span className="mr-1 font-semibold uppercase text-ds-text-2">{l.lang}</span>
+                        {l.text}
+                      </span>
+                    ))}
+                  </span>
+                ) : a.type === "VIDEO" ? (
                   <Play className="size-5 text-ds-text/35" strokeWidth={1.5} />
                 ) : (
                   <ImageIcon className="size-5 text-ds-text/35" strokeWidth={1.5} />

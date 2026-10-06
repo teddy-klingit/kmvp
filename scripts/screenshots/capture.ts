@@ -607,6 +607,7 @@ async function main() {
         ["01-home", "/dashboard"],
         ["02-projects", "/projects"],
         ["03-q4-review", `${P("p04-q4-cloudcream")}/work`],
+        ["03b-q4-overview", P("p04-q4-cloudcream")],
         ["04-brief-studio", `/brief/ouhers-p10-spring-2027`],
         ["05-brand-os", "/assets"],
         ["06-agents-templates", "/assets/agents-templates"],

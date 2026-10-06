@@ -145,7 +145,7 @@ const EXPECT: Record<StageKey, Expect> = {
     title: "Review 2 assets",
     eyebrow: "YOUR TURN",
     dashboard: true,
-    overview: ["Review in Work", "Ask a question"],
+    overview: ["Open review", "Ask a question"],
   },
   final: {
     column: "In review",
@@ -174,7 +174,7 @@ const NEVER_ANYWHERE = ["TBD", "Creative score 88", "94%", "Not yet scoped", "Kl
 
 /** Stage-specific actions that must only ever render in their own stage. */
 const ONLY_IN: Record<string, StageKey[]> = {
-  "Review in Work": ["review"],
+  "Open review": ["review"],
   "Approve ·": ["awaiting_approval"],
   "Sign off": ["final"],
   "Rate this project": ["final"],
