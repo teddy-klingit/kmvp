@@ -160,7 +160,7 @@ export default async function InsightsPerformancePage({ searchParams }: { search
                     <span className="text-[16px]">Click-through rate per asset, delivered work</span>
                     <span className="text-[14px] text-brand-mute">Ink = above your average · grey = below</span>
                   </div>
-                  <BarList rows={[...measured].sort((a, b) => b.ctr - a.ctr).map((a) => ({ label: a.title, sub: a.format, value: a.ctr, display: `${a.ctr}%`, thumb: a.thumbnail, thumbColor: a.color }))} reference={avg !== null ? { value: avg, label: `Your average ${avg.toFixed(1)}%` } : undefined} labelWidth={190} />
+                  <BarList rows={[...measured].sort((a, b) => b.ctr - a.ctr).map((a) => ({ label: a.title, sub: a.format, value: a.ctr, display: `${a.ctr}%`, thumb: a.thumbnail, thumbColor: a.color, href: `/assets/library/${a.id}?from=insights` }))} reference={avg !== null ? { value: avg, label: `Your average ${avg.toFixed(1)}%` } : undefined} labelWidth={190} />
                 </>
               ) : (
                 <SkeletonChart line="Delivered creative gets a CTR here once it has run." action={<PillLink href="/brief/new" size="sm">Start a brief</PillLink>} />

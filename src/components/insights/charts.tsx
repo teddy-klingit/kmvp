@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -78,12 +79,23 @@ export function Sparkline({ values, className }: { values: number[]; className?:
 
 // ─── Horizontal bars ───────────────────────────────────────────────────────
 
-export type BarRow = { label: string; sub?: string; value: number; display: string; tone?: Tone; color?: string; thumb?: string | null; thumbColor?: string | null };
+export type BarRow = { label: string; sub?: string; value: number; display: string; tone?: Tone; color?: string; thumb?: string | null; thumbColor?: string | null; /** Makes the row's label a link (e.g. to the asset). */ href?: string };
 
 /**
  * Horizontal bars, one per row, with an optional reference line ("Your average 4.7%"): ink above it, grey below,
  * unless a tone is given. Thumbnails are the asset's own image or its tint.
  */
+function RowLabel({ href, children }: { href?: string; children: React.ReactNode }) {
+  const cls = "flex min-w-0 items-center gap-2.5";
+  return href ? (
+    <Link href={href} className={cn(cls, "rounded-[6px] text-brand-ink no-underline hover:[&_span.truncate:first-child]:underline")}>
+      {children}
+    </Link>
+  ) : (
+    <span className={cls}>{children}</span>
+  );
+}
+
 export function BarList({ rows, reference, max, labelWidth = 150, compact = false }: { rows: BarRow[]; reference?: { value: number; label: string }; max?: number; labelWidth?: number; compact?: boolean }) {
   const top = max ?? Math.max(...rows.map((r) => r.value), reference?.value ?? 0) * 1.05;
   const [hover, setHover] = useState<number | null>(null);
@@ -94,7 +106,7 @@ export function BarList({ rows, reference, max, labelWidth = 150, compact = fals
         const tone: Tone = r.tone ?? (reference ? (r.value >= reference.value ? "ink" : "grey") : "ink");
         return (
           <div key={`${r.label}-${i}`} className={cn("grid items-center gap-3", compact ? "py-1.5" : "py-2")} style={{ gridTemplateColumns: `minmax(0,min(${labelWidth}px,42%)) minmax(0,1fr) auto` }} onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}>
-            <span className="flex min-w-0 items-center gap-2.5">
+            <RowLabel href={r.href}>
               {(r.thumb || r.thumbColor) && (
                 <span aria-hidden className="size-9 shrink-0 overflow-hidden rounded-[6px]" style={{ backgroundColor: r.thumbColor ? `color-mix(in srgb, ${r.thumbColor} 22%, white)` : "var(--brand-chip)" }}>
                   {/* eslint-disable-next-line @next/next/no-img-element -- the asset's own access-checked image */}
@@ -105,7 +117,7 @@ export function BarList({ rows, reference, max, labelWidth = 150, compact = fals
                 <span className="truncate text-[14px]">{r.label}</span>
                 {r.sub && <span className="truncate text-[12px] text-brand-mute">{r.sub}</span>}
               </span>
-            </span>
+            </RowLabel>
             <span className="relative h-5">
               <span className="absolute inset-y-0 left-0 my-auto h-3.5 rounded-r-[4px] transition-[width] duration-300 motion-reduce:transition-none" style={{ width: pct(r.value), backgroundColor: r.color ?? TONE[tone], opacity: hover !== null && hover !== i ? 0.55 : 1 }} />
               {hover === i && <Tooltip x={0} y={0}>{`${r.label}: ${r.display}`}</Tooltip>}

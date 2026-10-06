@@ -1,16 +1,18 @@
 import { Image as ImageIcon } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
-import { AssetTile } from "@/components/portal/asset-tile";
+import { AssetTile, assetTileInclude, tileMedia } from "@/components/portal/asset-tile";
+import { clientCtrAverage } from "@/lib/insights-data";
 import { EmptyState } from "@/components/shared/empty-state";
 import { LibraryChips } from "@/components/portal/library-chips";
 import { clientVisibleAsset } from "@/lib/qc/visibility";
 
 export default async function AssetsAllPage() {
   const viewer = await getPortalViewer();
+  const average = await clientCtrAverage(viewer.clientId);
   const assets = await prisma.asset.findMany({
     where: { clientId: viewer.clientId, ...clientVisibleAsset },
-    include: { project: true },
+    include: { project: true, ...assetTileInclude },
     orderBy: { createdAt: "desc" },
   });
 
@@ -41,7 +43,7 @@ export default async function AssetsAllPage() {
             color={a.thumbnailColor}
             ctr={a.performanceCtr}
             campaign={a.project.name}
-            fileUrl={a.fileUrl}
+            {...tileMedia(a)} average={average} href={`/assets/library/${a.id}`}
           />
         ))}
       </div>

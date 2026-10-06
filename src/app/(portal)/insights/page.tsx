@@ -111,7 +111,7 @@ export default async function InsightsOverviewPage({ searchParams }: { searchPar
                     <span className="text-[16px]">Click-through rate per asset</span>
                     <span className="text-[14px] text-brand-mute">Ink = above your average</span>
                   </div>
-                  <BarList rows={leaders.map((a) => ({ label: a.title, sub: a.format, value: a.ctr, display: `${a.ctr}%`, thumb: a.thumbnail, thumbColor: a.color }))} reference={{ value: avg, label: `Your average ${avg.toFixed(1)}%` }} labelWidth={200} />
+                  <BarList rows={leaders.map((a) => ({ label: a.title, sub: a.format, value: a.ctr, display: `${a.ctr}%`, thumb: a.thumbnail, thumbColor: a.color, href: `/assets/library/${a.id}?from=insights` }))} reference={{ value: avg, label: `Your average ${avg.toFixed(1)}%` }} labelWidth={200} />
                 </>
               ) : (
                 <SkeletonChart line="Delivered creative gets a CTR here once it has run." action={<PillLink href="/brief/new" size="sm">Start a brief</PillLink>} />

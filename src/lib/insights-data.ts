@@ -115,6 +115,12 @@ export const loadMeasuredAssets = cache(async (clientId: string) => {
   };
 });
 
+/** The client's average CTR over its measured creative (null when nothing is measured yet). */
+export async function clientCtrAverage(clientId: string) {
+  const { measured } = await loadMeasuredAssets(clientId);
+  return measured.length ? measured.reduce((a, m) => a + m.ctr, 0) / measured.length : null;
+}
+
 // ─── Sources ───────────────────────────────────────────────────────────────
 
 export type MissingSource = { name: string; unlocks: string[] };

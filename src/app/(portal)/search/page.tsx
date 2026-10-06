@@ -9,13 +9,15 @@ import { PageHeader } from "@/components/ds/page-header";
 import { SectionCard, CardRows } from "@/components/ds/card";
 import { StatusPill } from "@/components/ds/status-pill";
 import { EmptyState } from "@/components/ds/empty-state";
-import { AssetTile } from "@/components/portal/asset-tile";
+import { AssetTile, assetTileInclude, tileMedia } from "@/components/portal/asset-tile";
+import { clientCtrAverage } from "@/lib/insights-data";
 import { clientVisibleAsset } from "@/lib/qc/visibility";
 
 /** Search results across projects, assets and agents. */
 export default async function SearchPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q = "" } = await searchParams;
   const viewer = await getPortalViewer();
+  const average = await clientCtrAverage(viewer.clientId);
 
   const query = q.trim();
   const [projects, assets, agentRuns] = query
@@ -30,7 +32,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
             OR: [{ name: { contains: query } }, { format: { contains: query } }],
             project: { is: projectVisibilityWhere(viewer.id) },
           },
-          include: { project: true },
+          include: { project: true, ...assetTileInclude },
           take: 8,
         }),
         prisma.agentRun.findMany({
@@ -76,7 +78,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
         <SectionCard title="Assets" meta={count(assets.length)}>
           <div className="grid grid-cols-2 gap-4 px-6 py-5 sm:grid-cols-4">
             {assets.map((a) => (
-              <AssetTile key={a.id} name={a.name} format={a.format} color={a.thumbnailColor} ctr={a.performanceCtr} campaign={a.project.name} />
+              <AssetTile key={a.id} name={a.name} format={a.format} color={a.thumbnailColor} ctr={a.performanceCtr} campaign={a.project.name} {...tileMedia(a)} average={average} href={`/assets/library/${a.id}`} />
             ))}
           </div>
         </SectionCard>

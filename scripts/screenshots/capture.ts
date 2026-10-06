@@ -598,6 +598,24 @@ async function main() {
     if (holiday) await phaseList("screenshots/review", [["08-video", `/review/${holiday.id}?kind=video`]]);
     return;
   }
+  if (phase === "library") {
+    // Brand OS library and an asset's page (performance, how it was made): the top ad and the brand film.
+    const prisma = new PrismaClient({ datasourceUrl: "file:./prisma/screens.db" });
+    const top = await prisma.asset.findFirst({ where: { clientId: "client-ouhers", performanceCtr: { not: null } }, orderBy: { performanceCtr: "desc" }, select: { id: true } });
+    const film = await prisma.asset.findFirst({ where: { projectId: "ouhers-p12-brand-film", format: "Story 9:16" }, select: { id: true } });
+    await prisma.$disconnect();
+    return phaseList(
+      "screenshots/library",
+      [
+        ["01-library", "/assets/library"],
+        ["02-asset-top", `/assets/library/${top?.id}?from=insights`],
+        ["03-asset-film", `/assets/library/${film?.id}`],
+        ["04-insights", "/insights"],
+      ],
+      [],
+      "maja@ouhers.demo"
+    );
+  }
   if (phase === "ouhers") {
     // The ouhers demo account (npm run seed:ouhers), as Maja and as Teddy (PM).
     const P = (id: string) => `/projects/ouhers-${id}`;

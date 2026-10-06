@@ -22,6 +22,8 @@ import { runMarketIntelligence } from "@/lib/market-intelligence-run";
 import { GET as downloadAsset } from "@/app/api/assets/[assetId]/download/route";
 import { loadReview } from "@/lib/review";
 import { blockingFlags, fixedBeforeSend } from "@/lib/qc/quality-check";
+import { loadAssetDetail } from "@/lib/asset-detail";
+import { performanceTierFor } from "@/lib/asset-performance";
 
 const counts = async () => {
   const where = { clientId: OUHERS_CLIENT_ID };
@@ -114,6 +116,21 @@ describe("the ouhers demo seed", () => {
     expect(ranged.status).toBe(206);
     expect(ranged.headers.get("content-range")).toMatch(/^bytes 0-99\/\d+$/);
     expect((await ranged.arrayBuffer()).byteLength).toBe(100);
+  });
+
+  it("an asset's page: CTR against the client's own average, its rank and its other sizes; only sent work", async () => {
+    const top = await prisma.asset.findFirstOrThrow({ where: { clientId: OUHERS_CLIENT_ID, performanceCtr: { not: null } }, orderBy: { performanceCtr: "desc" } });
+    const d = (await loadAssetDetail(top.id, OUHERS_CLIENT_ID))!;
+    expect(d.performance).toMatchObject({ ctr: 1.77, rank: 1, of: 11 });
+    expect(d.performance!.clientAvg).toBeCloseTo(1.08, 1);
+    expect(d.performance!.siblings.map((s) => s.format)).toEqual(["Feed · 4:5", "Square · 1:1", "Link ad 1.91:1"]);
+    // The tier is relative to the client: their best ad is a top performer even at 1.77%.
+    expect(performanceTierFor(1.77, d.performance!.clientAvg).label).toBe("Top performer");
+    expect(performanceTierFor(1.77).label).toBe("Below avg");
+    // Work in progress (Holiday, not sent) has no page; nor does another client's asset.
+    const wip = await prisma.asset.findFirstOrThrow({ where: { projectId: "ouhers-p05-holiday-giftset" } });
+    expect(await loadAssetDetail(wip.id, OUHERS_CLIENT_ID)).toBeNull();
+    expect(await loadAssetDetail(top.id, "some-other-client")).toBeNull();
   });
 
   it("reads Insights from its own seeded days, never the live ad accounts", async () => {
