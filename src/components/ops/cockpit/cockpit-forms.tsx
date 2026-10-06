@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Sparkles, Upload } from "lucide-react";
 import { Button } from "@/components/ds/button";
 import {
@@ -104,21 +104,38 @@ export function DatesForm({
   );
 }
 
-export function UploadAssetForm({ projectId }: { projectId: string }) {
+/** A designer's upload: a new asset, or the next version of one. Either way the Brand OS check runs on it. */
+export function UploadAssetForm({ projectId, assets = [] }: { projectId: string; assets?: { id: string; label: string }[] }) {
   const [state, action, pending] = useActionState<CockpitState, FormData>(uploadAssetAction, {});
+  const [assetId, setAssetId] = useState("");
   return (
     <form action={action} className="flex flex-col gap-3">
       <input type="hidden" name="projectId" value={projectId} />
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      {assets.length > 0 && (
         <label className="flex flex-col gap-1.5">
-          <span className="text-[12px] text-ds-text-2">Title</span>
-          <input name="name" required placeholder="Beach hero" className={`${fieldCls} h-9`} />
+          <span className="text-[12px] text-ds-text-2">This is</span>
+          <select name="assetId" value={assetId} onChange={(e) => setAssetId(e.target.value)} className={`${fieldCls} h-9`}>
+            <option value="">A new asset</option>
+            {assets.map((a) => (
+              <option key={a.id} value={a.id}>
+                A new version of {a.label}
+              </option>
+            ))}
+          </select>
         </label>
-        <label className="flex flex-col gap-1.5">
-          <span className="text-[12px] text-ds-text-2">Format</span>
-          <input name="format" required placeholder="Story 9:16" className={`${fieldCls} h-9`} />
-        </label>
-      </div>
+      )}
+      {!assetId && (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[12px] text-ds-text-2">Title</span>
+            <input name="name" required placeholder="Beach hero" className={`${fieldCls} h-9`} />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[12px] text-ds-text-2">Format</span>
+            <input name="format" required placeholder="Story 9:16" className={`${fieldCls} h-9`} />
+          </label>
+        </div>
+      )}
       <div className="flex flex-wrap items-end gap-3">
         <label className="flex min-w-0 flex-1 flex-col gap-1.5">
           <span className="text-[12px] text-ds-text-2">File · images and PDF up to 25 MB, video up to 250 MB</span>

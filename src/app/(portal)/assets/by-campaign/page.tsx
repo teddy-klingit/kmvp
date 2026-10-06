@@ -3,11 +3,12 @@ import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
 import { SectionLabel } from "@/components/ui/card";
 import { AssetTile } from "@/components/portal/asset-tile";
+import { clientVisibleAsset } from "@/lib/qc/visibility";
 
 export default async function AssetsByCampaignPage() {
   const viewer = await getPortalViewer();
   const assets = await prisma.asset.findMany({
-    where: { clientId: viewer.clientId },
+    where: { clientId: viewer.clientId, ...clientVisibleAsset },
     include: { project: true },
     orderBy: { createdAt: "desc" },
   });

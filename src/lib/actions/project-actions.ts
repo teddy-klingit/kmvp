@@ -10,6 +10,8 @@ import { runAutopilot } from "@/lib/autopilot-runner";
 import { activateQueued } from "@/lib/active-slots";
 import type { SnapshotLine } from "@/lib/estimate-diff";
 import { postProjectEvent } from "@/lib/project-events";
+import { clientVisibleAsset } from "@/lib/qc/visibility";
+import type { Prisma } from "@/generated/prisma";
 
 type EmptyState = Record<string, never>;
 const EMPTY: EmptyState = {};
@@ -111,7 +113,7 @@ export async function approveAllAssetsAction(formData: FormData) {
   if (!project) return;
 
   // "Approve N in review" — assets the client asked to change stay with Klingit.
-  await prisma.asset.updateMany({ where: { projectId, status: "IN_REVIEW" }, data: { status: "APPROVED" } });
+  await approveSentVersions({ projectId, status: "IN_REVIEW", ...clientVisibleAsset });
   await settleReviewRound(projectId);
 
   revalidatePath(`/projects/${projectId}`, "layout");
@@ -122,18 +124,29 @@ export async function approveAssetAction(formData: FormData) {
   const assetId = String(formData.get("assetId") ?? "");
 
   const asset = await prisma.asset.findFirst({
-    where: { id: assetId, status: "IN_REVIEW", client: { id: viewer.clientId }, project: { status: "AWAITING_REVIEW" } },
+    where: { id: assetId, status: "IN_REVIEW", ...clientVisibleAsset, client: { id: viewer.clientId }, project: { status: "AWAITING_REVIEW" } },
   });
   if (!asset) return;
 
-  await prisma.asset.update({ where: { id: assetId }, data: { status: "APPROVED" } });
+  await approveSentVersions({ id: assetId });
   await settleReviewRound(asset.projectId);
   revalidatePath(`/projects/${asset.projectId}`, "layout");
 }
 
+/** The client approves the version they were sent: the asset and that version both read approved. */
+async function approveSentVersions(where: Prisma.AssetWhereInput) {
+  const assets = await prisma.asset.findMany({ where: { ...where, ...clientVisibleAsset }, select: { id: true, sentVersion: true } });
+  for (const a of assets) {
+    await prisma.$transaction([
+      prisma.asset.update({ where: { id: a.id }, data: { status: "APPROVED" } }),
+      prisma.assetVersion.updateMany({ where: { assetId: a.id, number: a.sentVersion! }, data: { state: "APPROVED" } }),
+    ]);
+  }
+}
+
 /** Once every asset is approved, the project moves on to final delivery. */
 async function settleReviewRound(projectId: string) {
-  const open = await prisma.asset.count({ where: { projectId, status: { in: ["IN_REVIEW", "CHANGES_REQUESTED"] } } });
+  const open = await prisma.asset.count({ where: { projectId, ...clientVisibleAsset, status: { in: ["IN_REVIEW", "CHANGES_REQUESTED"] } } });
   if (open > 0) return;
   const moved = await prisma.project.updateMany({ where: { id: projectId, status: "AWAITING_REVIEW" }, data: { status: "IN_FEEDBACK" } });
   if (moved.count > 0) await postProjectEvent(projectId, "All assets approved");
@@ -144,12 +157,13 @@ export async function requestAssetChangesAction(formData: FormData) {
   const assetId = String(formData.get("assetId") ?? "");
 
   const asset = await prisma.asset.findFirst({
-    where: { id: assetId, client: { id: viewer.clientId } },
+    where: { id: assetId, ...clientVisibleAsset, client: { id: viewer.clientId } },
   });
   if (!asset) return;
 
   // Counted per asset: the second request on the same asset becomes a PM exception.
   await prisma.asset.update({ where: { id: assetId }, data: { status: "CHANGES_REQUESTED", changeRequestCount: { increment: 1 } } });
+  await prisma.assetVersion.updateMany({ where: { assetId, number: asset.sentVersion! }, data: { state: "CHANGES_REQUESTED" } });
   revalidatePath(`/projects/${asset.projectId}`, "layout");
 }
 
@@ -183,7 +197,7 @@ async function messageContext(projectId: string, formData: FormData) {
   const label = onLabel(raw).slice(0, 120);
 
   if (kind === "asset") {
-    const asset = await prisma.asset.findFirst({ where: { id: ref, projectId }, select: { id: true } });
+    const asset = await prisma.asset.findFirst({ where: { id: ref, projectId, ...clientVisibleAsset }, select: { id: true } });
     return asset ? { assetId: asset.id, fields: { contextKind: kind, contextRef: asset.id, contextLabel: label } } : { fields: {} };
   }
   if (kind === "estimate_line") {
@@ -207,7 +221,7 @@ export async function postPinCommentAction(_prev: EmptyState, formData: FormData
   const heightPercent = formData.get("heightPercent") ? Number(formData.get("heightPercent")) : null;
   if (!body || !assetId || Number.isNaN(xPercent) || Number.isNaN(yPercent)) return EMPTY;
 
-  const asset = await prisma.asset.findFirst({ where: { id: assetId, projectId, client: { id: viewer.clientId } } });
+  const asset = await prisma.asset.findFirst({ where: { id: assetId, projectId, ...clientVisibleAsset, client: { id: viewer.clientId } } });
   if (!asset) return EMPTY;
 
   await prisma.comment.create({
@@ -226,7 +240,7 @@ export async function postTimestampCommentAction(_prev: EmptyState, formData: Fo
   const timestampSeconds = Number(formData.get("timestampSeconds") ?? NaN);
   if (!body || !assetId || Number.isNaN(timestampSeconds)) return EMPTY;
 
-  const asset = await prisma.asset.findFirst({ where: { id: assetId, projectId, client: { id: viewer.clientId } } });
+  const asset = await prisma.asset.findFirst({ where: { id: assetId, projectId, ...clientVisibleAsset, client: { id: viewer.clientId } } });
   if (!asset) return EMPTY;
 
   await prisma.comment.create({

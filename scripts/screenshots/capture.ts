@@ -8,6 +8,7 @@
  *   npx tsx scripts/screenshots/capture.ts i
  *   npx tsx scripts/screenshots/capture.ts home
  *   npx tsx scripts/screenshots/capture.ts insights   (every Insights tab, 1440 + 390)
+ *   npx tsx scripts/screenshots/capture.ts qc | qc-sent   (the quality check, View as client, the client's Work page)
  *   npx tsx scripts/screenshots/capture.ts j1         (theme sweep: client + ops pages, 1440 + 390)
  *   npx tsx scripts/screenshots/capture.ts board      (Projects board v2: board, list, a refused drag, archived; 1440 + 390)
  *   npx tsx scripts/screenshots/capture.ts studio-end (Brief studio question framework: "I need new ads" end to end)
@@ -52,7 +53,12 @@ async function shot(page: Page, path: string, name: string, outDir: string, widt
   await page.waitForTimeout(400);
   // The portal scrolls inside <main>, not the document, so fullPage alone stops at the fold:
   // grow the viewport to the content height instead (full-height panels then stretch with it).
-  const height = await page.evaluate(() => Math.max(document.querySelector("main")?.scrollHeight ?? 0, window.innerHeight));
+  const height = await page.evaluate(() => {
+    // Full-screen views (the quality check) scroll inside their own panels: measure the tallest one.
+    const fs = document.querySelector<HTMLElement>("[data-fullscreen]");
+    const inner = fs ? Math.max(...[...fs.querySelectorAll<HTMLElement>("[data-scroll]")].map((e) => e.scrollHeight)) + (fs.querySelector("header")?.offsetHeight ?? 0) : 0;
+    return Math.max(document.querySelector("main")?.scrollHeight ?? 0, inner, window.innerHeight);
+  });
   await page.setViewportSize({ width, height });
   await page.waitForTimeout(250);
   await page.screenshot({ path: `${outDir}/${name}-${width}.png`, fullPage: true });
@@ -567,6 +573,15 @@ async function main() {
   if (phase === "studio") return phaseStudio();
   if (phase === "nav") return phaseNav();
   if (phase === "insights") return phaseList("screenshots/insights", INSIGHTS_PAGES);
+  if (phase === "qc" || phase === "qc-sent") {
+    // The quality check on the Q3 set (seed it with scripts/screenshots/seed-qc.ts upload), then, after
+    // "seed-qc.ts send", the client's Work page with the "Quality checked by Klingit" chip.
+    const prisma = new PrismaClient({ datasourceUrl: "file:./prisma/screens.db" });
+    const q3 = await prisma.project.findFirstOrThrow({ where: { name: "Q3 App install campaign" }, select: { id: true } });
+    await prisma.$disconnect();
+    if (phase === "qc") return phaseList("screenshots/qc", [], [["01-quality-check", `/ops/projects/${q3.id}/qc`], ["02-view-as-client", `/ops/projects/${q3.id}/qc?view=client`]]);
+    return phaseList("screenshots/qc", [["03-client-work", `/projects/${q3.id}/work`]], [["05-quality-check-after-send", `/ops/projects/${q3.id}/qc`]]);
+  }
   if (phase === "j1") return phaseList("screenshots/j1", J1_CLIENT, J1_OPS);
   if (phase === "j4") {
     // The client workspace needs Klarna's id; add it at run time.

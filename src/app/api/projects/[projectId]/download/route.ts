@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { assetFile, attachment, clientCanSeeProject } from "@/lib/asset-files";
 import { createZip } from "@/lib/zip";
+import { clientVisibleAsset } from "@/lib/qc/visibility";
 
 /** "Download all (.zip)": every approved or delivered asset in the project. */
 export async function GET(_req: Request, { params }: { params: Promise<{ projectId: string }> }) {
@@ -15,7 +16,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ project
   }
 
   const assets = await prisma.asset.findMany({
-    where: { projectId, status: { in: ["APPROVED", "DELIVERED"] } },
+    where: { projectId, status: { in: ["APPROVED", "DELIVERED"] }, ...clientVisibleAsset },
     orderBy: { createdAt: "asc" },
   });
   const used = new Set<string>();

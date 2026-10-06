@@ -2,11 +2,12 @@ import { LibraryChips } from "@/components/portal/library-chips";
 import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
 import { AssetTile } from "@/components/portal/asset-tile";
+import { clientVisibleAsset } from "@/lib/qc/visibility";
 
 export default async function AssetsTopPerformersPage() {
   const viewer = await getPortalViewer();
   const assets = await prisma.asset.findMany({
-    where: { clientId: viewer.clientId, performanceCtr: { not: null } },
+    where: { clientId: viewer.clientId, performanceCtr: { not: null }, ...clientVisibleAsset },
     include: { project: true },
     orderBy: { performanceCtr: "desc" },
   });

@@ -44,9 +44,9 @@ beforeAll(async () => {
   await prisma.client.update({ where: { id: fx.clientA.id }, data: { paidMediaInScope: false } });
   await prisma.asset.createMany({
     data: [
-      { clientId: fx.clientA.id, projectId: fx.projectA.id, name: "Story 9:16 — Beach hero", format: "Story 9:16", performanceCtr: 7.4 },
-      { clientId: fx.clientA.id, projectId: fx.projectA.id, name: "Static 1:1 — Product shot", format: "Static 1:1", performanceCtr: 2.1 },
-      { clientId: fx.clientA.id, projectId: fx.projectA.id, name: "Static 1:1 — Lifestyle", format: "Static 1:1", performanceCtr: null },
+      { clientId: fx.clientA.id, projectId: fx.projectA.id, name: "Story 9:16 — Beach hero", format: "Story 9:16", performanceCtr: 7.4, sentVersion: 1 },
+      { clientId: fx.clientA.id, projectId: fx.projectA.id, name: "Static 1:1 — Product shot", format: "Static 1:1", performanceCtr: 2.1, sentVersion: 1 },
+      { clientId: fx.clientA.id, projectId: fx.projectA.id, name: "Static 1:1 — Lifestyle", format: "Static 1:1", performanceCtr: null, sentVersion: 1 },
     ],
   });
   await prisma.performanceBrief.create({

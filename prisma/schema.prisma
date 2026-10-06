@@ -1199,15 +1199,92 @@ model Asset {
   thumbnailColor     String      @default("var(--avatar-3)") // fixture placeholder swatch
   durationSeconds    Int? // set for VIDEO assets — drives the mock player's scrubber length
   status             AssetStatus @default(IN_REVIEW)
+  /// The latest version number (any state; staff see it in the quality check).
   version            Int         @default(1)
+  /// The version the client has, or null if nothing was ever sent: a null asset is invisible to clients
+  /// (src/lib/qc/visibility.ts). The file fields above always hold this version's file once it's set.
+  sentVersion        Int?
   performanceCtr     Float?
   performanceScore   Int?
   tags               Json?
   createdAt          DateTime    @default(now())
 
-  project  Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  client   Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  project  Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  client   Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
   comments Comment[]
+  versions AssetVersion[]
+}
+
+/// draft → checking → qc_ready (Klingit only) → sent_to_client → approved / changes_requested.
+/// A client never sees a version before SENT_TO_CLIENT (src/lib/qc/visibility.ts).
+enum AssetVersionState {
+  DRAFT
+  CHECKING
+  QC_READY
+  SENT_TO_CLIENT
+  APPROVED
+  CHANGES_REQUESTED
+}
+
+/// One uploaded file of an asset. The Brand OS check runs on every new version (src/lib/qc/brand-check.ts).
+model AssetVersion {
+  id               String            @id @default(cuid())
+  assetId          String
+  projectId        String
+  number           Int
+  state            AssetVersionState @default(DRAFT)
+  storageKey       String?
+  mimeType         String?
+  sizeBytes        Int?
+  fileUrl          String?
+  width            Int?
+  height           Int?
+  uploadedByUserId String?
+  /// The checks that ran: [{ key, label, source, passed }]. Staff only; clients get labels via the chip.
+  checks           Json?
+  checkRunId       String?
+  checkedAt        DateTime?
+  sentAt           DateTime?
+  sentByUserId     String?
+  createdAt        DateTime          @default(now())
+
+  asset Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  flags QcFlag[]
+
+  @@unique([assetId, number])
+  @@index([projectId, state])
+}
+
+enum QcFlagStatus {
+  OPEN
+  SENT_TO_DESIGNER
+  ACCEPTED
+}
+
+/// A failed check on one version. Staff only: never shown or counted on a client screen.
+model QcFlag {
+  id               String       @id @default(cuid())
+  versionId        String
+  projectId        String
+  checkKey         String
+  /// Short, under the cell: "Text crop".
+  label            String
+  /// One line in the panel: "headline is cropped".
+  detail           String
+  /// Where the rule comes from: "Size check", "Brand OS · voice rules".
+  source           String
+  status           QcFlagStatus @default(OPEN)
+  /// Required to accept as is; logged in the decision log too.
+  reason           String?
+  /// Raised after the version was sent (e.g. the Brand OS changed): goes to the PM, never the client.
+  late             Boolean      @default(false)
+  resolvedByUserId String?
+  resolvedAt       DateTime?
+  createdAt        DateTime     @default(now())
+
+  version AssetVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, status])
 }
 
 enum CommentKind {

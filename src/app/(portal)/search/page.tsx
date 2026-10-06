@@ -10,6 +10,7 @@ import { SectionCard, CardRows } from "@/components/ds/card";
 import { StatusPill } from "@/components/ds/status-pill";
 import { EmptyState } from "@/components/ds/empty-state";
 import { AssetTile } from "@/components/portal/asset-tile";
+import { clientVisibleAsset } from "@/lib/qc/visibility";
 
 /** Search results across projects, assets and agents. */
 export default async function SearchPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
@@ -25,6 +26,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
         prisma.asset.findMany({
           where: {
             clientId: viewer.clientId,
+            ...clientVisibleAsset,
             OR: [{ name: { contains: query } }, { format: { contains: query } }],
             project: { is: projectVisibilityWhere(viewer.id) },
           },

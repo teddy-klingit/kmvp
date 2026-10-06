@@ -7,6 +7,7 @@
 import { PrismaClient } from "../../src/generated/prisma";
 import { PIPELINE_STAGE_ORDER } from "../../src/lib/labels";
 import { seedContentPlan } from "./seed-content-plan";
+import { ensureAssetVersions } from "../../src/lib/qc/backfill";
 
 if (!process.env.DATABASE_URL?.includes("screens.db")) {
   throw new Error("Refusing to run: point DATABASE_URL at the local screens.db screenshot database.");
@@ -313,6 +314,7 @@ async function main() {
   });
 
   await seedContentPlan(prisma);
+  await ensureAssetVersions(prisma);
 
   console.log("Stage demo projects:", { briefing: deck.id, awaiting_approval: investor.id, production: q3.id, final: holiday.id });
 }

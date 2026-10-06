@@ -45,6 +45,7 @@ import {
   type FormatStat,
   type PlannerContext,
 } from "@/lib/brief-studio/planner";
+import { clientVisibleAsset } from "@/lib/qc/visibility";
 
 /**
  * The Brief studio on the server. Not a "use server" module: everything here takes a viewer the caller resolved
@@ -98,7 +99,7 @@ export async function similarPastProjects(clientId: string, viewerClientUserId: 
   const projects = await prisma.project.findMany({
     // Past work only: not drafts, and not drafts that were archived before they were ever sent.
     where: { clientId, status: { notIn: ["DRAFT"] }, NOT: { status: "ARCHIVED", startedAt: null }, agentBuild: false, ...(q.excludeProjectId ? { id: { not: q.excludeProjectId } } : {}), ...projectVisibilityWhere(viewerClientUserId) },
-    include: { brief: { select: { rawIntake: true, goals: true, sections: true } }, assets: { select: { id: true, name: true, format: true, platform: true, performanceCtr: true } } },
+    include: { brief: { select: { rawIntake: true, goals: true, sections: true } }, assets: { where: clientVisibleAsset, select: { id: true, name: true, format: true, platform: true, performanceCtr: true } } },
     orderBy: { createdAt: "desc" },
     take: 50,
   });
@@ -132,7 +133,7 @@ export async function similarPastProjects(clientId: string, viewerClientUserId: 
 /** Latest measured CTR per format: the most recent project that measured that format, its best asset. */
 async function formatStatsFor(clientId: string, viewerClientUserId: string): Promise<FormatStat[]> {
   const assets = await prisma.asset.findMany({
-    where: { clientId, performanceCtr: { not: null }, project: projectVisibilityWhere(viewerClientUserId) },
+    where: { clientId, performanceCtr: { not: null }, ...clientVisibleAsset, project: projectVisibilityWhere(viewerClientUserId) },
     select: { format: true, performanceCtr: true, project: { select: { name: true, createdAt: true } } },
   });
   const best = new Map<string, { ctr: number; projectName: string; at: number }>();

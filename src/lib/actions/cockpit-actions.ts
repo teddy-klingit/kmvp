@@ -1,6 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import { addAssetVersion } from "@/lib/qc/quality-check";
+import { runBrandCheck } from "@/lib/qc/brand-check";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { signIn } from "@/lib/auth";
@@ -429,6 +432,7 @@ export async function updateDatesAction(_prev: CockpitState, formData: FormData)
 export async function uploadAssetAction(_prev: CockpitState, formData: FormData): Promise<CockpitState> {
   const viewer = await requireOpsRole(["ADMIN", "PM", "CREATOR"]);
   const projectId = String(formData.get("projectId") ?? "");
+  const assetId = String(formData.get("assetId") ?? "") || null;
   const file = formData.get("file");
   const name = String(formData.get("name") ?? "").trim();
   const format = String(formData.get("format") ?? "").trim();
@@ -437,68 +441,17 @@ export async function uploadAssetAction(_prev: CockpitState, formData: FormData)
   if (!(file instanceof File) || file.size === 0) return { error: "Choose a file to upload." };
   const rejected = rejectUpload(file);
   if (rejected) return { error: rejected };
-  if (!name || !format) return { error: "Add a title and a format." };
+  if (!assetId && (!name || !format)) return { error: "Add a title and a format." };
 
   const saved = await saveUpload(projectId, file);
-  const asset = await prisma.asset.create({
-    data: {
-      projectId,
-      clientId: project.clientId,
-      name,
-      format,
-      type: file.type.startsWith("video/") ? "VIDEO" : "IMAGE",
-      status: "IN_REVIEW",
-      storageKey: saved.storageKey,
-      mimeType: saved.mimeType,
-      sizeBytes: saved.sizeBytes,
-      uploadedByUserId: viewer.userId,
-      fileUrl: null,
-    },
-  });
-  await prisma.asset.update({ where: { id: asset.id }, data: { fileUrl: `/api/assets/${asset.id}/download?inline=1` } });
-  await logDecision({ projectId, actorUserId: viewer.userId, area: "assets", action: `Uploaded ${name}`, after: { assetId: asset.id, sizeBytes: saved.sizeBytes, mimeType: saved.mimeType } });
+  const version = await addAssetVersion({ projectId, clientId: project.clientId, assetId, name, format, file: saved, uploadedByUserId: viewer.userId });
+  if (!version) return { error: "That asset isn't in this project." };
+  const asset = await prisma.asset.findUniqueOrThrow({ where: { id: version.assetId } });
+  await logDecision({ projectId, actorUserId: viewer.userId, area: "assets", action: `Uploaded ${asset.name} v${version.number}`, after: { assetId: asset.id, version: version.number, sizeBytes: saved.sizeBytes, mimeType: saved.mimeType } });
+  // The Brand OS check runs behind the response; the version is "checking" until it's done.
+  after(() => runBrandCheck(version.id));
   revalidate(projectId);
-  return { ok: `${name} uploaded. It goes to the client when you send the delivery.` };
-}
-
-/** Klingit's own QA, before the client sees the work: approve or send back for a revision. */
-export async function opsReviewAssetAction(formData: FormData) {
-  const viewer = await requireOpsRole(["ADMIN", "PM"]);
-  const projectId = String(formData.get("projectId") ?? "");
-  const assetId = String(formData.get("assetId") ?? "");
-  const decision = String(formData.get("decision") ?? "");
-  const note = String(formData.get("note") ?? "").trim();
-  const asset = await prisma.asset.findFirst({ where: { id: assetId, projectId, status: { in: ["IN_REVIEW", "CHANGES_REQUESTED", "APPROVED"] } } });
-  if (!asset || (decision !== "approve" && decision !== "revise")) return;
-  const status = decision === "approve" ? "APPROVED" : "CHANGES_REQUESTED";
-  if (asset.status === status) return;
-  await prisma.asset.update({ where: { id: assetId }, data: { status, ...(decision === "revise" ? { version: { increment: 1 } } : {}) } });
-  await logDecision({
-    projectId,
-    actorUserId: viewer.userId,
-    area: "assets",
-    action: decision === "approve" ? `Approved ${asset.name}` : `Requested a revision on ${asset.name}`,
-    before: { status: asset.status },
-    after: { status },
-    reason: note || null,
-  });
-  if (decision === "revise" && note) {
-    await createStaffNote(projectId, `Revision on ${asset.name}: ${note}`);
-  }
-  revalidate(projectId);
-}
-
-export async function opsBatchApproveAction(formData: FormData) {
-  const viewer = await requireOpsRole(["ADMIN", "PM"]);
-  const projectId = String(formData.get("projectId") ?? "");
-  const project = await activeProject(projectId);
-  if (!project) return;
-  // Before delivery IN_REVIEW is internal QA; once the client has the work, approving is theirs.
-  if (project.status === "AWAITING_REVIEW") return;
-  const result = await prisma.asset.updateMany({ where: { projectId, status: "IN_REVIEW" }, data: { status: "APPROVED" } });
-  if (result.count === 0) return;
-  await logDecision({ projectId, actorUserId: viewer.userId, area: "assets", action: `Approved ${result.count} assets in QA` });
-  revalidate(projectId);
+  return { ok: `${asset.name} v${version.number} uploaded. The Brand OS check is running; it goes to the client only from the quality check.` };
 }
 
 // ─── Conversation ──────────────────────────────────────────────────────────

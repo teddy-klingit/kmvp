@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { projectVisibilityWhere } from "@/lib/project-visibility";
 import { readUpload, extensionFor } from "@/lib/uploads";
 import { assetTitle, formatLabel } from "@/lib/asset-display";
+import { isClientVisibleVersion } from "@/lib/qc/visibility";
 
 const AVATAR_HEX: Record<string, string> = {
   "--avatar-1": "#e0447a",
@@ -20,7 +21,7 @@ function slug(s: string) {
 }
 
 /**
- * Who may fetch an asset's file: Klingit staff, or a member of the asset's client.
+ * Who may fetch an asset's file: Klingit staff, or a member of the asset's client once it was sent to them.
  * Returns the asset or null — callers answer 404 either way, so ids can't be probed.
  */
 export async function findDownloadableAsset(assetId: string) {
@@ -29,7 +30,20 @@ export async function findDownloadableAsset(assetId: string) {
   const asset = await prisma.asset.findUnique({ where: { id: assetId } });
   if (!asset) return null;
   if (session.user.role === "INTERNAL") return asset;
+  // Nothing in Klingit's quality check reaches a client: an asset never sent is not there for them.
+  if (asset.sentVersion === null) return null;
   return (await clientCanSeeProject(session.user.id, asset.projectId)) ? asset : null;
+}
+
+/** One version's file: any version for staff; for a client, only versions that were sent to them. */
+export async function findDownloadableVersion(assetId: string, number: number) {
+  const session = await auth();
+  if (!session?.user || !Number.isInteger(number)) return null;
+  const version = await prisma.assetVersion.findUnique({ where: { assetId_number: { assetId, number } }, include: { asset: true } });
+  if (!version) return null;
+  if (session.user.role === "INTERNAL") return version;
+  if (!isClientVisibleVersion(version.state)) return null;
+  return (await clientCanSeeProject(session.user.id, version.asset.projectId)) ? version : null;
 }
 
 /** A client user may see a project of their own company, unless it's confidential and not shared with them. */

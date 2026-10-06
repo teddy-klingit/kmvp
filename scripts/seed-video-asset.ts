@@ -1,4 +1,5 @@
 import { prisma } from "../src/lib/prisma";
+import { ensureAssetVersions } from "../src/lib/qc/backfill";
 
 async function main() {
   const project = await prisma.project.findFirstOrThrow({ where: { name: "Q3 App install campaign" } });
@@ -38,6 +39,7 @@ async function main() {
     ],
   });
 
+  await ensureAssetVersions(prisma);
   console.log("Seeded video asset with timestamp comments:", video.id);
 }
 

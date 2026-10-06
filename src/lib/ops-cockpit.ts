@@ -87,7 +87,7 @@ export async function loadCockpit(projectId: string) {
           },
         },
         team: { include: { members: { include: { staffMember: { include: { user: true } } } } } },
-        assets: { orderBy: { createdAt: "asc" } },
+        assets: { orderBy: { createdAt: "asc" }, include: { versions: { orderBy: { number: "desc" }, take: 1, include: { flags: { select: { status: true, late: true } } } } } },
         pipelineStages: { orderBy: { order: "asc" } },
       },
     }),

@@ -7,6 +7,7 @@ import { postProjectEvent } from "@/lib/project-events";
 import { loadProjectConversation } from "@/lib/project-conversation";
 import { getPortalViewer } from "@/lib/current-viewer";
 import type { AssetStatus, ProjectStatus } from "@/generated/prisma";
+import { ensureAssetVersions } from "@/lib/qc/backfill";
 
 type Fx = Awaited<ReturnType<typeof createSecurityFixtures>>;
 let fx: Fx;
@@ -31,6 +32,8 @@ async function projectWith(status: ProjectStatus, assets: AssetStatus[]) {
   for (const [i, s] of assets.entries()) {
     created.push(await prisma.asset.create({ data: { projectId: project.id, clientId: fx.clientA.id, name: `Asset ${i + 1}`, format: "Static 1:1", status: s } }));
   }
+  // Their first versions: sent if the project is with the client, else still in the quality check.
+  await ensureAssetVersions(prisma);
   return { project, assets: created };
 }
 

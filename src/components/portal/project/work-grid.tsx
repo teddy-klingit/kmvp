@@ -15,7 +15,7 @@ const STATUS: Record<string, { label: string; tone: PillTone }> = {
   DELIVERED: { label: "Delivered", tone: "success" },
   ARCHIVED: { label: "Archived", tone: "neutral" },
 };
-const IN_QA = { label: "Klingit is checking", tone: "neutral" as PillTone };
+const IN_QA = { label: "With Klingit", tone: "neutral" as PillTone };
 
 /** Uniform 3-column asset cards: 4:3 thumbnail with the status pill, title + format below, actions in the footer. */
 export function WorkGrid({

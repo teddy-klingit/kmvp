@@ -235,7 +235,11 @@ describe.each(STAGES)("stage %s — every surface agrees", (stage) => {
       expect(t).not.toContain("in review");
       expect(t).not.toContain("Needs your review");
     }
-    if (stage === "production") expect(t).toContain("Klingit is checking");
+    // Work still in Klingit's quality check is invisible to the client: not even its name.
+    if (stage === "production") {
+      expect(t).toContain("Nothing to review yet");
+      expect(t).not.toContain("Internal draft slide");
+    }
     if (stage === "final" || stage === "closed") expect(t).toContain("Delivery package");
     if (stage !== "review") expect(t).not.toContain("Request changes");
     for (const bad of NEVER_ANYWHERE) expect(t).not.toContain(bad);

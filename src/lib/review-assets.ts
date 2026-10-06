@@ -2,12 +2,13 @@ import { prisma } from "@/lib/prisma";
 import { assetTitle, formatLabel } from "@/lib/asset-display";
 import type { AssetStatus } from "@/generated/prisma";
 import type { ReviewAsset } from "@/components/portal/asset-review-viewer";
+import { clientVisibleAsset } from "@/lib/qc/visibility";
 
 /** Assets with their pinned/timestamped comments, shaped for AssetReviewGrid. */
 export async function loadReviewAssets(projectId: string, clientId: string, statuses?: AssetStatus[]): Promise<ReviewAsset[]> {
   const [assets, comments] = await Promise.all([
     prisma.asset.findMany({
-      where: { projectId, clientId, ...(statuses ? { status: { in: statuses } } : {}) },
+      where: { projectId, clientId, ...clientVisibleAsset, ...(statuses ? { status: { in: statuses } } : {}) },
       orderBy: { createdAt: "asc" },
     }),
     prisma.comment.findMany({

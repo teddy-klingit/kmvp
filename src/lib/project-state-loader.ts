@@ -3,13 +3,15 @@ import type { Prisma } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
 import { projectVisibilityWhere } from "@/lib/project-visibility";
 import { getProjectState, type ProjectState, type ProjectStateInput } from "@/lib/project-state";
+import { clientVisibleAsset } from "@/lib/qc/visibility";
 
 /** The relations getProjectState needs — include this wherever a project's state is shown. */
 export const projectStateInclude = {
   brief: true,
   estimate: { select: { status: true, totalCredits: true, sentAt: true, expiresAt: true, respondedAt: true } },
   team: { include: { members: { include: { staffMember: { include: { user: true } } } } } },
-  assets: { select: { status: true } },
+  // Only what the client has: a version still in Klingit's quality check doesn't count for either side's state.
+  assets: { where: clientVisibleAsset, select: { status: true } },
   pipelineStages: { select: { name: true, completedAt: true, etaAt: true } },
 } satisfies Prisma.ProjectInclude;
 

@@ -10,6 +10,8 @@ import { WorkGrid } from "@/components/portal/project/work-grid";
 import { approveAllAssetsAction } from "@/lib/actions/project-actions";
 import { loadProjectState } from "@/lib/project-state-loader";
 import { loadReviewAssets } from "@/lib/review-assets";
+import { clientCheckSummary } from "@/lib/qc/quality-check";
+import { QualityChip } from "@/components/review/quality-chip";
 import { cn } from "@/lib/utils";
 
 const FILTERS = [
@@ -43,7 +45,7 @@ export default async function ProjectWorkPage({
     );
   }
 
-  const assets = await loadReviewAssets(id, viewer.clientId);
+  const [assets, checks] = await Promise.all([loadReviewAssets(id, viewer.clientId), clientCheckSummary(id)]);
   if (assets.length === 0) {
     return (
       <Card>
@@ -85,6 +87,7 @@ export default async function ProjectWorkPage({
           );
         })}
         <span className="flex-1" />
+        <QualityChip total={checks.total} items={checks.items} />
         {canReview && state.assetsAwaitingReview >= 2 && (
           <form action={approveAllAssetsAction}>
             <input type="hidden" name="projectId" value={id} />

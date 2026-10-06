@@ -14,10 +14,11 @@ import {
   synthesizeTrendBrief,
   estimateCategoryBenchmark,
 } from "@/lib/ai/agents/market-intelligence-agent";
+import { clientVisibleAsset } from "@/lib/qc/visibility";
 
 export async function findOwnTopFormat(clientId: string) {
   const topAsset = await prisma.asset.findFirst({
-    where: { clientId, performanceCtr: { not: null } },
+    where: { clientId, performanceCtr: { not: null }, ...clientVisibleAsset },
     orderBy: { performanceCtr: "desc" },
   });
   return topAsset && topAsset.performanceCtr !== null

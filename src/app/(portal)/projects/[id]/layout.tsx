@@ -16,6 +16,7 @@ import { loadProjectState } from "@/lib/project-state-loader";
 import { loadProjectConversation } from "@/lib/project-conversation";
 import { postCommentAction } from "@/lib/actions/project-actions";
 import { markChannelReadAction, postInternalMessageAction } from "@/lib/actions/conversation-actions";
+import { clientVisibleAsset } from "@/lib/qc/visibility";
 
 export default async function ProjectLayout({
   children,
@@ -33,7 +34,7 @@ export default async function ProjectLayout({
   scheduleAutopilot(id);
   const [conversation, assetCounts] = await Promise.all([
     loadProjectConversation(id, viewer, state.keyFacts.staffedTeam),
-    prisma.asset.groupBy({ by: ["status"], where: { projectId: id }, _count: true }),
+    prisma.asset.groupBy({ by: ["status"], where: { projectId: id, ...clientVisibleAsset }, _count: true }),
   ]);
   const total = assetCounts.reduce((n, a) => n + a._count, 0);
   const approved = assetCounts.filter((a) => a.status === "APPROVED" || a.status === "DELIVERED").reduce((n, a) => n + a._count, 0);

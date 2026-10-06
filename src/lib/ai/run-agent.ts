@@ -18,6 +18,8 @@ type RunAgentTaskArgs<T> = {
   summarize?: (data: T) => string;
   /** Grounds the answer in a real web search instead of only the model's parametric knowledge — costs more tokens/latency, use where the answer needs to reflect current reality. */
   webSearch?: boolean;
+  /** Images the agent looks at with the prompt (e.g. the asset under the Brand OS check), base64. */
+  images?: { mediaType: "image/png" | "image/jpeg" | "image/gif" | "image/webp"; data: string }[];
 };
 
 type RunAgentTaskResult<T> = { ok: true; data: T; runId: string } | { ok: false; error: string };
@@ -37,6 +39,7 @@ export async function runAgentTask<T>({
   schema,
   summarize,
   webSearch,
+  images,
 }: RunAgentTaskArgs<T>): Promise<RunAgentTaskResult<T>> {
   const agent = await prisma.agent.findUnique({ where: { key: agentKey } });
   if (!agent) {
@@ -54,7 +57,14 @@ export async function runAgentTask<T>({
       model: AGENT_MODEL,
       max_tokens: webSearch ? 8192 : 4096,
       system,
-      messages: [{ role: "user", content: prompt }],
+      messages: [
+        {
+          role: "user",
+          content: images?.length
+            ? [...images.map((img) => ({ type: "image" as const, source: { type: "base64" as const, media_type: img.mediaType, data: img.data } })), { type: "text" as const, text: prompt }]
+            : prompt,
+        },
+      ],
       output_config: { format: zodOutputFormat(schema) },
       ...(webSearch ? { tools: [{ type: "web_search_20260318", name: "web_search", max_uses: 3 }] } : {}),
     });

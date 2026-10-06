@@ -232,9 +232,9 @@ beforeAll(async () => {
   await prisma.brandOS.update({ where: { clientId: fx.clientA.id }, data: { audiencePersonas: [{ name: "Mobile-first Maja", description: "Everyday smart spenders, 22–34" }], usps: ["Pay in 3, no fees", "One app for every store"] } });
   // B has a measured Meta campaign that A must never see.
   const bProject = await prisma.project.create({ data: { clientId: fx.clientB.id, name: "B's Meta ads", type: "CAMPAIGN", status: "DELIVERED" } });
-  await prisma.asset.create({ data: { projectId: bProject.id, clientId: fx.clientB.id, name: "B hero", format: "Story 9:16", platform: "Instagram", performanceCtr: 9.9 } });
+  await prisma.asset.create({ data: { projectId: bProject.id, clientId: fx.clientB.id, name: "B hero", format: "Story 9:16", platform: "Instagram", performanceCtr: 9.9, sentVersion: 1 } });
   const aProject = await prisma.project.create({ data: { clientId: fx.clientA.id, name: "A's Meta ads", type: "CAMPAIGN", status: "DELIVERED" } });
-  await prisma.asset.create({ data: { projectId: aProject.id, clientId: fx.clientA.id, name: "A hero", format: "Story 9:16", platform: "Instagram", performanceCtr: 4.2 } });
+  await prisma.asset.create({ data: { projectId: aProject.id, clientId: fx.clientA.id, name: "A hero", format: "Story 9:16", platform: "Instagram", performanceCtr: 4.2, sentVersion: 1 } });
 });
 afterAll(async () => fx.cleanup());
 

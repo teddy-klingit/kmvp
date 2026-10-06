@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { PrismaClient, InternalRole, type Prisma } from "../src/generated/prisma";
 import { DEMO_DUE_IN_DAYS } from "./demo-dates";
+import { ensureAssetVersions } from "../src/lib/qc/backfill";
 
 const prisma = new PrismaClient();
 
@@ -578,6 +579,9 @@ async function main() {
   ]) {
     await sync(prisma.template, { clientId: t.clientId, name: t.name }, t);
   }
+
+  // Every seeded asset gets its first version: sent if its project is with the client, else in the quality check.
+  await ensureAssetVersions(prisma);
 
   console.log("Seed complete.");
   console.log("Demo password for every seeded user:", PASSWORD);

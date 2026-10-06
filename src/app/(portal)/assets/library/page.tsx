@@ -4,11 +4,12 @@ import { getPortalViewer } from "@/lib/current-viewer";
 import { AssetTile } from "@/components/portal/asset-tile";
 import { EmptyState } from "@/components/shared/empty-state";
 import { LibraryChips } from "@/components/portal/library-chips";
+import { clientVisibleAsset } from "@/lib/qc/visibility";
 
 export default async function AssetsAllPage() {
   const viewer = await getPortalViewer();
   const assets = await prisma.asset.findMany({
-    where: { clientId: viewer.clientId },
+    where: { clientId: viewer.clientId, ...clientVisibleAsset },
     include: { project: true },
     orderBy: { createdAt: "desc" },
   });

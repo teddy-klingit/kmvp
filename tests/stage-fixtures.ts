@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { PIPELINE_STAGE_ORDER } from "@/lib/labels";
 import type { PipelineStageName, ProjectStatus, StageStatus } from "@/generated/prisma";
+import { ensureAssetVersions } from "@/lib/qc/backfill";
 
 export type StageKey =
   | "briefing"
@@ -51,6 +52,8 @@ export async function createStageFixtures() {
 
   async function asset(projectId: string, name: string, status: "IN_REVIEW" | "APPROVED" | "CHANGES_REQUESTED" | "DELIVERED") {
     await prisma.asset.create({ data: { projectId, clientId: client.id, name, format: "Slide 16:9", status } });
+    // Its first version: sent when the project is already with the client, else still in Klingit's quality check.
+    await ensureAssetVersions(prisma);
   }
 
   async function confirmedTeam(projectId: string, confirmedAt: Date) {

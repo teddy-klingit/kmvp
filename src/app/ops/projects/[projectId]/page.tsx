@@ -28,8 +28,6 @@ import { BriefEditForm, DatesForm, RegenerateEstimateButton, UploadAssetForm } f
 import {
   addTeamMemberAction,
   confirmTeamAction,
-  opsBatchApproveAction,
-  opsReviewAssetAction,
   removeTeamMemberAction,
   sendEstimateAction,
   setAutopilotAction,
@@ -39,7 +37,7 @@ import {
   updateTeamMemberAction,
   viewAsClientAction,
 } from "@/lib/actions/cockpit-actions";
-import { acceptBriefAsIsAction, requestBriefFromClientAction, sendDeliveryToClientAction, sendSignOffReminderAction } from "@/lib/actions/ops-pipeline-actions";
+import { acceptBriefAsIsAction, requestBriefFromClientAction, sendSignOffReminderAction } from "@/lib/actions/ops-pipeline-actions";
 import { cn, jsonArray } from "@/lib/utils";
 import { DEMO_PERSONAS } from "@/lib/demo-personas";
 import { prisma } from "@/lib/prisma";
@@ -596,11 +594,14 @@ function StaffingStep({ c, canEdit, editing, base }: { c: Cockpit; canEdit: bool
 
 // ─── Production · Review · Delivery ────────────────────────────────────────
 
-const ASSET_PILL: Record<string, { label: string; tone: PillTone }> = {
-  IN_REVIEW: { label: "In QA", tone: "neutral" },
+/** The latest version's state, as staff see it (the client only ever sees sent versions). */
+const VERSION_PILL: Record<string, { label: string; tone: PillTone }> = {
+  DRAFT: { label: "With the designer", tone: "changes" },
+  CHECKING: { label: "Checking", tone: "neutral" },
+  QC_READY: { label: "Quality check", tone: "turn" },
+  SENT_TO_CLIENT: { label: "With client", tone: "neutral" },
   APPROVED: { label: "Approved", tone: "success" },
-  CHANGES_REQUESTED: { label: "Revision", tone: "changes" },
-  DELIVERED: { label: "Delivered", tone: "success" },
+  CHANGES_REQUESTED: { label: "Changes asked", tone: "changes" },
 };
 
 const ETA_LABEL = [
@@ -617,7 +618,16 @@ async function DeliveryStep({ c, canEdit, tier, editingDates, base }: { c: Cockp
   const inProduction = project.status === "IN_PRODUCTION" || project.status === "QA";
   const eta = (name: string) => project.pipelineStages.find((s) => s.name === name)?.etaAt ?? null;
   const assets = project.assets.filter((a) => a.status !== "ARCHIVED");
-  const counts = { qa: assets.filter((a) => a.status === "IN_REVIEW").length, approved: assets.filter((a) => a.status === "APPROVED").length, revise: assets.filter((a) => a.status === "CHANGES_REQUESTED").length };
+  const latest = (a: (typeof assets)[number]) => a.versions[0];
+  const qcReady = assets.filter((a) => latest(a)?.state === "QC_READY");
+  const qcFlags = assets.reduce((n, a) => n + (latest(a)?.flags.filter((f) => f.status === "OPEN").length ?? 0), 0);
+  const lateFlags = assets.reduce((n, a) => n + (latest(a)?.flags.filter((f) => f.late && f.status === "OPEN").length ?? 0), 0);
+  const counts = {
+    qa: assets.filter((a) => ["CHECKING", "QC_READY", "DRAFT"].includes(latest(a)?.state ?? "")).length,
+    approved: assets.filter((a) => a.status === "APPROVED" && a.sentVersion !== null).length,
+    revise: assets.filter((a) => a.status === "CHANGES_REQUESTED").length,
+    withClient: assets.filter((a) => a.sentVersion !== null && a.status === "IN_REVIEW").length,
+  };
   const firstDraft = c.ops.state.keyFacts.firstDraftEta;
   const rows = [
     {
@@ -631,7 +641,7 @@ async function DeliveryStep({ c, canEdit, tier, editingDates, base }: { c: Cockp
     {
       name: "Review",
       status: (stage === "review" ? "current" : ["final", "closed"].includes(stage) ? "done" : "upcoming") as StepStatus,
-      detail: clientReviewing ? `The client is reviewing ${counts.qa} asset${counts.qa === 1 ? "" : "s"}.` : "The client reviews and comments on each asset. 2 rounds included.",
+      detail: clientReviewing ? `The client is reviewing ${counts.withClient} asset${counts.withClient === 1 ? "" : "s"}.` : "The client reviews and comments on each asset. 2 rounds included.",
       when: eta("FEEDBACK") ? `Est. ${shortDate(eta("FEEDBACK")!)}` : "After the first draft",
     },
     {
@@ -686,35 +696,17 @@ async function DeliveryStep({ c, canEdit, tier, editingDates, base }: { c: Cockp
         </div>
       )}
 
-      {/* Assets: upload (Admin, PM, Creator), Klingit QA per asset, batch approve, send to the client. */}
+      {/* Assets: upload (Admin, PM, Creator) → Brand OS check → the quality check, which is where work is sent to the client. */}
       <div className="flex flex-col gap-4 border-t border-ds-divider px-6 py-5">
         <div className="flex flex-wrap items-center gap-2">
           <h3 className="m-0 flex-1 text-[15px] font-semibold text-ds-text">Assets</h3>
-          {canEdit && inProduction && counts.qa >= 2 && (
-            <form action={opsBatchApproveAction}>
-              <input type="hidden" name="projectId" value={project.id} />
-              <Button type="submit" variant="secondary" size="sm">
-                Approve {counts.qa} in QA
-              </Button>
-            </form>
-          )}
-          {canEdit && inProduction && counts.approved > 0 && counts.qa === 0 && (
-            <form action={sendDeliveryToClientAction}>
-              <input type="hidden" name="projectId" value={project.id} />
-              <input type="hidden" name="clientId" value={project.clientId} />
-              <Button type="submit" variant="primary" size="sm">
-                Send {project.deliveredAt ? "the revision" : "first draft"} to client
-              </Button>
-            </form>
-          )}
-          {canEdit && clientReviewing && counts.revise > 0 && (
-            <form action={sendDeliveryToClientAction}>
-              <input type="hidden" name="projectId" value={project.id} />
-              <input type="hidden" name="clientId" value={project.clientId} />
-              <Button type="submit" variant="secondary" size="sm">
-                Send revisions to client
-              </Button>
-            </form>
+          {assets.length > 0 && (
+            <Button asChild variant={qcReady.length > 0 || lateFlags > 0 ? "primary" : "secondary"} size="sm">
+              <Link href={`/ops/projects/${project.id}/qc`}>
+                Quality check
+                {qcReady.length > 0 ? ` · ${qcReady.length} ready${qcFlags ? ` · ${qcFlags} to look at` : ""}` : lateFlags > 0 ? ` · ${lateFlags} late flag${lateFlags === 1 ? "" : "s"}` : ""}
+              </Link>
+            </Button>
           )}
           {canEdit && stage === "final" && (
             <form action={sendSignOffReminderAction}>
@@ -733,7 +725,7 @@ async function DeliveryStep({ c, canEdit, tier, editingDates, base }: { c: Cockp
         ) : (
           <ul className="m-0 flex list-none flex-col gap-2 p-0">
             {assets.map((a) => {
-              const pill = clientReviewing && a.status === "IN_REVIEW" ? { label: "With client", tone: "turn" as PillTone } : (ASSET_PILL[a.status] ?? ASSET_PILL.IN_REVIEW);
+              const pill = VERSION_PILL[latest(a)?.state ?? "QC_READY"] ?? VERSION_PILL.QC_READY;
               return (
                 <li key={a.id} id={`asset-${a.id}`} className="flex items-center gap-3 rounded-[10px] border border-ds-divider p-2.5">
                   <span className="flex size-12 shrink-0 items-center justify-center rounded-[8px]" style={{ backgroundColor: `color-mix(in srgb, ${a.thumbnailColor} 16%, white)` }}>
@@ -743,6 +735,7 @@ async function DeliveryStep({ c, canEdit, tier, editingDates, base }: { c: Cockp
                     <span className="truncate text-[14px] font-medium text-ds-text">{assetTitle(a.name, a.format)}</span>
                     <span className="text-[12px] text-ds-text-2">
                       {formatLabel(a.format)} · v{a.version}
+                      {a.sentVersion !== null && a.sentVersion !== a.version ? ` · client has v${a.sentVersion}` : ""}
                       {commentCount(a.id) ? ` · ${commentCount(a.id)} comment${commentCount(a.id) === 1 ? "" : "s"}` : ""}
                       {a.changeRequestCount > 0 ? ` · ${a.changeRequestCount}× changes asked` : ""}
                     </span>
@@ -753,32 +746,12 @@ async function DeliveryStep({ c, canEdit, tier, editingDates, base }: { c: Cockp
                       <Download strokeWidth={1.75} />
                     </a>
                   </Button>
-                  {canEdit && inProduction && a.status !== "APPROVED" && (
-                    <form action={opsReviewAssetAction}>
-                      <input type="hidden" name="projectId" value={project.id} />
-                      <input type="hidden" name="assetId" value={a.id} />
-                      <input type="hidden" name="decision" value="approve" />
-                      <Button type="submit" variant="secondary" size="sm">
-                        Approve
-                      </Button>
-                    </form>
-                  )}
-                  {canEdit && inProduction && a.status !== "CHANGES_REQUESTED" && (
-                    <form action={opsReviewAssetAction}>
-                      <input type="hidden" name="projectId" value={project.id} />
-                      <input type="hidden" name="assetId" value={a.id} />
-                      <input type="hidden" name="decision" value="revise" />
-                      <Button type="submit" variant="ghost" size="sm">
-                        Request revision
-                      </Button>
-                    </form>
-                  )}
                 </li>
               );
             })}
           </ul>
         )}
-        {(tier === "ADMIN" || tier === "PM" || tier === "CREATOR") && ["production", "review", "final"].includes(stage) && <UploadAssetForm projectId={project.id} />}
+        {(tier === "ADMIN" || tier === "PM" || tier === "CREATOR") && ["production", "review", "final"].includes(stage) && <UploadAssetForm projectId={project.id} assets={assets.map((a) => ({ id: a.id, label: `${assetTitle(a.name, a.format)} · ${formatLabel(a.format)} (v${a.version})` }))} />}
       </div>
     </section>
   );

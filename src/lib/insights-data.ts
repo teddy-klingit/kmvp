@@ -12,6 +12,7 @@ import { computeContentKpis } from "@/lib/content-calendar-metrics";
 import { assetTitle } from "@/lib/asset-display";
 import { jsonArray } from "@/lib/utils";
 import type { PerformanceAction, Takeaway } from "@/lib/ai/agents/performance-agent";
+import { clientVisibleAsset } from "@/lib/qc/visibility";
 
 /**
  * Data shared by the Insights header and tabs. Each loader is cached per request (React cache), so the
@@ -83,7 +84,7 @@ export function assetThumbnail(a: { fileUrl: string | null; mimeType: string | n
 
 /** Delivered assets with a measured CTR, with display names. */
 export const loadMeasuredAssets = cache(async (clientId: string) => {
-  const assets = await prisma.asset.findMany({ where: { clientId }, include: { project: { select: { name: true } } }, orderBy: { createdAt: "asc" } });
+  const assets = await prisma.asset.findMany({ where: { clientId, ...clientVisibleAsset }, include: { project: { select: { name: true } } }, orderBy: { createdAt: "asc" } });
   return {
     all: assets.map((a) => ({ ...a, displayTitle: assetTitle(a.name, a.format) })),
     measured: assets

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { sendToClient } from "@/lib/qc/quality-check";
 import { requireOpsRole } from "@/lib/authz";
 import { postProjectEvent } from "@/lib/project-events";
 import { addBusinessDays, formatDay, FIRST_DRAFT_BUSINESS_DAYS } from "@/lib/project-state";
@@ -151,26 +152,15 @@ export async function passQaSendToDeliveryAction(formData: FormData) {
   revalidateClient(clientId);
 }
 
+/** The delivery goes through the quality check gate (src/lib/qc/quality-check.ts): only checked work is sent. */
 export async function sendDeliveryToClientAction(formData: FormData) {
-  await requireOpsRole(["ADMIN", "PM"]);
+  const viewer = await requireOpsRole(["ADMIN", "PM"]);
   const projectId = String(formData.get("projectId") ?? "");
   const clientId = String(formData.get("clientId") ?? "");
 
   const project = await prisma.project.findFirst({ where: { id: projectId, clientId } });
   if (!project) return;
-
-  // QA approval also writes APPROVED, so on the first delivery every asset goes
-  // to the client for review. On later rounds, keep what the client already approved.
-  const firstDelivery = !project.deliveredAt;
-  await prisma.asset.updateMany({
-    where: { projectId, status: firstDelivery ? { in: ["APPROVED", "CHANGES_REQUESTED"] } : "CHANGES_REQUESTED" },
-    data: { status: "IN_REVIEW" },
-  });
-  await completeStage(projectId, "FIRST_DRAFT_DELIVERY");
-  await activateStage(projectId, "FEEDBACK");
-  await prisma.project.update({ where: { id: projectId }, data: { status: "AWAITING_REVIEW", deliveredAt: new Date() } });
-
-  await postProjectEvent(projectId, "First draft delivered");
+  await sendToClient(projectId, viewer.userId);
   revalidateClient(clientId);
 }
 

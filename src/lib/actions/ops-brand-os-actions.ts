@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+import { recheckSentVersions } from "@/lib/qc/brand-check";
 import { prisma } from "@/lib/prisma";
 import { requireOpsRole } from "@/lib/authz";
 
@@ -36,4 +38,6 @@ export async function updateBrandOSAction(formData: FormData) {
   });
 
   revalidatePath(`/ops/clients/${clientId}/brand-os`);
+  // Work the client already has is checked again against the new rules; anything that now fails goes to the PM.
+  after(() => recheckSentVersions(clientId).catch(() => 0));
 }

@@ -631,7 +631,7 @@ function VideoViewer({ asset, projectId, index, total, onPrev, onNext, onClose }
             <span>
               {formatTime(currentTime)} / {formatTime(duration)}
             </span>
-            <span>{timeComments.length} moment{timeComments.length === 1 ? "" : "s"} flagged</span>
+            <span>{timeComments.length} moment{timeComments.length === 1 ? "" : "s"} commented</span>
           </div>
 
           <form action={submitComment} className="flex gap-2 pt-1">
