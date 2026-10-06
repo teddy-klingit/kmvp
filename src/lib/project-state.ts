@@ -307,7 +307,8 @@ function stageFor(input: ProjectStateInput, status: ProjectStatus, brief: BriefP
           nextAction: {
             label: `Your turn: review ${plural(inReview, "asset")}`,
             description: "Approve each asset or comment directly on it to ask for changes.",
-            href: reviewHref,
+            // The review itself (one full-screen review per format), not the project page.
+            href: base.replace("/projects/", "/review/"),
             cta: "Review assets",
           },
         };
@@ -509,7 +510,7 @@ export function legacyTabRedirect(tab: LegacyTab, projectId: string, state: Pick
     case "estimate":
       return state.stage === "awaiting_approval" ? base : `${base}/scope#estimate`;
     case "review":
-      return state.stage === "review" ? base : `${base}/work`;
+      return state.stage === "review" ? `/review/${projectId}` : `${base}/work`;
     case "final":
       return state.stage === "final" ? base : `${base}/work`;
     case "assets":

@@ -505,9 +505,10 @@ export async function seedOuhers(opts: { dir?: string; shift?: boolean; log?: (s
     // Comments: pins (x/y 0–1 → %), regions and the whole-set thread, all in the With Klingit channel.
     for (const c of pr.comments ?? []) {
       const assetId = c.asset ? fileAsset.get(c.asset) ?? null : null;
+      // The first message starts the thread (with the pin); the rest reply to it. A note on the whole set is marked as one.
+      let rootId: string | null = null;
       for (const [i, m] of c.thread.entries()) {
-        // The pack has no messages in the client's internal channel (only src/lib/internal-messages.ts may write it).
-        await prisma.comment.create({
+        const row: { id: string } = await prisma.comment.create({
           data: {
             projectId: id,
             assetId,
@@ -518,9 +519,11 @@ export async function seedOuhers(opts: { dir?: string; shift?: boolean; log?: (s
             yPercent: i === 0 && c.y != null ? c.y * 100 : null,
             widthPercent: i === 0 && c.region ? c.region.w * 100 : null,
             heightPercent: i === 0 && c.region ? c.region.h * 100 : null,
+            ...(i > 0 && rootId ? { contextKind: "reply", contextRef: rootId } : !assetId ? { contextKind: "set" } : {}),
             createdAt: at(m.at),
           },
         });
+        if (i === 0) rootId = row.id;
       }
     }
     // Approvals: who approved, in the decision log.

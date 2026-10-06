@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ImageIcon } from "lucide-react";
 import { getPortalViewer } from "@/lib/current-viewer";
 import { Card } from "@/components/ds/card";
@@ -10,6 +10,7 @@ import { WorkGrid } from "@/components/portal/project/work-grid";
 import { approveAllAssetsAction } from "@/lib/actions/project-actions";
 import { loadProjectState } from "@/lib/project-state-loader";
 import { loadReviewAssets } from "@/lib/review-assets";
+import { KIND_LABEL, kindOf } from "@/lib/review";
 import { clientCheckSummary } from "@/lib/qc/quality-check";
 import { QualityChip } from "@/components/review/quality-chip";
 import { cn } from "@/lib/utils";
@@ -31,6 +32,8 @@ export default async function ProjectWorkPage({
 }) {
   const { id } = await params;
   const { filter = "all", asset } = await searchParams;
+  // An asset link (from a conversation chip or an email) opens it in the review.
+  if (asset) redirect(`/review/${id}?asset=${asset}`);
   const viewer = await getPortalViewer();
   const loaded = await loadProjectState(id, viewer.clientId, viewer.id);
   if (!loaded) notFound();
@@ -66,8 +69,20 @@ export default async function ProjectWorkPage({
   const active = filters.find((f) => f.key === filter) ?? filters[0];
   const shown = assets.filter((a) => active.match(a.status));
 
+  const kinds = (["adset", "slides", "video", "copy"] as const)
+    .map((k) => ({ k, n: assets.filter((a) => kindOf({ type: a.type, format: a.format }) === k).length }))
+    .filter((x) => x.n > 0);
+
   return (
     <div className="flex flex-col gap-5">
+      <Card className="flex flex-wrap items-center gap-3 px-5 py-4">
+        <span className="min-w-0 flex-1 text-[15px]">{canReview ? "Review the work full screen: pin comments, approve a concept or a slide, suggest copy." : "Open the work full screen with its comments."}</span>
+        {kinds.map((x, i) => (
+          <Link key={x.k} href={`/review/${id}?kind=${x.k}`} className={cn("inline-flex h-10 items-center rounded-full px-4 text-[13px] font-medium no-underline", i === 0 ? "bg-ds-text text-white" : "border border-ds-control-border bg-white text-ds-text hover:border-ds-text-3")}>
+            {KIND_LABEL[x.k]} · {x.n}
+          </Link>
+        ))}
+      </Card>
       <div className="flex flex-wrap items-center gap-2">
         {filters.map((f) => {
           const count = assets.filter((a) => f.match(a.status)).length;
@@ -98,7 +113,7 @@ export default async function ProjectWorkPage({
         )}
       </div>
       {shown.length > 0 ? (
-        <WorkGrid assets={shown} projectId={id} canReview={canReview} openAssetId={asset} />
+        <WorkGrid assets={shown} projectId={id} canReview={canReview} />
       ) : (
         <Card>
           <EmptyState title={`Nothing under “${active.label}”`} />

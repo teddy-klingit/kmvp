@@ -285,7 +285,7 @@ describe("old tab URLs redirect to their new home", () => {
     expect(at("brief", "production")).toBe("/projects/p/scope");
     expect(at("estimate", "awaiting_approval")).toBe("/projects/p");
     expect(at("estimate", "production")).toBe("/projects/p/scope#estimate");
-    expect(at("review", "review")).toBe("/projects/p");
+    expect(at("review", "review")).toBe("/review/p");
     expect(at("review", "briefing")).toBe("/projects/p/work");
     expect(at("final", "final")).toBe("/projects/p");
     expect(at("final", "briefing")).toBe("/projects/p/work");

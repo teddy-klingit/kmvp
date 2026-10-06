@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { ImageIcon, MessageCircle, Play } from "lucide-react";
 import { StatusPill, type PillTone } from "@/components/ds/status-pill";
 import { Button } from "@/components/ds/button";
 import { useConversation } from "@/components/ds/conversation-context";
-import { AssetViewerDialog, type ReviewAsset } from "@/components/portal/asset-review-viewer";
+import type { ReviewAsset } from "@/components/portal/asset-review-viewer";
+import { useRouter } from "next/navigation";
 import { approveAssetAction, requestAssetChangesAction } from "@/lib/actions/project-actions";
 
 const STATUS: Record<string, { label: string; tone: PillTone }> = {
@@ -22,24 +23,14 @@ export function WorkGrid({
   assets,
   projectId,
   canReview,
-  openAssetId,
 }: {
   assets: ReviewAsset[];
   projectId: string;
   canReview: boolean;
-  openAssetId?: string;
 }) {
-  const indexOf = (id?: string) => {
-    const i = id ? assets.findIndex((a) => a.id === id) : -1;
-    return i >= 0 ? i : null;
-  };
-  const [openIndex, setOpenIndex] = useState<number | null>(() => indexOf(openAssetId));
-  // A context chip in the conversation links to ?asset=…; open that asset when the link changes.
-  const [linkedAsset, setLinkedAsset] = useState(openAssetId);
-  if (openAssetId !== linkedAsset) {
-    setLinkedAsset(openAssetId);
-    if (indexOf(openAssetId) !== null) setOpenIndex(indexOf(openAssetId));
-  }
+  // Opening an asset goes to the full-screen review (one review per format), at that asset.
+  const router = useRouter();
+  const openAsset = (id: string) => router.push(`/review/${projectId}?asset=${id}`);
   const [, startTransition] = useTransition();
   const { open } = useConversation();
 
@@ -54,7 +45,7 @@ export function WorkGrid({
       {/* Column count follows the content column, not the viewport: the docked panel takes 380px of it. */}
       <div className="@container">
         <div className="grid grid-cols-1 gap-5 @[520px]:grid-cols-2 @[880px]:grid-cols-3">
-          {assets.map((a, i) => {
+          {assets.map((a) => {
             // Before delivery to the client, IN_REVIEW means Klingit's internal QA — not the client's turn.
             const status = a.status === "IN_REVIEW" && !canReview ? IN_QA : (STATUS[a.status] ?? STATUS.IN_REVIEW);
             const actionable = canReview && a.status === "IN_REVIEW";
@@ -62,7 +53,7 @@ export function WorkGrid({
               <article key={a.id} className="flex flex-col overflow-hidden rounded-[12px] border border-ds-border bg-ds-card shadow-ds">
                 <button
                   type="button"
-                  onClick={() => setOpenIndex(i)}
+                  onClick={() => openAsset(a.id)}
                   aria-label={`Open ${a.name}`}
                   className="relative flex aspect-[4/3] items-center justify-center border-b border-ds-divider"
                   style={{ backgroundColor: `color-mix(in srgb, ${a.thumbnailColor} 16%, white)` }}
@@ -117,7 +108,7 @@ export function WorkGrid({
                       </Button>
                     </>
                   ) : (
-                    <Button size="sm" variant="ghost" onClick={() => setOpenIndex(i)}>
+                    <Button size="sm" variant="ghost" onClick={() => openAsset(a.id)}>
                       Open
                     </Button>
                   )}
@@ -127,7 +118,6 @@ export function WorkGrid({
           })}
         </div>
       </div>
-      <AssetViewerDialog assets={assets} projectId={projectId} openIndex={openIndex} onOpenIndexChange={setOpenIndex} />
     </>
   );
 }

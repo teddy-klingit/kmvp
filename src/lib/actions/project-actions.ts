@@ -11,7 +11,7 @@ import { activateQueued } from "@/lib/active-slots";
 import type { SnapshotLine } from "@/lib/estimate-diff";
 import { postProjectEvent } from "@/lib/project-events";
 import { clientVisibleAsset } from "@/lib/qc/visibility";
-import type { Prisma } from "@/generated/prisma";
+import { approveSentVersions, settleReviewRound } from "@/lib/review-approvals";
 
 type EmptyState = Record<string, never>;
 const EMPTY: EmptyState = {};
@@ -131,26 +131,10 @@ export async function approveAssetAction(formData: FormData) {
   await approveSentVersions({ id: assetId });
   await settleReviewRound(asset.projectId);
   revalidatePath(`/projects/${asset.projectId}`, "layout");
+  revalidatePath(`/review/${asset.projectId}`);
 }
 
-/** The client approves the version they were sent: the asset and that version both read approved. */
-async function approveSentVersions(where: Prisma.AssetWhereInput) {
-  const assets = await prisma.asset.findMany({ where: { ...where, ...clientVisibleAsset }, select: { id: true, sentVersion: true } });
-  for (const a of assets) {
-    await prisma.$transaction([
-      prisma.asset.update({ where: { id: a.id }, data: { status: "APPROVED" } }),
-      prisma.assetVersion.updateMany({ where: { assetId: a.id, number: a.sentVersion! }, data: { state: "APPROVED" } }),
-    ]);
-  }
-}
 
-/** Once every asset is approved, the project moves on to final delivery. */
-async function settleReviewRound(projectId: string) {
-  const open = await prisma.asset.count({ where: { projectId, ...clientVisibleAsset, status: { in: ["IN_REVIEW", "CHANGES_REQUESTED"] } } });
-  if (open > 0) return;
-  const moved = await prisma.project.updateMany({ where: { id: projectId, status: "AWAITING_REVIEW" }, data: { status: "IN_FEEDBACK" } });
-  if (moved.count > 0) await postProjectEvent(projectId, "All assets approved");
-}
 
 export async function requestAssetChangesAction(formData: FormData) {
   const viewer = await getPortalViewer();
@@ -165,6 +149,7 @@ export async function requestAssetChangesAction(formData: FormData) {
   await prisma.asset.update({ where: { id: assetId }, data: { status: "CHANGES_REQUESTED", changeRequestCount: { increment: 1 } } });
   await prisma.assetVersion.updateMany({ where: { assetId, number: asset.sentVersion! }, data: { state: "CHANGES_REQUESTED" } });
   revalidatePath(`/projects/${asset.projectId}`, "layout");
+  revalidatePath(`/review/${asset.projectId}`);
 }
 
 export async function postCommentAction(formData: FormData) {
@@ -229,6 +214,7 @@ export async function postPinCommentAction(_prev: EmptyState, formData: FormData
   });
 
   revalidatePath(`/projects/${projectId}`, "layout");
+  revalidatePath(`/review/${projectId}`);
   return EMPTY;
 }
 
@@ -248,6 +234,7 @@ export async function postTimestampCommentAction(_prev: EmptyState, formData: Fo
   });
 
   revalidatePath(`/projects/${projectId}`, "layout");
+  revalidatePath(`/review/${projectId}`);
   return EMPTY;
 }
 

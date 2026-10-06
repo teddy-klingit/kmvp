@@ -34,7 +34,8 @@ export type ProjectConversation = {
 
 function contextHref(projectId: string, kind: string | null, ref: string | null) {
   const base = `/projects/${projectId}`;
-  if (kind === "asset" && ref) return `${base}/work?asset=${ref}`;
+  if (kind === "asset" && ref) return `/review/${projectId}?asset=${ref}`;
+  if (kind === "set") return `/review/${projectId}`;
   if (kind === "estimate_line" || kind === "estimate") return `${base}/scope#estimate`;
   if (kind === "brief") return `${base}/scope`;
   return base;
@@ -68,9 +69,11 @@ export async function loadProjectConversation(
 
   const klingit: ChatMessage[] = comments.map((c) => {
     const isStaff = !c.authorClientUserId && Boolean(c.author);
-    const contextLabel = c.contextLabel ?? (c.asset ? onLabel(assetTitle(c.asset.name, c.asset.format)) : null);
-    const contextKind = c.contextKind ?? (c.asset ? "asset" : null);
-    const contextRef = c.contextRef ?? c.assetId;
+    // A reply in a review thread points at its asset; a whole-set note at the review itself.
+    const reply = c.contextKind === "reply";
+    const contextLabel = c.contextKind === "set" ? "On the whole set" : (reply ? null : c.contextLabel) ?? (c.asset ? onLabel(assetTitle(c.asset.name, c.asset.format)) : null);
+    const contextKind = reply ? (c.asset ? "asset" : null) : (c.contextKind ?? (c.asset ? "asset" : null));
+    const contextRef = reply ? c.assetId : (c.contextRef ?? c.assetId);
     return {
       id: c.id,
       kind: c.kind,

@@ -8,6 +8,7 @@
  *   npx tsx scripts/screenshots/capture.ts i
  *   npx tsx scripts/screenshots/capture.ts home
  *   npx tsx scripts/screenshots/capture.ts insights   (every Insights tab, 1440 + 390)
+ *   npx tsx scripts/screenshots/capture.ts review   (the full-screen review: ad set, copy, slides, video)
  *   npx tsx scripts/screenshots/capture.ts qc | qc-sent   (the quality check, View as client, the client's Work page)
  *   npx tsx scripts/screenshots/capture.ts j1         (theme sweep: client + ops pages, 1440 + 390)
  *   npx tsx scripts/screenshots/capture.ts board      (Projects board v2: board, list, a refused drag, archived; 1440 + 390)
@@ -573,6 +574,30 @@ async function main() {
   if (phase === "studio") return phaseStudio();
   if (phase === "nav") return phaseNav();
   if (phase === "insights") return phaseList("screenshots/insights", INSIGHTS_PAGES);
+  if (phase === "review") {
+    // The full-screen review, one view per format: ouhers (Maja) for ad set, copy, carousel and storyboard; Klarna for video.
+    const prisma = new PrismaClient({ datasourceUrl: "file:./prisma/screens.db" });
+    const focus = await prisma.asset.findFirst({ where: { projectId: "ouhers-p04-q4-cloudcream", name: "for every face.", format: "Square 1:1" }, select: { id: true } });
+    const holiday = await prisma.project.findFirst({ where: { name: "Klarna Holiday Social Pack" }, select: { id: true } });
+    await prisma.$disconnect();
+    const q4 = "/review/ouhers-p04-q4-cloudcream";
+    await phaseList(
+      "screenshots/review",
+      [
+        ["01-adset-grid", `${q4}?kind=adset`],
+        ["02-adset-in-context", `${q4}?kind=adset&mode=context`],
+        ["03-adset-focus", `${q4}?asset=${focus?.id}`],
+        ["04-copy-suggest", `${q4}?kind=copy`],
+        ["05-copy-read", `${q4}?kind=copy&mode=read`],
+        ["06-carousel", "/review/ouhers-p03-lipours-shade-vote?kind=slides"],
+        ["07-storyboard-grid", "/review/ouhers-p06-dewdrop-creators?kind=slides&mode=grid"],
+      ],
+      [],
+      "maja@ouhers.demo"
+    );
+    if (holiday) await phaseList("screenshots/review", [["08-video", `/review/${holiday.id}?kind=video`]]);
+    return;
+  }
   if (phase === "ouhers") {
     // The ouhers demo account (npm run seed:ouhers), as Maja and as Teddy (PM).
     const P = (id: string) => `/projects/ouhers-${id}`;
