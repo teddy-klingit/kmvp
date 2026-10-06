@@ -33,7 +33,7 @@ async function main() {
   const ranged = await page.request.get(`${BASE}${src}`, { headers: { Range: "bytes=0-99" } });
   ok("file is served in ranges (seekable)", ranged.status() === 206 && ranged.headers()["content-range"]?.startsWith("bytes 0-99/") === true, `${ranged.status()} ${ranged.headers()["content-range"]}`);
   ok("poster frame shown before play", Boolean(await video.getAttribute("poster")));
-  ok("thumbnail strip on the timeline", (await page.locator('img[src*="part=strip"]').count()) === 1);
+  ok("thumbnail strip on the timeline, at the film's shape", (await page.locator('[style*="part=strip"]').count()) > 10);
 
   // Play with sound.
   await page.getByRole("button", { name: "Play", exact: true }).click();

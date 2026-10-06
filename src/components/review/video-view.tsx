@@ -280,8 +280,7 @@ export function VideoView({ shell, projectId, items, threads, canReview, focusId
             className="relative h-14 cursor-pointer overflow-hidden rounded-[8px]"
           >
             {item.video?.strip ? (
-              // eslint-disable-next-line @next/next/no-img-element -- the access-checked thumbnail strip
-              <img src={item.video.strip} alt="" className="size-full object-fill" />
+              <FilmStrip src={item.video.strip} ratio={item.ratio} />
             ) : (
               <span aria-hidden className="block size-full bg-[#E9E3D6]" />
             )}
@@ -311,5 +310,38 @@ export function VideoView({ shell, projectId, items, threads, canReview, focusId
       panel={<CommentPanel threads={mine} activeId={active} onSelect={select} empty="No comments yet. Pause the video where something should change." />}
       footer={<ReviewFooter projectId={projectId} canReview={canReview} openIds={open.map((i) => i.id)} note="Comments keep their timecode, so editors jump straight to the frame." approveLabel={open.length > 1 ? `Approve ${open.length} videos` : "Approve video"} />}
     />
+  );
+}
+
+/**
+ * The thumbnail strip at the film's own shape: as many frame-shaped tiles as fit the timeline, each showing the
+ * frame nearest its point in time (the strip holds evenly spaced frames side by side), so nothing is stretched.
+ */
+function FilmStrip({ src, ratio }: { src: string; ratio: number }) {
+  const box = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(0);
+  const [frames, setFrames] = useState(0);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([e]) => setWidth(e.contentRect.width));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  useEffect(() => {
+    const img = new Image();
+    img.onload = () => setFrames(Math.max(1, Math.round(img.naturalWidth / (img.naturalHeight * ratio))));
+    img.src = src;
+  }, [src, ratio]);
+  const h = 56;
+  const tileW = h * ratio;
+  const tiles = width && frames ? Math.ceil(width / tileW) : 0;
+  return (
+    <div ref={box} aria-hidden className="flex size-full overflow-hidden bg-[#E9E3D6]">
+      {Array.from({ length: tiles }, (_, i) => {
+        const frame = Math.min(frames - 1, Math.floor((((i + 0.5) * tileW) / width) * frames));
+        return <span key={i} className="h-full shrink-0 border-r border-black/10" style={{ width: tileW, backgroundImage: `url(${src})`, backgroundSize: `${frames * tileW}px ${h}px`, backgroundPosition: `-${frame * tileW}px 0`, backgroundRepeat: "no-repeat" }} />;
+      })}
+    </div>
   );
 }
