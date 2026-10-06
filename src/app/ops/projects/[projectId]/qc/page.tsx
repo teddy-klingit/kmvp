@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AlertCircle, Check, Loader2, Play, X } from "lucide-react";
+import { AlertCircle, Check, Loader2, X } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireOpsPage } from "@/lib/authz";
 import { assetTitle, formatLabel } from "@/lib/asset-display";
 import { isClientVisibleVersion } from "@/lib/qc/visibility";
+import { VideoThumb } from "@/components/review/video-thumb";
 import { blockingFlags, fixedBeforeSend, loadQcSet, qcGate, type QcVersion } from "@/lib/qc/quality-check";
 import { expectedShape } from "@/lib/qc/specs";
 import type { StoredCheck } from "@/lib/qc/brand-check";
@@ -165,13 +166,7 @@ export default async function QualityCheckPage({ params, searchParams }: { param
                                     style={{ width: w, height: Math.round(w / cell.ratio), backgroundColor: `color-mix(in srgb, ${cell.v.asset.thumbnailColor} 22%, white)` }}
                                   >
                                     {cell.v.asset.type === "VIDEO" ? (
-                                      <>
-                                        {cell.v.posterKey && (
-                                          // eslint-disable-next-line @next/next/no-img-element -- access-checked poster frame
-                                          <img src={`${fileUrl(cell.v)}&part=poster`} alt={`${r.title} ${col}`} className="size-full object-cover" loading="lazy" />
-                                        )}
-                                        <Play className={cn("absolute inset-0 m-auto size-6", cell.v.posterKey ? "text-white drop-shadow" : "text-brand-ink/50")} fill={cell.v.posterKey ? "currentColor" : "none"} />
-                                      </>
+                                      <VideoThumb src={fileUrl(cell.v)} poster={cell.v.posterKey ? `${fileUrl(cell.v)}&part=poster` : null} />
                                     ) : (
                                       // eslint-disable-next-line @next/next/no-img-element -- access-checked version file
                                       <img src={asClient && cell.v.asset.sentVersion && cell.v.state === "DRAFT" ? fileUrl(cell.v, cell.v.asset.sentVersion) : fileUrl(cell.v)} alt={`${r.title} ${col}`} className="size-full object-cover" loading="lazy" />

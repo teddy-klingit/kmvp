@@ -24,7 +24,7 @@ export async function loadReviewAssets(projectId: string, clientId: string, stat
     prisma.asset.findMany({
       where: { projectId, clientId, ...clientVisibleAsset, ...(statuses ? { status: { in: statuses } } : {}) },
       orderBy: { createdAt: "asc" },
-      include: { versions: { where: clientVisibleVersion, orderBy: { number: "desc" }, take: 1, select: { width: true, height: true, number: true } } },
+      include: { versions: { where: clientVisibleVersion, orderBy: { number: "desc" }, take: 1, select: { width: true, height: true, number: true, posterKey: true } } },
     }),
     prisma.comment.findMany({
       where: { projectId, archivedAt: null, assetId: { not: null } },
@@ -42,6 +42,7 @@ export async function loadReviewAssets(projectId: string, clientId: string, stat
     type: asset.type,
     durationSeconds: asset.durationSeconds,
     fileUrl: asset.storageKey && asset.mimeType?.startsWith("image/") ? `/api/assets/${asset.id}/download?inline=1` : null,
+    video: asset.type === "VIDEO" && asset.storageKey ? { src: `/api/assets/${asset.id}/download?inline=1`, poster: asset.versions[0]?.posterKey ? `/api/assets/${asset.id}/download?part=poster` : null } : null,
     aspect: asset.versions[0]?.width && asset.versions[0]?.height ? asset.versions[0].width / asset.versions[0].height : null,
     copy: copyOf(asset.tags),
     comments: comments

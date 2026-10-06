@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { VideoThumb } from "@/components/review/video-thumb";
 import { Check, Download, ImageIcon, Play } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { Card, CardHeader } from "@/components/ds/card";
@@ -424,6 +425,8 @@ export async function WaitingForReviewCard({ projectId, viewer }: Omit<PanelProp
                       </span>
                     ))}
                   </span>
+                ) : a.video ? (
+                  <VideoThumb src={a.video.src} poster={a.video.poster} />
                 ) : a.type === "VIDEO" ? (
                   <Play className="size-5 text-ds-text/35" strokeWidth={1.5} />
                 ) : (

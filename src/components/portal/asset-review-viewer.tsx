@@ -46,6 +46,8 @@ export type ReviewAsset = {
   /** The file the client was sent (images only), and its width / height. */
   fileUrl?: string | null;
   aspect?: number | null;
+  /** A video: its file and poster frame (the version the client was sent). */
+  video?: { src: string; poster: string | null } | null;
   /** A copy element: its text per language and an open suggestion. */
   copy?: { lines: { lang: string; text: string }[]; suggestion: string | null } | null;
 };

@@ -6,6 +6,7 @@ import { StatusPill, type PillTone } from "@/components/ds/status-pill";
 import { Button } from "@/components/ds/button";
 import { useConversation } from "@/components/ds/conversation-context";
 import type { ReviewAsset } from "@/components/portal/asset-review-viewer";
+import { VideoThumb } from "@/components/review/video-thumb";
 import { useRouter } from "next/navigation";
 import { approveAssetAction, requestAssetChangesAction } from "@/lib/actions/project-actions";
 
@@ -58,6 +59,7 @@ export function WorkGrid({
                   className="relative flex aspect-[4/3] items-center justify-center border-b border-ds-divider"
                   style={{ backgroundColor: `color-mix(in srgb, ${a.thumbnailColor} 16%, white)` }}
                 >
+                  {a.video && <VideoThumb src={a.video.src} poster={a.video.poster} fit="contain" className="p-3" />}
                   {a.fileUrl && a.type === "IMAGE" && (
                     // eslint-disable-next-line @next/next/no-img-element -- the access-checked file the client was sent
                     <img src={a.fileUrl} alt="" loading="lazy" className="absolute inset-0 size-full object-contain p-3" />
@@ -76,7 +78,7 @@ export function WorkGrid({
                   <StatusPill tone={status.tone} className="absolute left-3 top-3 z-10">
                     {status.label}
                   </StatusPill>
-                  {a.fileUrl || a.copy ? null : a.type === "VIDEO" ? (
+                  {a.fileUrl || a.copy || a.video ? null : a.type === "VIDEO" ? (
                     <Play className="size-7 text-ds-text/35" strokeWidth={1.5} />
                   ) : (
                     <ImageIcon className="size-7 text-ds-text/35" strokeWidth={1.5} />
