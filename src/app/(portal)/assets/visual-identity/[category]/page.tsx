@@ -6,6 +6,7 @@ import { ColorSwatch } from "@/components/portal/color-swatch";
 import { AssetTile } from "@/components/portal/asset-tile-dialog";
 import { AddAssetButton } from "@/components/portal/add-asset-button";
 import { jsonArray } from "@/lib/utils";
+import { typefaces } from "@/lib/brand-typography";
 import { VISUAL_IDENTITY_FOLDERS } from "@/lib/brand-iq-taxonomy";
 import type { BrandAssetCategory } from "@/generated/prisma";
 
@@ -108,7 +109,7 @@ export default async function VisualIdentityFolderPage({
 
   if (category === "typography") {
     const brandOS = await prisma.brandOS.findUnique({ where: { clientId: viewer.clientId } });
-    const fonts = jsonArray<string>(brandOS?.approvedTypography);
+    const fonts = typefaces(brandOS?.approvedTypography);
     return (
       <FolderShell title={folder.label} count={fonts.length}>
         {fonts.length === 0 ? (
@@ -116,11 +117,12 @@ export default async function VisualIdentityFolderPage({
         ) : (
           <CardBody className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {fonts.map((font) => (
-              <div key={font} className="flex flex-col gap-1 rounded-[10px] bg-brand-chip p-5">
-                <p className="m-0 text-[28px] font-light leading-[1.2] text-brand-ink" style={{ fontFamily: font }}>
+              <div key={font.text} className="flex flex-col gap-1 rounded-[10px] bg-brand-chip p-5">
+                <p className="m-0 text-[28px] font-light leading-[1.2] text-brand-ink" style={{ fontFamily: font.family }}>
                   Aa Bb Cc
                 </p>
-                <p className="m-0 text-[13px] text-brand-ink-2">{font}</p>
+                <p className="m-0 text-[15px] text-brand-ink">{font.family}</p>
+                {font.detail && <p className="m-0 text-[13px] text-brand-ink-2">{font.detail}</p>}
               </div>
             ))}
           </CardBody>

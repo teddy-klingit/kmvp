@@ -45,7 +45,11 @@ export function PostDetailDialog({ post, children }: { post: Post; children: Rea
   const hasMetrics = post.impressions !== null || post.engagements !== null;
   return (
     <Dialog>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+      {/* A wrapper of our own: children from a server component can arrive as a lazy reference, which Radix's
+          Slot can't attach to during server rendering ("failed to slot onto its children"). */}
+      <DialogTrigger asChild>
+        <div className="contents">{children}</div>
+      </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <div className="flex items-start gap-3">

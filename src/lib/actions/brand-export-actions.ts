@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
 import { jsonArray } from "@/lib/utils";
+import { typefaces } from "@/lib/brand-typography";
 
 type Persona = { name: string; ageRange: string; description: string; traits: string[] };
 type CoreValue = { title: string; description: string };
@@ -81,7 +82,7 @@ export async function getBrandExportText(): Promise<string> {
     legacyColors.forEach((c) => lines.push(`- ${c}`));
   }
 
-  const typography = jsonArray<string>(brandOS?.approvedTypography);
+  const typography = typefaces(brandOS?.approvedTypography).map((t) => t.text);
   if (typography.length) {
     heading("Typography");
     typography.forEach((t) => lines.push(`- ${t}`));

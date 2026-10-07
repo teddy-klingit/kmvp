@@ -5,6 +5,7 @@ import { StatusPill } from "@/components/ds/status-pill";
 import { Button } from "@/components/ds/button";
 import { Field, textareaClass } from "@/components/ops/form-field";
 import { jsonArray } from "@/lib/utils";
+import { typefaces } from "@/lib/brand-typography";
 import { updateBrandOSAction } from "@/lib/actions/ops-brand-os-actions";
 
 export default async function BrandOSEditorPage({ params }: { params: Promise<{ clientId: string }> }) {
@@ -28,7 +29,7 @@ export default async function BrandOSEditorPage({ params }: { params: Promise<{ 
             <textarea
               id="approvedTypography"
               name="approvedTypography"
-              defaultValue={jsonArray<string>(b?.approvedTypography).join("\n")}
+              defaultValue={typefaces(b?.approvedTypography).map((t) => t.text).join("\n")}
               className={`${textareaClass} min-h-32`}
               placeholder="One typeface per line"
             />

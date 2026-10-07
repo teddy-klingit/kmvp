@@ -4,6 +4,7 @@ import { getPortalViewer } from "@/lib/current-viewer";
 import { Card, CardHeader, SectionCard } from "@/components/ds/card";
 import { PageGrid } from "@/components/ds/page-grid";
 import { jsonArray } from "@/lib/utils";
+import { typefaces } from "@/lib/brand-typography";
 import { VISUAL_IDENTITY_FOLDERS, VISUAL_IDENTITY_CATEGORY as CATEGORY_FOR } from "@/lib/brand-iq-taxonomy";
 import { Palette, Type, Image as ImageIcon, Shapes, Grid3x3, Video, Sparkles } from "lucide-react";
 import { sectionSources } from "@/lib/brand-sources-data";
@@ -35,7 +36,7 @@ export default async function VisualIdentityPage() {
   const figmaConnected = figma.connected.some((c) => c.app === "figma");
 
   const colors = jsonArray<string>(brandOS?.approvedColors);
-  const typography = jsonArray<string>(brandOS?.approvedTypography);
+  const typography = typefaces(brandOS?.approvedTypography);
 
   const countFor = (slug: string) => {
     if (slug === "brand-colours") return colors.length;

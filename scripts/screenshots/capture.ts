@@ -611,6 +611,8 @@ async function main() {
         ["02-asset-top", `/assets/library/${top?.id}?from=insights`],
         ["03-asset-film", `/assets/library/${film?.id}`],
         ["04-insights", "/insights"],
+        ["05-brand-os-rules", "/assets/agents-templates/brand-os"],
+        ["06-typography", "/assets/visual-identity/typography"],
       ],
       [],
       "maja@ouhers.demo"

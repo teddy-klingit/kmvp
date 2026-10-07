@@ -5,13 +5,14 @@ import { SectionCard, CardRows } from "@/components/ds/card";
 import { PageGrid } from "@/components/ds/page-grid";
 import { EmptyState } from "@/components/ds/empty-state";
 import { jsonArray } from "@/lib/utils";
+import { typefaces } from "@/lib/brand-typography";
 
 export default async function ClientBrandOSPage() {
   const viewer = await getPortalViewer();
   const brandOS = await prisma.brandOS.findUnique({ where: { clientId: viewer.clientId } });
 
   const toneRules = jsonArray<string>(brandOS?.toneRules);
-  const typography = jsonArray<string>(brandOS?.approvedTypography);
+  const typography = typefaces(brandOS?.approvedTypography).map((t) => t.text);
   const dos = jsonArray<string>(brandOS?.dos);
   const donts = jsonArray<string>(brandOS?.donts);
   const colors = jsonArray<string>(brandOS?.approvedColors);
