@@ -1734,9 +1734,13 @@ model Inspiration {
 // OAuth-connected ad platform credentials (currently LinkedIn) — Meta uses a
 // static long-lived System User token in env vars instead, so it has no row
 // here. One row per provider, refreshed in place as tokens rotate.
+/// A platform-level ad account connection (LinkedIn, Google Ads). It belongs to ONE client: only that client's
+/// Insights and assistants ever read it (src/lib/integrations/live-ads-owner.ts). clientId null = falls back to
+/// LIVE_ADS_CLIENT_ID; neither set = nobody reads it.
 model IntegrationConnection {
   id           String    @id @default(cuid())
   provider     String    @unique // "linkedin"
+  clientId     String?
   accessToken  String
   refreshToken String?
   expiresAt    DateTime?

@@ -1,4 +1,5 @@
 const META_API_VERSION = "v21.0";
+import { ownsLiveAds } from "@/lib/integrations/live-ads-owner";
 
 export type MetaCampaignInsight = {
   campaignId: string;
@@ -37,7 +38,9 @@ async function fetchCreativeThumbnails(accountId: string, token: string): Promis
   return thumbnails;
 }
 
-export async function getMetaAdAccountInsights(): Promise<MetaInsightsResult> {
+/** The live Meta account's campaigns, for the one client that owns it (live-ads-owner.ts); anyone else: not_configured. */
+export async function getMetaAdAccountInsights(clientId: string): Promise<MetaInsightsResult> {
+  if (!(await ownsLiveAds(clientId, "meta"))) return { ok: false, reason: "not_configured" };
   const token = process.env.META_ADS_ACCESS_TOKEN;
   const accountId = process.env.META_AD_ACCOUNT_ID;
 
@@ -97,7 +100,8 @@ export type DailyRow = { campaignId: string; campaignName: string; date: string;
 export type DailyResult = { ok: true; accountName: string; currency: string; rows: DailyRow[] } | { ok: false; reason: "not_configured" | "not_connected" | "api_error"; message?: string };
 
 /** One row per campaign per day (time_increment=1) for the last `days` days, following Meta's paging. */
-export async function getMetaDailyInsights(days = 90): Promise<DailyResult> {
+export async function getMetaDailyInsights(clientId: string, days = 90): Promise<DailyResult> {
+  if (!(await ownsLiveAds(clientId, "meta"))) return { ok: false, reason: "not_configured" };
   const token = process.env.META_ADS_ACCESS_TOKEN;
   const accountId = process.env.META_AD_ACCOUNT_ID;
   if (!token || !accountId) return { ok: false, reason: "not_configured" };

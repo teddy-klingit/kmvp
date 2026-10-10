@@ -67,12 +67,14 @@ export async function askMarketIntelligenceQuestionAction(
   if (!question) return { error: "Ask a question first." };
 
   const competitorBrands = jsonArray<string>(client.competitorBrands);
+  const liveAds = client.paidMediaInScope && !client.isDemo && !client.isSampleAccount;
   const [signals, topFormat, metaInsights, linkedInInsights, googleInsights, seoBrief] = await Promise.all([
     getRecentMarketSignals(client.id, { take: 15 }),
     findOwnTopFormat(client.id),
-    getMetaAdAccountInsights(),
-    getLinkedInAdInsights(),
-    getGoogleAdsAccountInsights(),
+    // Only this client's own live ad accounts (live-ads-owner.ts): never the platform's, never a demo's.
+    liveAds ? getMetaAdAccountInsights(client.id) : ({ ok: false, reason: "not_configured" } as const),
+    liveAds ? getLinkedInAdInsights(client.id) : ({ ok: false, reason: "not_connected" } as const),
+    liveAds ? getGoogleAdsAccountInsights(client.id) : ({ ok: false, reason: "not_connected" } as const),
     prisma.seoBrief.findUnique({ where: { clientId: client.id } }),
   ]);
 

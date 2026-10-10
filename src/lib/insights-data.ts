@@ -48,7 +48,7 @@ export const loadPaidMedia = cache(async (clientId: string, rangePreset?: string
     return { inScope: true, isSample: true, campaigns: all, connected: [...new Set(all.map((c) => c.platform))], errors: [], trend };
   }
 
-  const [meta, linkedIn, google] = await Promise.all([getMetaAdAccountInsights(), getLinkedInAdInsights(), getGoogleAdsAccountInsights()]);
+  const [meta, linkedIn, google] = await Promise.all([getMetaAdAccountInsights(clientId), getLinkedInAdInsights(clientId), getGoogleAdsAccountInsights(clientId)]);
   const campaigns = buildPlatformCampaigns(meta, linkedIn, google);
   await recordPerformanceSnapshots(clientId, campaigns);
   const results = [
@@ -181,11 +181,11 @@ function normalizeTakeaway(t: Takeaway | OldTakeaway): Takeaway {
   return { tag: "Performance", metric: "", headline: t.title, compare: [], action: t.action, why: t.detail };
 }
 
-export async function loadTakeaways(clientId: string) {
+export async function loadTakeaways(clientId: string, now = new Date()) {
   const brief = await prisma.performanceBrief.findUnique({ where: { clientId } });
   const takeaways = brief?.takeaways ? jsonArray<Takeaway | OldTakeaway>(brief.takeaways).map(normalizeTakeaway).slice(0, TAKEAWAYS_MAX) : [];
   const actions = brief?.actions ? jsonArray<PerformanceAction>(brief.actions).slice(0, 3) : [];
-  const stale = !brief?.takeaways || !brief.actions || Date.now() - brief.generatedAt.getTime() > TAKEAWAYS_STALE_MS;
+  const stale = !brief?.takeaways || !brief.actions || now.getTime() - brief.generatedAt.getTime() > TAKEAWAYS_STALE_MS;
   return { takeaways, actions, generatedAt: brief?.generatedAt ?? null, stale };
 }
 

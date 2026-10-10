@@ -24,7 +24,7 @@ export async function runScheduledAgents(now = new Date()) {
       // Don't pile up runs: skip a client whose performance agent ran in the last half hour.
       const recent = await prisma.agentRun.findFirst({ where: { clientId: c.id, agent: { key: "performance_agent" }, createdAt: { gte: new Date(now.getTime() - RETRY_AFTER_MS) } }, select: { id: true } });
       if (recent) continue;
-      const { stale } = await loadTakeaways(c.id);
+      const { stale } = await loadTakeaways(c.id, now);
       if (stale) {
         const r = await generatePerformanceBrief(c.id);
         done.push(`${c.name}: takeaways ${r.ok ? "written" : `skipped (${r.error})`}`);

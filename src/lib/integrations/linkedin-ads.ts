@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { ownsLiveAds } from "@/lib/integrations/live-ads-owner";
 
 const LI_VERSION = "202510";
 const LI_API = "https://api.linkedin.com/rest";
@@ -130,7 +131,9 @@ async function fetchCampaignAnalytics(token: string, accountId: string): Promise
   });
 }
 
-export async function getLinkedInAdInsights(): Promise<LinkedInInsightsResult> {
+/** The live LinkedIn account's campaigns, for the one client that owns it (live-ads-owner.ts). */
+export async function getLinkedInAdInsights(clientId: string): Promise<LinkedInInsightsResult> {
+  if (!(await ownsLiveAds(clientId, "linkedin"))) return { ok: false, reason: "not_connected" };
   const token = await getValidAccessToken();
   if (!token) return { ok: false, reason: "not_connected" };
 
@@ -146,7 +149,8 @@ export async function getLinkedInAdInsights(): Promise<LinkedInInsightsResult> {
 }
 
 /** One row per campaign per day (timeGranularity=DAILY) for the last `days` days. */
-export async function getLinkedInDailyInsights(days = 90): Promise<import("@/lib/integrations/meta-ads").DailyResult> {
+export async function getLinkedInDailyInsights(clientId: string, days = 90): Promise<import("@/lib/integrations/meta-ads").DailyResult> {
+  if (!(await ownsLiveAds(clientId, "linkedin"))) return { ok: false, reason: "not_connected" };
   const token = await getValidAccessToken();
   if (!token) return { ok: false, reason: "not_connected" };
   try {

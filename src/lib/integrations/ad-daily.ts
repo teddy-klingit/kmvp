@@ -24,7 +24,7 @@ export async function syncDailyAdMetrics(clientId: string, opts: { force?: boole
   if (client.isDemo) return { synced: [] as string[], skipped: "demo account" };
   if (!opts.force && !(await dailyMetricsFreshness(clientId)).stale) return { synced: [] as string[], skipped: "fresh" };
 
-  const [meta, linkedIn, google] = await Promise.all([getMetaDailyInsights(DAILY_WINDOW_DAYS), getLinkedInDailyInsights(DAILY_WINDOW_DAYS), getGoogleAdsDailyInsights(DAILY_WINDOW_DAYS)]);
+  const [meta, linkedIn, google] = await Promise.all([getMetaDailyInsights(clientId, DAILY_WINDOW_DAYS), getLinkedInDailyInsights(clientId, DAILY_WINDOW_DAYS), getGoogleAdsDailyInsights(clientId, DAILY_WINDOW_DAYS)]);
   const results: [string, DailyResult][] = [
     ["Meta", meta],
     ["LinkedIn", linkedIn],

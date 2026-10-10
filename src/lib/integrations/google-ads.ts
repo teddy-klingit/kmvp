@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { ownsLiveAds } from "@/lib/integrations/live-ads-owner";
 
 const API_VERSION = "v25";
 const API = `https://googleads.googleapis.com/${API_VERSION}`;
@@ -132,7 +133,9 @@ async function findAccount(token: string): Promise<{ managerId: string; customer
   return null;
 }
 
-export async function getGoogleAdsAccountInsights(): Promise<GoogleAdsInsightsResult> {
+/** The live Google Ads account's campaigns, for the one client that owns it (live-ads-owner.ts). */
+export async function getGoogleAdsAccountInsights(clientId: string): Promise<GoogleAdsInsightsResult> {
+  if (!(await ownsLiveAds(clientId, "google-ads"))) return { ok: false, reason: "not_connected" };
   if (!process.env.GOOGLE_ADS_DEVELOPER_TOKEN || !process.env.GOOGLE_ADS_CLIENT_ID || !process.env.GOOGLE_ADS_CLIENT_SECRET) {
     return { ok: false, reason: "not_configured" };
   }
@@ -174,7 +177,8 @@ export async function getGoogleAdsAccountInsights(): Promise<GoogleAdsInsightsRe
 }
 
 /** One row per campaign per day (segments.date in the SELECT) for the last `days` days. */
-export async function getGoogleAdsDailyInsights(days = 90): Promise<import("@/lib/integrations/meta-ads").DailyResult> {
+export async function getGoogleAdsDailyInsights(clientId: string, days = 90): Promise<import("@/lib/integrations/meta-ads").DailyResult> {
+  if (!(await ownsLiveAds(clientId, "google-ads"))) return { ok: false, reason: "not_connected" };
   if (!process.env.GOOGLE_ADS_DEVELOPER_TOKEN || !process.env.GOOGLE_ADS_CLIENT_ID || !process.env.GOOGLE_ADS_CLIENT_SECRET) return { ok: false, reason: "not_configured" };
   const token = await getValidAccessToken();
   if (!token) return { ok: false, reason: "not_connected" };

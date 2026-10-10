@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { ownsLiveAds } from "@/lib/integrations/live-ads-owner";
 import { jsonArray } from "@/lib/utils";
 import { platformStatus } from "@/lib/brand-completeness";
 import { VISUAL_IDENTITY_FOLDERS, VISUAL_IDENTITY_CATEGORY } from "@/lib/brand-iq-taxonomy";
@@ -62,8 +63,8 @@ export async function loadBrandHealth(clientId: string) {
     prisma.brandAsset.findMany({ where: { clientId }, select: { category: true } }),
     prisma.brandSource.findMany({ where: { clientId, archivedAt: null }, select: { app: true } }),
     prisma.brandConnection.findMany({ where: { clientId, status: "CONNECTED" }, select: { app: true } }),
-    prisma.integrationConnection.findUnique({ where: { provider: "linkedin" } }),
-    prisma.integrationConnection.findUnique({ where: { provider: "google-ads" } }),
+    ownsLiveAds(clientId, "linkedin"),
+    ownsLiveAds(clientId, "google-ads"),
   ]);
   const platform = platformStatus({ brandSummary: client.brandSummary, brandOS });
   const visualDone = VISUAL_IDENTITY_FOLDERS.filter((f) => {
@@ -76,7 +77,9 @@ export async function loadBrandHealth(clientId: string) {
   }).length;
   const voice = [jsonArray(brandOS?.voiceAttributes), jsonArray(brandOS?.toneRules), jsonArray(brandOS?.dos), jsonArray(brandOS?.donts)].filter((l) => l.length > 0).length;
   const apps = new Set([...sources.map((s) => s.app), ...connections.map((c) => c.app)].filter((a) => a !== "web"));
-  const channels = [Boolean(process.env.META_ADS_ACCESS_TOKEN), Boolean(linkedIn), Boolean(googleAds)].filter(Boolean).length;
+  // Only ad accounts that belong to this client (live-ads-owner.ts), never the platform's.
+  const meta = Boolean(process.env.META_ADS_ACCESS_TOKEN) && (await ownsLiveAds(clientId, "meta"));
+  const channels = [meta, linkedIn, googleAds].filter(Boolean).length;
   return computeBrandHealth({
     platform: { done: platform.done, total: platform.total },
     visual: { done: visualDone, total: VISUAL_IDENTITY_FOLDERS.length },
