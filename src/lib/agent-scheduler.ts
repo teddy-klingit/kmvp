@@ -3,6 +3,7 @@ import { generatePerformanceBrief } from "@/lib/insights-brief";
 import { loadTakeaways } from "@/lib/insights-data";
 import { lastClosed, writeReport } from "@/lib/report-data";
 import { syncDailyAdMetrics } from "@/lib/integrations/ad-daily";
+import { logError } from "@/lib/secrets";
 
 /**
  * Scheduled agent work (replaces the old page-load runs): for every active client, this week's Insights
@@ -52,7 +53,7 @@ export function startAgentScheduler() {
   const tick = () =>
     runScheduledAgents()
       .then((done) => done.length && console.log("[agents] scheduled:", done.join("; ")))
-      .catch((err) => console.error("[agents] scheduled run failed", err));
+      .catch((err) => logError("[agents] scheduled run failed", err));
   setTimeout(tick, 3 * 60 * 1000);
   g.__klingitScheduler = setInterval(tick, HOUR);
 }

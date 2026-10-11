@@ -4,6 +4,7 @@ import { imageSize } from "@/lib/qc/image-size";
 import { specChecks, type CheckResult } from "@/lib/qc/specs";
 import { visionChecks } from "@/lib/qc/vision-check";
 import { notifyMany } from "@/lib/notifier";
+import { logError } from "@/lib/secrets";
 
 /**
  * The Brand OS check, run on every new version before anyone sends it: platform specs (deterministic) plus the
@@ -57,7 +58,7 @@ export async function runBrandCheck(versionId: string) {
   } catch (err) {
     // A check that couldn't run still hands the version to the quality check, with nothing marked as passed.
     await prisma.assetVersion.update({ where: { id: versionId }, data: { state: "QC_READY", checks: [], checkedAt: new Date() } });
-    console.error("Brand OS check failed", err);
+    logError("Brand OS check failed", err);
   }
 }
 

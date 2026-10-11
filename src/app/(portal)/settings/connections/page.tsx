@@ -113,7 +113,7 @@ export default async function ConnectionsPage({ searchParams }: { searchParams: 
           {AI_MODELS.map((m) => {
             const status = statusOf(m.key);
             return (
-              <Row key={m.key} icon={<Monogram text={m.monogram} />} name={m.name} description={m.description} meta={status === "CONNECTED" && metaOf(m.key).last4 ? `Key ending ${metaOf(m.key).last4}` : null} status={status}>
+              <Row key={m.key} icon={<Monogram text={m.monogram} />} name={m.name} description={m.description} meta={status === "CONNECTED" && metaOf(m.key).last4 ? `Key ending ${metaOf(m.key).last4}${metaOf(m.key).addedAt ? ` · added ${formatDay(new Date(metaOf(m.key).addedAt!))}` : ""}` : null} status={status}>
                 {admin && (status === "CONNECTED" ? <Disconnect app={m.key} label="Disconnect" /> : <OwnModelDialog app={m.key} name={m.name} basic={plan.ownModel} />)}
               </Row>
             );

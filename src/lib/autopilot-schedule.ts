@@ -1,5 +1,6 @@
 import { after } from "next/server";
 import { runAutopilot, runAutopilotForActiveProjects } from "@/lib/autopilot-runner";
+import { logError } from "@/lib/secrets";
 
 /**
  * Page-load autopilot checks (approved for the MVP; TODO(cron) in autopilot-runner.ts).
@@ -15,7 +16,7 @@ export function scheduleAutopilot(projectId?: string) {
         if (projectId) await runAutopilot(projectId);
         else await runAutopilotForActiveProjects();
       } catch (err) {
-        console.error("autopilot check failed", err);
+        logError("autopilot check failed", err);
       }
     });
   } catch {

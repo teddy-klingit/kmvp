@@ -1,6 +1,7 @@
 import type { PlanTier } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
 import { notifyMany } from "@/lib/notifier";
+import { decryptSecret } from "@/lib/secrets";
 
 /**
  * AI credits (Phase Q). Two credit types exist:
@@ -127,12 +128,15 @@ export async function aiGate(clientId: string, sourceType: "skill" | "assistant"
   return { ok: true, warning: "You're out of AI credits this month: answers still work, but top up soon." };
 }
 
-/** On Basic: the client's own model connection (Settings → Connections → Your own AI model), if any. */
+/**
+ * On Basic: the client's own model connection (Settings → Connections → Your own AI model), if any, with its key
+ * decrypted for this one call. Only run-agent uses the key, and only for a run charged to this same client.
+ */
 export async function ownModelConnection(clientId: string) {
   const conn = await prisma.brandConnection.findFirst({ where: { clientId, app: { in: ["claude", "openai"] }, status: "CONNECTED" } });
   if (!conn) return null;
-  const meta = (conn.meta ?? {}) as { apiKey?: string };
-  return { provider: conn.app as "claude" | "openai", apiKey: meta.apiKey ?? null };
+  const meta = (conn.meta ?? {}) as { encryptedKey?: string };
+  return { provider: conn.app as "claude" | "openai", apiKey: decryptSecret(meta.encryptedKey) };
 }
 
 export type AiCharge = {

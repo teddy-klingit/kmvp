@@ -17,7 +17,7 @@ export const AI_MODELS = [
   { key: "openai", name: "OpenAI", description: "Use your own OpenAI account", monogram: "O", keyPrefix: "sk-" },
 ];
 
-export type ConnectionMeta = { folders?: number; accounts?: string; workspace?: string; lastSyncAt?: string; note?: string; last4?: string; apiKey?: string };
+export type ConnectionMeta = { folders?: number; accounts?: string; workspace?: string; lastSyncAt?: string; note?: string; last4?: string; addedAt?: string; encryptedKey?: string };
 
 /** The client's ad accounts, connected (including the platform's live accounts when this client owns them). */
 export async function connectedAdAccounts(clientId: string) {

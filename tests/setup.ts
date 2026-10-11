@@ -4,6 +4,8 @@ import { vi } from "vitest";
 // dedicated SQLite file, migrated once via:
 //   DATABASE_URL="file:./prisma/test.db" npx prisma migrate deploy
 process.env.DATABASE_URL = "file:./prisma/test.db";
+// Clients' own AI keys are encrypted with this (secrets.ts); a fixed test value, never a real one.
+process.env.AI_KEY_ENCRYPTION_SECRET = "test-only-secret-for-encrypting-ai-keys-0123456789";
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),

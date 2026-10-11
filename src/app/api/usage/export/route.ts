@@ -1,9 +1,11 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { monthPeriod } from "@/lib/ai-credits";
+import { redactSecrets } from "@/lib/secrets";
 
+/** One cell, quoted when needed, with any key or token masked (notes are free text). */
 const csv = (v: unknown) => {
-  const s = v == null ? "" : String(v);
+  const s = v == null ? "" : redactSecrets(String(v));
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 

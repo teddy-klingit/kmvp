@@ -5,6 +5,7 @@ import { anthropic, AGENT_MODEL } from "@/lib/ai/client";
 import { prisma } from "@/lib/prisma";
 import { currentAiCharge, type AiChargeContext } from "@/lib/ai-context";
 import { aiCreditStatus, chargeAi, ownModelConnection } from "@/lib/ai-credits";
+import { redactSecrets } from "@/lib/secrets";
 
 type RunAgentTaskArgs<T> = {
   /** Agent.key in the catalog, e.g. "brief_agent" */
@@ -59,12 +60,15 @@ export async function runAgentTask<T>({
     (requestedByUserId && clientId && agent.kind === "SKILL" ? { clientId, userId: requestedByUserId, sourceType: "skill", sourceKey: agent.key, sourceName: agent.name, projectId } : null);
   // On Basic the client's own model runs it, with their key; their provider bills the tokens.
   let client = anthropic;
+  // The client's key, if this run uses it: masked out of anything the run stores or returns.
+  let ownKey: string | null = null;
   if (charge) {
     const status = await aiCreditStatus(charge.clientId);
     if (status.ownModel) {
       const own = await ownModelConnection(charge.clientId);
       if (!own) return { ok: false, error: "You're on Basic: connect your own AI model in Settings → Connections first." };
       if (own.provider !== "claude" || !own.apiKey) return { ok: false, error: "Your connected model can't run this yet. Connect a Claude API key in Settings → Connections." };
+      ownKey = own.apiKey;
       client = new Anthropic({ apiKey: own.apiKey });
     }
   }
@@ -121,7 +125,8 @@ export async function runAgentTask<T>({
 
     return { ok: true, data, runId: run.id };
   } catch (err) {
-    const message = describeAnthropicError(err);
+    // Errors are stored on the run and shown to people: never with a key in them.
+    const message = redactSecrets(describeAnthropicError(err), [ownKey, process.env.ANTHROPIC_API_KEY]);
 
     await prisma.agentRun.create({
       data: {

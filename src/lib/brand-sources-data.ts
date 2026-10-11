@@ -9,8 +9,9 @@ export function listBrandSources(clientId: string, section?: string) {
   });
 }
 
+/** Never with `meta`: it can hold a client's encrypted AI key, which has no business near a page. */
 export function listBrandConnections(clientId: string) {
-  return prisma.brandConnection.findMany({ where: { clientId, status: "CONNECTED" }, orderBy: { connectedAt: "asc" } });
+  return prisma.brandConnection.findMany({ where: { clientId, status: "CONNECTED" }, orderBy: { connectedAt: "asc" }, omit: { meta: true } });
 }
 
 /** For agent prompts: title, app, URL and section only. Contents are never fetched. */
