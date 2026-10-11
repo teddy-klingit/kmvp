@@ -20,7 +20,7 @@ export function KindLegend() {
         [
           ["klingit", "Klingit work"],
           ["plan", "Your plan"],
-          ["suggested", "Suggested by agent"],
+          ["suggested", "Suggested for you"],
         ] as [CalendarKind, string][]
       ).map(([k, l]) => (
         <span key={k} className="inline-flex items-center gap-2">

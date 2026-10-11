@@ -185,7 +185,7 @@ function stageFor(input: ProjectStateInput, status: ProjectStatus, brief: BriefP
           ballInCourt: "client",
           nextAction: {
             label: "Your turn: tell us what you need",
-            description: "Describe it in your own words. The brief agent fills in what it already knows and asks only what's missing.",
+            description: "Describe it in your own words. The Brief assistant fills in what it already knows and asks only what's missing.",
             href: briefHref,
             cta: "Start brief",
           },

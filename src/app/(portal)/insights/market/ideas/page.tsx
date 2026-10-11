@@ -31,7 +31,7 @@ export default async function MarketIdeasPage() {
   if (ideas.length === 0) {
     return (
       <ChartCard title="Ideas worth briefing">
-        <SkeletonChart line="The market agent turns signals and your best formats into three ideas, each with its evidence." action={<AgentButton action={generateMarketIntelligenceAction} label="Generate ideas" pendingLabel="Reading…" />} />
+        <SkeletonChart line="Market ideas turns signals and your best formats into three ideas, each with its evidence." action={<AgentButton action={generateMarketIntelligenceAction} label="Generate ideas" pendingLabel="Reading…" />} />
       </ChartCard>
     );
   }
@@ -40,7 +40,7 @@ export default async function MarketIdeasPage() {
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="m-0 text-[22px] font-normal">
-          {shown.length} idea{shown.length === 1 ? "" : "s"} from the market agent
+          {shown.length} idea{shown.length === 1 ? "" : "s"} from Market ideas
         </h2>
         <span className="flex items-center gap-4">
           <span className="hidden text-[14px] text-brand-mute min-[700px]:inline">Each idea shows the data behind it</span>

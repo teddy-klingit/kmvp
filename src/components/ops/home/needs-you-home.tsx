@@ -73,7 +73,7 @@ export async function NeedsYouHome({ viewer, inboxCount }: { viewer: StaffMember
     { label: "Needs you", value: String(needs.length), turn: needs.length > 0 },
     { label: "Running automatically", value: String(running.length) },
     { label: "First drafts due this week", value: String(draftsThisWeek) },
-    { label: "Agent decisions today", value: String(runsToday), extra: overriddenToday > 0 ? `· ${overriddenToday} overridden` : undefined },
+    { label: "AI decisions today", value: String(runsToday), extra: overriddenToday > 0 ? `· ${overriddenToday} overridden` : undefined },
   ];
 
   return (

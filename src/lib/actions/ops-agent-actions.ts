@@ -11,8 +11,8 @@ export async function updateAgentStatusAction(formData: FormData) {
   if (!["LIVE", "SANDBOX", "DISABLED"].includes(status)) return;
 
   await prisma.agent.update({ where: { id: agentId }, data: { status } });
-  revalidatePath(`/ops/agents/${agentId}`);
-  revalidatePath("/ops/agents");
+  revalidatePath(`/ops/skills/${agentId}`);
+  revalidatePath("/ops/skills");
 }
 
 export async function updateAgentSelfServiceAction(formData: FormData) {
@@ -21,8 +21,8 @@ export async function updateAgentSelfServiceAction(formData: FormData) {
   const selfService = formData.get("selfService") === "true";
 
   await prisma.agent.update({ where: { id: agentId }, data: { selfService } });
-  revalidatePath(`/ops/agents/${agentId}`);
-  revalidatePath("/ops/agents");
+  revalidatePath(`/ops/skills/${agentId}`);
+  revalidatePath("/ops/skills");
 }
 
 /** Admins and PMs may override (the form is only shown to them). Brief/estimate/staffing runs are overridden by editing in the cockpit. */
@@ -36,5 +36,5 @@ export async function overrideAgentRunAction(formData: FormData) {
     where: { id: runId },
     data: { overridden: true, overriddenByUserId: viewer.userId, overrideReason: reason },
   });
-  revalidatePath("/ops/agents/audit");
+  revalidatePath("/ops/skills/audit");
 }

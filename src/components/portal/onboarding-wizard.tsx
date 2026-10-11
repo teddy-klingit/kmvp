@@ -61,7 +61,7 @@ export function OnboardingWizard({ brandName, industry }: { brandName: string; i
               Tell us about your brand
             </h1>
             <p className="-mt-3 text-sm text-muted-foreground">
-              This helps us build your brand OS — the foundation every agent uses to produce on-brand work.
+              This helps us build your brand OS — the foundation every skill uses to produce on-brand work.
             </p>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="brandName">Brand name</Label>
@@ -119,7 +119,7 @@ export function OnboardingWizard({ brandName, industry }: { brandName: string; i
               Upload your assets
             </h1>
             <p className="-mt-3 text-sm text-muted-foreground">
-              Logos, product shots, past work — anything that helps agents learn your visual world.
+              Logos, product shots, past work — anything that helps your skills learn your visual world.
             </p>
             <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-muted p-10 text-center">
               <Upload className="size-5 text-muted-foreground" />
@@ -144,7 +144,7 @@ export function OnboardingWizard({ brandName, industry }: { brandName: string; i
               Brand guidelines
             </h1>
             <p className="-mt-3 text-sm text-muted-foreground">
-              Tell agents what to always do, and what to never do.
+              Tell your skills what to always do, and what to never do.
             </p>
             <div className="flex flex-col gap-1.5">
               <Label>Do&apos;s</Label>

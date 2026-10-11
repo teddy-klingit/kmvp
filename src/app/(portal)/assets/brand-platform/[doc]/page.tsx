@@ -67,8 +67,8 @@ export default async function BrandPlatformDocPage({ params }: { params: Promise
             <SectionCard title="Platform sections" action={<span className="font-brand-mono text-[12px] text-brand-ink-2">{status.done} OF {status.total}</span>}>
               <PlatformList sections={status.sections} drafted={new Set()} current={doc} />
             </SectionCard>
-            <Card tone="muted" aria-label="Used by agents" className="flex flex-col gap-2 px-6 py-5">
-              <span className="text-[16px]">Used by {readers.length} agents</span>
+            <Card tone="muted" aria-label="Used by skills and assistants" className="flex flex-col gap-2 px-6 py-5">
+              <span className="text-[16px]">Used by {readers.length} skills and assistants</span>
               <span className="text-[13px] leading-[1.55] text-brand-ink-2">{list(readers)} read this section and its sources when they work on your projects.</span>
             </Card>
           </>

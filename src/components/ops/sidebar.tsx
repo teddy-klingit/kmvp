@@ -11,7 +11,7 @@ const MAIN: TieredItem[] = [
   { label: "Needs you", href: "/ops", icon: Home, tiers: ["ADMIN", "PM", "CREATOR"] },
   { label: "Projects", href: "/ops/projects", icon: FolderKanban, tiers: ["ADMIN", "PM"] },
   { label: "Team", href: "/ops/team", icon: Users, tiers: ["ADMIN", "PM"] },
-  { label: "Agents", href: "/ops/agents", icon: Bot, tiers: ["ADMIN"] },
+  { label: "Skills & AI", href: "/ops/skills", icon: Bot, tiers: ["ADMIN"] },
 ];
 
 const AGENCY: TieredItem[] = [
@@ -22,7 +22,7 @@ const AGENCY: TieredItem[] = [
 ];
 
 /**
- * Ops nav (brand theme): Needs you (count badge), Projects, Team, Agents; Agency: Clients, Price list,
+ * Ops nav (brand theme): Needs you (count badge), Projects, Team, Skills & AI; Agency: Clients, Price list,
  * Archive. Billing, Analytics and Settings live in the Account menu; the Inbox is a Needs-you filter.
  */
 export function OpsSidebar({

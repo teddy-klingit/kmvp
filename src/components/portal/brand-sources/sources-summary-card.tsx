@@ -18,7 +18,7 @@ export function SourcesSummaryCard({ apps, linkedFiles, demo }: { apps: string[]
       <div className="flex flex-wrap items-center gap-4 px-6 py-5">
         <p className="m-0 min-w-0 flex-1 basis-[260px] text-[14px] leading-[1.5] text-brand-ink-2">
           {apps.length === 0 && linkedFiles === 0
-            ? "Nothing linked yet. Link where your brand lives so Klingit's agents can reference it."
+            ? "Nothing linked yet. Link where your brand lives so Klingit and your skills can use it."
             : `${linkedFiles} linked file${linkedFiles === 1 ? "" : "s"}${named.length ? ` from ${named.join(", ")}${apps.includes("web") ? " and the web" : ""}` : ""}${demo ? " · demo connections, nothing synced yet" : ""}`}
         </p>
         {apps.length > 0 && (

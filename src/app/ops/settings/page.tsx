@@ -21,7 +21,7 @@ const INTEGRATIONS = [
 ];
 
 const ROLE_PERMISSIONS: { role: keyof typeof INTERNAL_ROLE_LABEL; can: string[] }[] = [
-  { role: "ADMIN", can: ["Manage billing", "Manage agents", "Manage all clients", "Manage staff"] },
+  { role: "ADMIN", can: ["Manage billing", "Manage skills & AI", "Manage all clients", "Manage staff"] },
   { role: "ACCOUNT_LEAD", can: ["Manage assigned clients", "Send estimates", "Approve delivery"] },
   { role: "ART_DIRECTOR", can: ["Approve production batches", "Assign creative tasks"] },
   { role: "PROJECT_MANAGER", can: ["Manage pipeline stages", "Resolve QA flags"] },

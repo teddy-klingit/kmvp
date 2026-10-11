@@ -49,7 +49,7 @@ export async function runAgentTask<T>({
   }
   // Kill switch: an Admin set this agent to Disabled, so nothing may run it (no call, no run logged).
   if (agent.status === "DISABLED") {
-    return { ok: false, error: `${agent.name} is disabled. An Admin can turn it back on in Agents.` };
+    return { ok: false, error: `${agent.name} is turned off right now. Klingit can turn it back on.` };
   }
 
   // Who pays: a client-triggered context (withAiCharge), or a client's own skill run. Anything else is Klingit's

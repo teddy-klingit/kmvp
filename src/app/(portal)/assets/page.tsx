@@ -93,7 +93,7 @@ export default async function BrandOsOverviewPage() {
                 {emptyNotDrafted.length > 0 ? (
                   <>
                     <span className="text-[21px] leading-[1.35]">
-                      Let the brand agent draft {emptyNotDrafted.length === 1 ? "it" : "them"} from {sources.length > 0 ? `your ${sources.length} linked source${sources.length === 1 ? "" : "s"}` : "your website and summary"}
+                      Let Klingit draft {emptyNotDrafted.length === 1 ? "it" : "them"} from {sources.length > 0 ? `your ${sources.length} linked source${sources.length === 1 ? "" : "s"}` : "your website and summary"}
                     </span>
                     <span className="text-[14px] text-brand-cream/80">You review every section before it is saved.</span>
                   </>
@@ -152,7 +152,7 @@ export default async function BrandOsOverviewPage() {
                 <span className="text-[15px]">platform sections done</span>
               </div>
               <Meter value={status.done} max={status.total} label={`${status.done} of ${status.total} platform sections done`} />
-              <span className="text-[13px] leading-[1.5] text-brand-ink-2">Agents write better briefs the more is filled in. Computed from Brand OS, not a stored score.</span>
+              <span className="text-[13px] leading-[1.5] text-brand-ink-2">Skills and assistants write better the more is filled in. Computed from Brand OS, not a stored score.</span>
             </div>
           </SectionCard>
         </>

@@ -36,7 +36,7 @@ export default async function AgentAuditLogPage({ searchParams }: { searchParams
     const q = new URLSearchParams();
     if (projectId) q.set("projectId", projectId);
     if (o.show) q.set("show", o.show);
-    return `/ops/agents/audit${q.size ? `?${q}` : ""}`;
+    return `/ops/skills/audit${q.size ? `?${q}` : ""}`;
   };
   return (
     <OpsPage>
@@ -51,18 +51,18 @@ export default async function AgentAuditLogPage({ searchParams }: { searchParams
           ]}
         />
         {projectId && (
-          <Link href="/ops/agents/audit" className="font-brand-mono text-[12px] text-brand-ink underline underline-offset-4">
+          <Link href="/ops/skills/audit" className="font-brand-mono text-[12px] text-brand-ink underline underline-offset-4">
             CLEAR PROJECT FILTER
           </Link>
         )}
       </div>
       <SectionCard title="Decisions">
         <DataTable
-          label="Agent decisions"
-          empty={<CardNote>No agent runs recorded{projectId ? " for this project" : ""} yet.</CardNote>}
+          label="AI decisions"
+          empty={<CardNote>No AI runs recorded{projectId ? " for this project" : ""} yet.</CardNote>}
           columns={[
             { key: "when", label: "When", className: "w-[120px]" },
-            { key: "agent", label: "Agent" },
+            { key: "agent", label: "Skill, assistant or automation" },
             { key: "decision", label: "Decision" },
             { key: "status", label: "Status" },
             { key: "action", label: "", className: "w-[260px]" },

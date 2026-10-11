@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
 import type { Agent } from "@/generated/prisma";
 import { aiGate } from "@/lib/ai-credits";
+import { saveSkillOutput } from "@/lib/skill-outputs";
+import { runCustomSkill } from "@/lib/ai/agents/self-serve/custom-skill";
 import { withAiCharge } from "@/lib/ai-context";
 import { generateSelfServeBrief } from "@/lib/ai/agents/self-serve/brief-generator";
 import { generateSelfServeAdConcept } from "@/lib/ai/agents/self-serve/ad-concept-generator";
@@ -36,6 +38,7 @@ export async function runSelfServiceAgentAction(
 
 async function runSkill(agent: Agent, viewer: Awaited<ReturnType<typeof getPortalViewer>>, formData: FormData): Promise<SelfServiceAgentState> {
   const agentId = agent.id;
+  const startedAt = new Date();
 
   const brandOS = await prisma.brandOS.findUnique({ where: { clientId: viewer.clientId } });
   const common = { clientId: viewer.clientId, requestedByUserId: viewer.userId, client: viewer.client, brandOS };
@@ -81,13 +84,24 @@ async function runSkill(agent: Agent, viewer: Awaited<ReturnType<typeof getPorta
       result = await generateSelfServeImage({ ...common, idea });
       break;
     }
-    default:
-      return { error: "This skill doesn't have a form to run it yet." };
+    default: {
+      // A custom skill built for this client: its spec plus what they typed.
+      if (agent.clientId !== viewer.clientId) return { error: "This skill doesn't have a form to run it yet." };
+      const input = String(formData.get("input") ?? "").trim().slice(0, 4000);
+      if (!input) return { error: "Tell the skill what to work on first." };
+      result = await runCustomSkill({ ...common, agent, input });
+      break;
+    }
   }
 
   if (!result.ok) return { error: result.error };
 
+  // Every finished run lands in the Output library.
+  const run = await prisma.agentRun.findFirst({ where: { agentId, clientId: viewer.clientId, requestedByUserId: viewer.userId, status: "SUCCESS", createdAt: { gte: startedAt } }, orderBy: { createdAt: "desc" } });
+  if (run) await saveSkillOutput(run.id);
+
   revalidatePath(`/skills/${agentId}`);
   revalidatePath("/skills");
+  revalidatePath("/library");
   return { error: null };
 }

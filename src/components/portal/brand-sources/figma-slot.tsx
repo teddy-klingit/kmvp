@@ -19,7 +19,7 @@ export function FigmaDesignSystemSlot({ source, figmaConnected, connected, linke
               {source.title}
               <ExternalLink className="size-3.5 text-brand-ink-2" strokeWidth={1.75} />
             </a>
-            <span className="text-[13px] leading-[1.5] text-brand-ink-2">Klingit&apos;s designers and agents use this library as the visual reference.</span>
+            <span className="text-[13px] leading-[1.5] text-brand-ink-2">Klingit&apos;s designers and your skills use this library as the visual reference.</span>
           </div>
         </div>
       </Card>

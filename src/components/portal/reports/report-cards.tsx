@@ -26,7 +26,7 @@ export function TakeawaysCard({ period, report, action }: { period: Period; repo
         </CardRows>
       ) : (
         <div className="flex flex-wrap items-center gap-4 px-6 py-5">
-          <p className="m-0 min-w-0 flex-1 basis-[260px] text-[14px] text-brand-ink-2">The performance agent writes this report once the period has closed. It appears here, and goes out on your schedule.</p>
+          <p className="m-0 min-w-0 flex-1 basis-[260px] text-[14px] text-brand-ink-2">Performance insights writes this report once the period has closed. It appears here, and goes out on your schedule.</p>
           <AgentButton action={writeReportNowAction} fields={{ kind: period.kind }} label="Write it now" pendingLabel="Writing…" />
         </div>
       )}

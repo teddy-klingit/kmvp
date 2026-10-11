@@ -162,7 +162,7 @@ export function WhySheet({ title, reasoning, label = "Why?" }: { title: string; 
             </DialogPrimitive.Close>
           </div>
           <DialogPrimitive.Description className="m-0 whitespace-pre-wrap text-[15px] leading-[1.6] text-brand-ink-2">{reasoning}</DialogPrimitive.Description>
-          <span className="text-[12px] text-brand-mute">The agent&apos;s reasoning, from the numbers on this page.</span>
+          <span className="text-[12px] text-brand-mute">The reasoning, from the numbers on this page.</span>
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>

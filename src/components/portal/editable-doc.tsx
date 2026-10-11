@@ -69,7 +69,7 @@ export function EditableDoc({
       <div className="flex flex-col gap-5 px-6 pb-6 pt-5">
         {draft && fromDraft !== draft.id && (
           <div className="flex flex-col gap-3 rounded-[10px] border border-dashed border-brand-lime-strong bg-[#F1F7E1] p-4">
-            <span className="font-brand-mono text-[11px] text-brand-ink-2">DRAFT BY THE BRAND AGENT{draft.basis ? ` · ${draft.basis.toUpperCase()}` : ""}</span>
+            <span className="font-brand-mono text-[11px] text-brand-ink-2">AI DRAFT{draft.basis ? ` · ${draft.basis.toUpperCase()}` : ""}</span>
             <p className="m-0 whitespace-pre-line text-[14px] leading-[1.55]">{draft.content}</p>
             <div className="flex flex-wrap gap-2">
               <button type="button" onClick={() => edit(draft.content, draft.id)} className={pillClass("primary", "sm")}>

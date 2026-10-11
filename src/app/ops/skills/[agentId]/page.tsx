@@ -33,7 +33,7 @@ export default async function AgentDetailPage({ params }: { params: Promise<{ ag
   return (
     <OpsPage>
       <PageHeader
-        back={{ href: "/ops/agents", label: "Agents" }}
+        back={{ href: "/ops/skills", label: "Agents" }}
         eyebrow={`${AGENT_CATEGORY_LABEL[agent.category]} · v${agent.version}`}
         title={agent.name}
         actions={
@@ -64,7 +64,7 @@ export default async function AgentDetailPage({ params }: { params: Promise<{ ag
             <div className="flex min-w-0 flex-1 basis-[260px] flex-col gap-0.5">
               <span className="text-[15px]">Self-service</span>
               <span className="text-[13px] leading-[1.5] text-brand-ink-2">
-                Let clients run this agent themselves from Brand OS, without a Klingit account manager in the loop.
+                Let clients run this skill themselves from Skills, without a Klingit account manager in the loop. Each run uses their AI credits.
               </span>
             </div>
             <form action={updateAgentSelfServiceAction} className="flex gap-2">

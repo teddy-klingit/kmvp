@@ -18,7 +18,7 @@ export default async function OpsInboxPage() {
   const rows = [
     ...flaggedRuns.map((r) => ({
       id: `run-${r.id}`,
-      href: r.project ? `/ops/projects/${r.project.id}?feed=activity` : `/ops/agents/${r.agentId}`,
+      href: r.project ? `/ops/projects/${r.project.id}?feed=activity` : `/ops/skills/${r.agentId}`,
       cells: {
         item: (
           <span className="flex flex-col">

@@ -81,11 +81,11 @@ export default async function MarketTrendsPage({ searchParams }: { searchParams:
                   );
                 })}
               </ul>
-              <p className="m-0 px-6 pb-5 pt-3 text-[13px] text-brand-mute">Grouped by the market agent from {headlines} headline{headlines === 1 ? "" : "s"} · click a theme to read them</p>
+              <p className="m-0 px-6 pb-5 pt-3 text-[13px] text-brand-mute">Grouped by Market ideas from {headlines} headline{headlines === 1 ? "" : "s"} · click a theme to read them</p>
             </>
           ) : (
             <div className="px-6 py-5">
-              <SkeletonChart line="The market agent groups category headlines into the themes shaping it." action={<AgentButton action={generateMarketIntelligenceAction} label="Generate" pendingLabel="Reading…" />} />
+              <SkeletonChart line="Market ideas groups category headlines into the themes shaping it." action={<AgentButton action={generateMarketIntelligenceAction} label="Generate" pendingLabel="Reading…" />} />
             </div>
           )}
         </ChartCard>

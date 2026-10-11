@@ -99,7 +99,7 @@ export function ConnectModal({
             {step === 2 && (
               <form action={action} className="flex flex-1 flex-col gap-3">
                 <input type="hidden" name="app" value={app} />
-                <span className="text-[14px] text-ds-text">Pick the folders and files Klingit&apos;s agents can use as reference.</span>
+                <span className="text-[14px] text-ds-text">Pick the folders and files Klingit and your skills can use as reference.</span>
                 <ul className="m-0 flex list-none flex-col divide-y divide-ds-divider rounded-[10px] border border-ds-border p-0">
                   {files.map((f) => {
                     const Icon = KIND_ICON[f.kind];

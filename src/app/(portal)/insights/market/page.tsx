@@ -122,7 +122,7 @@ export default async function MarketFeedPage({ searchParams }: { searchParams: P
                 )}
               </>
             ) : (
-              <SkeletonChart shape="matrix" line="The market agent turns these signals into what they mean for you." action={<AgentButton action={generateMarketIntelligenceAction} label={brief ? "Refresh" : "Generate"} pendingLabel="Reading…" />} />
+              <SkeletonChart shape="matrix" line="Market ideas turns these signals into what they mean for you." action={<AgentButton action={generateMarketIntelligenceAction} label={brief ? "Refresh" : "Generate"} pendingLabel="Reading…" />} />
             )}
           </ChartCard>
 

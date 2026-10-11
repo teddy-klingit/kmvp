@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -23,7 +24,13 @@ const THINKING_LABEL: Record<string, string> = {
 
 const NICHE_COPY_KEYS = new Set(["linkedin_post_agent", "landing_page_copy_agent", "instagram_caption_agent", "email_copy_agent"]);
 
-export function SelfServiceAgentForm({ agentId, agentKey }: { agentId: string; agentKey: string }) {
+const KNOWN = new Set(["brief_generator_agent", "ad_gen", "image_gen_agent", ...NICHE_COPY_KEYS]);
+
+/**
+ * The run form for a skill: one set of fields per standard skill, one input for a custom skill. A template
+ * prefills the format; the button says what the run is about to cost.
+ */
+export function SelfServiceAgentForm({ agentId, agentKey, template, cost }: { agentId: string; agentKey: string; template?: { name: string; category: string } | null; cost?: string | null }) {
   const [state, formAction, pending] = useActionState(runSelfServiceAgentAction, initialState);
 
   if (pending) {
@@ -64,7 +71,7 @@ export function SelfServiceAgentForm({ agentId, agentKey }: { agentId: string; a
         <>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="format">Format</Label>
-            <Input id="format" name="format" required placeholder="e.g. Instagram feed ad, LinkedIn single image, Story" />
+            <Input id="format" name="format" required defaultValue={template?.name} placeholder="e.g. Instagram feed ad, LinkedIn single image, Story" />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="idea">Idea</Label>
@@ -80,12 +87,31 @@ export function SelfServiceAgentForm({ agentId, agentKey }: { agentId: string; a
         </div>
       )}
 
-      {state.error && <p className="text-sm text-danger-foreground">{state.error}</p>}
+      {!KNOWN.has(agentKey) && (
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="input">What should it work on?</Label>
+          <Textarea id="input" name="input" required placeholder="Paste or describe the input, e.g. an INCI list or a product page" className="min-h-28" />
+        </div>
+      )}
 
-      <Button type="submit" variant="accent" className="self-start gap-1.5">
-        <Sparkles className="size-4" />
-        Generate
-      </Button>
+      {state.error && (
+        <p className="m-0 text-sm text-danger-foreground">
+          {state.error}{" "}
+          {state.topUp && (
+            <Link href="/settings/usage#top-up" className="text-brand-ink underline underline-offset-2">
+              Top up
+            </Link>
+          )}
+        </p>
+      )}
+
+      <span className="flex flex-wrap items-center gap-3">
+        <Button type="submit" variant="accent" className="gap-1.5">
+          <Sparkles className="size-4" />
+          Run
+        </Button>
+        {cost && <span className="text-[13px] text-brand-ink-2">{cost}</span>}
+      </span>
     </form>
   );
 }

@@ -35,7 +35,7 @@ export async function BriefSummaryCard({ projectId, viewer }: { projectId: strin
         </div>
       )}
       {sections.length === 0 ? (
-        <p className="m-0 px-6 py-5 text-[15px] text-brand-ink-2">Nothing written yet. The brief agent starts it from your Brand OS and past projects.</p>
+        <p className="m-0 px-6 py-5 text-[15px] text-brand-ink-2">Nothing written yet. The Brief assistant starts it from your Brand OS and past projects.</p>
       ) : (
         <ul className="m-0 flex list-none flex-col divide-y divide-brand-line p-0">
           {sections.map((s) => (

@@ -35,6 +35,7 @@ const nextConfig: NextConfig = {
       { source: "/account/billing", destination: "/settings/usage/billing", permanent: true },
       { source: "/account/:rest*", destination: "/settings/account/:rest*", permanent: true },
       { source: "/settings", destination: "/settings/account", permanent: false },
+      { source: "/ops/agents/:rest*", destination: "/ops/skills/:rest*", permanent: true },
     ];
   },
   experimental: {

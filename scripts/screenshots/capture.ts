@@ -287,8 +287,8 @@ const J4_OPS: [string, string][] = [
   ["04-archive", "/ops/archive"],
   ["05-team-capacity", "/ops/team"],
   ["06-team-forecast", "/ops/team/forecast"],
-  ["07-agents-library", "/ops/agents"],
-  ["08-agents-decision-log", "/ops/agents/audit"],
+  ["07-agents-library", "/ops/skills"],
+  ["08-agents-decision-log", "/ops/skills/audit"],
   ["09-needs-you", "/ops"],
   ["10-inbox", "/ops/inbox"],
   ["11-notifications", "/ops/notifications"],
@@ -602,10 +602,16 @@ async function main() {
     // Phase Q (nav v3, skills, output library, AI credits, usage), with ouhers data: Maja (admin) and Teddy (staff).
     return phaseList(
       "screenshots/phase-q",
-      [["01-home", "/dashboard"]].map(([n, path]) => [n, path] as [string, string]).filter(([n]) => !pageFilter || pageFilter.some((f) => n.startsWith(f))),
+      [
+        ["01-home", "/dashboard"],
+        ["02-skills-run", "/skills"],
+        ["03-skills-yours", "/skills/yours"],
+        ["04-skills-templates", "/skills/templates"],
+      ].map(([n, path]) => [n, path] as [string, string]).filter(([n]) => !pageFilter || pageFilter.some((f) => n.startsWith(f))),
       [
         ["s01-plans", "/ops/plans"],
         ["s02-client-admin", "/ops/clients/client-ouhers/admin"],
+        ["s03-skills-catalog", "/ops/skills"],
       ].map(([n, path]) => [n, path] as [string, string]).filter(([n]) => !pageFilter || pageFilter.some((f) => n.startsWith(f))),
       "maja@ouhers.demo"
     );
@@ -689,7 +695,7 @@ async function main() {
     await prisma.$disconnect();
     const ws: [string, string][] = ["brand-assets", "delivery", "project-files", "brand-os", "content-plan", "custom-apps"].map((v, i) => [`w${i}-workspace-${v}`, `/ops/clients/${klarna.id}/${v}`]);
     const pick = <T extends [string, string]>(l: T[]) => l.filter(([n]) => !pageFilter || pageFilter.some((f) => n.startsWith(f)));
-    return phaseList("screenshots/j5", pick(J5_CLIENT), pick([...J5_OPS, ["o07-agent-detail", `/ops/agents/${agent.id}`] as [string, string], ...ws]));
+    return phaseList("screenshots/j5", pick(J5_CLIENT), pick([...J5_OPS, ["o07-agent-detail", `/ops/skills/${agent.id}`] as [string, string], ...ws]));
   }
   if (phase === "j2") return phaseList("screenshots/j2", J2_PAGES.filter(([n]) => !pageFilter || pageFilter.some((f) => n.startsWith(f))));
   if (phase === "i") return phaseI();

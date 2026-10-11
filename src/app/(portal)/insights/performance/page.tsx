@@ -184,7 +184,7 @@ export default async function InsightsPerformancePage({ searchParams }: { search
         }
         side={
           <>
-            <ChartCard flush title="What to do" meta={<span className="font-brand-mono text-[12px] text-brand-ink">BY THE PERFORMANCE AGENT</span>}>
+            <ChartCard flush title="What to do" meta={<span className="font-brand-mono text-[12px] text-brand-ink">BY PERFORMANCE INSIGHTS</span>}>
               {actions.length > 0 ? (
                 <>
                   <ol className="m-0 list-none p-0">
@@ -210,7 +210,7 @@ export default async function InsightsPerformancePage({ searchParams }: { search
                 </>
               ) : (
                 <div className="px-6 py-5">
-                  <SkeletonChart shape="matrix" line="The performance agent picks up to three things to do." action={<AgentButton action={generatePerformanceInsightsAction} label="Ask the agent" pendingLabel="Reading…" />} />
+                  <SkeletonChart shape="matrix" line="Performance insights picks up to three things to do." action={<AgentButton action={generatePerformanceInsightsAction} label="Ask Performance insights" pendingLabel="Reading…" />} />
                 </div>
               )}
             </ChartCard>

@@ -3,7 +3,8 @@ import { Check, ChevronLeft, Sparkles } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import type { PortalViewer } from "@/lib/brief-intake";
 import { BUILD_STEPS, stepIndex, type AgentBuild } from "@/lib/agent-build";
-import { approveAgentTestAction, updateAgentSpecAction } from "@/lib/actions/agent-request-actions";
+import { approveSkillTestAction, updateSkillSpecAction } from "@/lib/actions/skill-request-actions";
+import { PlaceholderTag } from "@/components/ds/placeholder-tag";
 import { postCommentAction } from "@/lib/actions/project-actions";
 import { Avatar } from "@/components/ds/avatar";
 import { pillClass } from "@/components/ds/button";
@@ -18,11 +19,12 @@ const SPEC: { key: keyof AgentBuild["spec"]; label: string }[] = [
 ];
 
 /**
- * An agent build project (AgentProject.dc.html): name and step, the cost summary, the five-step timeline, the
- * spec (editable until building starts), the latest test output with "Looks right" / "Ask for changes", and on
- * the side the conversation with Klingit and the build log. It is a project, so it is on the Projects board too.
+ * A custom skill Klingit builds for the client (nav v3, 05; was the agent build project): name and step, build cost
+ * (team credits, once), each run (≈ AI credits), the test version date and who builds it, the five-step timeline,
+ * the skill spec (editable until building starts), the latest test output with "Looks right" / "Ask for changes",
+ * and on the side the conversation with Klingit and the build log.
  */
-export async function AgentBuildView({ projectId, build, share }: { projectId: string; viewer: PortalViewer; build: AgentBuild; share: React.ReactNode }) {
+export async function SkillBuildView({ projectId, build, share }: { projectId: string; viewer: PortalViewer; build: AgentBuild; share: React.ReactNode }) {
   const project = await prisma.project.findUniqueOrThrow({
     where: { id: projectId },
     include: {
@@ -42,8 +44,8 @@ export async function AgentBuildView({ projectId, build, share }: { projectId: s
       <div className="min-w-0 flex-1 px-4 pb-24 pt-6 md:px-10 md:pb-12 md:pt-8">
         <div className="mx-auto grid max-w-[1180px] grid-cols-1 items-start gap-6 min-[1100px]:grid-cols-[minmax(0,1fr)_380px]">
           <div className="flex min-w-0 flex-col gap-6">
-            <Link href="/skills" className="inline-flex items-center gap-1 self-start text-[14px] text-brand-ink-2 no-underline hover:text-brand-ink">
-              <ChevronLeft className="size-4" strokeWidth={1.75} /> Agents &amp; templates
+            <Link href="/skills/yours" className="inline-flex items-center gap-1 self-start text-[14px] text-brand-ink-2 no-underline hover:text-brand-ink">
+              <ChevronLeft className="size-4" strokeWidth={1.75} /> Your skills
             </Link>
 
             <section aria-label={project.name} className="overflow-hidden rounded-2xl bg-white">
@@ -57,19 +59,22 @@ export async function AgentBuildView({ projectId, build, share }: { projectId: s
                     <span className="rounded-full bg-brand-chip px-2.5 py-1 text-[13px]">{build.step}</span>
                   </span>
                   <span className="text-[15px] text-brand-ink-2">
-                    Custom agent{requester ? ` · requested by ${requester.user.name}` : ""} · built by Klingit
+                    Custom skill{requester ? ` · requested by ${requester.user.name}` : ""} · built by Klingit
                   </span>
                 </span>
                 {share}
               </div>
               <dl className="m-0 grid grid-cols-2 border-y border-brand-line min-[800px]:grid-cols-4">
                 {[
-                  ["Build cost", build.buildCredits != null ? `${build.buildCredits} credits, once` : "From the estimate"],
-                  ["Each run", build.perRunCredits != null ? `≈ ${build.perRunCredits} credits` : "Not known yet"],
+                  ["Build cost", build.buildCredits != null ? `${build.buildCredits} team credits` : "From the estimate"],
+                  ["Each run", build.perRunCredits != null ? `≈ ${build.perRunCredits} AI credits` : "Not known yet"],
                   ["Test version", build.dates.Testing ? date(build.dates.Testing, { weekday: "short", day: "numeric", month: "short" }) : "Not planned yet"],
                 ].map(([k, v], i) => (
                   <div key={k} className={cn("flex flex-col gap-1 px-6 py-4", i > 0 && "border-l border-brand-line", i === 2 && "max-[799px]:border-l-0 max-[799px]:border-t")}>
-                    <dt className="text-[13px] text-brand-mute">{k}</dt>
+                    <dt className="flex items-center gap-2 text-[13px] text-brand-mute">
+                      {k}
+                      {k === "Each run" && build.perRunCredits != null && <PlaceholderTag className="text-[9px]" />}
+                    </dt>
                     <dd className="m-0 text-[17px]">{v}</dd>
                   </div>
                 ))}
@@ -114,13 +119,13 @@ export async function AgentBuildView({ projectId, build, share }: { projectId: s
               </ol>
             </section>
 
-            <section aria-label="Agent spec" className="overflow-hidden rounded-2xl bg-white">
+            <section aria-label="Skill spec" className="overflow-hidden rounded-2xl bg-white">
               <header className="flex items-center border-b border-brand-line px-6 py-5">
-                <h2 className="m-0 flex-1 text-[20px] font-normal">Agent spec</h2>
+                <h2 className="m-0 flex-1 text-[20px] font-normal">Skill spec</h2>
                 {editable && <span className="text-[13px] text-brand-ink-2">Editable until building starts</span>}
               </header>
               {editable ? (
-                <form action={updateAgentSpecAction} className="flex flex-col">
+                <form action={updateSkillSpecAction} className="flex flex-col">
                   <input type="hidden" name="projectId" value={projectId} />
                   {SPEC.map((f) => (
                     <label key={f.key} className="grid grid-cols-1 gap-2 border-b border-brand-line px-6 py-4 min-[700px]:grid-cols-[180px_minmax(0,1fr)]">
@@ -153,16 +158,16 @@ export async function AgentBuildView({ projectId, build, share }: { projectId: s
               </header>
               {build.testOutput ? (
                 <div className="flex flex-col gap-4 px-6 py-5">
-                  <span className="text-[15px] text-brand-ink-2">A test run, so you can see what it will produce:</span>
+                  <span className="text-[15px] text-brand-ink-2">A first test run, so you can see what it will produce:</span>
                   <div className="flex flex-col gap-2 rounded-[12px] border border-brand-line bg-[#FBF9F4] px-5 py-4">
                     <span className="flex flex-wrap items-center gap-3">
                       <span className="flex-1 text-[17px]">{build.testOutput.title}</span>
-                      {build.testOutput.quality != null && <span className="rounded-full bg-brand-lime-pale px-2.5 py-0.5 text-[13px]">Brief quality {build.testOutput.quality}</span>}
+                      {build.testOutput.quality != null && <span className="rounded-full bg-brand-lime-pale px-2.5 py-0.5 text-[13px]">Voice score {build.testOutput.quality}</span>}
                     </span>
                     <span className="text-[15px] leading-[1.55] text-brand-ink-2">{build.testOutput.text}</span>
                   </div>
                   <div className="flex flex-wrap items-start gap-3">
-                    <form action={approveAgentTestAction}>
+                    <form action={approveSkillTestAction}>
                       <input type="hidden" name="projectId" value={projectId} />
                       <button type="submit" className={pillClass("primary")}>
                         Looks right

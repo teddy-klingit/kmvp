@@ -104,7 +104,7 @@ export default async function MarketCompetitorsPage({ searchParams }: { searchPa
 
           {rows.length === 0 ? (
             <ChartCard title="New ads by channel">
-              <SkeletonChart line="No competitors tracked yet. Add one on the right, or let the agent suggest some." action={<AgentButton action={generateMarketIntelligenceAction} label="Suggest competitors" pendingLabel="Reading…" />} />
+              <SkeletonChart line="No competitors tracked yet. Add one on the right, or let Market ideas suggest some." action={<AgentButton action={generateMarketIntelligenceAction} label="Suggest competitors" pendingLabel="Reading…" />} />
             </ChartCard>
           ) : (
             <section aria-label="New ads by channel" className="flex flex-col gap-4">

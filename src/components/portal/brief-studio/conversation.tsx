@@ -312,7 +312,7 @@ function Composer({ projectId, onSend, onAttach, disabled, placeholder }: { proj
   return (
     <div className="border-t border-brand-line px-4 pb-4 pt-3.5">
       <label htmlFor="briefmsg" className="sr-only">
-        Message the brief agent
+        Message the Brief assistant
       </label>
       <div className="flex items-center gap-1.5 rounded-[14px] border border-brand-field bg-white px-3 py-2.5 focus-within:border-brand-ink">
         {onAttach && projectId ? (
@@ -429,7 +429,7 @@ export function ConversationPanel({
   return (
     <section aria-label="Brief conversation" className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl bg-white">
       <div className="flex items-center gap-2.5 border-b border-brand-line px-5 py-[18px]">
-        <h2 className="m-0 flex-1 text-[18px] font-normal">Brief agent</h2>
+        <h2 className="m-0 flex-1 text-[18px] font-normal">Brief assistant</h2>
         {view && <span className="text-right text-[12px] text-brand-mute max-[479px]:hidden">{view.agentNote}</span>}
       </div>
       {view && <BasicsBar view={view} onChange={handlers.basics} disabled={disabled} />}

@@ -8,9 +8,9 @@ import { Button } from "@/components/ds/button";
 import { Textarea } from "@/components/ui/textarea";
 
 const FAQS = [
-  { q: "How does the AI brief agent work?", a: "It parses your answers, cross-checks them against your brand OS, and flags any gaps before production starts." },
+  { q: "How does the Brief assistant work?", a: "It parses your answers, cross-checks them against your brand OS, and flags any gaps before production starts." },
   { q: "What happens if I don't approve an estimate?", a: "You can request changes instead — your account lead will revise the scope and resend it." },
-  { q: "How is my brand OS kept up to date?", a: "Every delivered project feeds learnings back into your Brand OS automatically via the Learning agent." },
+  { q: "How is my brand OS kept up to date?", a: "Every delivered project feeds learnings back into your Brand OS automatically." },
   { q: "Can I add more teammates?", a: "Yes — invite them from Account > Team with the right approval permission." },
 ];
 

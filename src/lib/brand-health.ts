@@ -46,7 +46,7 @@ export function computeBrandHealth(facts: HealthFacts): BrandHealth {
   const top = [...dimensions].sort((a, b) => b.pointsLeft - a.pointsLeft)[0];
   const biggestLift =
     top && top.pointsLeft > 0
-      ? { key: top.key, points: top.pointsLeft, line: `Every agent reads your Brand OS. ${DIMENSIONS.find((d) => d.key === top.key)!.lift} is the biggest lift (+${top.pointsLeft}) and improves every output.` }
+      ? { key: top.key, points: top.pointsLeft, line: `Every skill and assistant reads your Brand OS. ${DIMENSIONS.find((d) => d.key === top.key)!.lift} is the biggest lift (+${top.pointsLeft}) and improves every output.` }
       : null;
   return { score, label: healthLabel(score), dimensions, biggestLift };
 }

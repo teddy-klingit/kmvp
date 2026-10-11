@@ -40,7 +40,7 @@ export default async function BrandPlatformPage() {
           {undrafted.length > 0 && (
             <Card tone="muted" aria-label="Draft with AI" className="flex flex-col gap-3 px-6 py-5">
               <span className="text-[16px]">Draft the {undrafted.length} empty section{undrafted.length === 1 ? "" : "s"} with AI</span>
-              <span className="text-[13px] leading-[1.5] text-brand-ink-2">The brand agent drafts from your website, summary and linked sources. You review every section before it&apos;s saved.</span>
+              <span className="text-[13px] leading-[1.5] text-brand-ink-2">Brand OS drafting writes from your website, summary and linked sources. You review every section before it&apos;s saved.</span>
               <AgentButton action={draftEmptySectionsAction} label="Draft with AI" pendingLabel="Drafting…" variant="action" align="start" />
             </Card>
           )}

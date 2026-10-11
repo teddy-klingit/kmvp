@@ -13,7 +13,7 @@ import { AssetTile, assetTileInclude, tileMedia } from "@/components/portal/asse
 import { clientCtrAverage } from "@/lib/insights-data";
 import { clientVisibleAsset } from "@/lib/qc/visibility";
 
-/** Search results across projects, assets and agents. */
+/** Search results across projects, outputs and skill runs. */
 export default async function SearchPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q = "" } = await searchParams;
   const viewer = await getPortalViewer();
@@ -36,7 +36,8 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           take: 8,
         }),
         prisma.agentRun.findMany({
-          where: { clientId: viewer.clientId, agent: { name: { contains: query } } },
+          // Only the client's own skill runs (never Klingit's internal automation).
+          where: { clientId: viewer.clientId, requestedByUserId: { not: null }, agent: { kind: "SKILL", name: { contains: query } } },
           include: { agent: true },
           distinct: ["agentId"],
         }),
@@ -52,7 +53,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
     <div className="flex flex-col gap-6">
       <PageHeader eyebrow="Search" title={query ? `Results for "${query}"` : "Search"} />
 
-      {!query && <EmptyState icon={Search} title="Search projects, assets, and agents." />}
+      {!query && <EmptyState icon={Search} title="Search projects, outputs and skills." />}
       {noResults && <EmptyState icon={Search} title={`No results for "${query}".`} />}
 
       {projects.length > 0 && (
@@ -85,11 +86,13 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
       )}
 
       {agentRuns.length > 0 && (
-        <SectionCard title="Agents" meta={count(agentRuns.length)}>
+        <SectionCard title="Skills" meta={count(agentRuns.length)}>
           <CardRows>
             {agentRuns.map((r) => (
               <li key={r.id} className="px-6 py-4 text-[15px]">
-                {r.agent.name}
+                <a href={`/skills/${r.agentId}`} className="text-brand-ink no-underline hover:underline">
+                  {r.agent.name}
+                </a>
               </li>
             ))}
           </CardRows>

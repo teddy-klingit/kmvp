@@ -143,11 +143,11 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
           <>
             <SectionCard
               id="suggested"
-              title="Suggested by the agent"
+              title="Suggested for you"
               action={pending.length + ideas.length > 0 ? <span className="text-[12px] text-brand-ink-2">{pending.length + ideas.length} new</span> : undefined}
             >
               {pending.length === 0 && ideas.length === 0 ? (
-                <CardNote>No suggestions right now. “Suggest content” asks the agent to read your plan and performance.</CardNote>
+                <CardNote>No suggestions right now. “Suggest content” reads your plan and performance and suggests posts.</CardNote>
               ) : (
                 <CardRows>
                   {pending.map((s) => (

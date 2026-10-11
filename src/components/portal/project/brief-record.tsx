@@ -81,7 +81,7 @@ export async function BriefRecord({ projectId, projectName, viewer, sent }: { pr
         {transcript.map((t, i) => (
           <Row key={i} label={t.question} value={t.answer} />
         ))}
-        {brief.aiSummary && <Row label="Brief agent summary" value={brief.aiSummary} />}
+        {brief.aiSummary && <Row label="Brief assistant summary" value={brief.aiSummary} />}
         {gaps.length > 0 && <Row label="Still missing" value={gaps.join(" · ")} />}
       </div>
     </Card>

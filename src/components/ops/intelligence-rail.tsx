@@ -56,7 +56,7 @@ export function IntelligenceRail({ client, activeProject }: ClientWorkspace) {
 
       {activeProject && activeProject.agentRuns.length > 0 && (
         <div>
-          <SectionLabel>Agents active</SectionLabel>
+          <SectionLabel>AI in use</SectionLabel>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
             {Array.from(new Map(activeProject.agentRuns.map((r) => [r.agent.name, r])).values()).map((r) => (
               <Badge key={r.id} tone="accent">

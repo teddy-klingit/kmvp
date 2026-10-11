@@ -87,7 +87,7 @@ export default async function InsightsOverviewPage({ searchParams }: { searchPar
         </div>
       ) : (
         <ChartCard title="This week's takeaways">
-          <SkeletonChart line="The performance agent writes three takeaways from your numbers every week." action={<AgentButton action={generatePerformanceInsightsAction} label="Write takeaways" pendingLabel="Reading the numbers…" />} />
+          <SkeletonChart line="Performance insights writes three takeaways from your numbers every week." action={<AgentButton action={generatePerformanceInsightsAction} label="Write takeaways" pendingLabel="Reading the numbers…" />} />
         </ChartCard>
       )}
 
