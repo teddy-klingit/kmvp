@@ -3,12 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
+import { isClientAdmin } from "@/lib/client-roles";
 import { CONNECTABLE_APPS, DEMO_FILES, SOURCE_SECTIONS, detectApp, normaliseUrl, titleFromUrl, type SourceApp } from "@/lib/brand-sources";
 
 export type SourceState = { error?: string; ok?: string };
 
 function revalidate() {
   revalidatePath("/assets", "layout");
+  revalidatePath("/settings/connections");
 }
 
 const validSection = (s: FormDataEntryValue | null) => {
@@ -19,6 +21,8 @@ const validSection = (s: FormDataEntryValue | null) => {
 /** Demo connect: records the connection and the files the client picked from the demo list. Nothing is synced. */
 export async function connectDemoAppAction(_prev: SourceState, formData: FormData): Promise<SourceState> {
   const viewer = await getPortalViewer();
+  // Connections are the admins' (Settings → Connections), checked here and not only in the UI.
+  if (!isClientAdmin(viewer)) return { error: "Only an admin on your account can change connections." };
   const app = String(formData.get("app") ?? "") as SourceApp;
   if (!CONNECTABLE_APPS.some((a) => a.key === app)) return { error: "Unknown app." };
   const picked = formData.getAll("file").map(String);
@@ -41,6 +45,7 @@ export async function connectDemoAppAction(_prev: SourceState, formData: FormDat
 
 export async function disconnectAppAction(formData: FormData) {
   const viewer = await getPortalViewer();
+  if (!isClientAdmin(viewer)) return;
   const app = String(formData.get("app") ?? "");
   await prisma.brandConnection.updateMany({ where: { clientId: viewer.clientId, app }, data: { status: "DISCONNECTED" } });
   revalidate();

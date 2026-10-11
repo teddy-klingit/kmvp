@@ -1,91 +1,185 @@
+import { Image as ImageIcon } from "lucide-react";
+import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
+import { isClientAdmin } from "@/lib/client-roles";
 import { listBrandConnections, listBrandSources } from "@/lib/brand-sources-data";
-import { CONNECTABLE_APPS, appMeta, sectionLabel, type SourceApp } from "@/lib/brand-sources";
-import { Card, CardHeader, CardNote, CardRows, SectionCard } from "@/components/ds/card";
-import { StatusPill } from "@/components/ds/status-pill";
-import { PageGrid } from "@/components/ds/page-grid";
+import { CONNECTABLE_APPS, appMeta, type SourceApp } from "@/lib/brand-sources";
+import { AD_ACCOUNTS, AI_MODELS, type ConnectionMeta } from "@/lib/connections";
+import { ownsLiveAds } from "@/lib/integrations/live-ads-owner";
+import { planFor } from "@/lib/ai-credits";
+import { formatDay } from "@/lib/project-state";
+import { CardRows, SectionCard } from "@/components/ds/card";
+import { pillClass } from "@/components/ds/button";
 import { AppIcon } from "@/components/portal/brand-sources/app-icon";
 import { ConnectModal } from "@/components/portal/brand-sources/connect-modal";
-import { PasteLinkForm, SourceChip } from "@/components/portal/brand-sources/sources-row";
+import { PasteLinkForm } from "@/components/portal/brand-sources/sources-row";
+import { OwnModelDialog } from "@/components/portal/connections/own-model-dialog";
+import { requestAdAccountAction, disconnectConnectionAction } from "@/lib/actions/connection-actions";
+import { cn } from "@/lib/utils";
 
-/** Brand OS → Sources: connect the apps where the brand lives, or paste any link. */
-export default async function BrandSourcesPage({ searchParams }: { searchParams: Promise<{ connect?: string; step?: string }> }) {
+type Status = "CONNECTED" | "NEEDS_RECONNECT" | "REQUESTED" | "NONE";
+const STATUS: Record<Status, { label: string; dot: string }> = {
+  CONNECTED: { label: "Connected", dot: "bg-[#8D9E47]" },
+  NEEDS_RECONNECT: { label: "Needs reconnecting", dot: "bg-brand-orange" },
+  REQUESTED: { label: "Requested · Klingit sets it up", dot: "bg-brand-ink" },
+  NONE: { label: "Not connected", dot: "bg-brand-outline" },
+};
+const FILES_FIRST = ["google_drive", "notion", "figma"];
+
+/**
+ * Settings → Connections (nav v3, 09; moved here from Brand OS → Sources): files & docs Klingit can read, ad
+ * accounts for Insights and the Output library, and your own AI model (Basic only). Admins change them; everyone
+ * else sees the state.
+ */
+export default async function ConnectionsPage({ searchParams }: { searchParams: Promise<{ connect?: string; step?: string }> }) {
   const { connect, step } = await searchParams;
   const viewer = await getPortalViewer();
-  const [connections, sources] = await Promise.all([listBrandConnections(viewer.clientId), listBrandSources(viewer.clientId)]);
+  const admin = isClientAdmin(viewer);
+  const [connections, sources, rows, plan] = await Promise.all([listBrandConnections(viewer.clientId), listBrandSources(viewer.clientId), prisma.brandConnection.findMany({ where: { clientId: viewer.clientId } }), planFor(viewer.client.planTier)]);
+  const row = (app: string) => rows.find((r) => r.app === app);
+  const statusOf = (app: string): Status => {
+    const s = row(app)?.status;
+    return s === "CONNECTED" || s === "NEEDS_RECONNECT" || s === "REQUESTED" ? s : "NONE";
+  };
+  const metaOf = (app: string) => (row(app)?.meta ?? {}) as ConnectionMeta;
   const connectedApps = new Set(connections.map((c) => c.app));
-  const linked = sources.filter((s) => !s.isDemo || connectedApps.has(s.app));
+  const fileApps = [...FILES_FIRST.map((k) => CONNECTABLE_APPS.find((a) => a.key === k)!), ...CONNECTABLE_APPS.filter((a) => !FILES_FIRST.includes(a.key))];
+  const shownFiles = fileApps.filter((a, i) => i < 3 || connectedApps.has(a.key));
+  const moreFiles = fileApps.filter((a) => !shownFiles.includes(a));
+  const ads = await Promise.all(AD_ACCOUNTS.map(async (a) => ({ ...a, status: (a.live && (await ownsLiveAds(viewer.clientId, a.live)) ? "CONNECTED" : statusOf(a.key)) as Status })));
+  const fileMeta = (app: string) => {
+    const m = metaOf(app);
+    const n = sources.filter((s) => s.app === app).length;
+    return [m.folders ? `${m.folders} folder${m.folders === 1 ? "" : "s"}` : m.workspace ?? (n ? `${n} linked` : null), m.lastSyncAt ? `synced ${formatDay(new Date(m.lastSyncAt))}` : null, row(app)?.isDemo ? "demo" : null].filter(Boolean).join(" · ");
+  };
 
   return (
-    <PageGrid
-      main={
-        <>
-          <SectionCard title="Apps" action={<span className="text-[12px] text-brand-ink-2">{CONNECTABLE_APPS.filter((a) => connectedApps.has(a.key)).length} of {CONNECTABLE_APPS.length} connected</span>}>
+    <div className="flex flex-col gap-6">
+      <SectionCard title="Files & docs" action={<Count n={shownFiles.filter((a) => connectedApps.has(a.key)).length} of={shownFiles.length} />}>
+        <CardRows>
+          {shownFiles.map((app) => (
+            <Row key={app.key} icon={<AppIcon app={app.key} size={16} tile />} name={app.name} description={app.description} meta={connectedApps.has(app.key) ? fileMeta(app.key) : null} status={connectedApps.has(app.key) ? "CONNECTED" : "NONE"}>
+              {admin && <ConnectModal app={app.key as Exclude<SourceApp, "web">} connected={connectedApps.has(app.key)} linkedCount={sources.filter((s) => s.app === app.key).length} open={connect === app.key} initialStep={connect === app.key && step ? (Number(step) as 1 | 2 | 3) : connectedApps.has(app.key) ? 2 : 1} />}
+            </Row>
+          ))}
+        </CardRows>
+        {(moreFiles.length > 0 || admin) && (
+          <details className="border-t border-brand-line">
+            <summary className="cursor-pointer px-6 py-3 font-brand-mono text-[12px] uppercase text-brand-ink">More apps and links</summary>
             <CardRows>
-              {CONNECTABLE_APPS.map((app) => {
-                const isConnected = connectedApps.has(app.key);
-                const count = sources.filter((s) => s.app === app.key).length;
-                return (
-                  <li key={app.key} aria-label={app.name} className="flex flex-wrap items-center gap-x-4 gap-y-3 px-6 py-4">
-                    <div className="flex min-w-0 flex-1 basis-[260px] items-start gap-3">
-                      <AppIcon app={app.key} size={18} tile />
-                      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                        <span className="text-[15px] text-brand-ink">{app.name}</span>
-                        <span className="text-[13px] leading-[1.5] text-brand-ink-2">{app.description}</span>
-                        {isConnected && <span className="text-[12px] text-brand-ink-2">Demo: no data is synced yet · {count} linked</span>}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <StatusPill tone={isConnected ? "success" : "neutral"} dot={isConnected}>
-                        {isConnected ? "Connected · demo" : "Not connected"}
-                      </StatusPill>
-                      <ConnectModal
-                        app={app.key as Exclude<SourceApp, "web">}
-                        connected={isConnected}
-                        linkedCount={count}
-                        open={connect === app.key}
-                        initialStep={connect === app.key && step ? (Number(step) as 1 | 2 | 3) : isConnected ? 2 : 1}
-                      />
-                    </div>
-                  </li>
-                );
-              })}
+              {moreFiles.map((app) => (
+                <Row key={app.key} icon={<AppIcon app={app.key} size={16} tile />} name={app.name} description={app.description} meta={null} status="NONE">
+                  {admin && <ConnectModal app={app.key as Exclude<SourceApp, "web">} connected={false} linkedCount={0} open={connect === app.key} initialStep={1} />}
+                </Row>
+              ))}
             </CardRows>
-          </SectionCard>
-
-          <SectionCard
-            title="Linked files"
-            meta={linked.length > 0 ? <span className="font-brand-mono text-[12px] text-brand-ink-2">{linked.length}</span> : undefined}
-            action={linked.length > 0 ? <span className="text-[12px] text-brand-ink-2">Click to open · × to remove</span> : undefined}
-          >
-            {linked.length === 0 ? (
-              <CardNote>Nothing linked yet. Connect an app or paste a link, then pin them to a Brand OS section with “Add source”.</CardNote>
-            ) : (
-              <CardRows>
-                {linked.map((s) => (
-                  <li key={s.id} className="flex flex-wrap items-center gap-3 px-6 py-3">
-                    <SourceChip source={s} />
-                    <span className="flex-1" />
-                    <span className="text-[12px] text-brand-ink-2">{sectionLabel(s.section) ?? "Library"}</span>
-                  </li>
-                ))}
-              </CardRows>
+            {admin && (
+              <div className="flex flex-col gap-2 border-t border-brand-line px-6 py-4">
+                <span className="text-[13px] text-brand-ink-2">{appMeta("web").description}</span>
+                <PasteLinkForm submitLabel="Add link" />
+              </div>
             )}
-          </SectionCard>
-        </>
-      }
-      side={
-        <Card aria-label="Website / any link">
-          <CardHeader title={appMeta("web").name} />
-          <div className="flex flex-col gap-4 px-6 py-5">
-            <div className="flex items-start gap-3">
-              <AppIcon app="web" size={18} tile />
-              <span className="min-w-0 flex-1 text-[13px] leading-[1.5] text-brand-ink-2">{appMeta("web").description}</span>
-            </div>
-            <PasteLinkForm submitLabel="Add link" />
-          </div>
-        </Card>
-      }
-    />
+          </details>
+        )}
+      </SectionCard>
+
+      <SectionCard title="Ad accounts" action={<Count n={ads.filter((a) => a.status === "CONNECTED").length} of={ads.length} />}>
+        <CardRows>
+          {ads.map((a) => {
+            const m = metaOf(a.key);
+            return (
+              <Row key={a.key} icon={<Monogram text={a.monogram} />} name={a.name} description={a.description} meta={[m.accounts, m.note].filter(Boolean).join(" · ") || null} status={a.status}>
+                {admin && (a.status === "CONNECTED" ? <Disconnect app={a.key} label="Manage" /> : a.status === "REQUESTED" ? null : <Request app={a.key} label={a.status === "NEEDS_RECONNECT" ? "Reconnect" : "Connect"} />)}
+              </Row>
+            );
+          })}
+        </CardRows>
+      </SectionCard>
+
+      <SectionCard title="Your own AI model" action={<span className="font-brand-mono text-[12px] uppercase text-brand-ink">Basic plan only</span>}>
+        <p className="m-0 mx-6 mt-5 flex items-start gap-2 rounded-[10px] bg-brand-page px-4 py-3 text-[14px] leading-[1.5]">
+          <span aria-hidden className="mt-1.5 size-2 shrink-0 rounded-full bg-[#8D9E47]" />
+          {plan.ownModel ? (
+            <span>
+              You&apos;re on <b className="font-semibold">Basic</b>: connect your own model and your skills and assistants run on it. Your provider bills the tokens; Klingit shows how many were used.
+            </span>
+          ) : (
+            <span>
+              You&apos;re on <b className="font-semibold">{plan.name}</b>: skills and assistants use Klingit AI credits. On <b className="font-semibold">Basic</b>, connect your own model here and your provider bills the tokens.
+            </span>
+          )}
+        </p>
+        <CardRows>
+          {AI_MODELS.map((m) => {
+            const status = statusOf(m.key);
+            return (
+              <Row key={m.key} icon={<Monogram text={m.monogram} />} name={m.name} description={m.description} meta={status === "CONNECTED" && metaOf(m.key).last4 ? `Key ending ${metaOf(m.key).last4}` : null} status={status}>
+                {admin && (status === "CONNECTED" ? <Disconnect app={m.key} label="Disconnect" /> : <OwnModelDialog app={m.key} name={m.name} basic={plan.ownModel} />)}
+              </Row>
+            );
+          })}
+        </CardRows>
+      </SectionCard>
+
+      <p className="m-0 flex flex-wrap items-center gap-3 rounded-[12px] border border-dashed border-brand-field px-5 py-3.5 text-[14px] text-brand-ink-2">
+        <ImageIcon className="size-4" strokeWidth={1.75} />
+        Moved here from Brand OS → Sources. Brand OS still shows which sources it learned from.
+        {!admin && " Only your account's admins can change connections."}
+      </p>
+    </div>
+  );
+}
+
+function Count({ n, of }: { n: number; of: number }) {
+  return (
+    <span className="font-brand-mono text-[12px] uppercase text-brand-ink">
+      {n} of {of}
+    </span>
+  );
+}
+
+function Monogram({ text }: { text: string }) {
+  return <span className="flex size-9 shrink-0 items-center justify-center rounded-[8px] bg-brand-chip font-brand-mono text-[12px] font-semibold text-brand-ink">{text}</span>;
+}
+
+function Row({ icon, name, description, meta, status, children }: { icon: React.ReactNode; name: string; description: string; meta: string | null; status: Status; children?: React.ReactNode }) {
+  return (
+    <li className="flex flex-wrap items-center gap-x-4 gap-y-3 px-6 py-4">
+      <span className="flex min-w-0 flex-1 basis-[260px] items-center gap-3">
+        {icon}
+        <span className="flex min-w-0 flex-col">
+          <span className="text-[15px]">{name}</span>
+          <span className="text-[13px] text-brand-ink-2">{description}</span>
+          {meta && <span className="text-[12px] text-brand-mute">{meta}</span>}
+        </span>
+      </span>
+      <span className={cn("inline-flex w-44 items-center gap-2 text-[14px]", status === "NEEDS_RECONNECT" ? "text-brand-ink" : "text-brand-ink-2")}>
+        <span aria-hidden className={cn("size-2 rounded-full", STATUS[status].dot)} />
+        {STATUS[status].label}
+      </span>
+      <span className="flex w-28 justify-end">{children}</span>
+    </li>
+  );
+}
+
+function Request({ app, label }: { app: string; label: string }) {
+  return (
+    <form action={requestAdAccountAction}>
+      <input type="hidden" name="app" value={app} />
+      <button type="submit" className={pillClass("primary", "sm")}>
+        {label}
+      </button>
+    </form>
+  );
+}
+
+function Disconnect({ app, label }: { app: string; label: string }) {
+  return (
+    <form action={disconnectConnectionAction}>
+      <input type="hidden" name="app" value={app} />
+      <button type="submit" className={pillClass("secondary", "sm")} title="Disconnect">
+        {label}
+      </button>
+    </form>
   );
 }

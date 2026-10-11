@@ -612,6 +612,8 @@ async function main() {
         ["06-ongoing-projects", "/projects"],
         ["06b-finished", "/projects?show=finished"],
         ["07-output-library", "/library"],
+        ["08-usage", "/settings/usage"],
+        ["09-connections", "/settings/connections"],
       ].map(([n, path]) => [n, path] as [string, string]).filter(([n]) => !pageFilter || pageFilter.some((f) => n.startsWith(f))),
       [
         ["s01-plans", "/ops/plans"],

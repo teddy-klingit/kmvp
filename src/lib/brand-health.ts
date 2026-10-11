@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
-import { ownsLiveAds } from "@/lib/integrations/live-ads-owner";
+import { connectedAdAccounts } from "@/lib/connections";
 import { jsonArray } from "@/lib/utils";
 import { platformStatus } from "@/lib/brand-completeness";
 import { VISUAL_IDENTITY_FOLDERS, VISUAL_IDENTITY_CATEGORY } from "@/lib/brand-iq-taxonomy";
@@ -21,7 +21,7 @@ const DIMENSIONS: { key: HealthKey; name: string; counts: string; fix: { label: 
   { key: "visual", name: "Visual identity", counts: "Colours, type, logo, imagery and more defined", fix: { label: "Add visual identity", href: "/assets/visual-identity" }, lift: "Filling in the visual identity" },
   { key: "voice", name: "Voice & tone", counts: "Voice, tone rules, words to use and to avoid", fix: { label: "Set the voice", href: "/assets/rules" }, lift: "Setting the voice and tone" },
   { key: "sources", name: "Sources", counts: "Apps with linked files", fix: { label: "Link sources", href: "/settings/connections" }, lift: "Linking your sources" },
-  { key: "performance", name: "Performance data", counts: "Ad channels connected", fix: { label: "Connect channels", href: "/insights" }, lift: "Connecting your ad channels" },
+  { key: "performance", name: "Performance data", counts: "Ad channels connected", fix: { label: "Connect channels", href: "/settings/connections" }, lift: "Connecting your ad channels" },
 ];
 
 export type HealthFacts = Record<HealthKey, { done: number; total: number }>;
@@ -59,14 +59,14 @@ export function healthTone(share: number): "lime" | "ink" | "orange" {
 
 /** The one Brand health for a client: Brand OS overview, Home and the seed check all read this. Cached per request. */
 export const loadBrandHealth = cache(async (clientId: string) => {
-  const [client, brandOS, assets, sources, connections, linkedIn, googleAds] = await Promise.all([
+  const [client, brandOS, assets, sources, connections, adAccounts] = await Promise.all([
     prisma.client.findUniqueOrThrow({ where: { id: clientId }, select: { brandSummary: true } }),
     prisma.brandOS.findUnique({ where: { clientId } }),
     prisma.brandAsset.findMany({ where: { clientId }, select: { category: true } }),
     prisma.brandSource.findMany({ where: { clientId, archivedAt: null }, select: { app: true } }),
     prisma.brandConnection.findMany({ where: { clientId, status: "CONNECTED" }, select: { app: true } }),
-    ownsLiveAds(clientId, "linkedin"),
-    ownsLiveAds(clientId, "google-ads"),
+    // This client's own ad accounts (Settings → Connections), plus the platform's live ones only if it owns them.
+    connectedAdAccounts(clientId),
   ]);
   const platform = platformStatus({ brandSummary: client.brandSummary, brandOS });
   const visualDone = VISUAL_IDENTITY_FOLDERS.filter((f) => {
@@ -78,10 +78,10 @@ export const loadBrandHealth = cache(async (clientId: string) => {
     return category ? assets.some((a) => a.category === category) : false;
   }).length;
   const voice = [jsonArray(brandOS?.voiceAttributes), jsonArray(brandOS?.toneRules), jsonArray(brandOS?.dos), jsonArray(brandOS?.donts)].filter((l) => l.length > 0).length;
-  const apps = new Set([...sources.map((s) => s.app), ...connections.map((c) => c.app)].filter((a) => a !== "web"));
-  // Only ad accounts that belong to this client (live-ads-owner.ts), never the platform's.
-  const meta = Boolean(process.env.META_ADS_ACCESS_TOKEN) && (await ownsLiveAds(clientId, "meta"));
-  const channels = [meta, linkedIn, googleAds].filter(Boolean).length;
+  // Sources = file and doc apps only (ad accounts and AI models are Connections too, but not brand sources).
+  const sourceApp = (a: string) => CONNECTABLE_APPS.some((x) => x.key === a);
+  const apps = new Set([...sources.map((s) => s.app), ...connections.map((c) => c.app)].filter(sourceApp));
+  const channels = Math.min(3, adAccounts.size);
   return computeBrandHealth({
     platform: { done: platform.done, total: platform.total },
     visual: { done: visualDone, total: VISUAL_IDENTITY_FOLDERS.length },

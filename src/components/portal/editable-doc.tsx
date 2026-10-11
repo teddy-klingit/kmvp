@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 import { CardHeader } from "@/components/ds/card";
 import { pillClass } from "@/components/ds/button";
 import { discardDraftAction } from "@/lib/actions/brand-draft-actions";
@@ -41,6 +41,7 @@ export function EditableDoc({
   footer?: React.ReactNode;
   children: React.ReactNode;
 }) {
+  const formId = useId();
   const [editing, setEditing] = useState(!initialValue && !draft);
   const [value, setValue] = useState(initialValue);
   const [fromDraft, setFromDraft] = useState<string | null>(null);
@@ -60,7 +61,11 @@ export function EditableDoc({
           editing ? (
             <span className="text-[12px] text-brand-ink-2">Editing</span>
           ) : (
-            <button type="button" onClick={() => edit(initialValue, null)} className={pillClass("secondary", "sm")}>
+            <button
+              type="button"
+              onClick={() => edit(initialValue, null)}
+              className={pillClass("secondary", "sm")}
+            >
               Edit
             </button>
           )
@@ -69,10 +74,18 @@ export function EditableDoc({
       <div className="flex flex-col gap-5 px-6 pb-6 pt-5">
         {draft && fromDraft !== draft.id && (
           <div className="flex flex-col gap-3 rounded-[10px] border border-dashed border-brand-lime-strong bg-[#F1F7E1] p-4">
-            <span className="font-brand-mono text-[11px] text-brand-ink-2">AI DRAFT{draft.basis ? ` · ${draft.basis.toUpperCase()}` : ""}</span>
-            <p className="m-0 whitespace-pre-line text-[14px] leading-[1.55]">{draft.content}</p>
+            <span className="font-brand-mono text-[11px] text-brand-ink-2">
+              AI DRAFT{draft.basis ? ` · ${draft.basis.toUpperCase()}` : ""}
+            </span>
+            <p className="m-0 whitespace-pre-line text-[14px] leading-[1.55]">
+              {draft.content}
+            </p>
             <div className="flex flex-wrap gap-2">
-              <button type="button" onClick={() => edit(draft.content, draft.id)} className={pillClass("primary", "sm")}>
+              <button
+                type="button"
+                onClick={() => edit(draft.content, draft.id)}
+                className={pillClass("primary", "sm")}
+              >
                 Use draft
               </button>
               <form action={discardDraftAction}>
@@ -86,41 +99,55 @@ export function EditableDoc({
         )}
 
         {editing ? (
-          <form
-            action={(formData) => {
-              startTransition(async () => {
-                await action({}, formData);
-                setEditing(false);
-                setFromDraft(null);
-              });
-            }}
-            className="flex flex-col gap-4"
-          >
-            {Object.entries(hidden).map(([k, v]) => (
-              <input key={k} type="hidden" name={k} value={v} />
-            ))}
-            {fromDraft && <input type="hidden" name="draftId" value={fromDraft} />}
-            {helperText && (
-              <label htmlFor={`doc-${title}`} className="text-[14px] text-brand-ink-2">
-                {helperText}
-              </label>
-            )}
-            <textarea
-              id={`doc-${title}`}
-              name="value"
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              placeholder={placeholder}
-              autoFocus={Boolean(initialValue) || Boolean(fromDraft)}
-              disabled={pending}
-              data-gramm="false"
-              data-gramm_editor="false"
-              data-enable-grammarly="false"
-              data-lt-active="false"
-              className="min-h-40 w-full resize-y rounded-[10px] border border-brand-outline bg-white px-4 py-3.5 text-[16px] leading-relaxed text-brand-ink outline-none transition-[border-color,box-shadow] placeholder:text-brand-ink-2/70 focus:border-brand-lime-strong focus:ring-4 focus:ring-brand-lime/60 disabled:opacity-60"
-            />
+          <>
+            <form
+              id={formId}
+              action={(formData) => {
+                startTransition(async () => {
+                  await action({}, formData);
+                  setEditing(false);
+                  setFromDraft(null);
+                });
+              }}
+              className="flex flex-col gap-4"
+            >
+              {Object.entries(hidden).map(([k, v]) => (
+                <input key={k} type="hidden" name={k} value={v} />
+              ))}
+              {fromDraft && (
+                <input type="hidden" name="draftId" value={fromDraft} />
+              )}
+              {helperText && (
+                <label
+                  htmlFor={`doc-${title}`}
+                  className="text-[14px] text-brand-ink-2"
+                >
+                  {helperText}
+                </label>
+              )}
+              <textarea
+                id={`doc-${title}`}
+                name="value"
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                placeholder={placeholder}
+                autoFocus={Boolean(initialValue) || Boolean(fromDraft)}
+                disabled={pending}
+                data-gramm="false"
+                data-gramm_editor="false"
+                data-enable-grammarly="false"
+                data-lt-active="false"
+                className="min-h-40 w-full resize-y rounded-[10px] border border-brand-outline bg-white px-4 py-3.5 text-[16px] leading-relaxed text-brand-ink outline-none transition-[border-color,box-shadow] placeholder:text-brand-ink-2/70 focus:border-brand-lime-strong focus:ring-4 focus:ring-brand-lime/60 disabled:opacity-60"
+              />
+            </form>
+            {/* The buttons sit outside the form: "Rewrite with AI" is a form of its own, and forms can't nest. */}
             <div className="flex flex-wrap items-center gap-2">
-              <button type="submit" disabled={pending} className={pillClass("primary")}>
+              <button
+                type="submit"
+                form={formId}
+                disabled={pending}
+                className={pillClass("primary")}
+              >
                 {pending ? "Saving…" : "Save"}
               </button>
               {(initialValue || draft) && (
@@ -140,7 +167,7 @@ export function EditableDoc({
               <span className="flex-1" />
               {rewrite}
             </div>
-          </form>
+          </>
         ) : (
           <div className="flex flex-col gap-4">
             {children}

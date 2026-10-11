@@ -1,17 +1,27 @@
 import { getPortalViewer } from "@/lib/current-viewer";
 import { isClientAdmin } from "@/lib/client-roles";
 import { SettingsHeader } from "@/components/portal/settings-header";
+import { pillClass } from "@/components/ds/button";
+import { planFor } from "@/lib/ai-credits";
 
 /** Settings → Usage (admins: the whole account) or My usage (members: their own credits only). */
 export default async function UsageLayout({ children }: { children: React.ReactNode }) {
   const viewer = await getPortalViewer();
   const admin = isClientAdmin(viewer);
+  const plan = await planFor(viewer.client.planTier);
+  const month = new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric" }).format(new Date());
   return (
     <div className="flex flex-col gap-6">
       <SettingsHeader
-        eyebrow={admin ? `${viewer.client.name} · visible to admins` : "Only your own credits"}
+        eyebrow={admin ? `${month} · ${plan.name} plan · visible to admins` : `${month} · only your own credits`}
         title={admin ? "Usage" : "My usage"}
-        {...(admin ? { chipsLabel: "Usage sections", chips: [{ label: "Credits", href: "/settings/usage" }, { label: "Billing", href: "/settings/usage/billing" }] } : {})}
+        actions={
+          admin ? (
+            <a href="/api/usage/export" className={pillClass("secondary")}>
+              Export CSV
+            </a>
+          ) : undefined
+        }
       />
       {children}
     </div>
