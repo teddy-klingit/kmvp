@@ -59,6 +59,10 @@ export function phaseQPack(account: Account, agents: Agents, projects: Project[]
     retail.credits = { ...retail.credits, estimated: [4, 4] };
   }
 
+  // Output library (design 07): most delivered work inside the default 90 days, whenever the seed runs.
+  const summer = projects.findIndex((p) => p.id === "p02-summer-sunday");
+  if (summer >= 0) projects[summer] = shiftDates(projects[summer], SUMMER_SHIFT_DAYS);
+
   const build = projects.find((p) => p.id === "p11-agent-seasonal");
   if (build) {
     build.title = "Ingredient explainer";
@@ -101,6 +105,22 @@ export function phaseQPack(account: Account, agents: Agents, projects: Project[]
     ],
   });
 }
+
+/** Every date in a pack project moved by `days` (YYYY-MM-DD and full ISO strings), so its story stays in order. */
+function shiftDates<T>(value: T, days: number): T {
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}(T|$)/.test(value)) {
+    const d = new Date(value.length === 10 ? `${value}T12:00:00Z` : value);
+    if (Number.isNaN(d.getTime())) return value;
+    const moved = new Date(d.getTime() + days * DAY);
+    return (value.length === 10 ? moved.toISOString().slice(0, 10) : value.replace(/^\d{4}-\d{2}-\d{2}/, moved.toISOString().slice(0, 10))) as T;
+  }
+  if (Array.isArray(value)) return value.map((v) => shiftDates(v, days)) as T;
+  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, shiftDates(v, days)])) as T;
+  return value;
+}
+
+/** The Summer campaign is moved this many days later, so it sits ~70 days before the seed date (inside the Output library's default 90 days). */
+const SUMMER_SHIFT_DAYS = 34;
 
 // A small seeded random generator, so every reseed writes the same numbers.
 function random(seed: number) {
@@ -246,6 +266,19 @@ export async function seedPhaseQ(ctx: {
   ];
   for (const [i, [key, title, format, channel, daysAgo, text]] of outputs.entries()) {
     await prisma.skillOutput.create({ data: { clientId, agentId: skillIds.get(key) ?? null, title, format, channel, text, createdByUserId: people[i % people.length].id, createdAt: new Date(now.getTime() - daysAgo * DAY) } });
+  }
+
+  // ─── More measured outputs, so two format + channel groups reach the badge rule's 4 (Output library) ───
+  // Story 9:16 · Meta: the teaser joins the two Summer stories and the launch story; Square 1:1 · Meta: the teaser
+  // and Summer's second square join the three measured squares. The rule is unchanged; only the data grows.
+  const MEASURED: [string, string, number][] = [
+    ["p00-prelaunch-teaser", "Story 9:16", 0.62],
+    ["p00-prelaunch-teaser", "Square 1:1", 0.55],
+    ["p02-summer-sunday", "Square 1:1", 1.48],
+  ];
+  for (const [pack, format, ctr] of MEASURED) {
+    const a = await prisma.asset.findFirst({ where: { projectId: ctx.projectId(pack), performanceCtr: null, format: { startsWith: format }, status: { in: ["APPROVED", "DELIVERED"] } }, orderBy: { name: "asc" }, select: { id: true } });
+    if (a) await prisma.asset.update({ where: { id: a.id }, data: { performanceCtr: ctr } });
   }
 
   // ─── Views for delivered videos without a CTR (Output library badges) ───

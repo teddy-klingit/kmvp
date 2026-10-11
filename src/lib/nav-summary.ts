@@ -18,7 +18,8 @@ export const loadNavSummary = cache(async (viewer: { id: string; clientId: strin
     needsYou: yourTurn(items).length,
     plan: ai.plan.name || "Your",
     team: { left: team.free, allowance: team.allowance },
-    ai: { left: Math.floor(ai.left), allowance: ai.allowance, ownModel: ai.ownModel },
+    // Rounded like every other screen (Home, Skills, Usage), so the numbers match.
+    ai: { left: Math.round(ai.left), allowance: ai.allowance, ownModel: ai.ownModel },
   };
 });
 export type NavSummary = Awaited<ReturnType<typeof loadNavSummary>>;

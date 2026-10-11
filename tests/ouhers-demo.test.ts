@@ -121,7 +121,8 @@ describe("the ouhers demo seed", () => {
   it("an asset's page: CTR against the client's own average, its rank and its other sizes; only sent work", async () => {
     const top = await prisma.asset.findFirstOrThrow({ where: { clientId: OUHERS_CLIENT_ID, performanceCtr: { not: null } }, orderBy: { performanceCtr: "desc" } });
     const d = (await loadAssetDetail(top.id, OUHERS_CLIENT_ID))!;
-    expect(d.performance).toMatchObject({ ctr: 1.77, rank: 1, of: 11 });
+    // 11 measured in the pack, plus the 3 the Phase Q layer measures for the Output library badges.
+    expect(d.performance).toMatchObject({ ctr: 1.77, rank: 1, of: 14 });
     expect(d.performance!.clientAvg).toBeCloseTo(1.08, 1);
     expect(d.performance!.siblings.map((s) => s.format)).toEqual(["Feed · 4:5", "Square · 1:1", "Link ad 1.91:1"]);
     // The tier is relative to the client: their best ad is a top performer even at 1.77%.
