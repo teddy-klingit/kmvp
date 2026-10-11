@@ -177,7 +177,7 @@ function thinkingLine(w: { part: string; labels: string[] } | null, first: strin
     case "formats":
       return "Working out the sizes and the estimate";
     case "whyNow":
-      return "Lining it up with your calendar";
+      return "Lining it up with your plan";
     case "objective":
       return "Finding a past result to compare with";
     case "persona":

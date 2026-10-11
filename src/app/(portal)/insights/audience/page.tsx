@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { getPortalViewer } from "@/lib/current-viewer";
+import { OpportunityLinks, opportunityLinksFor } from "@/components/portal/insights/opportunity-links";
 import { jsonArray } from "@/lib/utils";
 import { connectHref, insightSources, loadAudienceData, loadContentKpis } from "@/lib/insights-data";
 import { contentFormatPerformance } from "@/lib/content-calendar-metrics";
@@ -28,6 +29,7 @@ export default async function AudiencePage({ searchParams }: { searchParams: Pro
   const { range, platform } = await searchParams;
   const days = parseRange(range);
   const viewer = await getPortalViewer();
+  const opportunityLinks = await opportunityLinksFor(viewer.clientId, "/insights/audience");
   const clientId = viewer.clientId;
   const [{ community, website, escalations }, kpis, sources, connect] = await Promise.all([loadAudienceData(clientId), loadContentKpis(clientId), insightSources(clientId), connectHref(clientId)]);
   const since = sinceDays(days);
@@ -85,6 +87,7 @@ export default async function AudiencePage({ searchParams }: { searchParams: Pro
       <Suspense>
         <SubBar chips={chips.length > 1 ? <FilterChips label="Audience source" items={chips} /> : null} />
       </Suspense>
+      <OpportunityLinks rows={opportunityLinks} />
 
       <div className="grid grid-cols-2 gap-4 min-[1000px]:grid-cols-4">
         {followers.length > 0 && <StatTile icon="followers" label="Followers" value={compact(totalFollowers)} context={`${followers.map((f) => f.platform).join(" + ")}${socialDemo ? " · demo" : ""}`} spark={followerSpark.length > 1 ? followerSpark : undefined} />}
