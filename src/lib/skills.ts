@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { agentBuildOf, type AgentBuild } from "@/lib/agent-build";
 import { monthPeriod } from "@/lib/ai-credits";
+import { jsonArray } from "@/lib/utils";
 
 /**
  * Skills (nav v3): what a client can run (standard skills and their own custom skills), what Klingit is building
@@ -25,6 +26,18 @@ export const RECOMMENDED_SKILLS = [
   { name: "Seasonal content planner", reason: "Calendar", summary: "A month of post ideas from your calendar and what performed." },
 ] as const;
 
+export type SkillAvailability = "self_service" | "klingit_run" | "custom";
+export type SkillGoal = "make_ad" | "write_copy" | "plan_brief";
+export const SKILL_GOALS: { goal: SkillGoal; title: string; sub: string }[] = [
+  { goal: "make_ad", title: "Make an ad", sub: "Finished visuals with your brand applied" },
+  { goal: "write_copy", title: "Write copy", sub: "In your voice, checked against your rules" },
+  { goal: "plan_brief", title: "Plan & brief", sub: "Turn an idea into something Klingit can make" },
+];
+export const AVAILABILITY_LABEL: Record<SkillAvailability, string> = { self_service: "Self-service", klingit_run: "Run by Klingit", custom: "Custom" };
+
+/** A card's example: the client's own output (image or text), else a staff-picked one. */
+export type SkillExample = { title: string; image: string | null; text: string | null; color: string };
+
 export type SkillRow = {
   id: string;
   key: string;
@@ -33,20 +46,29 @@ export type SkillRow = {
   summary: string;
   custom: boolean;
   live: boolean;
+  availability: SkillAvailability;
+  goal: SkillGoal;
   aiPerRun: number | null;
+  teamCredits: number | null;
+  examples: SkillExample[];
   runsThisMonth: number;
   aiThisMonth: number;
   lastRunAt: Date | null;
 };
 
-/** Every skill this client can see: the standard ones and their own custom skills, with this month's use. */
+/**
+ * Every skill this client can see, labelled (Phase R): the standard self-service ones, the ones Klingit runs for
+ * them, and their own custom skills, with this month's use and up to 3 examples (their own outputs first).
+ */
 export async function listSkills(clientId: string, now = new Date()): Promise<SkillRow[]> {
   const { start, end } = monthPeriod(now);
-  const [agents, usage, last] = await Promise.all([
-    prisma.agent.findMany({ where: { kind: "SKILL", OR: [{ clientId: null, selfService: true }, { clientId }] }, orderBy: { name: "asc" } }),
+  const [agents, usage, last, outputs] = await Promise.all([
+    prisma.agent.findMany({ where: { kind: "SKILL", OR: [{ clientId: null, availability: { in: ["self_service", "klingit_run"] } }, { clientId }] }, orderBy: { name: "asc" } }),
     prisma.aiCreditLedger.findMany({ where: { clientId, kind: "USAGE", sourceType: "skill", createdAt: { gte: start, lt: end } }, select: { id: true, sourceKey: true, amount: true, agentRunId: true } }),
     prisma.aiCreditLedger.groupBy({ by: ["sourceKey"], where: { clientId, kind: "USAGE", sourceType: "skill" }, _max: { createdAt: true } }),
+    prisma.skillOutput.findMany({ where: { clientId }, orderBy: { createdAt: "desc" }, take: 200, select: { id: true, agentId: true, title: true, text: true, storageKey: true, mimeType: true } }),
   ]);
+  const TINTS = ["#E4ECEE", "#F6CDB8", "#F6E7B8", "#F7E6F7", "#FBF6F0"];
   return agents
     .filter((a) => a.clientId || a.status !== "DISABLED")
     .map((a) => {
@@ -59,7 +81,14 @@ export async function listSkills(clientId: string, now = new Date()): Promise<Sk
         summary: a.summary ?? a.description,
         custom: Boolean(a.clientId),
         live: a.status === "LIVE",
+        availability: (a.clientId ? "custom" : (a.availability ?? "self_service")) as SkillAvailability,
+        goal: (a.goal ?? "write_copy") as SkillGoal,
         aiPerRun: a.aiCreditsPerRun,
+        teamCredits: a.teamCreditsEstimate,
+        examples: [
+          ...outputs.filter((o) => o.agentId === a.id).slice(0, 3).map((o, i): SkillExample => ({ title: o.title, image: o.storageKey && o.mimeType?.startsWith("image/") ? `/api/skill-outputs/${o.id}/file` : null, text: o.text, color: TINTS[i % TINTS.length] })),
+          ...jsonArray<{ title: string; text?: string; color?: string }>(a.examples).map((e, i): SkillExample => ({ title: e.title, image: null, text: e.text ?? null, color: e.color ?? TINTS[(i + 1) % TINTS.length] })),
+        ].slice(0, 3),
         runsThisMonth: new Set(rows.map((r) => r.agentRunId ?? r.id)).size,
         aiThisMonth: Math.round(-rows.reduce((s, r) => s + r.amount, 0)),
         lastRunAt: last.find((l) => l.sourceKey === a.key)?._max.createdAt ?? null,
@@ -124,6 +153,6 @@ export async function publishCustomSkill(clientId: string, projectId: string, na
   return prisma.agent.upsert({
     where: { key },
     update: { name, summary: build.spec.whatItDoes, description, aiCreditsPerRun: build.perRunCredits, status: "LIVE" },
-    create: { key, name, kind: "SKILL", clientId, category: "PRODUCTION", summary: build.spec.whatItDoes, description, aiCreditsPerRun: build.perRunCredits, status: "LIVE" },
+    create: { key, name, kind: "SKILL", clientId, category: "PRODUCTION", summary: build.spec.whatItDoes, description, aiCreditsPerRun: build.perRunCredits, status: "LIVE", availability: "custom", goal: "write_copy" },
   });
 }

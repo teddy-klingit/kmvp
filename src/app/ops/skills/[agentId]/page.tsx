@@ -9,7 +9,7 @@ import { StatusPill, type PillTone } from "@/components/ds/status-pill";
 import { Button } from "@/components/ds/button";
 import { formatDate } from "@/lib/utils";
 import { AGENT_CATEGORY_LABEL } from "@/lib/labels";
-import { updateAgentStatusAction, updateAgentSelfServiceAction } from "@/lib/actions/ops-agent-actions";
+import { updateAgentStatusAction, updateSkillLabelAction } from "@/lib/actions/ops-agent-actions";
 
 const STATUS: Record<string, { label: string; tone: PillTone }> = {
   LIVE: { label: "Live", tone: "success" },
@@ -60,23 +60,41 @@ export default async function AgentDetailPage({ params }: { params: Promise<{ ag
               ))}
             </form>
           </li>
-          <li className="flex flex-wrap items-center gap-x-4 gap-y-3 px-6 py-4">
-            <div className="flex min-w-0 flex-1 basis-[260px] flex-col gap-0.5">
-              <span className="text-[15px]">Self-service</span>
-              <span className="text-[13px] leading-[1.5] text-brand-ink-2">
-                Let clients run this skill themselves from Skills, without a Klingit account manager in the loop. Each run uses their AI credits.
-              </span>
-            </div>
-            <form action={updateAgentSelfServiceAction} className="flex gap-2">
-              <input type="hidden" name="agentId" value={agent.id} />
-              <Button type="submit" name="selfService" value="false" size="sm" variant={!agent.selfService ? "primary" : "secondary"} aria-pressed={!agent.selfService}>
-                Off
-              </Button>
-              <Button type="submit" name="selfService" value="true" size="sm" variant={agent.selfService ? "primary" : "secondary"} aria-pressed={agent.selfService}>
-                On
-              </Button>
-            </form>
-          </li>
+          {!agent.clientId && agent.kind === "SKILL" && (
+            <li className="px-6 py-4">
+              {/* How clients see it on Skills (Phase R): label, goal group, ≈ team credits, examples. */}
+              <form action={updateSkillLabelAction} className="flex flex-col gap-4">
+                <input type="hidden" name="agentId" value={agent.id} />
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                  <span className="flex min-w-0 flex-1 basis-[260px] flex-col gap-0.5">
+                    <span className="text-[15px]">On the client&apos;s Skills page</span>
+                    <span className="text-[13px] leading-[1.5] text-brand-ink-2">Self-service: they run it (AI credits). Run by Klingit: they ask, Klingit does it (team credits). Hidden: internal only.</span>
+                  </span>
+                  <select name="availability" defaultValue={agent.availability ?? ""} className="h-9 rounded-full border border-brand-outline bg-white px-3 text-[14px]">
+                    <option value="">Hidden</option>
+                    <option value="self_service">Self-service</option>
+                    <option value="klingit_run">Run by Klingit</option>
+                  </select>
+                  <select name="goal" defaultValue={agent.goal ?? "write_copy"} className="h-9 rounded-full border border-brand-outline bg-white px-3 text-[14px]">
+                    <option value="make_ad">Make an ad</option>
+                    <option value="write_copy">Write copy</option>
+                    <option value="plan_brief">Plan &amp; brief</option>
+                  </select>
+                  <label className="flex items-center gap-2 text-[13px] text-brand-ink-2">
+                    ≈ team credits
+                    <input name="teamCreditsEstimate" type="number" min={0} step="0.5" defaultValue={agent.teamCreditsEstimate ?? ""} className="h-9 w-20 rounded-[8px] border border-brand-outline px-2 text-[14px] text-brand-ink" />
+                  </label>
+                </div>
+                <label className="flex flex-col gap-1 text-[13px] text-brand-ink-2">
+                  Example outputs for the card when a client has none of their own (one per line: title | text)
+                  <textarea name="examples" rows={3} defaultValue={((agent.examples ?? []) as { title: string; text?: string }[]).map((e) => (e.text ? `${e.title} | ${e.text}` : e.title)).join("\n")} className="rounded-[8px] border border-brand-outline px-3 py-2 text-[14px] text-brand-ink" />
+                </label>
+                <Button type="submit" size="sm" variant="secondary" className="self-start">
+                  Save
+                </Button>
+              </form>
+            </li>
+          )}
         </CardRows>
       </SectionCard>
 

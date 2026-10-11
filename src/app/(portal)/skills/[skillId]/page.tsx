@@ -1,150 +1,145 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Check, ChevronLeft } from "lucide-react";
+import { ChevronLeft, Layers } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
 import { isClientAdmin } from "@/lib/client-roles";
 import { aiCreditStatus, aiGate } from "@/lib/ai-credits";
-import { Card, CardHeader, CardNote, CardRows, SectionCard } from "@/components/ds/card";
-import { StatusPill } from "@/components/ds/status-pill";
-import { PageGrid } from "@/components/ds/page-grid";
 import { PillLink } from "@/components/ds/pill-link";
-import { PlaceholderTag } from "@/components/ds/placeholder-tag";
-import { formatDate } from "@/lib/utils";
-import { SelfServiceAgentForm } from "@/components/portal/self-service-agent-form";
-import { SelfServiceOutput } from "@/components/portal/self-service-output";
+import { StatusPill } from "@/components/ds/status-pill";
 import { SkillIcon } from "@/components/portal/skills/skill-icon";
-import { AiCreditMeter } from "@/components/portal/skills/ai-credit-meter";
+import { SkillRunForm, type StartOption } from "@/components/portal/skills/skill-run-form";
+import { SkillVersions, type VersionView } from "@/components/portal/skills/skill-versions";
+import { AskKlingit } from "@/components/portal/skills/ask-klingit";
+import { brandProducts, formFor } from "@/lib/skill-forms";
+import { loadLatestBatch } from "@/lib/skill-run";
+import { jsonArray } from "@/lib/utils";
+import { WORK_TZ } from "@/lib/working-hours";
+import { cn } from "@/lib/utils";
 
-const credits = (v: number | null) => (v == null ? null : `${Math.round(v * 10) / 10} AI credit${v === 1 ? "" : "s"}`);
+const LABEL: Record<string, { text: string; tint: string }> = { self_service: { text: "Self-service", tint: "bg-brand-lime-pale" }, klingit_run: { text: "Run by Klingit", tint: "bg-brand-lavender-pale" }, custom: { text: "Custom", tint: "bg-[#F7E6F7]" } };
+const SWATCHES = ["#FBF6F0", "#E4ECEE", "#F6CDB8", "#F6E7B8", "#F7E6F7"];
+const when = (d: Date) => new Intl.DateTimeFormat("en-GB", { timeZone: WORK_TZ, day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(d);
 
 /**
- * Skills → one skill: what it does, what a run costs (≈ AI credits, shown before you press Run), the form, the
- * latest output with what it actually used, and earlier runs. Every finished run is saved to the Output library.
+ * Run a skill (Phase R, design 03): the form on the left (chips, a Brand OS product, what to say, where to start,
+ * versions, a project; the cost before Run), the versions on the right, each through the shared Brand OS check,
+ * and "Ask Klingit to polish". A skill Klingit runs shows what it does and "Ask Klingit".
  */
-export default async function SkillPage({ params, searchParams }: { params: Promise<{ skillId: string }>; searchParams: Promise<{ sent?: string; template?: string }> }) {
+export default async function SkillPage({ params, searchParams }: { params: Promise<{ skillId: string }>; searchParams: Promise<Record<string, string | undefined>> }) {
   const { skillId } = await params;
-  const { sent, template: templateId } = await searchParams;
+  const q = await searchParams;
   const viewer = await getPortalViewer();
-
-  // Only skills this client may see: standard ones and their own custom skills, never Klingit's internal automation.
-  const agent = await prisma.agent.findFirst({ where: { id: skillId, kind: "SKILL", OR: [{ clientId: null }, { clientId: viewer.clientId }] } });
+  const agent = await prisma.agent.findFirst({ where: { id: skillId, kind: "SKILL", OR: [{ clientId: null, availability: { in: ["self_service", "klingit_run"] } }, { clientId: viewer.clientId }] } });
   if (!agent) notFound();
+  const availability = agent.clientId ? "custom" : (agent.availability ?? "self_service");
+  const form = formFor(agent.key);
 
-  const [runs, channels, ai, gate, template, outputs] = await Promise.all([
-    prisma.agentRun.findMany({ where: { agentId: agent.id, clientId: viewer.clientId, requestedByUserId: { not: null } }, include: { requestedByUser: true }, orderBy: { createdAt: "desc" }, take: 20 }),
-    prisma.connectedChannel.findMany({ where: { clientId: viewer.clientId }, orderBy: { connectedAt: "asc" } }),
+  const [ai, gate, brandOS, top, layouts, projects, batch, like, then] = await Promise.all([
     aiCreditStatus(viewer.clientId),
     aiGate(viewer.clientId, "skill"),
-    templateId ? prisma.template.findFirst({ where: { id: templateId, OR: [{ clientId: viewer.clientId }, { clientId: null }] } }) : null,
-    prisma.skillOutput.findMany({ where: { clientId: viewer.clientId, agentId: agent.id }, select: { agentRunId: true } }),
+    prisma.brandOS.findUnique({ where: { clientId: viewer.clientId }, select: { keyProducts: true, colorPalette: true } }),
+    prisma.asset.findFirst({ where: { clientId: viewer.clientId, performanceCtr: { not: null } }, orderBy: { performanceCtr: "desc" }, select: { name: true, thumbnailColor: true } }),
+    prisma.template.findMany({ where: { OR: [{ clientId: viewer.clientId }, { clientId: null }] }, orderBy: { usageCount: "desc" }, take: 3 }),
+    prisma.project.findMany({ where: { clientId: viewer.clientId, status: { notIn: ["ARCHIVED", "DELIVERED"] }, agentBuild: false }, orderBy: { updatedAt: "desc" }, take: 20, select: { id: true, name: true } }),
+    loadLatestBatch(viewer.clientId, viewer.userId, agent),
+    q.like ? prisma.skillOutput.findFirst({ where: { id: q.like, clientId: viewer.clientId }, select: { id: true, title: true } }) : null,
+    q.then ? prisma.agent.findFirst({ where: { id: q.then, kind: "SKILL" }, select: { id: true, name: true } }) : null,
   ]);
-  const latest = runs[0];
-  const saved = new Set(outputs.map((o) => o.agentRunId));
-  const live = agent.status === "LIVE";
-  const when = (d: Date) => formatDate(d, { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
-  const estimate = agent.aiCreditsPerRun != null ? `≈ ${agent.aiCreditsPerRun} AI credits per run` : null;
+  const likeAsset = q.likeAsset ? await prisma.asset.findFirst({ where: { id: q.likeAsset, clientId: viewer.clientId }, select: { id: true, name: true, thumbnailColor: true } }) : null;
+  const palette = jsonArray<{ hex: string }>(brandOS?.colorPalette).map((c) => c.hex);
+  const products = brandProducts(brandOS?.keyProducts).map((p, i) => ({ name: p.name, color: palette[i % Math.max(1, palette.length)] ?? SWATCHES[i % SWATCHES.length] }));
+  const template = q.template ? layouts.find((t) => t.id === q.template) ?? (await prisma.template.findFirst({ where: { id: q.template, OR: [{ clientId: viewer.clientId }, { clientId: null }] } })) : null;
+  const starts: StartOption[] = [
+    { value: "blank", label: "Blank", color: "#F2EEE5" },
+    ...(top ? [{ value: "top", label: `Like your top performer: ${top.name}`, color: "#E4ECEE" }] : []),
+    ...(like ? [{ value: `like:${like.id}`, label: `More like: ${like.title}`, color: "#F6E7B8" }] : []),
+    ...(likeAsset ? [{ value: `asset:${likeAsset.id}`, label: `More like: ${likeAsset.name}`, color: "#F6E7B8" }] : []),
+    ...(template ?? layouts[0] ? [{ value: `layout:${(template ?? layouts[0])!.id}`, label: `Saved layout: ${(template ?? layouts[0])!.name}`, color: (template ?? layouts[0])!.previewColor }] : []),
+  ].slice(0, 3);
+  const startFrom = like ? `like:${like.id}` : likeAsset ? `asset:${likeAsset.id}` : template ? `layout:${template.id}` : top && q.start === "top" ? "top" : "blank";
+  const left = ai.ownModel ? "on your own model" : `${Math.round(ai.left).toLocaleString("en-GB")} left this month`;
+  const visual = ["ad_gen", "carousel_builder", "image_gen_agent"].includes(agent.key);
+  const versions: VersionView[] = (batch?.versions ?? []).map((v) => ({ runId: v.runId, letter: v.letter, headline: v.copy.headline, body: v.copy.body, cta: v.copy.cta, image: v.image, imageError: v.imageError, check: v.check, saved: v.saved }));
+  const thenHref = then && versions.length ? `/skills/${then.id}?${new URLSearchParams({ say: versions.map((v) => `${v.letter}: ${v.headline || v.body}`).join("\n"), versions: String(Math.min(versions.length, 4)) })}` : null;
 
   return (
     <div className="flex flex-col gap-4">
       <Link href={agent.clientId ? "/skills/yours" : "/skills"} className="-ml-1 inline-flex min-h-11 items-center gap-1 self-start text-[13px] text-brand-ink-2 no-underline hover:text-brand-ink sm:min-h-0">
         <ChevronLeft className="size-4" strokeWidth={1.75} />
-        {agent.clientId ? "Your skills" : "Skills"}
+        {agent.clientId ? "Your custom skills" : "All skills"}
       </Link>
-      <PageGrid
-        main={
-          <>
-            <Card className="flex flex-wrap items-start gap-4 px-6 py-6">
-              <SkillIcon category={agent.skillCategory} custom={Boolean(agent.clientId)} size={48} />
-              <div className="flex min-w-0 flex-1 basis-[260px] flex-col gap-1.5">
-                <span className="flex flex-wrap items-center gap-2">
-                  <h1 className="m-0 text-[26px] font-normal leading-[1.25] text-brand-ink">{agent.name}</h1>
-                  <span className="rounded-full bg-brand-chip px-2.5 py-0.5 text-[13px]">{agent.clientId ? "Custom" : agent.skillCategory}</span>
-                  {!live && <StatusPill>Paused</StatusPill>}
+      <div className="grid grid-cols-1 items-start gap-6 min-[1100px]:grid-cols-[minmax(0,460px)_minmax(0,1fr)]">
+        <section aria-label={agent.name} className="flex flex-col gap-6 rounded-[16px] bg-white px-6 py-6">
+          <header className="flex items-start gap-4">
+            <SkillIcon category={agent.skillCategory} custom={Boolean(agent.clientId)} size={48} />
+            <span className="flex min-w-0 flex-1 flex-col gap-1">
+              <h1 className="m-0 text-[24px] font-normal leading-[1.2]">{agent.name}</h1>
+              <span className="text-[14px] leading-[1.45] text-brand-ink-2">{agent.summary ?? agent.description}</span>
+            </span>
+            <span className={cn("shrink-0 rounded-[6px] px-2 py-0.5 text-[12px]", LABEL[availability].tint)}>{LABEL[availability].text}</span>
+          </header>
+          {availability === "klingit_run" ? (
+            <div className="flex flex-col gap-3 border-t border-brand-line pt-5 text-[14px] leading-[1.5]">
+              <p className="m-0 text-brand-ink-2">{agent.description}</p>
+              <p className="m-0">≈ {agent.teamCreditsEstimate ?? "?"} team credits · Klingit confirms the price in the estimate.</p>
+              {agent.key === "brand_check_service" ? <p className="m-0 text-brand-ink-2">Always on for Klingit&apos;s work: nothing to ask for.</p> : <AskKlingit skillId={agent.id} skillName={agent.name} teamCredits={agent.teamCreditsEstimate} />}
+            </div>
+          ) : agent.status !== "LIVE" ? (
+            <p className="m-0 border-t border-brand-line pt-5 text-[15px] text-brand-ink-2">
+              This skill is paused. Resume it under <Link href="/skills/yours">Your custom skills</Link> to run it.
+            </p>
+          ) : !gate.ok ? (
+            <div className="flex flex-wrap items-center gap-3 rounded-[12px] bg-brand-peach-pale px-4 py-3">
+              <span aria-hidden className="size-2 shrink-0 rounded-full bg-brand-orange" />
+              <span className="min-w-0 flex-1 text-[14px]">{gate.error}</span>
+              {gate.topUp && isClientAdmin(viewer) && (
+                <PillLink href="/settings/usage#top-up" variant="primary" size="sm">
+                  Top up
+                </PillLink>
+              )}
+            </div>
+          ) : (
+            <SkillRunForm
+              agentId={agent.id}
+              form={form}
+              products={products}
+              starts={starts}
+              projects={projects}
+              aiPerRun={agent.aiCreditsPerRun}
+              left={left}
+              initial={{ format: q.format ?? batch?.settings.format ?? null, channel: q.channel ?? batch?.settings.channel ?? null, product: q.product ?? batch?.settings.product ?? null, say: q.say ?? batch?.settings.say ?? "", versions: Number(q.versions ?? batch?.settings.versions ?? 3), startFrom }}
+            />
+          )}
+        </section>
+
+        <div className="flex flex-col gap-4">
+          {batch && versions.length > 0 ? (
+            <>
+              <div className="flex flex-wrap items-baseline gap-3">
+                <h2 className="m-0 flex-1 text-[22px] font-normal">
+                  {versions.length} version{versions.length === 1 ? "" : "s"}
+                </h2>
+                <span className="text-[13px] text-brand-ink-2">
+                  Used {batch.credits} AI credits · {when(batch.startedAt)}
                 </span>
-                <p className="m-0 text-[15px] leading-[1.5] text-brand-ink-2">{agent.summary ?? agent.description}</p>
               </div>
-            </Card>
-
-            {sent === "1" && (
-              <Card role="status" className="flex items-center gap-2.5 px-6 py-4 text-[14px] text-brand-ink">
-                <Check className="size-4 shrink-0 text-brand-lime-strong" strokeWidth={2} />
-                Sent: your team will find it in the channel you picked.
-              </Card>
-            )}
-
-            <Card aria-label="Run">
-              <CardHeader title="Run" meta={template ? <span className="text-[13px] text-brand-ink-2">From the template “{template.name}”</span> : undefined} action={estimate ? <PlaceholderTag>Credit cost is a placeholder</PlaceholderTag> : undefined} />
-              <div className="flex flex-col gap-5 px-6 pb-6 pt-5">
-                {!live ? (
-                  <p className="m-0 text-[15px] text-brand-ink-2">This skill is paused. Resume it under Your skills to run it.</p>
-                ) : !gate.ok ? (
-                  <div className="flex flex-wrap items-center gap-3 rounded-[12px] bg-brand-peach-pale px-4 py-3">
-                    <span aria-hidden className="size-2 shrink-0 rounded-full bg-brand-orange" />
-                    <span className="min-w-0 flex-1 text-[14px]">{gate.error}</span>
-                    {gate.topUp && isClientAdmin(viewer) && (
-                      <PillLink href="/settings/usage#top-up" variant="primary" size="sm">
-                        Top up
-                      </PillLink>
-                    )}
-                  </div>
-                ) : (
-                  <SelfServiceAgentForm agentId={agent.id} agentKey={agent.key} template={template ? { name: template.name, category: template.category } : null} cost={estimate ? `${estimate} · ${ai.ownModel ? "on your own model" : `${Math.floor(ai.left)} left this month`}` : null} />
-                )}
-                {latest && (
-                  <div className="flex flex-col gap-2 border-t border-brand-line pt-5">
-                    <p className="m-0 flex flex-wrap gap-x-3 font-brand-mono text-[11px] text-brand-ink-2">
-                      <span>LATEST RUN · {when(latest.createdAt).toUpperCase()}</span>
-                      {latest.aiCredits != null && <span>USED {credits(latest.aiCredits)?.toUpperCase()}</span>}
-                      {saved.has(latest.id) && (
-                        <Link href="/library?made=skills" className="text-brand-ink underline underline-offset-2">
-                          SAVED TO THE OUTPUT LIBRARY
-                        </Link>
-                      )}
-                    </p>
-                    <SelfServiceOutput agentId={agent.id} agentKey={agent.key} status={latest.status} output={latest.output} channels={channels} />
-                  </div>
-                )}
+              <SkillVersions agentId={agent.id} versions={versions} format={batch.settings.format} visual={visual} then={then && thenHref ? { href: thenHref, name: then.name } : null} />
+            </>
+          ) : (
+            availability !== "klingit_run" && (
+              <div className="flex min-h-60 flex-col items-center justify-center gap-2 rounded-[16px] border border-dashed border-brand-field px-6 text-center text-[14px] text-brand-ink-2">
+                Your versions show here, side by side, each checked against your Brand OS rules.
+                {agent.status !== "LIVE" && <StatusPill>Paused</StatusPill>}
               </div>
-            </Card>
-
-            {runs.length > 1 && (
-              <SectionCard title="Earlier runs">
-                <CardRows>
-                  {runs.slice(1).map((r) => (
-                    <li key={r.id} className="flex items-center gap-3 px-6 py-3.5">
-                      <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                        <span className="truncate text-[15px] text-brand-ink">{r.decision ?? (r.status === "SUCCESS" ? "Run finished" : "Run failed")}</span>
-                        <span className="text-[12px] text-brand-ink-2">
-                          {r.requestedByUser?.name ?? "You"} · {when(r.createdAt)}
-                          {r.aiCredits != null ? ` · ${credits(r.aiCredits)}` : ""}
-                        </span>
-                      </span>
-                      {r.status !== "SUCCESS" && <StatusPill tone="danger">Failed</StatusPill>}
-                    </li>
-                  ))}
-                </CardRows>
-              </SectionCard>
-            )}
-          </>
-        }
-        side={
-          <SectionCard title="AI credits" action={<span className="font-brand-mono text-[12px] text-brand-ink">{ai.plan.name.toUpperCase()} PLAN</span>}>
-            {ai.ownModel ? (
-              <CardNote>On Basic, runs use your own AI model (Settings → Connections) and your provider bills the tokens.</CardNote>
-            ) : (
-              <div className="flex flex-col gap-3 px-6 py-5">
-                <span className="flex items-baseline gap-2">
-                  <span className="text-[36px] font-light leading-none tabular-nums">{Math.floor(ai.left).toLocaleString("en-GB")}</span>
-                  <span className="text-[14px] text-brand-ink-2">left of {ai.allowance.toLocaleString("en-GB")}</span>
-                </span>
-                <AiCreditMeter used={ai.used} allowance={ai.allowance} />
-                <span className="text-[13px] leading-[1.5] text-brand-ink-2">{estimate ? `This skill uses ${estimate.replace(" per run", "")} a run, from real token use. ` : ""}Klingit&apos;s own production work never uses your AI credits.</span>
-              </div>
-            )}
-          </SectionCard>
-        }
-      />
+            )
+          )}
+          <p className="m-0 flex items-center gap-2 text-[13px] text-brand-ink-2">
+            <Layers className="size-4" strokeWidth={1.75} />
+            Saved versions go to the Output library, tagged “Made with a skill”.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { z } from "zod";
 import { runAgentTask } from "@/lib/ai/run-agent";
 import { buildBrandContext } from "@/lib/ai/brand-context";
 import { attachGeneratedImage } from "@/lib/ai/agents/self-serve/attach-image";
-import type { Client, BrandOS } from "@/generated/prisma";
+import type { Client } from "@/generated/prisma";
 import type { BrandForAgents } from "@/lib/brand-rules";
 
 const ImageGenSchema = z.object({

@@ -1,144 +1,148 @@
 import Link from "next/link";
+import { LayoutTemplate, Sparkles } from "lucide-react";
+import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
-import { isClientAdmin } from "@/lib/client-roles";
-import { aiCreditStatus } from "@/lib/ai-credits";
-import { BUILT_IN_ASSISTANTS, RECOMMENDED_SKILLS, SKILL_CATEGORIES, listSkills, listSkillBuilds } from "@/lib/skills";
-import { Card, CardHeader, CardRows, SectionCard } from "@/components/ds/card";
-import { PageGrid } from "@/components/ds/page-grid";
-import { PillLink } from "@/components/ds/pill-link";
-import { pillClass } from "@/components/ds/button";
+import { monthPeriod } from "@/lib/ai-credits";
+import { AVAILABILITY_LABEL, SKILL_GOALS, listSkills, type SkillAvailability, type SkillRow } from "@/lib/skills";
 import { PlaceholderTag } from "@/components/ds/placeholder-tag";
-import { SkillIcon } from "@/components/portal/skills/skill-icon";
-import { CustomSkillRequest } from "@/components/portal/skills/custom-skill-request";
-import { AiCreditMeter } from "@/components/portal/skills/ai-credit-meter";
+import { pillClass } from "@/components/ds/button";
+import { SkillFinder } from "@/components/portal/skills/skill-finder";
+import { AskKlingit } from "@/components/portal/skills/ask-klingit";
 import { cn } from "@/lib/utils";
 
-const CUSTOM = "Your custom skills";
-const n = (v: number) => Math.round(v).toLocaleString("en-GB");
+const PILL: Record<SkillAvailability, string> = { self_service: "bg-brand-lime-pale", klingit_run: "bg-brand-lavender-pale", custom: "bg-[#F7E6F7]" };
+/** What a Klingit-run skill's card says under its cost. */
+const KLINGIT_NOTE: Record<string, string> = { video_cutdowns: "Klingit edits, you review", localisation: "Per language", performance_deep_dive: "Klingit strategist", brand_check_service: "Runs on all Klingit work" };
+const FILTERS: { key: SkillAvailability | null; label: string }[] = [
+  { key: null, label: "All" },
+  { key: "self_service", label: "Self-service" },
+  { key: "klingit_run", label: "Run by Klingit" },
+  { key: "custom", label: "Custom" },
+];
 
 /**
- * Skills → Run a skill (nav v3, 02): every skill ready to run, by category, with its ≈ AI credits per run and this
- * month's use; on the side the AI credits left, what Klingit recommends building, and the built-in assistants.
+ * Skills → All skills (Phase R, design 02): "What do you want to make?", then every skill grouped by goal (Make an
+ * ad · Write copy · Plan & brief) with its label (Self-service · Run by Klingit · Custom), real examples, cost, use
+ * and the action. Self-service uses AI credits; Run by Klingit uses team credits.
  */
-export default async function RunSkillPage({ searchParams }: { searchParams: Promise<{ cat?: string }> }) {
-  const { cat } = await searchParams;
+export default async function AllSkillsPage({ searchParams }: { searchParams: Promise<{ label?: string }> }) {
+  const { label } = await searchParams;
   const viewer = await getPortalViewer();
-  const [skills, ai, builds] = await Promise.all([listSkills(viewer.clientId), aiCreditStatus(viewer.clientId), listSkillBuilds(viewer.clientId)]);
-  const ready = skills.filter((s) => s.live);
-  const standard = ready.filter((s) => !s.custom).length;
-  const custom = ready.length - standard;
-  const shown = cat === CUSTOM ? ready.filter((s) => s.custom) : cat && (SKILL_CATEGORIES as readonly string[]).includes(cat) ? ready.filter((s) => s.category === cat) : ready;
-  const chips = ["All", ...SKILL_CATEGORIES, ...(custom ? [CUSTOM] : [])];
-  const requested = new Set(builds.map((b) => b.name.toLowerCase()));
+  const { start, end } = monthPeriod();
+  const [skills, assistants] = await Promise.all([
+    listSkills(viewer.clientId),
+    prisma.aiCreditLedger.aggregate({ where: { clientId: viewer.clientId, kind: "USAGE", sourceType: "assistant", createdAt: { gte: start, lt: end } }, _sum: { amount: true } }),
+  ]);
+  const shown = skills.filter((s) => s.live || s.custom);
+  const active = FILTERS.find((f) => f.key === label)?.key ?? null;
+  const visible = shown.filter((s) => !active || s.availability === active);
+  const assistantCredits = Math.round(-(assistants._sum.amount ?? 0));
 
   return (
-    <PageGrid
-      main={
-        <Card className="overflow-hidden" aria-label="Ready to run">
-          <CardHeader title="Ready to run" action={<span className="font-brand-mono text-[12px] text-brand-ink">{custom ? `${standard} + ${custom} CUSTOM` : standard}</span>} />
-          <div className="flex flex-wrap items-center gap-2 px-6 pb-2 pt-5">
-            {chips.map((c) => {
-              const on = (c === "All" && !cat) || c === cat;
-              return (
-                <Link key={c} href={c === "All" ? "/skills" : `/skills?${new URLSearchParams({ cat: c })}`} aria-current={on ? "page" : undefined} className={cn("inline-flex h-8 items-center rounded-full px-3.5 text-[14px] no-underline", on ? "bg-brand-ink text-white" : "bg-brand-chip text-brand-ink hover:bg-brand-line")}>
-                  {c}
-                </Link>
-              );
-            })}
-            <PlaceholderTag className="ml-auto">Credit costs are placeholders</PlaceholderTag>
-          </div>
-          <CardRows>
-            {shown.length === 0 && <li className="px-6 py-5 text-[14px] text-brand-ink-2">No skills here yet.</li>}
-            {shown.map((s) => (
-              <li key={s.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-6 py-4">
-                <SkillIcon category={s.category} custom={s.custom} />
-                <span className="flex min-w-0 flex-1 basis-[240px] flex-col gap-0.5">
-                  <span className="flex flex-wrap items-center gap-2">
-                    <Link href={`/skills/${s.id}`} className="text-[16px] text-brand-ink no-underline hover:underline">
-                      {s.name}
-                    </Link>
-                    <span className="rounded-full bg-brand-chip px-2 py-0.5 text-[12px]">{s.custom ? "Custom" : s.category}</span>
-                  </span>
-                  <span className="text-[14px] text-brand-ink-2">
-                    {s.custom ? "Custom · " : ""}
-                    {s.summary}
-                  </span>
-                </span>
-                <span className="flex flex-col items-end text-right">
-                  <span className="text-[14px] text-brand-ink">{s.aiPerRun != null ? `≈ ${n(s.aiPerRun)} AI credits` : "AI credits per run"}</span>
-                  <span className="text-[13px] text-brand-mute">{s.runsThisMonth ? `Used ${s.runsThisMonth}× this month` : "Not used yet"}</span>
-                </span>
-                <Link href={`/skills/${s.id}`} className={pillClass("primary", "sm")}>
-                  Run
-                </Link>
-              </li>
-            ))}
-          </CardRows>
-        </Card>
-      }
-      side={
-        <>
-          <SectionCard title="AI credits" action={<span className="font-brand-mono text-[12px] text-brand-ink">{ai.plan.name.toUpperCase()} PLAN</span>}>
-            <div className="flex flex-col gap-4 px-6 py-5">
-              {ai.ownModel ? (
-                <p className="m-0 text-[15px] leading-[1.5]">You&apos;re on Basic: skills and assistants run on your own AI model, connected in Settings → Connections. Your provider bills the tokens.</p>
-              ) : (
-                <>
-                  <span className="flex items-baseline gap-2">
-                    <span className="text-[44px] font-light leading-none tabular-nums">{n(ai.left)}</span>
-                    <span className="text-[14px] text-brand-ink-2">left of {n(ai.allowance)} this month</span>
-                  </span>
-                  <AiCreditMeter used={ai.used} allowance={ai.allowance} />
-                </>
-              )}
-              <p className="m-0 text-[14px] leading-[1.5] text-brand-ink-2">Every skill run and every assistant answer uses AI credits. Klingit&apos;s own production work never does.</p>
-              <span className="flex flex-wrap gap-2">
-                {isClientAdmin(viewer) && !ai.ownModel && (
-                  <PillLink href="/settings/usage#top-up" variant="primary" size="sm">
-                    Top up
-                  </PillLink>
-                )}
-                <PillLink href="/settings/usage" size="sm">
-                  Usage
-                </PillLink>
-              </span>
-            </div>
-          </SectionCard>
+    <div className="flex flex-col gap-8">
+      <SkillFinder />
 
-          <SectionCard title="Klingit recommends">
-            <CardRows>
-              {RECOMMENDED_SKILLS.slice(0, 2).map((r) => (
-                <li key={r.name} className="flex flex-col gap-2 px-6 py-4">
-                  <span className="flex flex-wrap items-center gap-2">
-                    <span className="flex-1 text-[15px]">{r.name}</span>
-                    <span className="rounded-full bg-brand-lime-pale px-2 py-0.5 text-[12px]">{r.reason}</span>
-                  </span>
-                  <span className="text-[14px] leading-[1.5] text-brand-ink-2">{r.summary}</span>
-                  {requested.has(r.name.toLowerCase()) ? (
-                    <span className="text-[13px] text-brand-ink-2">Requested · being built</span>
-                  ) : (
-                    <span>
-                      <CustomSkillRequest label="Request build" name={r.name} description={r.summary} size="sm" />
-                    </span>
-                  )}
-                </li>
-              ))}
-            </CardRows>
-          </SectionCard>
+      <div className="flex flex-wrap items-center gap-2">
+        {FILTERS.map((f) => {
+          const count = f.key ? shown.filter((s) => s.availability === f.key).length : shown.length;
+          const on = active === f.key;
+          return (
+            <Link key={f.label} href={f.key ? `/skills?label=${f.key}` : "/skills"} aria-current={on ? "page" : undefined} className={cn("inline-flex h-9 items-center rounded-full border px-3.5 text-[14px] no-underline", on ? "border-brand-ink bg-brand-ink text-white" : "border-brand-outline bg-white text-brand-ink hover:border-brand-ink")}>
+              {f.label} · {count}
+            </Link>
+          );
+        })}
+        <span className="ml-auto flex items-center gap-2 text-[13px] text-brand-ink-2">
+          Self-service uses AI credits · Run by Klingit uses team credits <PlaceholderTag>Costs</PlaceholderTag>
+        </span>
+      </div>
 
-          <SectionCard title="Built-in assistants">
-            <p className="m-0 px-6 pt-4 text-[14px] leading-[1.5] text-brand-ink-2">These work inside Brief, Insights and Home. They also use AI credits, shown on each answer.</p>
-            <CardRows>
-              {BUILT_IN_ASSISTANTS.map((a) => (
-                <li key={a.key} className="flex flex-col px-6 py-3">
-                  <span className="text-[15px]">{a.name}</span>
-                  <span className="text-[13px] text-brand-mute">{a.summary}</span>
-                </li>
+      {SKILL_GOALS.map((g) => {
+        const group = visible.filter((s) => s.goal === g.goal);
+        if (!group.length) return null;
+        return (
+          <section key={g.goal} aria-label={g.title} className="flex flex-col gap-4">
+            <h2 className="m-0 flex flex-wrap items-baseline gap-3 text-[22px] font-normal">
+              {g.title} <span className="text-[13px] text-brand-ink-2">{g.sub}</span>
+            </h2>
+            <ul className="m-0 grid list-none grid-cols-1 gap-4 p-0 min-[700px]:grid-cols-2 min-[1200px]:grid-cols-4">
+              {group.map((s) => (
+                <SkillCard key={s.id} skill={s} />
               ))}
-            </CardRows>
-          </SectionCard>
-        </>
-      }
-    />
+            </ul>
+          </section>
+        );
+      })}
+
+      <p className="m-0 flex flex-wrap items-center gap-3 rounded-[12px] border border-dashed border-brand-field px-5 py-3.5 text-[14px] text-brand-ink-2">
+        <Sparkles className="size-4" strokeWidth={1.75} />
+        <span className="flex-1">Built-in assistants work inside Brief, Insights and Home: Brief assistant, Ask your data, Opportunities, Performance insights. They use AI credits too.</span>
+        <span className="font-brand-mono text-[12px] uppercase text-brand-ink">{assistantCredits} AI this month</span>
+      </p>
+      <p className="m-0 flex flex-wrap items-center gap-3 rounded-[12px] border border-dashed border-brand-field px-5 py-3.5 text-[14px] text-brand-ink-2">
+        <LayoutTemplate className="size-4" strokeWidth={1.75} />
+        <span className="flex-1">
+          Looking for templates? Pick one inside any skill under “Start from”, or use “Make more like this” on anything in the Output library. Saved layouts live in{" "}
+          <Link href="/assets/visual-identity#layouts" className="text-brand-ink underline underline-offset-2">
+            Brand OS → Visual identity
+          </Link>
+          .
+        </span>
+      </p>
+    </div>
+  );
+}
+
+function usage(s: SkillRow) {
+  if (s.availability === "klingit_run") return KLINGIT_NOTE[s.key] ?? "Klingit does it, you review";
+  if (s.custom) return s.runsThisMonth ? `Run ${s.runsThisMonth}× · built for you` : "Built for you";
+  if (s.runsThisMonth) return `Used ${s.runsThisMonth}× this month`;
+  return s.lastRunAt ? "Not used this month" : "Not used yet";
+}
+
+function SkillCard({ skill: s }: { skill: SkillRow }) {
+  const klingit = s.availability === "klingit_run";
+  const thumbs = [...s.examples, ...Array.from({ length: 3 }, () => null)].slice(0, 3);
+  return (
+    <li className="flex flex-col gap-3 rounded-[12px] bg-white p-3.5">
+      <div className="grid grid-cols-3 gap-1.5" aria-hidden={s.examples.length === 0}>
+        {thumbs.map((e, i) => (
+          <span key={i} className="relative aspect-[9/10] overflow-hidden rounded-[6px]" style={{ backgroundColor: e?.color ?? ["#E4ECEE", "#F6CDB8", "#F6E7B8"][i] }} title={e?.title}>
+            {e?.image ? (
+              // eslint-disable-next-line @next/next/no-img-element -- the client's own output, access-checked
+              <img src={e.image} alt={e.title} loading="lazy" className="absolute inset-0 size-full object-cover" />
+            ) : e?.text ? (
+              <span className="absolute inset-0 line-clamp-5 p-1.5 text-[9px] leading-[1.3] text-brand-ink">{e.text}</span>
+            ) : null}
+          </span>
+        ))}
+      </div>
+      <div className="flex items-start gap-2 px-0.5">
+        <span className="min-w-0 flex-1 text-[16px] leading-[1.3]">{s.name}</span>
+        <span className={cn("shrink-0 rounded-[6px] px-2 py-0.5 text-[12px]", PILL[s.availability])}>{AVAILABILITY_LABEL[s.availability]}</span>
+      </div>
+      <p className="m-0 line-clamp-2 min-h-[2.8em] px-0.5 text-[13px] leading-[1.4] text-brand-ink-2">{s.summary}</p>
+      <div className="mt-auto flex items-end gap-2 px-0.5">
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className="text-[13px]">{klingit ? `≈ ${s.teamCredits ?? "?"} team credits` : s.aiPerRun != null ? `≈ ${s.aiPerRun} AI credits` : "AI credits per run"}</span>
+          <span className="text-[12px] text-brand-mute">{s.custom && !s.live ? "Paused" : usage(s)}</span>
+        </span>
+        {klingit ? (
+          s.key === "brand_check_service" ? (
+            <span className="text-[12px] text-brand-ink-2">Always on</span>
+          ) : (
+            <AskKlingit skillId={s.id} skillName={s.name} teamCredits={s.teamCredits} />
+          )
+        ) : s.custom && !s.live ? (
+          <Link href="/skills/yours" className={pillClass("secondary", "sm")}>
+            Resume
+          </Link>
+        ) : (
+          <Link href={`/skills/${s.id}`} className={pillClass("primary", "sm")}>
+            Use
+          </Link>
+        )}
+      </div>
+    </li>
   );
 }

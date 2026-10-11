@@ -27,11 +27,12 @@ const ICON_FOR: Record<string, React.ComponentType<{ className?: string }>> = {
 
 export default async function VisualIdentityPage() {
   const viewer = await getPortalViewer();
-  const [brandOS, brandAssets, linked, figma] = await Promise.all([
+  const [brandOS, brandAssets, linked, figma, layouts] = await Promise.all([
     prisma.brandOS.findUnique({ where: { clientId: viewer.clientId } }),
     prisma.brandAsset.findMany({ where: { clientId: viewer.clientId } }),
     sectionSources(viewer.clientId, "visual-identity"),
     sectionSources(viewer.clientId, "figma-design-system"),
+    prisma.template.findMany({ where: { OR: [{ clientId: viewer.clientId }, { clientId: null }] }, orderBy: [{ usageCount: "desc" }, { name: "asc" }] }),
   ]);
   const figmaConnected = figma.connected.some((c) => c.app === "figma");
 
@@ -81,6 +82,31 @@ export default async function VisualIdentityPage() {
               })}
             </ul>
           </SectionCard>
+          {/* Saved layouts (were Skills → Templates): a starting point for a skill run, or for Klingit. */}
+          <section id="layouts" aria-label="Layouts" className="overflow-hidden rounded-[12px] bg-white">
+            <CardHeader title="Layouts" action={<span className="text-[12px] text-brand-ink-2">Start a skill from one, or brief Klingit with it</span>} />
+            {layouts.length === 0 ? (
+              <p className="m-0 px-6 py-5 text-[14px] text-brand-ink-2">No saved layouts yet. Klingit adds them from work you liked.</p>
+            ) : (
+              <ul className="m-0 grid list-none grid-cols-1 gap-3 px-6 py-5 @min-[560px]/col:grid-cols-3">
+                {layouts.map((t) => (
+                  <li key={t.id} className="flex flex-col gap-2 rounded-[10px] bg-brand-chip p-3">
+                    <span aria-hidden className="block aspect-[16/10] rounded-[6px]" style={{ backgroundColor: t.previewColor }} />
+                    <span className="text-[15px]">{t.name}</span>
+                    <span className="flex items-center gap-2 text-[12px] text-brand-ink-2">
+                      <span className="flex-1">
+                        {t.category}
+                        {t.usageCount ? ` · used ${t.usageCount}×` : ""}
+                      </span>
+                      <Link href={`/api/templates/${t.id}/use`} className="text-brand-ink underline underline-offset-2">
+                        Use
+                      </Link>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
         </>
       }
       side={

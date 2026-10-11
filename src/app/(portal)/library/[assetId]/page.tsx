@@ -1,3 +1,4 @@
+import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Check, Download } from "lucide-react";
@@ -20,6 +21,7 @@ export default async function LibraryAssetPage({ params, searchParams }: { param
   const from = (await searchParams).from === "insights" ? { href: "/insights", label: "Insights" } : { href: "/library", label: "Output library" };
   const viewer = await getPortalViewer();
   const a = await loadAssetDetail(assetId, viewer.clientId);
+  const more = a ? await prisma.agent.findFirst({ where: { key: /carousel|slide/i.test(a.format) ? "carousel_builder" : "ad_gen", availability: "self_service" }, select: { id: true } }) : null;
   if (!a) notFound();
   const p = a.performance;
   const vsAvg = p?.clientAvg ? Math.round(((p.ctr - p.clientAvg) / p.clientAvg) * 100) : null;
@@ -131,7 +133,13 @@ export default async function LibraryAssetPage({ params, searchParams }: { param
           </SectionCard>
 
           <div className="flex flex-wrap gap-3">
-            <PillLink href="/brief/new" variant="primary">
+            {/* Make more like this: the matching skill, started from this asset (or Klingit, from a brief). */}
+            {more && (
+              <PillLink href={`/skills/${more.id}?likeAsset=${a.id}`} variant="primary">
+                Make more like this
+              </PillLink>
+            )}
+            <PillLink href="/brief/new" variant={more ? "secondary" : "primary"}>
               Brief more like this
             </PillLink>
             {inReview && <PillLink href={`/review/${a.project.id}?asset=${a.id}`}>Open in review</PillLink>}

@@ -1555,6 +1555,15 @@ model Agent {
   aiCreditsPerRun   Float?
   /// One line under the skill's name.
   summary           String?
+  /// Skills page label (Phase R): "self_service" (the client runs it, AI credits), "klingit_run" (the client asks,
+  /// Klingit does it, team credits) or "custom" (the client's own). Null = not shown to clients (internal, assistants).
+  availability      String?
+  /// Skills page group: "make_ad" | "write_copy" | "plan_brief". Editable by staff in /ops/skills.
+  goal              String?
+  /// Staff-picked example outputs for the skill card when the client has none of their own: [{ title, text?, color }].
+  examples          Json?
+  /// Run by Klingit: ≈ team credits for one request (a placeholder until priced).
+  teamCreditsEstimate Float?
   createdAt         DateTime      @default(now())
 
   runs   AgentRun[]

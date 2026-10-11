@@ -13,5 +13,5 @@ export async function GET(req: Request, { params }: { params: Promise<{ template
   if (!template) return new Response("Not found", { status: 404 });
   await prisma.template.update({ where: { id: template.id }, data: { usageCount: { increment: 1 } } });
   const skill = await prisma.agent.findFirst({ where: { key: templateSkillKey(template), kind: "SKILL" }, select: { id: true } });
-  return NextResponse.redirect(new URL(skill ? `/skills/${skill.id}?template=${template.id}` : `/skills/templates/${template.id}`, req.url));
+  return NextResponse.redirect(new URL(skill ? `/skills/${skill.id}?template=${template.id}` : "/assets/visual-identity#layouts", req.url));
 }

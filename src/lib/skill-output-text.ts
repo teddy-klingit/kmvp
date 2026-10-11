@@ -47,6 +47,15 @@ export function toPlainText(agentKey: string, data: Record<string, unknown>): st
         `Visual direction: ${data.visualDirection}`,
         `Image prompt: ${data.imagePrompt}`,
       ].join("\n");
+    case "carousel_builder":
+      return [
+        `Concept: ${data.concept}`,
+        "",
+        ...((data.cards as { headline: string; body: string }[] | undefined) ?? []).map((c, i) => `Card ${i + 1}: ${c.headline}${c.body ? ` · ${c.body}` : ""}`),
+        `Call to action: ${data.callToAction}`,
+        "",
+        `Caption: ${data.caption}`,
+      ].join("\n");
     case "image_gen_agent":
       return [`Concept: ${data.concept}`, "", `Image prompt: ${data.imagePrompt}`].join("\n");
     default:

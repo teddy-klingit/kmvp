@@ -21,10 +21,13 @@ const nextConfig: NextConfig = {
       // Phase Q (nav v3): Skills, Output library and Settings got their own homes. Old links, bookmarks and
       // notification actionUrls keep working.
       { source: "/assets/agents-templates/brand-os", destination: "/assets/rules", permanent: true },
-      { source: "/assets/agents-templates/templates/:rest*", destination: "/skills/templates/:rest*", permanent: true },
+      { source: "/assets/agents-templates/templates/:rest*", destination: "/assets/visual-identity#layouts", permanent: true },
+      // Phase R: templates are layouts in Visual identity and "Start from" in a skill run.
+      { source: "/skills/templates", destination: "/skills", permanent: true },
+      { source: "/skills/templates/:rest*", destination: "/skills", permanent: true },
       { source: "/assets/agents-templates/agent/:id", destination: "/skills/:id", permanent: true },
       { source: "/assets/agents-templates", destination: "/skills", permanent: true },
-      { source: "/assets/templates/:rest*", destination: "/skills/templates", permanent: true },
+      { source: "/assets/templates/:rest*", destination: "/assets/visual-identity#layouts", permanent: true },
       { source: "/assets/library", destination: "/library", permanent: true },
       { source: "/assets/library/:rest*", destination: "/library/:rest*", permanent: true },
       { source: "/assets/top-performers", destination: "/library", permanent: true },

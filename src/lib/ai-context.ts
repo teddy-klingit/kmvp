@@ -37,6 +37,7 @@ export const ASSISTANTS = {
   brandDraft: { sourceKey: "brand_os", sourceName: "Brand OS drafting" },
   ruleCheck: { sourceKey: "rule_check", sourceName: "Rule check" },
   ruleImport: { sourceKey: "rule_import", sourceName: "Guidelines import" },
+  skillFinder: { sourceKey: "skill_router", sourceName: "Skill finder" },
 } as const;
 
 export const assistantCharge = (clientId: string, userId: string | null | undefined, a: (typeof ASSISTANTS)[keyof typeof ASSISTANTS], extra: Partial<AiChargeContext> = {}): AiChargeContext => ({

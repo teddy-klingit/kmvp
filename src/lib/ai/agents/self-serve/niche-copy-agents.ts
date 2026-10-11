@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { runAgentTask } from "@/lib/ai/run-agent";
 import { buildBrandContext } from "@/lib/ai/brand-context";
-import type { Client, BrandOS } from "@/generated/prisma";
+import type { Client } from "@/generated/prisma";
 import type { BrandForAgents } from "@/lib/brand-rules";
 
 type NicheCopyArgs = {

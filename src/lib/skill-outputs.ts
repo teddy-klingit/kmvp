@@ -23,7 +23,10 @@ export async function saveSkillOutput(agentRunId: string) {
   const existing = await prisma.skillOutput.findFirst({ where: { agentRunId } });
   if (existing) return existing;
   const data = run.output as Record<string, unknown>;
-  const kind = OUTPUT_KIND[run.agent.key] ?? { format: run.agent.clientId ? "Custom" : "Output", channel: null };
+  // A run with versions (skill-run.ts) knows its own format and channel.
+  const settings = (run.input as { settings?: { format?: string | null; channel?: string | null } } | null)?.settings;
+  const base = OUTPUT_KIND[run.agent.key] ?? { format: run.agent.clientId ? "Custom" : "Output", channel: null };
+  const kind = { format: settings?.format ?? base.format, channel: settings?.channel ?? base.channel };
   const title = String(data.title ?? data.headline ?? data.concept ?? data.hook ?? (Array.isArray(data.subjectLines) ? data.subjectLines[0] : null) ?? run.decision ?? run.agent.name).slice(0, 140);
   let storageKey: string | null = null;
   let mimeType: string | null = null;

@@ -178,7 +178,7 @@ export async function seedPhaseQ(ctx: {
   await prisma.agent.deleteMany({ where: { id: { in: oldKeys } } });
   const skillIds = new Map<string, string>();
   for (const s of CUSTOM_SKILLS) {
-    const a = await prisma.agent.create({ data: { key: customSkillKey(s.slug), name: s.name, kind: "SKILL", clientId, category: "PRODUCTION", skillCategory: s.category, summary: s.summary, description: `${s.summary} (demo)`, aiCreditsPerRun: s.perRun, status: s.status, createdAt: new Date(now.getTime() - 60 * DAY) } });
+    const a = await prisma.agent.create({ data: { key: customSkillKey(s.slug), name: s.name, kind: "SKILL", clientId, category: "PRODUCTION", skillCategory: s.category, summary: s.summary, description: `${s.summary} (demo)`, aiCreditsPerRun: s.perRun, status: s.status, availability: "custom", goal: s.category === "Briefs" ? "plan_brief" : "write_copy", createdAt: new Date(now.getTime() - 60 * DAY) } });
     skillIds.set(a.key, a.id);
   }
   for (const k of ["ad_gen", "image_gen_agent", "instagram_caption_agent", "email_copy_agent"]) {

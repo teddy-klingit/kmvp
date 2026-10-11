@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { getPortalViewer } from "@/lib/current-viewer";
 import { BUILD_STEPS, stepIndex } from "@/lib/agent-build";
-import { listSkillBuilds, listSkills } from "@/lib/skills";
+import { RECOMMENDED_SKILLS, listSkillBuilds, listSkills } from "@/lib/skills";
 import { formatDay } from "@/lib/project-state";
 import { CardRows, CardNote, SectionCard } from "@/components/ds/card";
 import { PageGrid } from "@/components/ds/page-grid";
@@ -23,6 +23,7 @@ const day = (iso: string) => new Date(`${iso}T12:00:00`);
 export default async function YourSkillsPage() {
   const viewer = await getPortalViewer();
   const [builds, skills] = await Promise.all([listSkillBuilds(viewer.clientId), listSkills(viewer.clientId)]);
+  const requested = new Set(builds.map((b) => b.name.toLowerCase()));
   const custom = skills.filter((s) => s.custom);
 
   return (
@@ -146,6 +147,23 @@ export default async function YourSkillsPage() {
               ))}
             </ol>
           </SectionCard>
+          {/* Klingit recommends: custom skills worth building, until the client has asked for them. */}
+          {RECOMMENDED_SKILLS.some((r) => !requested.has(r.name.toLowerCase())) && (
+            <SectionCard title="Klingit recommends">
+              <CardRows>
+                {RECOMMENDED_SKILLS.filter((r) => !requested.has(r.name.toLowerCase())).map((r) => (
+                  <li key={r.name} className="flex flex-col gap-2 px-6 py-4">
+                    <span className="flex items-start gap-2">
+                      <span className="flex-1 text-[15px]">{r.name}</span>
+                      <span className="rounded-full bg-brand-lime-pale px-2.5 py-0.5 text-[12px]">{r.reason}</span>
+                    </span>
+                    <span className="text-[14px] leading-[1.5] text-brand-ink-2">{r.summary}</span>
+                    <CustomSkillRequest label="Request build" name={r.name} description={r.summary} size="sm" />
+                  </li>
+                ))}
+              </CardRows>
+            </SectionCard>
+          )}
           <SectionCard title="Something else?">
             <div className="flex flex-col gap-4 px-6 py-5">
               <p className="m-0 text-[14px] leading-[1.5] text-brand-ink-2">Describe it in a sentence and Klingit builds a skill that already knows your brand.</p>

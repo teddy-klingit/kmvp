@@ -12,6 +12,12 @@ import { generateSelfServeBrief } from "@/lib/ai/agents/self-serve/brief-generat
 import { generateSelfServeAdConcept } from "@/lib/ai/agents/self-serve/ad-concept-generator";
 import { generateSelfServeImage } from "@/lib/ai/agents/self-serve/image-gen-agent";
 import { loadBrandForAgents } from "@/lib/brand-rules";
+import { editVersion, redoVersion, retryImage, runSkillBatch, type RunSettings } from "@/lib/skill-run";
+import { createKlingitRequest } from "@/lib/klingit-requests";
+import { toPlainText } from "@/lib/skill-output-text";
+
+/** ≈ team credits for Klingit to polish one skill version (a placeholder until priced). */
+const POLISH_TEAM_CREDITS = 2;
 import {
   generateLinkedInPost,
   generateLandingPageCopy,
@@ -106,4 +112,95 @@ async function runSkill(agent: Agent, viewer: Awaited<ReturnType<typeof getPorta
   revalidatePath("/skills");
   revalidatePath("/library");
   return { error: null };
+}
+
+// ─── Phase R: a run with versions (skill-run.ts, design 03) ────────────────────────────────────────────────
+
+/** A skill the client may run themselves: a standard self-service skill, or their own custom skill. */
+async function runnableSkill(viewer: Awaited<ReturnType<typeof getPortalViewer>>, agentId: string) {
+  const agent = await prisma.agent.findUnique({ where: { id: agentId } });
+  if (!agent || agent.kind !== "SKILL") return null;
+  if (agent.clientId ? agent.clientId !== viewer.clientId : agent.availability !== "self_service") return null;
+  return agent;
+}
+
+export type RunVersionsState = { error?: string | null; topUp?: boolean };
+
+export async function runSkillVersionsAction(_prev: RunVersionsState, formData: FormData): Promise<RunVersionsState> {
+  const viewer = await getPortalViewer();
+  const agent = await runnableSkill(viewer, String(formData.get("agentId") ?? ""));
+  if (!agent) return { error: "This skill isn't one you can run yourself." };
+  const say = String(formData.get("say") ?? "").trim().slice(0, 2000);
+  if (!say) return { error: "Write what it should say first." };
+  const projectId = String(formData.get("projectId") ?? "") || null;
+  if (projectId && !(await prisma.project.findFirst({ where: { id: projectId, clientId: viewer.clientId }, select: { id: true } }))) return { error: "Pick one of your projects." };
+  const settings: RunSettings = {
+    format: String(formData.get("format") ?? "") || null,
+    channel: String(formData.get("channel") ?? "") || null,
+    product: String(formData.get("product") ?? "") || null,
+    say,
+    startFrom: String(formData.get("startFrom") ?? "blank"),
+    versions: Math.max(1, Math.min(4, Number(formData.get("versions") ?? 1) || 1)),
+    projectId,
+  };
+  const gate = await aiGate(viewer.clientId, "skill");
+  if (!gate.ok) return { error: gate.error, topUp: gate.topUp };
+  const r = await withAiCharge({ clientId: viewer.clientId, userId: viewer.userId, sourceType: "skill", sourceKey: agent.key, sourceName: agent.name, projectId: projectId ?? undefined }, () => runSkillBatch(agent, viewer, settings));
+  revalidatePath(`/skills/${agent.id}`);
+  revalidatePath("/skills");
+  return { error: r.error };
+}
+
+/** Save a version to the Output library, make it again, or try its image again (charged only when it works). */
+export async function versionAction(formData: FormData) {
+  const viewer = await getPortalViewer();
+  const agent = await runnableSkill(viewer, String(formData.get("agentId") ?? ""));
+  const runId = String(formData.get("runId") ?? "");
+  const op = String(formData.get("op") ?? "");
+  if (!agent || !runId) return;
+  const run = await prisma.agentRun.findFirst({ where: { id: runId, agentId: agent.id, clientId: viewer.clientId, requestedByUserId: viewer.userId }, select: { id: true } });
+  if (!run) return;
+  if (op === "save") {
+    await saveSkillOutput(run.id);
+    revalidatePath("/library");
+  } else if (op === "redo" || op === "image") {
+    const gate = await aiGate(viewer.clientId, "skill");
+    if (gate.ok) await withAiCharge({ clientId: viewer.clientId, userId: viewer.userId, sourceType: "skill", sourceKey: agent.key, sourceName: agent.name }, () => (op === "redo" ? redoVersion(agent, viewer, run.id) : retryImage(viewer, run.id)));
+  }
+  revalidatePath(`/skills/${agent.id}`);
+}
+
+export async function editVersionAction(_prev: RunVersionsState, formData: FormData): Promise<RunVersionsState> {
+  const viewer = await getPortalViewer();
+  const agent = await runnableSkill(viewer, String(formData.get("agentId") ?? ""));
+  if (!agent) return { error: "This skill isn't one you can run yourself." };
+  const field = (k: string) => (formData.has(k) ? String(formData.get(k) ?? "").trim().slice(0, 600) : undefined);
+  const r = await withAiCharge({ clientId: viewer.clientId, userId: viewer.userId, sourceType: "skill", sourceKey: agent.key, sourceName: agent.name }, () => editVersion(viewer, String(formData.get("runId") ?? ""), { headline: field("headline"), body: field("body"), cta: field("cta") }));
+  revalidatePath(`/skills/${agent.id}`);
+  return { error: r.error };
+}
+
+export type PolishState = { ok?: string; projectId?: string; error?: string };
+
+/**
+ * "Ask Klingit to polish" a version: a small request linked to it, as a Draft on Ongoing projects for the client
+ * to confirm, starting from ≈2 team credits (a placeholder; the estimate sets the price).
+ */
+export async function polishVersionAction(_prev: PolishState, formData: FormData): Promise<PolishState> {
+  const viewer = await getPortalViewer();
+  const agent = await runnableSkill(viewer, String(formData.get("agentId") ?? ""));
+  const run = agent ? await prisma.agentRun.findFirst({ where: { id: String(formData.get("runId") ?? ""), agentId: agent.id, clientId: viewer.clientId, requestedByUserId: viewer.userId } }) : null;
+  if (!agent || !run) return { error: "Pick a version first." };
+  const output = (run.output ?? {}) as Record<string, unknown>;
+  const letter = (run.input as { version?: string } | null)?.version ?? "";
+  const saved = await saveSkillOutput(run.id);
+  const projectId = await createKlingitRequest(viewer, {
+    name: `Polish: ${agent.name} version ${letter}`.trim(),
+    text: [`Polish this ${agent.name} version (${letter}) so it's ready to run. Keep the idea; make it perfect.`, "", toPlainText(agent.key, output)].join("\n"),
+    event: `Polish requested for ${agent.name} version ${letter}${saved ? " (saved in the Output library)" : ""}`,
+    send: false,
+    teamCredits: POLISH_TEAM_CREDITS,
+  });
+  revalidatePath("/projects");
+  return { ok: "Added to Ongoing projects as a draft. Confirm it there to send it to Klingit.", projectId };
 }

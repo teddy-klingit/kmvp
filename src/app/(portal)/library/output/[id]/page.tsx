@@ -56,8 +56,8 @@ export default async function SkillOutputPage({ params }: { params: Promise<{ id
           </SectionCard>
           <div className="flex flex-wrap gap-3">
             {skill && (
-              <PillLink href={`/skills/${skill.id}`} variant="primary">
-                Run again
+              <PillLink href={`/skills/${skill.id}?like=${output.id}`} variant="primary">
+                Make more like this
               </PillLink>
             )}
             <a href={`/api/library/download?ids=s_${output.id}`} className="inline-flex items-center self-center text-[14px] text-brand-ink underline underline-offset-2">
