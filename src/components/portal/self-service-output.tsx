@@ -125,7 +125,7 @@ function ActionBar({ agentId, agentKey, data, channels }: { agentId: string; age
   return (
     <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
       <CopyButton text={text} />
-      <SendToChannelDialog channels={channels} subjectType="BRIEF" subjectLabel={String(data.title ?? "Generated content")} returnTo={`/assets/agents-templates/agent/${agentId}`} />
+      <SendToChannelDialog channels={channels} subjectType="BRIEF" subjectLabel={String(data.title ?? "Generated content")} returnTo={`/skills/${agentId}`} />
       {agentKey === "brief_generator_agent" && (
         <Button asChild variant="secondary" size="sm" className="gap-1.5">
           <Link href={`/projects/new?idea=${encodeURIComponent(String(data.title ?? ""))}&detail=${encodeURIComponent(text)}`}>

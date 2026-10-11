@@ -4,7 +4,7 @@ import { setMockSession } from "./setup";
 import { createSecurityFixtures } from "./fixtures";
 import { isoWeek, lastClosed, loadSchedule, weekOf } from "@/lib/report-data";
 import { updateReportScheduleAction } from "@/lib/actions/report-actions";
-import PastWeeklyReportPage from "@/app/(portal)/reports/weekly/[id]/page";
+import PastWeeklyReportPage from "@/app/(portal)/settings/reporting/weekly/[id]/page";
 
 type Fx = Awaited<ReturnType<typeof createSecurityFixtures>>;
 let fx: Fx;

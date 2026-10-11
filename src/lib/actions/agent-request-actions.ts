@@ -47,7 +47,7 @@ export async function requestAgentBuildAction(formData: FormData) {
         actionLabel: "Open",
       });
   }
-  revalidatePath("/assets/agents-templates");
+  revalidatePath("/skills");
   revalidatePath("/projects");
   redirect(`/projects/${project.id}`);
 }
@@ -64,7 +64,7 @@ export async function approveAgentTestAction(formData: FormData) {
   await prisma.brief.update({ where: { id: project.brief.id }, data: { agentDrafts: { ...(project.brief.agentDrafts as object), agentBuild: next } as Prisma.InputJsonValue } });
   await postProjectEvent(projectId, live ? `Approved by ${viewer.user.name}: the agent is live` : `Test output approved by ${viewer.user.name}`);
   revalidatePath(`/projects/${projectId}`, "layout");
-  revalidatePath("/assets/agents-templates");
+  revalidatePath("/skills");
 }
 
 /** The client edits the agent spec: allowed until building starts. */

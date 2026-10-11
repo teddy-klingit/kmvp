@@ -34,6 +34,8 @@ type NavProps = {
   /** Under the logo (the brand switcher, for users with several brands). Hidden on the folded rail. */
   top?: React.ReactNode;
   user: { name: string; sub: string; href: string };
+  /** Replaces the plain profile link with a menu (the client's profile menu); gets the sheet's close handler. */
+  userMenu?: (onClose?: () => void) => React.ReactNode;
   /** Whose fold choice this is (the signed-in user), so each user on a shared browser keeps their own. */
   storageKey: string;
 };
@@ -255,7 +257,7 @@ function NavRow({ item, active, sheet, onNavigate }: { item: NavItem; active: bo
     >
       <span className="relative">
         <item.icon className="size-[18px] shrink-0" strokeWidth={1.75} />
-        {item.dot && <span aria-label="Unread" className="absolute -right-1 -top-1 size-1.5 rounded-full bg-brand-orange" />}
+        {item.dot && <span aria-hidden className="absolute -right-1 -top-1 hidden size-1.5 rounded-full bg-brand-orange rail:block" />}
         {item.badge ? (
           <span aria-hidden className="absolute -right-2.5 -top-2 hidden h-4 min-w-4 items-center justify-center rounded-full bg-brand-orange px-1 font-brand-mono text-[10px] text-brand-ink rail:flex">
             {item.badge}
@@ -263,6 +265,7 @@ function NavRow({ item, active, sheet, onNavigate }: { item: NavItem; active: bo
         ) : null}
       </span>
       <span className="min-w-0 flex-1 truncate whitespace-nowrap rail:sr-only">{item.label}</span>
+      {item.dot && <span aria-label="Unread" className="mr-1 size-2 shrink-0 rounded-full bg-brand-orange rail:hidden" />}
       {item.badge ? (
         <span aria-label={`${item.badge} open`} className="flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-orange px-1.5 font-brand-mono text-[11px] text-brand-ink rail:hidden">
           {item.badge}
@@ -334,7 +337,7 @@ function NavContent({ onClose, onFold, folded = false, ...props }: NavProps & { 
         {props.bottom.map((item) => (
           <NavRow key={item.href} item={item} active={item.href === active} sheet={sheet} onNavigate={onClose} />
         ))}
-        <UserLink user={props.user} active={props.user.href === active} onClose={onClose} />
+        {props.userMenu ? props.userMenu(onClose) : <UserLink user={props.user} active={props.user.href === active} onClose={onClose} />}
       </div>
     </>
   );

@@ -16,7 +16,7 @@ export async function sendToChannelAction(formData: FormData) {
   const channelId = String(formData.get("channelId") ?? "");
   const subjectType = String(formData.get("subjectType") ?? "");
   const subjectLabel = String(formData.get("subjectLabel") ?? "");
-  const returnTo = String(formData.get("returnTo") ?? "/reports");
+  const returnTo = String(formData.get("returnTo") ?? "/settings/reporting");
   if (!channelId || (subjectType !== "BRIEF" && subjectType !== "REPORT") || !subjectLabel) return;
 
   const channel = await prisma.connectedChannel.findFirst({ where: { id: channelId, clientId: viewer.clientId } });

@@ -165,7 +165,7 @@ async function phaseSources() {
   await page.click('button[type="submit"]');
   await page.waitForURL((url) => url.pathname === "/dashboard", { timeout: 60_000 });
 
-  await shot(page, "/assets/sources", "01-sources-page", outDir, width);
+  await shot(page, "/settings/connections", "01-sources-page", outDir, width);
 
   // Connect flow on Dropbox, step by step (viewport shots so the modal is in frame).
   await page.goto(`${BASE}/assets/sources`, { waitUntil: "networkidle" });
@@ -238,8 +238,8 @@ const J1_CLIENT: [string, string][] = [
   ["c02-projects", "/projects"],
   ["c03-brand-iq", "/assets"],
   ["c04-calendar", "/calendar"],
-  ["c05-reports", "/reports"],
-  ["c06-account", "/account"],
+  ["c05-reports", "/settings/reporting"],
+  ["c06-account", "/settings/account"],
   ["c07-notifications", "/notifications"],
 ];
 const J1_OPS: [string, string][] = [
@@ -257,27 +257,27 @@ const J2_PAGES: [string, string][] = [
   ["projects-waiting", "/projects?show=you"],
   ["calendar-month", "/calendar"],
   ["calendar-list", "/calendar?view=list"],
-  ["reports-weekly", "/reports"],
-  ["reports-full-weekly", "/reports/weekly"],
-  ["reports-monthly", "/reports/monthly"],
-  ["reports-custom", "/reports/custom"],
+  ["reports-weekly", "/settings/reporting"],
+  ["reports-full-weekly", "/settings/reporting/weekly"],
+  ["reports-monthly", "/settings/reporting/monthly"],
+  ["reports-custom", "/settings/reporting/custom"],
   ["brand-overview", "/assets"],
   ["brand-platform", "/assets/brand-platform"],
   ["brand-section-our-brand", "/assets/brand-platform/our-brand"],
   ["brand-section-services", "/assets/brand-platform/services-products"],
   ["brand-section-vision", "/assets/brand-platform/vision"],
   ["brand-visual-identity", "/assets/visual-identity"],
-  ["brand-sources", "/assets/sources"],
-  ["brand-library", "/assets/library"],
-  ["brand-agents", "/assets/agents-templates"],
-  ["account-overview", "/account"],
-  ["account-usage", "/account/usage"],
-  ["account-billing", "/account/billing"],
-  ["account-team", "/account/team"],
-  ["account-security", "/account/security"],
+  ["brand-sources", "/settings/connections"],
+  ["brand-library", "/library"],
+  ["brand-agents", "/skills"],
+  ["account-overview", "/settings/account"],
+  ["account-usage", "/settings/usage"],
+  ["account-billing", "/settings/usage/billing"],
+  ["account-team", "/settings/account/team"],
+  ["account-security", "/settings/account/security"],
   ["misc-notifications", "/notifications"],
   ["misc-help", "/help"],
-  ["misc-custom-apps", "/apps"],
+  ["misc-custom-apps", "/settings/apps"],
 ];
 /** Phase J4: ops pages in the OpsClients list pattern (signed in as the PM / Admin). */
 const J4_OPS: [string, string][] = [
@@ -298,17 +298,17 @@ const J4_OPS: [string, string][] = [
 const J5_CLIENT: [string, string][] = [
   ["c01-visual-identity", "/assets/visual-identity"],
   ["c02-visual-identity-logotype", "/assets/visual-identity/logotype"],
-  ["c03-sources", "/assets/sources"],
-  ["c04-agents", "/assets/agents-templates"],
-  ["c05-agents-templates", "/assets/agents-templates/templates"],
-  ["c06-agents-brand-os", "/assets/agents-templates/brand-os"],
-  ["c07-templates", "/assets/templates"],
-  ["c08-custom-apps", "/apps"],
+  ["c03-sources", "/settings/connections"],
+  ["c04-agents", "/skills"],
+  ["c05-agents-templates", "/skills/templates"],
+  ["c06-agents-brand-os", "/assets/rules"],
+  ["c07-templates", "/skills/templates"],
+  ["c08-custom-apps", "/settings/apps"],
   ["c09-help", "/help"],
   ["c10-search", "/search?q=summer"],
   ["c11-new-project", "/projects/new"],
   ["c12-inspiration", "/projects/inspiration"],
-  ["c13-reports-custom", "/reports/custom"],
+  ["c13-reports-custom", "/settings/reporting/custom"],
 ];
 const J5_OPS: [string, string][] = [
   ["o01-projects", "/ops/projects"],
@@ -358,9 +358,9 @@ async function phaseNav() {
   const client = await signInAs(browser, "jack.ross@klarna.com", 1440);
   const jack = keyFor("jack.ross@klarna.com");
   await setNav(client.page, jack, "open");
-  await shot(client.page, "/reports", "01-reports-nav-open", outDir, 1440);
+  await shot(client.page, "/settings/reporting", "01-reports-nav-open", outDir, 1440);
   await setNav(client.page, jack, "folded");
-  await shot(client.page, "/reports", "02-reports-nav-folded", outDir, 1440);
+  await shot(client.page, "/settings/reporting", "02-reports-nav-folded", outDir, 1440);
   // Viewport shots: a rail tooltip on hover, then keyboard focus (Tab) on the fold button.
   await client.page.goto(`${BASE}/reports`, { waitUntil: "networkidle" });
   await client.page.hover('aside a[href="/insights"]');
@@ -565,10 +565,10 @@ async function main() {
   if (phase === "studio-end") return phaseStudioEnd();
   if (phase === "agents")
     return phaseList("screenshots/agents", [
-      ["01-agents", "/assets/agents-templates"],
-      ["02-agents-visual", "/assets/agents-templates?cat=visual"],
-      ["03-templates", "/assets/agents-templates/templates"],
-      ["04-brand-os-rules", "/assets/agents-templates/brand-os"],
+      ["01-agents", "/skills"],
+      ["02-agents-visual", "/skills?cat=visual"],
+      ["03-templates", "/skills/templates"],
+      ["04-brand-os-rules", "/assets/rules"],
     ]);
   if (phase === "board") return phaseBoard();
   if (phase === "studio") return phaseStudio();
@@ -619,11 +619,11 @@ async function main() {
     return phaseList(
       "screenshots/library",
       [
-        ["01-library", "/assets/library"],
-        ["02-asset-top", `/assets/library/${top?.id}?from=insights`],
-        ["03-asset-film", `/assets/library/${film?.id}`],
+        ["01-library", "/library"],
+        ["02-asset-top", `/library/${top?.id}?from=insights`],
+        ["03-asset-film", `/library/${film?.id}`],
         ["04-insights", "/insights"],
-        ["05-brand-os-rules", "/assets/agents-templates/brand-os"],
+        ["05-brand-os-rules", "/assets/rules"],
         ["06-typography", "/assets/visual-identity/typography"],
       ],
       [],
@@ -644,7 +644,7 @@ async function main() {
         ["03d-film-overview", P("p12-brand-film")],
         ["04-brief-studio", `/brief/ouhers-p10-spring-2027`],
         ["05-brand-os", "/assets"],
-        ["06-agents-templates", "/assets/agents-templates"],
+        ["06-agents-templates", "/skills"],
         ["07-agent-build", P("p11-agent-seasonal")],
         ["08-insights-overview", "/insights"],
         ["09-insights-performance", "/insights/performance"],
@@ -652,8 +652,8 @@ async function main() {
         ["11-insights-audience", "/insights/audience"],
         ["12-insights-seo", "/insights/seo"],
         ["13-calendar", "/calendar"],
-        ["14-reports", "/reports"],
-        ["15-account", "/account"],
+        ["14-reports", "/settings/reporting"],
+        ["15-account", "/settings/account"],
       ].map(([n, path]) => [n, path] as [string, string]).filter(([n]) => !pageFilter || pageFilter.some((f) => n.startsWith(f))),
       [
         ["16-pm-needs-you", "/ops"],

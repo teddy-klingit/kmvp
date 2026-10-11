@@ -25,7 +25,7 @@ export async function updateNotificationPrefsAction(formData: FormData) {
     },
   });
 
-  revalidatePath("/account/security");
+  revalidatePath("/settings/notifications");
 }
 
 export async function connectSlackAction(formData: FormData) {
@@ -40,5 +40,5 @@ export async function connectSlackAction(formData: FormData) {
     create: { userId: session.user.id, slackEnabled: true, slackWorkspace: workspace },
   });
 
-  revalidatePath("/account/security");
+  revalidatePath("/settings/notifications");
 }

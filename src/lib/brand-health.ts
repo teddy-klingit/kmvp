@@ -18,8 +18,8 @@ export const BRAND_HEALTH_WEIGHTS: Record<HealthKey, number> = { platform: 35, v
 const DIMENSIONS: { key: HealthKey; name: string; counts: string; fix: { label: string; href: string }; lift: string }[] = [
   { key: "platform", name: "Brand platform", counts: "Sections written", fix: { label: "Write the platform", href: "/assets/brand-platform" }, lift: "Writing the platform" },
   { key: "visual", name: "Visual identity", counts: "Colours, type, logo, imagery and more defined", fix: { label: "Add visual identity", href: "/assets/visual-identity" }, lift: "Filling in the visual identity" },
-  { key: "voice", name: "Voice & tone", counts: "Voice, tone rules, words to use and to avoid", fix: { label: "Set the voice", href: "/assets/agents-templates/brand-os" }, lift: "Setting the voice and tone" },
-  { key: "sources", name: "Sources", counts: "Apps with linked files", fix: { label: "Link sources", href: "/assets/sources" }, lift: "Linking your sources" },
+  { key: "voice", name: "Voice & tone", counts: "Voice, tone rules, words to use and to avoid", fix: { label: "Set the voice", href: "/assets/rules" }, lift: "Setting the voice and tone" },
+  { key: "sources", name: "Sources", counts: "Apps with linked files", fix: { label: "Link sources", href: "/settings/connections" }, lift: "Linking your sources" },
   { key: "performance", name: "Performance data", counts: "Ad channels connected", fix: { label: "Connect channels", href: "/insights" }, lift: "Connecting your ad channels" },
 ];
 

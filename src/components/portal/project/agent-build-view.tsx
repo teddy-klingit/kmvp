@@ -42,7 +42,7 @@ export async function AgentBuildView({ projectId, build, share }: { projectId: s
       <div className="min-w-0 flex-1 px-4 pb-24 pt-6 md:px-10 md:pb-12 md:pt-8">
         <div className="mx-auto grid max-w-[1180px] grid-cols-1 items-start gap-6 min-[1100px]:grid-cols-[minmax(0,1fr)_380px]">
           <div className="flex min-w-0 flex-col gap-6">
-            <Link href="/assets/agents-templates" className="inline-flex items-center gap-1 self-start text-[14px] text-brand-ink-2 no-underline hover:text-brand-ink">
+            <Link href="/skills" className="inline-flex items-center gap-1 self-start text-[14px] text-brand-ink-2 no-underline hover:text-brand-ink">
               <ChevronLeft className="size-4" strokeWidth={1.75} /> Agents &amp; templates
             </Link>
 

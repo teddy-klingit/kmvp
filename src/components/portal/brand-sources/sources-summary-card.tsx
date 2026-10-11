@@ -10,7 +10,7 @@ export function SourcesSummaryCard({ apps, linkedFiles, demo }: { apps: string[]
     <SectionCard
       title="Sources"
       action={
-        <PillLink href="/assets/sources" size="sm">
+        <PillLink href="/settings/connections" size="sm">
           Manage sources
         </PillLink>
       }

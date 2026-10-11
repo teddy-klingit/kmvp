@@ -1,34 +1,38 @@
 "use client";
 
-import { LayoutDashboard, FolderKanban, Sparkles, BarChart3, CalendarDays, FileText, LayoutGrid, Bell, UserRound, ChevronsUpDown } from "lucide-react";
+import { LayoutGrid, Image as ImageIcon, Loader, SquareKanban, Layers, CalendarDays, BarChart3, Bell, ChevronsUpDown } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { PersonaSwitcher } from "@/components/shared/persona-switcher";
-import { AppNav, RailHint, type NavSection } from "@/components/shared/app-nav";
+import { AppNav, type NavSection } from "@/components/shared/app-nav";
+import { ProfileMenu } from "@/components/portal/profile-menu";
+import type { NavSummary } from "@/lib/nav-summary";
 
 type SidebarProps = {
   userId: string;
   userName: string;
   userEmail: string;
   clientName: string;
+  role: string;
+  admin: boolean;
   brands: { id: string; name: string }[];
   unreadCount: number;
+  summary: NavSummary;
 };
 
 /**
- * Client nav (brand theme): Home, Projects, Brand OS, Insights, Calendar, Reports, Custom apps; then
- * Notifications and the Account user block. Help lives in Account; "Switch view" is the demo persona switcher.
+ * Client nav v3: Home · Brand OS · Skills · Ongoing projects · Output library · Calendar · Insights; then the
+ * Notifications inbox and the profile menu (settings, Usage for admins, Sign out). Home's badge counts what needs you.
  */
-export function PortalSidebar({ userId, userName, userEmail, clientName, brands, unreadCount }: SidebarProps) {
+export function PortalSidebar({ userId, userName, userEmail, clientName, role, admin, brands, unreadCount, summary }: SidebarProps) {
   const sections: NavSection[] = [
     {
       items: [
-        { label: "Home", href: "/dashboard", icon: LayoutDashboard },
-        { label: "Projects", href: "/projects", icon: FolderKanban },
-        { label: "Brand OS", href: "/assets", icon: Sparkles },
-        { label: "Insights", href: "/insights", icon: BarChart3 },
+        { label: "Home", href: "/dashboard", icon: LayoutGrid, badge: summary.needsYou || undefined },
+        { label: "Brand OS", href: "/assets", icon: ImageIcon },
+        { label: "Skills", href: "/skills", icon: Loader },
+        { label: "Ongoing projects", href: "/projects", icon: SquareKanban },
+        { label: "Output library", href: "/library", icon: Layers },
         { label: "Calendar", href: "/calendar", icon: CalendarDays },
-        { label: "Reports", href: "/reports", icon: FileText },
-        { label: "Custom apps", href: "/apps", icon: LayoutGrid },
+        { label: "Insights", href: "/insights", icon: BarChart3 },
       ],
     },
   ];
@@ -36,18 +40,10 @@ export function PortalSidebar({ userId, userName, userEmail, clientName, brands,
     <AppNav
       homeHref="/dashboard"
       sections={sections}
-      bottom={[
-        { label: "Notifications", href: "/notifications", icon: Bell, dot: unreadCount > 0 },
-        { label: "Account", href: "/account", icon: UserRound },
-      ]}
-      extra={<PersonaSwitcher currentEmail={userEmail} />}
-      extraRail={
-        <RailHint label="Switch view">
-          <PersonaSwitcher currentEmail={userEmail} compact />
-        </RailHint>
-      }
+      bottom={[{ label: "Notifications", href: "/notifications", icon: Bell, dot: unreadCount > 0 }]}
       storageKey={userId}
-      user={{ name: userName, sub: clientName, href: "/account" }}
+      user={{ name: userName, sub: clientName, href: "/settings/account" }}
+      userMenu={(onClose) => <ProfileMenu name={userName} email={userEmail} clientName={clientName} role={role} admin={admin} summary={summary} onNavigate={onClose} />}
       top={
         brands.length > 1 ? (
           <DropdownMenu>

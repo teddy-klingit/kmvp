@@ -4,7 +4,7 @@ import { randomBytes } from "crypto";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { signIn } from "@/lib/auth";
+import { signIn, signOut } from "@/lib/auth";
 import { AuthError } from "next-auth";
 
 const RESET_TOKEN_TTL_MS = 1000 * 60 * 60; // 1 hour
@@ -93,4 +93,9 @@ export async function setPasswordAction(_prev: ActionState, formData: FormData):
   await prisma.verificationToken.delete({ where: { identifier_token: { identifier: email, token } } });
 
   return { success: "Password set. You can now sign in." };
+}
+
+/** Profile menu → Sign out. */
+export async function signOutAction() {
+  await signOut({ redirectTo: "/sign-in" });
 }

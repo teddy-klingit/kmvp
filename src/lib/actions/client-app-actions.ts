@@ -53,7 +53,7 @@ export async function updateClientAppAction(formData: FormData) {
 
   revalidatePath(`/ops/clients/${clientId}/custom-apps`);
   revalidatePath(`/ops/clients/${clientId}/custom-apps/${appId}`);
-  revalidatePath("/apps");
+  revalidatePath("/settings/apps");
 }
 
 export async function archiveClientAppAction(formData: FormData) {
@@ -68,7 +68,7 @@ export async function archiveClientAppAction(formData: FormData) {
 
   revalidatePath(`/ops/clients/${clientId}/custom-apps`);
   revalidatePath(`/ops/clients/${clientId}/custom-apps/${appId}`);
-  revalidatePath("/apps");
+  revalidatePath("/settings/apps");
 }
 
 export async function reactivateClientAppAction(formData: FormData) {
@@ -83,5 +83,5 @@ export async function reactivateClientAppAction(formData: FormData) {
 
   revalidatePath(`/ops/clients/${clientId}/custom-apps`);
   revalidatePath(`/ops/clients/${clientId}/custom-apps/${appId}`);
-  revalidatePath("/apps");
+  revalidatePath("/settings/apps");
 }

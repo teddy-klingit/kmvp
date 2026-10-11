@@ -116,7 +116,7 @@ export async function ProjectAccessPanel({ projectId, viewer }: { projectId: str
           )}
           <p className="text-xs text-muted-foreground">
             Someone not on Klingit yet?{" "}
-            <Link href="/account/team" className="text-primary hover:underline">
+            <Link href="/settings/account/team" className="text-primary hover:underline">
               Invite them to your team
             </Link>{" "}
             first.

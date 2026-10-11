@@ -43,7 +43,7 @@ export function SendToChannelDialog({
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <PillLink href="/account/security" variant="primary">
+            <PillLink href="/settings/account/security" variant="primary">
               Connect in Account
             </PillLink>
           </DialogFooter>

@@ -11,6 +11,6 @@ export async function toggleTwoFactorAction(formData: FormData) {
   const enable = String(formData.get("enable") ?? "true") === "true";
   await prisma.user.update({ where: { id: session.user.id }, data: { twoFactorEnabled: enable } });
 
-  const path = String(formData.get("path") ?? "/account");
+  const path = String(formData.get("path") ?? "/settings/account");
   revalidatePath(path);
 }

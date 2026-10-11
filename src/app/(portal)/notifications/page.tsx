@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
@@ -49,6 +50,9 @@ export default async function NotificationsPage({
 
   const unreadCount = notifications.filter((n) => !n.read).length;
   const filtered = filter === "all" ? notifications : notifications.filter((n) => TYPE_TO_FILTER[n.type] === filter);
+  // Seen = read: what this page shows is marked read after it renders (it still shows as new this once).
+  const seen = filtered.filter((n) => !n.read).map((n) => n.id);
+  if (seen.length) after(() => prisma.notification.updateMany({ where: { id: { in: seen }, userId: viewer.userId }, data: { read: true } }));
 
   return (
     <div className="flex flex-col gap-6">

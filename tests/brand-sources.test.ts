@@ -8,7 +8,7 @@ import { addSourceFromAppAction, addSourceLinkAction, connectDemoAppAction, remo
 import { brandSourcesForAgents, listBrandSources } from "@/lib/brand-sources-data";
 import { detectApp, normaliseUrl } from "@/lib/brand-sources";
 import { buildBrandContext } from "@/lib/ai/brand-context";
-import SourcesPage from "@/app/(portal)/assets/sources/page";
+import SourcesPage from "@/app/(portal)/settings/connections/page";
 
 type Fx = Awaited<ReturnType<typeof createSecurityFixtures>>;
 let fx: Fx;

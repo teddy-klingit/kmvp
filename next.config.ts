@@ -16,8 +16,25 @@ const nextConfig: NextConfig = {
       { source: "/insights/community", destination: "/insights/audience#community", permanent: true },
       { source: "/insights/website", destination: "/insights/audience#website", permanent: true },
       // Brand IQ (Phase J): brand health is computed on the overview; its asset list is the Library.
-      { source: "/assets/brand-health/assets", destination: "/assets/library", permanent: true },
+      { source: "/assets/brand-health/assets", destination: "/library", permanent: true },
       { source: "/assets/brand-health/:rest*", destination: "/assets", permanent: true },
+      // Phase Q (nav v3): Skills, Output library and Settings got their own homes. Old links, bookmarks and
+      // notification actionUrls keep working.
+      { source: "/assets/agents-templates/brand-os", destination: "/assets/rules", permanent: true },
+      { source: "/assets/agents-templates/templates/:rest*", destination: "/skills/templates/:rest*", permanent: true },
+      { source: "/assets/agents-templates/agent/:id", destination: "/skills/:id", permanent: true },
+      { source: "/assets/agents-templates", destination: "/skills", permanent: true },
+      { source: "/assets/templates/:rest*", destination: "/skills/templates", permanent: true },
+      { source: "/assets/library/:rest*", destination: "/library/:rest*", permanent: true },
+      { source: "/assets/top-performers", destination: "/library/top-performers", permanent: true },
+      { source: "/assets/by-campaign", destination: "/library/by-campaign", permanent: true },
+      { source: "/assets/sources/:rest*", destination: "/settings/connections", permanent: true },
+      { source: "/apps", destination: "/settings/apps", permanent: true },
+      { source: "/reports/:rest*", destination: "/settings/reporting/:rest*", permanent: true },
+      { source: "/account/usage", destination: "/settings/usage", permanent: true },
+      { source: "/account/billing", destination: "/settings/usage/billing", permanent: true },
+      { source: "/account/:rest*", destination: "/settings/account/:rest*", permanent: true },
+      { source: "/settings", destination: "/settings/account", permanent: false },
     ];
   },
   experimental: {

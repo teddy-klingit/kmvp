@@ -790,7 +790,7 @@ export async function seedOuhers(opts: { dir?: string; shift?: boolean; log?: (s
 
   const notes = read<{ at: string; text: string; action?: string; project?: string; yourAction?: boolean }[]>("notifications.json");
   for (const x of notes) {
-    await prisma.notification.create({ data: { userId: maja.userId, clientId: OUHERS_CLIENT_ID, projectId: x.project ? projectId(x.project) : null, type: x.yourAction ? "APPROVAL_NEEDED" : "SYSTEM", title: x.text, body: x.text, actionUrl: x.project ? `/projects/${projectId(x.project)}` : "/reports", actionLabel: x.action ?? (x.project ? "Open" : "Read"), createdAt: at(x.at) } });
+    await prisma.notification.create({ data: { userId: maja.userId, clientId: OUHERS_CLIENT_ID, projectId: x.project ? projectId(x.project) : null, type: x.yourAction ? "APPROVAL_NEEDED" : "SYSTEM", title: x.text, body: x.text, actionUrl: x.project ? `/projects/${projectId(x.project)}` : "/settings/reporting", actionLabel: x.action ?? (x.project ? "Open" : "Read"), createdAt: at(x.at) } });
   }
   const pm = read<{ autoLog: { at: string; agent: string; decision: string; project: string }[] }>("pm.json");
   const AGENT_KEY: Record<string, string> = { "QC agent": "brand_compliance", "Estimate agent": "estimate_agent", "Staffing agent": "staffing_agent", "Brief agent": "brief_agent" };

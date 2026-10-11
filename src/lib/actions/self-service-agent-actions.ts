@@ -87,7 +87,7 @@ async function runSkill(agent: Agent, viewer: Awaited<ReturnType<typeof getPorta
 
   if (!result.ok) return { error: result.error };
 
-  revalidatePath(`/assets/agents-templates/agent/${agentId}`);
-  revalidatePath("/assets/agents-templates");
+  revalidatePath(`/skills/${agentId}`);
+  revalidatePath("/skills");
   return { error: null };
 }

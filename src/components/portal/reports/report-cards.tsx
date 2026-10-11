@@ -92,9 +92,9 @@ export async function PastReportsCard({ clientId, exclude }: { clientId: string;
   const rows = [
     ...generated.map((g) => {
       const p = periodFor(g.kind as ReportKind, g.periodStart);
-      return { id: g.id, at: g.periodStart, title: g.kind === "MONTHLY" ? new Intl.DateTimeFormat("en-GB", { month: "long" }).format(g.periodStart) : g.label, sub: g.kind === "MONTHLY" ? SUB.MONTHLY : `${p.range} · weekly`, href: `/reports/${g.kind === "MONTHLY" ? "monthly" : "weekly"}/${g.id}` };
+      return { id: g.id, at: g.periodStart, title: g.kind === "MONTHLY" ? new Intl.DateTimeFormat("en-GB", { month: "long" }).format(g.periodStart) : g.label, sub: g.kind === "MONTHLY" ? SUB.MONTHLY : `${p.range} · weekly`, href: `/settings/reporting/${g.kind === "MONTHLY" ? "monthly" : "weekly"}/${g.id}` };
     }),
-    ...saved.map((s) => ({ id: s.id, at: s.createdAt, title: s.name, sub: "Custom · built by you", href: `/reports/custom?${filtersToQueryString(s.filters as ReportFilters)}` })),
+    ...saved.map((s) => ({ id: s.id, at: s.createdAt, title: s.name, sub: "Custom · built by you", href: `/settings/reporting/custom?${filtersToQueryString(s.filters as ReportFilters)}` })),
   ].sort((a, b) => b.at.getTime() - a.at.getTime());
   return (
     <SectionCard title="Past reports">

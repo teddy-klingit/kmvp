@@ -40,7 +40,7 @@ export async function inviteClientTeammateAction(_prev: InviteState, formData: F
     data: { identifier: user.email, token, expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7) },
   });
 
-  revalidatePath("/account/team");
+  revalidatePath("/settings/account/team");
   return {
     success: `Invited ${parsed.data.name}.`,
     inviteLink: `/invite?token=${token}&email=${encodeURIComponent(user.email)}`,
@@ -58,7 +58,7 @@ export async function updateTeammatePermissionAction(formData: FormData) {
   if (!target) return;
 
   await prisma.clientUser.update({ where: { id: clientUserId }, data: { permission } });
-  revalidatePath("/account/team");
+  revalidatePath("/settings/account/team");
 }
 
 export async function removeTeammateAction(formData: FormData) {
@@ -70,5 +70,5 @@ export async function removeTeammateAction(formData: FormData) {
   if (!target || target.id === viewer.id) return;
 
   await prisma.user.delete({ where: { id: target.userId } });
-  revalidatePath("/account/team");
+  revalidatePath("/settings/account/team");
 }

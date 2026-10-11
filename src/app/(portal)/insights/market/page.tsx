@@ -77,7 +77,7 @@ export default async function MarketFeedPage({ searchParams }: { searchParams: P
                 <ColumnChart data={perWeek.data} series={perWeek.series} height={190} xEvery={weeks > 8 ? 3 : 1} />
               </>
             ) : (
-              <SkeletonChart line="No signals yet. Add competitors and they're checked every time you open Market." action={<PillLink href="/account" size="sm">Add competitors</PillLink>} />
+              <SkeletonChart line="No signals yet. Add competitors and they're checked every time you open Market." action={<PillLink href="/settings/account" size="sm">Add competitors</PillLink>} />
             )}
           </ChartCard>
 

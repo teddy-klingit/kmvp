@@ -11,5 +11,5 @@ export async function GET(req: Request, { params }: { params: Promise<{ template
   const template = member && (await prisma.template.findFirst({ where: { id: templateId, OR: [{ clientId: member.clientId }, { clientId: null }] } }));
   if (!template) return new Response("Not found", { status: 404 });
   await prisma.template.update({ where: { id: template.id }, data: { usageCount: { increment: 1 } } });
-  return NextResponse.redirect(template.figmaUrl ?? new URL(`/assets/agents-templates/templates/${template.id}`, req.url));
+  return NextResponse.redirect(template.figmaUrl ?? new URL(`/skills/templates/${template.id}`, req.url));
 }

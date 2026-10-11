@@ -124,7 +124,7 @@ export default async function BrandOsOverviewPage() {
           <SectionCard
             title="Sources"
             action={
-              <Link href="/assets/sources" className={monoLink}>
+              <Link href="/settings/connections" className={monoLink}>
                 MANAGE
               </Link>
             }

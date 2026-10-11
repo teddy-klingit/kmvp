@@ -22,7 +22,7 @@ export default async function HelpPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader back={{ href: "/account", label: "Account" }} eyebrow="Support" title="Help & support" />
+      <PageHeader back={{ href: "/settings/account", label: "Account" }} eyebrow="Support" title="Help & support" />
 
       <PageGrid
         main={

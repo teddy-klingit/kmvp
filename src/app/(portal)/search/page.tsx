@@ -78,7 +78,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
         <SectionCard title="Assets" meta={count(assets.length)}>
           <div className="grid grid-cols-2 gap-4 px-6 py-5 sm:grid-cols-4">
             {assets.map((a) => (
-              <AssetTile key={a.id} name={a.name} format={a.format} color={a.thumbnailColor} ctr={a.performanceCtr} campaign={a.project.name} {...tileMedia(a)} average={average} href={`/assets/library/${a.id}`} />
+              <AssetTile key={a.id} name={a.name} format={a.format} color={a.thumbnailColor} ctr={a.performanceCtr} campaign={a.project.name} {...tileMedia(a)} average={average} href={`/library/${a.id}`} />
             ))}
           </div>
         </SectionCard>

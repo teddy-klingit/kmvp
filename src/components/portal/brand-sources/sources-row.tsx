@@ -157,7 +157,7 @@ function FromAppsList({ section, connected, onDone }: { section: string; connect
     return (
       <p className="m-0 px-1 py-2 text-[13px] text-ds-text-2">
         No apps connected yet.{" "}
-        <Link href="/assets/sources" className="font-medium text-ds-text">
+        <Link href="/settings/connections" className="font-medium text-ds-text">
           Connect one in Sources
         </Link>
         .

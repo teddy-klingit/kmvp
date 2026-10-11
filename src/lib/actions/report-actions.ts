@@ -27,15 +27,15 @@ export async function saveReportAction(formData: FormData) {
     data: { clientId: viewer.clientId, name, filters },
   });
 
-  revalidatePath("/reports/custom");
-  redirect(`/reports/custom?${filtersToQueryString(filters)}&saved=1`);
+  revalidatePath("/settings/reporting/custom");
+  redirect(`/settings/reporting/custom?${filtersToQueryString(filters)}&saved=1`);
 }
 
 export async function deleteSavedReportAction(formData: FormData) {
   const viewer = await getPortalViewer();
   const id = String(formData.get("id") ?? "");
   await prisma.savedReport.deleteMany({ where: { id, clientId: viewer.clientId } });
-  revalidatePath("/reports/custom");
+  revalidatePath("/settings/reporting/custom");
 }
 
 /** Reports → "Change schedule": day, time and who on the client's own team gets the report. */
@@ -52,7 +52,7 @@ export async function updateReportScheduleAction(formData: FormData) {
     update: { sendDay: day, sendTime: time, recipientUserIds: recipients },
     create: { clientId: viewer.clientId, sendDay: day, sendTime: time, recipientUserIds: recipients },
   });
-  revalidatePath("/reports", "layout");
+  revalidatePath("/settings/reporting", "layout");
 }
 
 export type WriteReportState = { error?: string | null };
@@ -64,6 +64,6 @@ export async function writeReportNowAction(_prev: WriteReportState, formData: Fo
   const kind = formData.get("kind") === "MONTHLY" ? "MONTHLY" : "WEEKLY";
   const r = await withAiCharge(assistantCharge(viewer.clientId, viewer.userId, ASSISTANTS.performance), () => writeReport(viewer.clientId, lastClosed(kind)));
   if (!r.ok) return { error: r.error };
-  revalidatePath("/reports", "layout");
+  revalidatePath("/settings/reporting", "layout");
   return { error: null };
 }

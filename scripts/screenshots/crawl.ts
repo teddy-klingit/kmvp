@@ -22,7 +22,7 @@ const shape = (s: string) => s.replace(/[a-z0-9]{20,}/g, ":id").replace(/ouhers-
   await p.click('button[type="submit"]');
   await p.waitForURL((u) => !u.pathname.startsWith("/sign-in"));
   const seen = new Set<string>();
-  const queue = ops ? ["/ops"] : ["/dashboard", "/projects", "/assets", "/insights", "/calendar", "/reports", "/account"];
+  const queue = ops ? ["/ops"] : ["/dashboard", "/assets", "/skills", "/projects", "/library", "/calendar", "/insights", "/notifications", "/settings/account", "/settings/notifications", "/settings/connections", "/settings/apps", "/settings/reporting", "/settings/usage"];
   const bad: string[] = [];
   while (queue.length && seen.size < 250) {
     const path = queue.shift()!;

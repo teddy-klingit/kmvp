@@ -7,13 +7,12 @@ const SEGMENTS: { label: string; href: string; match: (p: string) => boolean }[]
   { label: "Overview", href: "/assets", match: (p) => p === "/assets" },
   { label: "Platform", href: "/assets/brand-platform", match: (p) => p.startsWith("/assets/brand-platform") },
   { label: "Visual identity", href: "/assets/visual-identity", match: (p) => p.startsWith("/assets/visual-identity") },
-  { label: "Sources", href: "/assets/sources", match: (p) => p.startsWith("/assets/sources") },
-  { label: "Library", href: "/assets/library", match: (p) => ["/assets/library", "/assets/top-performers", "/assets/by-campaign"].some((x) => p.startsWith(x)) },
-  { label: "Agents & templates", href: "/assets/agents-templates", match: (p) => p.startsWith("/assets/agents-templates") || p.startsWith("/assets/templates") },
+  { label: "Rules", href: "/assets/rules", match: (p) => p.startsWith("/assets/rules") },
 ];
 
 /**
- * Brand OS header (BrandIQ.dc.html): one segmented control instead of the old left sub-menu. A platform
+ * Brand OS header (nav v3): Overview · Platform · Visual identity · Rules. Library moved to the Output library,
+ * Sources to Settings → Connections, Agents & templates to Skills. A platform
  * section page (BrandSection.dc.html) has its own breadcrumb header, so this one steps aside there.
  */
 export function BrandOsHeader() {
@@ -21,7 +20,7 @@ export function BrandOsHeader() {
   if (/^\/assets\/brand-platform\/[^/]+/.test(pathname)) return null;
   return (
     <PageHeader
-      eyebrow="Your brand, as Klingit’s agents see it"
+      eyebrow="Your brand, as Klingit and your skills see it"
       title="Brand OS"
       tabsLabel="Brand OS sections"
       tabs={SEGMENTS.map((s) => ({ label: s.label, href: s.href, active: s.match(pathname) }))}
