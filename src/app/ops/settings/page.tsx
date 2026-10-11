@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireOpsPage } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
-import { liveAdsOwner } from "@/lib/integrations/live-ads-owner";
+import { listLiveAdAccounts } from "@/lib/integrations/live-ads-owner";
 import { OpsPage } from "@/components/ops/ops-page";
 import { PageHeader } from "@/components/ds/page-header";
 import { Card, SectionCard, CardRows, CardNote } from "@/components/ds/card";
@@ -65,8 +65,7 @@ export default async function WorkspaceSettingsPage({
   const bigQueryConfigured = Boolean(process.env.GOOGLE_BIGQUERY_SERVICE_ACCOUNT_KEY);
   const plans = await prisma.plan.findMany();
   // Live ad accounts belong to one client only (live-ads-owner.ts).
-  const ownerId = await liveAdsOwner("meta");
-  const owner = ownerId ? await prisma.client.findUnique({ where: { id: ownerId }, select: { name: true } }) : null;
+  const owners = (await listLiveAdAccounts()).filter((a) => a.configured);
   const slotsFor = (tier: keyof typeof DEFAULT_ACTIVE_SLOTS) => plans.find((p) => p.tier === tier)?.activeSlots ?? DEFAULT_ACTIVE_SLOTS[tier];
   const adConnected = [metaConfigured, Boolean(linkedInConnection), Boolean(googleAdsConnection), bigQueryConfigured].filter(Boolean).length;
 
@@ -91,9 +90,7 @@ export default async function WorkspaceSettingsPage({
 
       <SectionCard title="Ad platform connections">
         <p className="m-0 border-b border-brand-line px-6 py-4 text-[14px] text-brand-ink-2">
-          {owner
-            ? `These accounts belong to ${owner.name}. Only ${owner.name}'s Insights and assistants read them.`
-            : "These accounts don't belong to any client yet, so no client reads them. Set LIVE_ADS_CLIENT_ID to the client's id."}
+          {owners.map((a) => `${a.platform}: ${a.ownerName ?? "no owner, feeds no client"}`).join(" · ") || "No live ad accounts connected."} Owners are set on each client&apos;s admin page under Connections.
         </p>
         <CardRows>
           <ConnectionRow name="Meta Ads" detail="Powers live campaign performance in client Insights.">

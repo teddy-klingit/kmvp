@@ -110,7 +110,9 @@ describe("insights overview", () => {
     expect(page).not.toContain("Beach hero");
     // B has no data at all: no number cards, just the honest empty states.
     expect(page).not.toContain("Last 30 days");
-    expect(page).toContain("writes three takeaways");
+    // No ad account of its own: one clear empty state, never charts of zeros.
+    expect(page).toContain("No ad account connected yet");
+    expect(page).not.toContain("writes three takeaways");
   });
 
   it("Audience hides metrics without data instead of showing '—'", async () => {

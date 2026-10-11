@@ -13,6 +13,9 @@ import { AgentButton } from "@/components/portal/insights/agent-button";
 import { ChartCard, SkeletonChart, StatTile, Takeaway } from "@/components/insights/cards";
 import { BarList, ColumnChart, Legend, MiniBars } from "@/components/insights/charts";
 import { cn } from "@/lib/utils";
+import { NoAdAccount } from "@/components/portal/insights/no-ad-account";
+import { adDataStatus } from "@/lib/integrations/live-ads-owner";
+import { isClientAdmin } from "@/lib/client-roles";
 
 const STATE_LABEL = { live: "Live", sample: "Sample data", demo: "Demo" } as const;
 
@@ -25,7 +28,7 @@ export default async function InsightsOverviewPage({ searchParams }: { searchPar
   const days = parseRange((await searchParams).range);
   const viewer = await getPortalViewer();
   const clientId = viewer.clientId;
-  const [paid, daily, { all, measured }, { takeaways }, sources, signals, connect, kpis, audits, mi] = await Promise.all([
+  const [paid, daily, { all, measured }, { takeaways }, sources, signals, connect, kpis, audits, mi, adStatus] = await Promise.all([
     loadPaidMedia(clientId),
     loadDaily(clientId, days),
     loadMeasuredAssets(clientId),
@@ -36,7 +39,10 @@ export default async function InsightsOverviewPage({ searchParams }: { searchPar
     loadContentKpis(clientId),
     prisma.siteAudit.findMany({ where: { clientId }, orderBy: { subject: "asc" } }),
     prisma.marketIntelligenceBrief.findUnique({ where: { clientId } }),
+    adDataStatus(clientId),
   ]);
+  // No ad account: one clear empty state instead of blank charts (live-ads-owner.ts).
+  const noAds = adStatus === "none";
 
   const source = daily.has ? daily.platforms.join(" + ") : paid.isSample ? "sample data" : paid.connected.join(" + ");
   const tiles = paid.inScope ? paidTiles(daily, paid.campaigns, days, source).filter((t) => t.key !== "impressions").slice(0, 4) : [];
@@ -70,7 +76,9 @@ export default async function InsightsOverviewPage({ searchParams }: { searchPar
         </div>
       )}
 
-      {takeaways.length > 0 ? (
+      {noAds ? (
+        <NoAdAccount admin={isClientAdmin(viewer)} />
+      ) : takeaways.length > 0 ? (
         <div className="grid grid-cols-1 gap-4 min-[800px]:grid-cols-3">
           {takeaways.map((t, i) => (
             <Takeaway
@@ -94,6 +102,7 @@ export default async function InsightsOverviewPage({ searchParams }: { searchPar
       <PageGrid
         main={
           <>
+            {!(noAds && leaders.length === 0) && (
             <ChartCard
               title="Creative leaderboard"
               meta={
@@ -117,6 +126,7 @@ export default async function InsightsOverviewPage({ searchParams }: { searchPar
                 <SkeletonChart line="Delivered creative gets a CTR here once it has run." action={<PillLink href="/brief/new" size="sm">Start a brief</PillLink>} />
               )}
             </ChartCard>
+            )}
 
             <div className="grid grid-cols-1 gap-6 @min-[600px]/col:grid-cols-2">
               <ChartCard title="Audience" meta={followers.length > 0 ? <Link href="/insights/audience" className={monoLink}>OPEN</Link> : undefined}>
@@ -151,7 +161,8 @@ export default async function InsightsOverviewPage({ searchParams }: { searchPar
                     <span aria-hidden className={cn("size-2 rounded-full", s.state === "live" ? "bg-[#8D9E47]" : s.state === "connect" ? "bg-[#C2C3C5]" : "bg-[#D08A2E]")} />
                     <span className="min-w-0 flex-1 text-[15px]">{s.name}</span>
                     {s.state === "connect" ? (
-                      <PillLink href={connect} size="sm">
+                      // Ad accounts are connected in Settings → Connections; the rest via a message to Klingit.
+                      <PillLink href={/Ads$/.test(s.name) || s.name === "LinkedIn" ? "/settings/connections" : connect} size="sm">
                         Connect
                       </PillLink>
                     ) : (

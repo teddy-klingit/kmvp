@@ -7,6 +7,7 @@ import { runAutopilot } from "@/lib/autopilot-runner";
 import { requireOpsRole } from "@/lib/authz";
 import { adjustAiCredits, ensurePeriod, planFor } from "@/lib/ai-credits";
 import type { PlanTier } from "@/generated/prisma";
+import { LIVE_AD_PROVIDERS, setLiveAdsOwner, type LiveAdProvider } from "@/lib/integrations/live-ads-owner";
 
 export async function updateClientPlanAction(formData: FormData) {
   const viewer = await requireOpsRole(["ADMIN"]);
@@ -49,4 +50,18 @@ export async function offboardClientAction(formData: FormData) {
   await prisma.client.update({ where: { id: clientId }, data: { status: "OFFBOARDED" } });
   revalidatePath(`/ops/clients/${clientId}/admin`);
   revalidatePath("/ops/clients");
+}
+
+/** Assign or unassign one of the platform's live ad accounts to this client (logged in the AuditLog). */
+export async function setLiveAdsOwnerAction(formData: FormData) {
+  const viewer = await requireOpsRole(["ADMIN"]);
+  const clientId = String(formData.get("clientId") ?? "");
+  const provider = String(formData.get("provider") ?? "") as LiveAdProvider;
+  const assign = formData.get("assign") === "1";
+  if (!LIVE_AD_PROVIDERS.some((p) => p.provider === provider) || !clientId) return;
+  const { error } = await setLiveAdsOwner(provider, assign ? clientId : null, viewer.userId);
+  if (error) throw new Error(error);
+  revalidatePath(`/ops/clients/${clientId}/admin`);
+  revalidatePath("/ops");
+  revalidatePath("/insights", "layout");
 }

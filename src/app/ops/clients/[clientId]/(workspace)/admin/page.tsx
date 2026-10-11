@@ -12,7 +12,9 @@ import {
   pauseClientAction,
   reactivateClientAction,
   offboardClientAction,
+  setLiveAdsOwnerAction,
 } from "@/lib/actions/ops-client-admin-actions";
+import { listLiveAdAccounts } from "@/lib/integrations/live-ads-owner";
 import { adjustAiCreditsAction } from "@/lib/actions/plan-actions";
 import { aiCreditStatus } from "@/lib/ai-credits";
 
@@ -38,6 +40,8 @@ export default async function ClientAdminPage({ params }: { params: Promise<{ cl
   if (!client) notFound();
   const ai = await aiCreditStatus(clientId);
   const ledger = await prisma.aiCreditLedger.findMany({ where: { clientId }, orderBy: { createdAt: "desc" }, take: 8 });
+  const [adAccounts, adLog] = await Promise.all([listLiveAdAccounts(), prisma.auditLog.findMany({ where: { area: "ad-accounts", clientId }, orderBy: { createdAt: "desc" }, take: 5 })]);
+  const actors = new Map((await prisma.user.findMany({ where: { id: { in: adLog.flatMap((l) => (l.actorUserId ? [l.actorUserId] : [])) } }, select: { id: true, name: true } })).map((u) => [u.id, u.name]));
 
   const credits: Stat[] = [
     { label: "Monthly credit allowance", value: `${client.monthlyCreditAllowance}c` },
@@ -116,6 +120,56 @@ export default async function ClientAdminPage({ params }: { params: Promise<{ cl
           )}
         </SectionCard>
       </div>
+
+      <SectionCard title="Connections" meta={<span className="font-brand-mono text-[12px] text-brand-ink-2">OWNS THESE AD ACCOUNTS</span>}>
+        <CardNote>
+          Klingit&apos;s live ad accounts. Each feeds at most one client: only the owner&apos;s Insights and assistants read it. An account without an owner feeds nobody.
+        </CardNote>
+        <CardRows>
+          {adAccounts.map((a) => {
+            const mine = a.ownerId === clientId;
+            return (
+              <li key={a.provider} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-6 py-4">
+                <span className="flex min-w-0 flex-1 basis-[220px] flex-col">
+                  <span className="text-[15px]">{a.platform}</span>
+                  <span className="text-[13px] text-brand-ink-2">{[a.accountId, a.configured ? (a.connectedAt ? `connected ${formatDate(a.connectedAt)}` : "connected") : "not connected"].filter(Boolean).join(" · ")}</span>
+                </span>
+                {!a.configured ? (
+                  <StatusPill>Not connected</StatusPill>
+                ) : mine ? (
+                  <StatusPill tone="success">Owned by {client.name}</StatusPill>
+                ) : a.ownerId ? (
+                  <StatusPill>Owned by {a.ownerName ?? "another client"}</StatusPill>
+                ) : (
+                  <span className="inline-flex items-center gap-2 text-[14px] text-brand-ink">
+                    <span aria-hidden className="size-2 rounded-full bg-brand-orange" />
+                    Unassigned
+                  </span>
+                )}
+                {a.configured && (mine || !a.ownerId) && (
+                  <form action={setLiveAdsOwnerAction}>
+                    <input type="hidden" name="clientId" value={clientId} />
+                    <input type="hidden" name="provider" value={a.provider} />
+                    <input type="hidden" name="assign" value={mine ? "0" : "1"} />
+                    <Button type="submit" variant="secondary">
+                      {mine ? "Unassign" : "Assign to this client"}
+                    </Button>
+                  </form>
+                )}
+              </li>
+            );
+          })}
+        </CardRows>
+        {adLog.length > 0 && (
+          <ul className="m-0 flex list-none flex-col gap-1 border-t border-brand-line px-6 py-4 text-[13px] text-brand-ink-2">
+            {adLog.map((l) => (
+              <li key={l.id}>
+                {formatDate(l.createdAt)} · {l.actorUserId ? (actors.get(l.actorUserId) ?? "Staff") : "System"}: {l.action}
+              </li>
+            ))}
+          </ul>
+        )}
+      </SectionCard>
 
       <SectionCard
         title="Client onboarding"

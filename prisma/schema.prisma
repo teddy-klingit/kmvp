@@ -2005,6 +2005,23 @@ model ProjectStaffNote {
 }
 
 /// Every PM edit and automatic step: who, what, before → after, reason, and the agent run it overrides (if any).
+/// Staff and admin changes that aren't tied to a project: who owns a live ad account, a client's own AI key
+/// (added / replaced / removed, never the key itself). Kept when a client goes (plain ids, no relations).
+model AuditLog {
+  id          String   @id @default(cuid())
+  clientId    String?
+  actorUserId String?
+  /// "ad-accounts" | "ai-keys"
+  area        String
+  action      String
+  before      Json?
+  after       Json?
+  createdAt   DateTime @default(now())
+
+  @@index([clientId, createdAt])
+  @@index([area, createdAt])
+}
+
 model DecisionLog {
   id          String   @id @default(cuid())
   projectId   String

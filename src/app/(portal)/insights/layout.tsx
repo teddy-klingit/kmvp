@@ -4,6 +4,9 @@ import { lastUpdated, loadDemoSources, loadPaidMedia } from "@/lib/insights-data
 import { WORK_TZ } from "@/lib/working-hours";
 import { SegmentedNav } from "@/components/ds/segmented-control";
 import { AskPill } from "@/components/portal/insights/ask-pill";
+import { NoAdAccount } from "@/components/portal/insights/no-ad-account";
+import { adDataStatus } from "@/lib/integrations/live-ads-owner";
+import { isClientAdmin } from "@/lib/client-roles";
 import { AgentButton } from "@/components/portal/insights/agent-button";
 import { TabRowEnd } from "@/components/insights/toolbar";
 import { generateSeoReportAction } from "@/lib/actions/seo-actions";
@@ -31,11 +34,12 @@ function updatedLabel(at: Date, now: Date) {
  */
 export default async function InsightsLayout({ children }: { children: React.ReactNode }) {
   const viewer = await getPortalViewer();
-  const [paid, questions, demo, audits] = await Promise.all([
+  const [paid, questions, demo, audits, adStatus] = await Promise.all([
     loadPaidMedia(viewer.clientId),
     prisma.marketIntelligenceQuestion.findMany({ where: { clientId: viewer.clientId }, orderBy: { createdAt: "desc" }, take: 5 }),
     loadDemoSources(viewer.clientId),
     prisma.siteAudit.count({ where: { clientId: viewer.clientId } }),
+    adDataStatus(viewer.clientId),
   ]);
   // After loadPaidMedia: reading the ad accounts may have just written a fresh snapshot.
   const updated = paid.isSample ? null : await lastUpdated(viewer.clientId);
@@ -59,7 +63,7 @@ export default async function InsightsLayout({ children }: { children: React.Rea
           <span className="font-brand-mono text-[12px] text-brand-ink-2">{eyebrow}</span>
           <h1 className="m-0 text-[32px] font-light leading-[1.15] tracking-[0.01em] min-[700px]:text-[36px]">Insights</h1>
         </div>
-        <AskPill recent={questions.map((q) => ({ id: q.id, question: q.question, answer: q.answer }))} />
+        <AskPill recent={questions.map((q) => ({ id: q.id, question: q.question, answer: q.answer }))} notice={adStatus === "none" ? <NoAdAccount admin={isClientAdmin(viewer)} compact /> : undefined} />
       </header>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <SegmentedNav label="Insights sections" items={SECTIONS} />

@@ -11,6 +11,7 @@ import { internalStagePill } from "@/lib/ops-cockpit";
 import { formatDay } from "@/lib/project-state";
 import { WORK_TZ } from "@/lib/working-hours";
 import { CheckCircle2 } from "lucide-react";
+import { unassignedLiveAdAccounts } from "@/lib/integrations/live-ads-owner";
 import type { StaffMember, User } from "@/generated/prisma";
 
 const EXCEPTION_TONE: Record<OpsException["tone"], { tile: string; pill: PillTone }> = {
@@ -56,12 +57,14 @@ export async function NeedsYouHome({ viewer, inboxCount }: { viewer: StaffMember
   const endOfWeek = new Date(startOfDay);
   endOfWeek.setDate(endOfWeek.getDate() + ((7 - endOfWeek.getDay()) % 7) + 1);
 
-  const [projects, runsToday, overriddenToday] = await Promise.all([
+  const [projects, runsToday, overriddenToday, unassigned] = await Promise.all([
     loadOpsProjects({}, now),
     prisma.agentRun.count({ where: { createdAt: { gte: startOfDay }, projectId: { not: null } } }),
     prisma.agentRun.count({ where: { createdAt: { gte: startOfDay }, projectId: { not: null }, overridden: true } }),
+    unassignedLiveAdAccounts(),
   ]);
   const needs = rankExceptions(projects);
+  const open = needs.length + unassigned.length;
   const running = projects.filter((p) => p.exceptions.length === 0);
   const draftsThisWeek = projects.filter((p) => {
     const eta = p.state.keyFacts.firstDraftEta;
@@ -70,7 +73,7 @@ export async function NeedsYouHome({ viewer, inboxCount }: { viewer: StaffMember
 
   const first = viewer.user.name.split(" ")[0];
   const tiles = [
-    { label: "Needs you", value: String(needs.length), turn: needs.length > 0 },
+    { label: "Needs you", value: String(open), turn: open > 0 },
     { label: "Running automatically", value: String(running.length) },
     { label: "First drafts due this week", value: String(draftsThisWeek) },
     { label: "AI decisions today", value: String(runsToday), extra: overriddenToday > 0 ? `· ${overriddenToday} overridden` : undefined },
@@ -86,7 +89,7 @@ export async function NeedsYouHome({ viewer, inboxCount }: { viewer: StaffMember
               {greeting(now)}, {first}
             </h1>
             <span className="text-[14px] text-ds-text-2">
-              {needs.length === 0 ? "Nothing needs you right now." : `${plural(needs.length, "thing")} need${needs.length === 1 ? "s" : ""} you.`}{" "}
+              {open === 0 ? "Nothing needs you right now." : `${plural(open, "thing")} need${open === 1 ? "s" : ""} you.`}{" "}
               {plural(running.length, "project")} {running.length === 1 ? "is" : "are"} running on {running.length === 1 ? "its" : "their"} own.
             </span>
           </div>
@@ -104,7 +107,7 @@ export async function NeedsYouHome({ viewer, inboxCount }: { viewer: StaffMember
           </form>
         </header>
 
-        <NeedsYouChips active="needs" needs={needs.length} inbox={inboxCount} />
+        <NeedsYouChips active="needs" needs={open} inbox={inboxCount} />
 
         <section aria-label="Summary" className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {tiles.map((t) => (
@@ -121,13 +124,36 @@ export async function NeedsYouHome({ viewer, inboxCount }: { viewer: StaffMember
         <Card aria-label="Needs you" className="overflow-hidden">
           <CardHeader
             title="Needs you"
-            meta={needs.length > 0 ? <StatusPill tone="turn">{needs.length} open</StatusPill> : undefined}
+            meta={open > 0 ? <StatusPill tone="turn">{open} open</StatusPill> : undefined}
             action={<span className="text-[12px] text-ds-text-2">Sorted by urgency</span>}
           />
-          {needs.length === 0 ? (
+          {/* A connected ad account nobody owns feeds no client: it stays here until staff decide. */}
+          {unassigned.length > 0 && (
+            <ul aria-label="Unassigned ad accounts" className="m-0 list-none p-0">
+              {unassigned.map((a, i) => (
+                <li key={a.provider} className={`flex flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center sm:gap-4 ${i > 0 ? "border-t border-ds-divider" : ""}`}>
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-ds-turn-tint text-[12px] font-semibold text-ds-turn-text">AD</span>
+                  <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[14px] font-semibold text-ds-text">
+                        {a.platform}
+                        {a.accountId ? ` ${a.accountId}` : ""}
+                      </span>
+                      <StatusPill tone="turn">Unassigned ad account</StatusPill>
+                    </div>
+                    <span className="text-[14px] text-ds-text-2">Connected, but no client owns it, so it feeds nobody. Assign it on a client&apos;s admin page under Connections.</span>
+                  </div>
+                  <Button asChild variant="secondary" size="md">
+                    <Link href="/ops/clients">Open clients</Link>
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {needs.length === 0 && unassigned.length > 0 ? null : needs.length === 0 ? (
             <EmptyState icon={CheckCircle2} title="All clear" description="Every project is running on its own. You'll see exceptions here." />
           ) : (
-            <ul className="m-0 list-none p-0">
+            <ul className={`m-0 list-none p-0 ${unassigned.length ? "border-t border-ds-divider" : ""}`}>
               {needs.map((n, i) => {
                 const tone = EXCEPTION_TONE[n.tone];
                 return (

@@ -12,6 +12,9 @@ import { ChartCard, SkeletonChart, StatTile, WhySheet } from "@/components/insig
 import { BarList, ColumnChart, DumbbellRow, LineChart } from "@/components/insights/charts";
 import { SubBar } from "@/components/insights/toolbar";
 import { Suspense } from "react";
+import { NoAdAccount } from "@/components/portal/insights/no-ad-account";
+import { adDataStatus } from "@/lib/integrations/live-ads-owner";
+import { isClientAdmin } from "@/lib/client-roles";
 
 /** A campaign whose CTR is under half the reference (creative average, or the account's own) needs a look. */
 const FAR_BELOW = 0.5;
@@ -26,6 +29,8 @@ export default async function InsightsPerformancePage({ searchParams }: { search
   const days = parseRange(range);
   const viewer = await getPortalViewer();
   const clientId = viewer.clientId;
+  // No ad account: Performance has nothing to show but the way to connect one.
+  if ((await adDataStatus(clientId)) === "none") return <NoAdAccount admin={isClientAdmin(viewer)} />;
   const [paid, daily, { all, measured }, { actions }, connect] = await Promise.all([
     loadPaidMedia(clientId),
     loadDaily(clientId, days, platform ?? null),

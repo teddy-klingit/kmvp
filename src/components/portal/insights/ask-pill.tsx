@@ -10,7 +10,8 @@ type Question = { id: string; question: string; answer: string };
  * "Ask anything" as a pill input in the Insights header (it replaces the old fixed bottom bar). The
  * answer opens in a panel under the input; earlier questions are one click away.
  */
-export function AskPill({ recent }: { recent: Question[] }) {
+/** `notice`: shown at the top of the panel, e.g. "No ad account connected yet" for a client without one. */
+export function AskPill({ recent, notice }: { recent: Question[]; notice?: React.ReactNode }) {
   const [state, formAction, pending] = useActionState<AskQuestionState, FormData>(askMarketIntelligenceQuestionAction, {});
   // The panel opens by itself for each new answer (until closed), or when the input is focused.
   const [closedFor, setClosedFor] = useState<AskQuestionState | null>(null);
@@ -58,7 +59,7 @@ export function AskPill({ recent }: { recent: Question[] }) {
           type="text"
           autoComplete="off"
           placeholder="Ask anything, e.g. is my CTR going up?"
-          onFocus={() => (state.answer || past.length > 0) && setOpen(true)}
+          onFocus={() => (state.answer || past.length > 0 || notice) && setOpen(true)}
           className="h-full min-w-0 flex-1 border-none bg-transparent text-[14px] text-brand-ink outline-none placeholder:text-brand-ink-2"
           data-gramm="false"
           data-lt-active="false"
@@ -73,15 +74,16 @@ export function AskPill({ recent }: { recent: Question[] }) {
         </button>
       </form>
 
-      {open && (state.answer || state.error || past.length > 0) && (
+      {open && (state.answer || state.error || past.length > 0 || notice) && (
         <div role="dialog" aria-label="Answer" className="absolute right-0 top-[52px] z-30 flex max-h-[min(480px,70vh)] w-full flex-col overflow-hidden rounded-[12px] bg-white shadow-[0_12px_40px_rgba(30,30,30,0.14)]">
           <div className="flex items-center gap-2 border-b border-brand-line px-5 py-3">
-            <span className="flex-1 font-brand-mono text-[11px] text-brand-ink-2">{state.answer ? "ANSWER" : "PAST QUESTIONS"}</span>
+            <span className="flex-1 font-brand-mono text-[11px] text-brand-ink-2">{state.answer ? "ANSWER" : past.length > 0 ? "PAST QUESTIONS" : "ASK YOUR DATA"}</span>
             <button type="button" aria-label="Close" onClick={() => setOpen(false)} className="flex size-8 items-center justify-center rounded-full text-brand-ink-2 hover:bg-brand-chip">
               <X className="size-4" />
             </button>
           </div>
           <div className="flex flex-col gap-4 overflow-y-auto px-5 py-4">
+            {notice}
             {state.error && <p className="m-0 text-[14px] text-ds-danger-text">{state.error}</p>}
             {state.answer && (
               <div className="flex flex-col gap-1.5">
