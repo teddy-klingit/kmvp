@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { ownsLiveAds } from "@/lib/integrations/live-ads-owner";
 import { jsonArray } from "@/lib/utils";
@@ -56,7 +57,8 @@ export function healthTone(share: number): "lime" | "ink" | "orange" {
   return share >= 0.8 ? "lime" : share >= 0.4 ? "ink" : "orange";
 }
 
-export async function loadBrandHealth(clientId: string) {
+/** The one Brand health for a client: Brand OS overview, Home and the seed check all read this. Cached per request. */
+export const loadBrandHealth = cache(async (clientId: string) => {
   const [client, brandOS, assets, sources, connections, linkedIn, googleAds] = await Promise.all([
     prisma.client.findUniqueOrThrow({ where: { id: clientId }, select: { brandSummary: true } }),
     prisma.brandOS.findUnique({ where: { clientId } }),
@@ -87,4 +89,4 @@ export async function loadBrandHealth(clientId: string) {
     sources: { done: apps.size, total: CONNECTABLE_APPS.length },
     performance: { done: channels, total: 3 },
   });
-}
+});

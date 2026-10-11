@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
 import { jsonArray } from "@/lib/utils";
 import { platformStatus } from "@/lib/brand-completeness";
+import { loadBrandHealth } from "@/lib/brand-health";
 import { appMeta } from "@/lib/brand-sources";
 import { listBrandConnections, listBrandSources } from "@/lib/brand-sources-data";
 import { draftEmptySectionsAction } from "@/lib/actions/brand-draft-actions";
@@ -17,19 +18,21 @@ import { PlatformList } from "@/components/portal/platform-list";
 
 /**
  * Brand OS overview (BrandIQ.dc.html): the brand card, a "Draft with AI" card while platform sections are
- * empty, the platform list with done / not-written per section, and on the side the linked sources and
- * brand health, computed from what's written (never a stored score).
+ * empty, the platform list with done / not-written per section, and on the side what Brand OS learned from
+ * (read-only; connections are managed in Settings) and Brand health: the one shared score (brand-health.ts).
  */
 export default async function BrandOsOverviewPage() {
   const viewer = await getPortalViewer();
   const clientId = viewer.clientId;
-  const [client, brandOS, sources, connections, drafts, logos] = await Promise.all([
+  const [client, brandOS, sources, connections, drafts, logos, health] = await Promise.all([
     prisma.client.findUniqueOrThrow({ where: { id: clientId } }),
     prisma.brandOS.findUnique({ where: { clientId } }),
     listBrandSources(clientId),
     listBrandConnections(clientId),
     prisma.brandSectionDraft.findMany({ where: { clientId, status: "PENDING" }, select: { section: true } }),
     prisma.brandAsset.findMany({ where: { clientId, category: "LOGO", fileUrl: { not: null } }, select: { fileUrl: true, variant: true, name: true } }),
+    // The one Brand health (src/lib/brand-health.ts), the same number everywhere it's shown.
+    loadBrandHealth(clientId),
   ]);
   // The brand's own mark when a logo file is uploaded (the monogram first), else its initial.
   const mark = logos.find((l) => /monogram|avatar/i.test(l.variant ?? "") && /\.png$/i.test(l.name)) ?? logos.find((l) => /\.png$/i.test(l.name)) ?? null;
@@ -122,10 +125,10 @@ export default async function BrandOsOverviewPage() {
       side={
         <>
           <SectionCard
-            title="Sources"
+            title="Learned from"
             action={
               <Link href="/settings/connections" className={monoLink}>
-                MANAGE
+                CONNECTIONS
               </Link>
             }
           >
@@ -143,16 +146,26 @@ export default async function BrandOsOverviewPage() {
               </CardRows>
             )}
           </SectionCard>
-          <SectionCard title="Brand health">
-            <div className="flex flex-col gap-3 px-6 py-5">
+          <SectionCard title="Brand health" action={<span className="text-[13px] text-brand-ink-2">{health.label}</span>}>
+            <div className="flex flex-col gap-4 px-6 py-5">
               <div className="flex items-baseline gap-2.5">
-                <span className="text-[34px] font-light leading-none tabular-nums">
-                  {status.done} of {status.total}
-                </span>
-                <span className="text-[15px]">platform sections done</span>
+                <span className="text-[40px] font-light leading-none tabular-nums">{health.score}</span>
+                <span className="text-[15px] text-brand-ink-2">of 100</span>
               </div>
-              <Meter value={status.done} max={status.total} label={`${status.done} of ${status.total} platform sections done`} />
-              <span className="text-[13px] leading-[1.5] text-brand-ink-2">Skills and assistants write better the more is filled in. Computed from Brand OS, not a stored score.</span>
+              <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
+                {health.dimensions.map((d) => (
+                  <li key={d.key} className="flex flex-col gap-1">
+                    <span className="flex justify-between text-[13px]">
+                      <span>{d.name}</span>
+                      <span className="tabular-nums text-brand-ink-2">
+                        {d.done}/{d.total}
+                      </span>
+                    </span>
+                    <Meter value={d.done} max={d.total} label={`${d.name}: ${d.done} of ${d.total}`} />
+                  </li>
+                ))}
+              </ul>
+              {health.biggestLift && <span className="text-[13px] leading-[1.5] text-brand-ink-2">{health.biggestLift.line}</span>}
             </div>
           </SectionCard>
         </>
