@@ -1,5 +1,6 @@
 "use server";
 
+import { withAiCharge, assistantCharge, ASSISTANTS } from "@/lib/ai-context";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
@@ -61,7 +62,7 @@ export async function writeReportNowAction(_prev: WriteReportState, formData: Fo
   const viewer = await getPortalViewer();
   const { lastClosed, writeReport } = await import("@/lib/report-data");
   const kind = formData.get("kind") === "MONTHLY" ? "MONTHLY" : "WEEKLY";
-  const r = await writeReport(viewer.clientId, lastClosed(kind));
+  const r = await withAiCharge(assistantCharge(viewer.clientId, viewer.userId, ASSISTANTS.performance), () => writeReport(viewer.clientId, lastClosed(kind)));
   if (!r.ok) return { error: r.error };
   revalidatePath("/reports", "layout");
   return { error: null };

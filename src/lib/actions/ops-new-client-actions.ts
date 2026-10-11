@@ -1,5 +1,7 @@
 "use server";
 
+import { teamAllowanceFor } from "@/lib/ai-credits";
+import type { PlanTier } from "@/generated/prisma";
 import { redirect } from "next/navigation";
 import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
@@ -18,13 +20,13 @@ export async function createClientAction(formData: FormData) {
 
   const name = String(formData.get("name") ?? "").trim();
   const industry = String(formData.get("industry") ?? "").trim();
-  const planTier = String(formData.get("planTier") ?? "GROWTH") as "STARTER" | "GROWTH" | "SCALE" | "ENTERPRISE";
+  const planTier = (["BASIC", "STARTER", "GROWTH", "SCALE", "ENTERPRISE"].includes(String(formData.get("planTier"))) ? String(formData.get("planTier")) : "GROWTH") as PlanTier;
   const accountLeadId = String(formData.get("accountLeadId") ?? "") || null;
   const contactName = String(formData.get("contactName") ?? "").trim();
   const contactEmail = String(formData.get("contactEmail") ?? "").trim();
   if (!name) return;
 
-  const allowance = { STARTER: 16, GROWTH: 40, SCALE: 80, ENTERPRISE: 160 }[planTier] ?? 40;
+  const allowance = await teamAllowanceFor(planTier);
 
   let slug = slugify(name);
   const existing = await prisma.client.findUnique({ where: { slug } });

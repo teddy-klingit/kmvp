@@ -1,5 +1,6 @@
 "use server";
 
+import { withAiCharge, assistantCharge, ASSISTANTS } from "@/lib/ai-context";
 import { revalidatePath } from "next/cache";
 import { getPortalViewer } from "@/lib/current-viewer";
 import { runSeoAudit } from "@/lib/seo-audit-run";
@@ -11,7 +12,7 @@ export async function generateSeoReportAction(
   _formData: FormData
 ): Promise<GenerateSeoReportState> {
   const viewer = await getPortalViewer();
-  const result = await runSeoAudit(viewer.client);
+  const result = await withAiCharge(assistantCharge(viewer.clientId, viewer.userId, ASSISTANTS.seo), () => runSeoAudit(viewer.client));
   if (result.error) return result;
 
   revalidatePath("/insights/seo");

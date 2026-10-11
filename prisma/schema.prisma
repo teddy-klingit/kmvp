@@ -104,6 +104,7 @@ model VerificationToken {
 // ---------------------------------------------------------------------------
 
 enum PlanTier {
+  BASIC
   STARTER
   GROWTH
   SCALE
@@ -113,9 +114,117 @@ enum PlanTier {
 /// Per-plan settings an Admin can change in Settings. activeSlots = how many projects Klingit works on at once
 /// for one client; the rest wait in the client's queue.
 model Plan {
-  tier        PlanTier @id
-  activeSlots Int
-  updatedAt   DateTime @updatedAt
+  tier               PlanTier @id
+  activeSlots        Int
+  /// Phase Q: every value below is a PLACEHOLDER until pricing is decided; editable in ops Plans & AI credits.
+  name               String   @default("")
+  monthlyAiCredits   Int      @default(0)
+  monthlyTeamCredits Int      @default(0)
+  priceAmount        Float?
+  currency           String   @default("EUR")
+  /// Basic: the client connects their own model (Connections); tokens are logged, never deducted.
+  ownModel           Boolean  @default(false)
+  sortOrder          Int      @default(0)
+  updatedAt          DateTime @updatedAt
+}
+
+/// A client's plan for one monthly period (the AI-credit allowance resets each period).
+model ClientPlan {
+  id          String   @id @default(cuid())
+  clientId    String
+  tier        PlanTier
+  periodStart DateTime
+  periodEnd   DateTime
+  createdAt   DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, periodStart])
+}
+
+enum AiLedgerKind {
+  ALLOWANCE
+  BUNDLE
+  USAGE
+  ADJUSTMENT
+}
+
+/// AI credits: LLM use by skills the client runs and built-in assistants. Never Klingit's own production AI.
+/// Usage rows are written from real token counts (src/lib/ai-credits.ts). amount is signed (usage negative).
+model AiCreditLedger {
+  id          String       @id @default(cuid())
+  clientId    String
+  userId      String?
+  kind        AiLedgerKind
+  amount      Float
+  /// usage: drawn from the monthly allowance or from bundles (bundles are used after the allowance, never expire)
+  fundedBy    String?
+  sourceType  String? // "skill" | "assistant"
+  sourceKey   String? // Agent.key or assistant key
+  sourceName  String? // "Ad gen", "Ask your data"
+  projectId   String?
+  format      String?
+  tokensIn    Int          @default(0)
+  tokensOut   Int          @default(0)
+  model       String?
+  /// "klingit" = counts against the client's AI credits; "client_provider" = Basic plan, their provider bills it
+  billedTo    String       @default("klingit")
+  agentRunId  String?
+  note        String?
+  createdById String?
+  createdAt   DateTime     @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, createdAt])
+}
+
+/// A top-up of AI credits. Sizes and prices are PLACEHOLDERS (price null shows as "€ —").
+model AiCreditBundle {
+  id          String   @id @default(cuid())
+  size        Int
+  priceAmount Float?
+  currency    String   @default("EUR")
+  active      Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  requests AiTopUpRequest[]
+}
+
+/// "Buy bundle" without payment: a request staff confirm, which then writes a BUNDLE ledger row.
+model AiTopUpRequest {
+  id                String    @id @default(cuid())
+  clientId          String
+  bundleId          String
+  requestedByUserId String
+  status            String    @default("PENDING") // PENDING | CONFIRMED | REJECTED
+  decidedByUserId   String?
+  decidedAt         DateTime?
+  createdAt         DateTime  @default(now())
+
+  client Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  bundle AiCreditBundle @relation(fields: [bundleId], references: [id])
+}
+
+/// What a skill run produced, kept in the client's Output library.
+model SkillOutput {
+  id              String   @id @default(cuid())
+  clientId        String
+  agentRunId      String?
+  agentId         String?
+  title           String
+  format          String?
+  channel         String?
+  text            String?
+  storageKey      String?
+  mimeType        String?
+  createdByUserId String?
+  createdAt       DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, createdAt])
 }
 
 enum ClientStatus {
@@ -164,6 +273,11 @@ model Client {
   brandOS                      BrandOS?
   invoices                     Invoice[]
   creditLedger                 CreditLedgerEntry[]
+  plans                        ClientPlan[]
+  aiCreditLedger               AiCreditLedger[]
+  aiTopUpRequests              AiTopUpRequest[]
+  skillOutputs                 SkillOutput[]
+  customSkills                 Agent[]
   assets                       Asset[]
   agentRuns                    AgentRun[]
   touchpoints                  Touchpoint[]
@@ -1211,6 +1325,8 @@ model Asset {
   sentVersion        Int?
   performanceCtr     Float?
   performanceScore   Int?
+  /// Views (video / social), when that's the asset's main number rather than CTR.
+  performanceViews   Int?
   tags               Json?
   createdAt          DateTime    @default(now())
 
@@ -1405,6 +1521,15 @@ enum AgentStatus {
   ERROR
 }
 
+enum AgentKind {
+  SKILL
+  ASSISTANT
+  INTERNAL
+}
+
+/// The AI catalog. Client-facing it is never "agent": kind SKILL = skills clients run (standard, or custom with a
+/// clientId), ASSISTANT = built-in helpers (Brief assistant, Ask your data, …), INTERNAL = Klingit's production
+/// automation (estimate, staffing, QC). Table and model keep their internal name.
 model Agent {
   id                String        @id @default(cuid())
   key               String        @unique // "brand_os", "brief_agent", "ad_gen", ...
@@ -1415,9 +1540,19 @@ model Agent {
   version           String        @default("1.0.0")
   costPerRunCredits Float?
   selfService       Boolean       @default(false) // true = the client can run this themselves from Brand IQ, not just Klingit staff internally
+  kind              AgentKind     @default(INTERNAL)
+  /// A custom skill built for one client; null = standard (every client).
+  clientId          String?
+  /// Run a skill category chip: Copy | Visual | Social | Briefs
+  skillCategory     String?
+  /// ≈ AI credits per run shown before a run (PLACEHOLDER until measured).
+  aiCreditsPerRun   Float?
+  /// One line under the skill's name.
+  summary           String?
   createdAt         DateTime      @default(now())
 
-  runs AgentRun[]
+  runs   AgentRun[]
+  client Client?    @relation(fields: [clientId], references: [id], onDelete: Cascade)
 }
 
 enum AgentRunStatus {
@@ -1440,6 +1575,11 @@ model AgentRun {
   overrideReason     String?
   requestedByUserId  String? // set when a client ran a self-service agent themselves, rather than an internal pipeline run
   durationMs         Int?
+  /// Real token use from the provider's response, and the AI credits it cost the client (null = not charged).
+  tokensIn           Int?
+  tokensOut          Int?
+  model              String?
+  aiCredits          Float?
   createdAt          DateTime       @default(now())
 
   agent            Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
@@ -1540,6 +1680,9 @@ model CreditLedgerEntry {
   id           String          @id @default(cuid())
   clientId     String
   projectId    String?
+  /// Who it's attributed to (the approver for an estimate) and the deliverable's format, for Usage.
+  userId       String?
+  format       String?
   type         LedgerEntryType
   amount       Int // signed: + for allowance/purchase, - for consumption
   balanceAfter Int
@@ -1905,7 +2048,9 @@ model BrandConnection {
   id          String    @id @default(cuid())
   clientId    String
   app         String
-  status      String    @default("CONNECTED") // CONNECTED | DISCONNECTED
+  status      String    @default("CONNECTED") // CONNECTED | DISCONNECTED | NEEDS_RECONNECT
+  /// Connections page detail: { folders, accounts, lastSyncAt, note } and, for "your own AI model", the key.
+  meta        Json?
   connectedAt DateTime?
   isDemo      Boolean   @default(true)
   createdAt   DateTime  @default(now())

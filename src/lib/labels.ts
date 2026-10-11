@@ -92,6 +92,7 @@ export const PROJECT_TYPE_COLOR: Record<string, string> = {
 
 
 export const PLAN_TIER_LABEL: Record<string, string> = {
+  BASIC: "Basic",
   STARTER: "Starter",
   GROWTH: "Growth",
   SCALE: "Scale",

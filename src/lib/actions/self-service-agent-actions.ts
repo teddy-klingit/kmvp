@@ -3,6 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
+import type { Agent } from "@/generated/prisma";
+import { aiGate } from "@/lib/ai-credits";
+import { withAiCharge } from "@/lib/ai-context";
 import { generateSelfServeBrief } from "@/lib/ai/agents/self-serve/brief-generator";
 import { generateSelfServeAdConcept } from "@/lib/ai/agents/self-serve/ad-concept-generator";
 import { generateSelfServeImage } from "@/lib/ai/agents/self-serve/image-gen-agent";
@@ -13,7 +16,7 @@ import {
   generateEmailCopy,
 } from "@/lib/ai/agents/self-serve/niche-copy-agents";
 
-export type SelfServiceAgentState = { error?: string | null };
+export type SelfServiceAgentState = { error?: string | null; topUp?: boolean };
 
 export async function runSelfServiceAgentAction(
   _prev: SelfServiceAgentState,
@@ -23,8 +26,16 @@ export async function runSelfServiceAgentAction(
   const agentId = String(formData.get("agentId") ?? "");
 
   const agent = await prisma.agent.findUnique({ where: { id: agentId } });
-  if (!agent) return { error: "Agent not found." };
-  if (!agent.selfService) return { error: "This agent isn't available for self-service." };
+  if (!agent) return { error: "Skill not found." };
+  if (!agent.selfService && !(agent.kind === "SKILL" && agent.clientId === viewer.clientId)) return { error: "This skill isn't available to run yourself." };
+  // AI credits: a skill run is blocked when none are left (src/lib/ai-credits.ts); every call inside is charged.
+  const gate = await aiGate(viewer.clientId, "skill");
+  if (!gate.ok) return { error: gate.error, topUp: gate.topUp };
+  return withAiCharge({ clientId: viewer.clientId, userId: viewer.userId, sourceType: "skill", sourceKey: agent.key, sourceName: agent.name }, () => runSkill(agent, viewer, formData));
+}
+
+async function runSkill(agent: Agent, viewer: Awaited<ReturnType<typeof getPortalViewer>>, formData: FormData): Promise<SelfServiceAgentState> {
+  const agentId = agent.id;
 
   const brandOS = await prisma.brandOS.findUnique({ where: { clientId: viewer.clientId } });
   const common = { clientId: viewer.clientId, requestedByUserId: viewer.userId, client: viewer.client, brandOS };
@@ -71,7 +82,7 @@ export async function runSelfServiceAgentAction(
       break;
     }
     default:
-      return { error: "This agent doesn't have a self-service form yet." };
+      return { error: "This skill doesn't have a form to run it yet." };
   }
 
   if (!result.ok) return { error: result.error };

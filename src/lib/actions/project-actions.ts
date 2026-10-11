@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { consumeForApprovedEstimate } from "@/lib/team-credits";
 import { getPortalViewer } from "@/lib/current-viewer";
 import { jsonArray } from "@/lib/utils";
 import { loadProjectState } from "@/lib/project-state-loader";
@@ -31,6 +32,8 @@ export async function approveEstimateAction(formData: FormData) {
     data: { status: "APPROVED", respondedAt: new Date(), approvedVersion: estimate.version },
   });
   await prisma.estimateRevision.updateMany({ where: { estimateId, version: estimate.version }, data: { status: "APPROVED", respondedAt: new Date() } });
+  // Team credits: the approved estimate is taken from the plan, per deliverable, attributed to who approved.
+  await consumeForApprovedEstimate(estimateId, viewer.userId);
 
   // A revision approved after the first approval: the work continues, the stage never moves back.
   const isRevision = estimate.approvedVersion !== null || !["ESTIMATING", "BRIEFING"].includes(estimate.project.status);

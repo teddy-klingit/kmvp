@@ -1,5 +1,6 @@
 "use server";
 
+import { withAiCharge, assistantCharge, ASSISTANTS } from "@/lib/ai-context";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
@@ -92,7 +93,7 @@ export type GenerateSuggestionsState = { error?: string | null };
 
 export async function generateContentPlanSuggestionsAction(_prev: GenerateSuggestionsState, _formData: FormData): Promise<GenerateSuggestionsState> {
   const viewer = await getPortalViewer();
-  const r = await writePlanSuggestions(viewer);
+  const r = await withAiCharge(assistantCharge(viewer.clientId, viewer.userId, ASSISTANTS.contentPlan), () => writePlanSuggestions(viewer));
   if (!r.error) revalidatePath("/calendar");
   return r;
 }
@@ -153,7 +154,7 @@ export async function approveContentPlanSuggestionAction(formData: FormData) {
   const rawText = `${suggestion.title}\n\n${suggestion.rationale}`;
   let projectId: string;
   try {
-    projectId = await startStudio(viewer, rawText);
+    projectId = await withAiCharge(assistantCharge(viewer.clientId, viewer.userId, ASSISTANTS.brief), () => startStudio(viewer, rawText));
   } catch {
     // The plan change and calendar entry above still apply even if brief
     // creation fails — mark it scheduled without a linked brief rather

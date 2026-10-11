@@ -1,5 +1,6 @@
 "use server";
 
+import { withAiCharge, assistantCharge, ASSISTANTS } from "@/lib/ai-context";
 import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -36,7 +37,7 @@ export async function startBriefAction(text: string): Promise<{ projectId?: stri
   const viewer = await getPortalViewer();
   const t = text.trim().slice(0, 4000);
   if (!t) return { error: "Tell us a little about what you need." };
-  const projectId = await startStudio(viewer, t);
+  const projectId = await withAiCharge(assistantCharge(viewer.clientId, viewer.userId, ASSISTANTS.brief), () => startStudio(viewer, t));
   revalidatePath("/dashboard");
   revalidatePath("/projects");
   return { projectId };
@@ -44,12 +45,12 @@ export async function startBriefAction(text: string): Promise<{ projectId?: stri
 
 export async function answerQuestionAction(projectId: string, questionId: string, answer: Answer) {
   const viewer = await getPortalViewer();
-  return done(await answerQuestion(viewer, projectId, questionId, { chosen: answer.chosen?.slice(0, 12), freeText: answer.freeText?.slice(0, 2000), delegate: Boolean(answer.delegate) }));
+  return done(await withAiCharge(assistantCharge(viewer.clientId, viewer.userId, ASSISTANTS.brief, { projectId }), () => answerQuestion(viewer, projectId, questionId, { chosen: answer.chosen?.slice(0, 12), freeText: answer.freeText?.slice(0, 2000), delegate: Boolean(answer.delegate) })));
 }
 
 export async function sendStudioMessageAction(projectId: string, text: string) {
   const viewer = await getPortalViewer();
-  return done(await sendMessage(viewer, projectId, text.slice(0, 4000)));
+  return done(await withAiCharge(assistantCharge(viewer.clientId, viewer.userId, ASSISTANTS.brief, { projectId }), () => sendMessage(viewer, projectId, text.slice(0, 4000))));
 }
 
 export async function editSectionAction(projectId: string, key: string, patch: { value?: string; items?: string[] }) {
@@ -66,7 +67,7 @@ export async function setBasicsAction(projectId: string, basics: { deadline?: st
 export async function askAboutAction(projectId: string, key: string) {
   const viewer = await getPortalViewer();
   if (!isKey(key)) return { error: "Unknown section." };
-  return done(await askAbout(viewer, projectId, key));
+  return done(await withAiCharge(assistantCharge(viewer.clientId, viewer.userId, ASSISTANTS.brief, { projectId }), () => askAbout(viewer, projectId, key)));
 }
 
 /** A file (images, PDFs, video) or a link, added to References. */

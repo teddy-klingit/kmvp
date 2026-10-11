@@ -11,7 +11,7 @@ import { notifyMany } from "@/lib/notifier";
  */
 
 /** Placeholders until an Admin sets them in Settings (Plan rows override these). */
-export const DEFAULT_ACTIVE_SLOTS: Record<PlanTier, number> = { STARTER: 1, GROWTH: 2, SCALE: 3, ENTERPRISE: 5 };
+export const DEFAULT_ACTIVE_SLOTS: Record<PlanTier, number> = { BASIC: 1, STARTER: 1, GROWTH: 3, SCALE: 3, ENTERPRISE: 5 };
 
 /** Statuses after sign-off (or before sending) never hold a slot. */
 const NOT_HOLDING: ProjectStatus[] = ["DRAFT", "DELIVERED", "ARCHIVED"];

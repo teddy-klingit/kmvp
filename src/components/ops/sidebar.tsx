@@ -1,6 +1,6 @@
 "use client";
 
-import { Home, FolderKanban, Bot, Users, Archive, Building2, Tag, Bell } from "lucide-react";
+import { Home, FolderKanban, Bot, Users, Archive, Building2, Tag, Bell, Gauge } from "lucide-react";
 import { PersonaSwitcher } from "@/components/shared/persona-switcher";
 import { AppNav, RailHint, type NavItem } from "@/components/shared/app-nav";
 import type { RoleTier } from "@/lib/role-tier";
@@ -17,6 +17,7 @@ const MAIN: TieredItem[] = [
 const AGENCY: TieredItem[] = [
   { label: "Clients", href: "/ops/clients", icon: Building2, tiers: ["ADMIN", "PM"] },
   { label: "Price list", href: "/ops/price-list", icon: Tag, tiers: ["ADMIN", "PM"] },
+  { label: "Plans & AI credits", href: "/ops/plans", icon: Gauge, tiers: ["ADMIN", "PM"] },
   { label: "Archive", href: "/ops/archive", icon: Archive, tiers: ["ADMIN", "PM", "CREATOR"] },
 ];
 

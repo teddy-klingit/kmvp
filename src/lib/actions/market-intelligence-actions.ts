@@ -1,5 +1,6 @@
 "use server";
 
+import { withAiCharge, assistantCharge, ASSISTANTS } from "@/lib/ai-context";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -26,7 +27,7 @@ export async function generateMarketIntelligenceAction(
   _formData: FormData
 ): Promise<GenerateMarketIntelligenceState> {
   const viewer = await getPortalViewer();
-  const result = await runMarketIntelligence(viewer.client);
+  const result = await withAiCharge(assistantCharge(viewer.clientId, viewer.userId, ASSISTANTS.market), () => runMarketIntelligence(viewer.client));
   if (result.error) return result;
   revalidateAllTabs();
   return { error: null };
@@ -87,7 +88,7 @@ export async function askMarketIntelligenceQuestionAction(
     currency: c.currency,
   }));
 
-  const result = await answerMarketIntelligenceQuestion({
+  const result = await withAiCharge(assistantCharge(viewer.clientId, viewer.userId, ASSISTANTS.ask), () => answerMarketIntelligenceQuestion({
     clientId: client.id,
     clientName: client.name,
     industry: client.industry,
@@ -97,7 +98,7 @@ export async function askMarketIntelligenceQuestionAction(
     ownTopFormat: topFormat,
     liveCampaigns,
     seoSummary: seoBrief?.summary ?? null,
-  });
+  }));
 
   if (!result.ok) return { error: result.error };
 

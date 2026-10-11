@@ -1,5 +1,6 @@
 "use server";
 
+import { withAiCharge, assistantCharge, ASSISTANTS } from "@/lib/ai-context";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
@@ -15,7 +16,7 @@ function revalidateBrand() {
 /** Overview: "Draft with AI" for every empty section. */
 export async function draftEmptySectionsAction(_prev: DraftState, _fd: FormData): Promise<DraftState> {
   const viewer = await getPortalViewer();
-  const r = await draftSections(viewer.clientId);
+  const r = await withAiCharge(assistantCharge(viewer.clientId, viewer.userId, ASSISTANTS.brandDraft), () => draftSections(viewer.clientId));
   if (!r.error) revalidateBrand();
   return r;
 }
@@ -25,7 +26,7 @@ export async function rewriteSectionAction(_prev: DraftState, fd: FormData): Pro
   const viewer = await getPortalViewer();
   const section = String(fd.get("section") ?? "");
   if (!PLATFORM_SECTIONS.some((s) => s.slug === section)) return { error: "Unknown section." };
-  const r = await draftSections(viewer.clientId, [section]);
+  const r = await withAiCharge(assistantCharge(viewer.clientId, viewer.userId, ASSISTANTS.brandDraft), () => draftSections(viewer.clientId, [section]));
   if (!r.error) revalidateBrand();
   return r;
 }

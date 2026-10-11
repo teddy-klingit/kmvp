@@ -13,6 +13,8 @@ import {
   reactivateClientAction,
   offboardClientAction,
 } from "@/lib/actions/ops-client-admin-actions";
+import { adjustAiCreditsAction } from "@/lib/actions/plan-actions";
+import { aiCreditStatus } from "@/lib/ai-credits";
 
 const INVOICE: Record<string, { label: string; tone: PillTone }> = {
   PAID: { label: "Paid", tone: "success" },
@@ -34,6 +36,8 @@ export default async function ClientAdminPage({ params }: { params: Promise<{ cl
     },
   });
   if (!client) notFound();
+  const ai = await aiCreditStatus(clientId);
+  const ledger = await prisma.aiCreditLedger.findMany({ where: { clientId }, orderBy: { createdAt: "desc" }, take: 8 });
 
   const credits: Stat[] = [
     { label: "Monthly credit allowance", value: `${client.monthlyCreditAllowance}c` },
@@ -49,7 +53,7 @@ export default async function ClientAdminPage({ params }: { params: Promise<{ cl
             <span className="min-w-0 flex-1 text-[14px] text-brand-ink-2">Plan tier</span>
             <form action={updateClientPlanAction} className="flex flex-wrap gap-2">
               <input type="hidden" name="clientId" value={clientId} />
-              {(["STARTER", "GROWTH", "SCALE", "ENTERPRISE"] as const).map((tier) => (
+              {(["BASIC", "STARTER", "GROWTH", "SCALE", "ENTERPRISE"] as const).map((tier) => (
                 <Button key={tier} type="submit" name="planTier" value={tier} size="sm" variant={client.planTier === tier ? "primary" : "secondary"} aria-pressed={client.planTier === tier}>
                   {PLAN_TIER_LABEL[tier]}
                 </Button>
@@ -57,6 +61,45 @@ export default async function ClientAdminPage({ params }: { params: Promise<{ cl
             </form>
           </div>
           <StatRows rows={credits} />
+        </SectionCard>
+
+        <SectionCard title="AI credits" meta={<span className="font-brand-mono text-[12px] text-brand-ink-2">{ai.plan.name.toUpperCase()} · {ai.periodKey}</span>}>
+          <StatRows
+            rows={
+              ai.ownModel
+                ? [{ label: "Own AI model", value: `${ai.providerTokens.toLocaleString("en-GB")} tokens this month, billed by their provider` }]
+                : [
+                    { label: "Left this month", value: `${Math.floor(ai.left).toLocaleString("en-GB")} of ${ai.allowance.toLocaleString("en-GB")}` },
+                    { label: "Used this month", value: Math.round(ai.used).toLocaleString("en-GB") },
+                    { label: "Bundles left", value: Math.floor(ai.bundleLeft).toLocaleString("en-GB") },
+                  ]
+            }
+          />
+          <form action={adjustAiCreditsAction} className="flex flex-wrap items-end gap-2 border-t border-brand-line px-6 py-4">
+            <input type="hidden" name="clientId" value={clientId} />
+            <label className="flex flex-col gap-1 text-[12px] text-brand-ink-2">
+              Adjust by
+              <input name="amount" type="number" required placeholder="+100" className="h-9 w-24 rounded-[8px] border border-brand-outline bg-white px-3 text-[14px] outline-none focus:border-brand-ink" />
+            </label>
+            <label className="flex min-w-[180px] flex-1 flex-col gap-1 text-[12px] text-brand-ink-2">
+              Reason (logged)
+              <input name="reason" required minLength={3} placeholder="Goodwill for the failed run on 3 Oct" className="h-9 rounded-[8px] border border-brand-outline bg-white px-3 text-[14px] outline-none focus:border-brand-ink" />
+            </label>
+            <Button type="submit" size="sm" variant="secondary">
+              Adjust
+            </Button>
+          </form>
+          {ledger.length > 0 && (
+            <CardRows className="border-t border-brand-line">
+              {ledger.map((l) => (
+                <li key={l.id} className="flex items-center gap-3 px-6 py-2.5 text-[13px]">
+                  <span className="w-16 shrink-0 text-brand-mute">{formatDate(l.createdAt)}</span>
+                  <span className="min-w-0 flex-1 truncate">{l.sourceName ?? l.note ?? l.kind.toLowerCase()}</span>
+                  <span className="tabular-nums">{l.billedTo === "client_provider" ? `${(l.tokensIn + l.tokensOut).toLocaleString("en-GB")} tok` : `${l.amount > 0 ? "+" : ""}${Math.round(l.amount * 10) / 10}`}</span>
+                </li>
+              ))}
+            </CardRows>
+          )}
         </SectionCard>
 
         <SectionCard title="Account lead">

@@ -3,6 +3,8 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import type { z } from "zod";
 import { anthropic, AGENT_MODEL } from "@/lib/ai/client";
 import { prisma } from "@/lib/prisma";
+import { currentAiCharge, type AiChargeContext } from "@/lib/ai-context";
+import { aiCreditStatus, chargeAi, ownModelConnection } from "@/lib/ai-credits";
 
 type RunAgentTaskArgs<T> = {
   /** Agent.key in the catalog, e.g. "brief_agent" */
@@ -50,10 +52,27 @@ export async function runAgentTask<T>({
     return { ok: false, error: `${agent.name} is disabled. An Admin can turn it back on in Agents.` };
   }
 
+  // Who pays: a client-triggered context (withAiCharge), or a client's own skill run. Anything else is Klingit's
+  // production work and is never charged (src/lib/ai-credits.ts).
+  const charge: AiChargeContext | null =
+    currentAiCharge() ??
+    (requestedByUserId && clientId && agent.kind === "SKILL" ? { clientId, userId: requestedByUserId, sourceType: "skill", sourceKey: agent.key, sourceName: agent.name, projectId } : null);
+  // On Basic the client's own model runs it, with their key; their provider bills the tokens.
+  let client = anthropic;
+  if (charge) {
+    const status = await aiCreditStatus(charge.clientId);
+    if (status.ownModel) {
+      const own = await ownModelConnection(charge.clientId);
+      if (!own) return { ok: false, error: "You're on Basic: connect your own AI model in Settings → Connections first." };
+      if (own.provider !== "claude" || !own.apiKey) return { ok: false, error: "Your connected model can't run this yet. Connect a Claude API key in Settings → Connections." };
+      client = new Anthropic({ apiKey: own.apiKey });
+    }
+  }
+
   const startedAt = Date.now();
 
   try {
-    const response = await anthropic.messages.parse({
+    const response = await client.messages.parse({
       model: AGENT_MODEL,
       max_tokens: webSearch ? 8192 : 4096,
       system,
@@ -74,6 +93,10 @@ export async function runAgentTask<T>({
     }
 
     const data = response.parsed_output;
+    // Real token use from the response: always on the run; charged to the client only when they triggered it.
+    const usage = response.usage as { input_tokens: number; output_tokens: number; cache_read_input_tokens?: number | null; cache_creation_input_tokens?: number | null; server_tool_use?: { web_search_requests?: number } | null };
+    const tokensIn = usage.input_tokens + (usage.cache_read_input_tokens ?? 0) + (usage.cache_creation_input_tokens ?? 0);
+    const tokensOut = usage.output_tokens;
 
     const run = await prisma.agentRun.create({
       data: {
@@ -86,8 +109,15 @@ export async function runAgentTask<T>({
         status: "SUCCESS",
         decision: summarize?.(data) ?? null,
         durationMs: Date.now() - startedAt,
+        tokensIn,
+        tokensOut,
+        model: AGENT_MODEL,
       },
     });
+    if (charge) {
+      const charged = await chargeAi({ ...charge, tokensIn, tokensOut, model: AGENT_MODEL, webSearches: usage.server_tool_use?.web_search_requests ?? 0, agentRunId: run.id });
+      await prisma.agentRun.update({ where: { id: run.id }, data: { aiCredits: charged.credits } });
+    }
 
     return { ok: true, data, runId: run.id };
   } catch (err) {

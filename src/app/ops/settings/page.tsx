@@ -1,9 +1,10 @@
+import Link from "next/link";
 import { requireOpsPage } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { liveAdsOwner } from "@/lib/integrations/live-ads-owner";
 import { OpsPage } from "@/components/ops/ops-page";
 import { PageHeader } from "@/components/ds/page-header";
-import { Card, SectionCard, CardRows } from "@/components/ds/card";
+import { Card, SectionCard, CardRows, CardNote } from "@/components/ds/card";
 import { StatusPill } from "@/components/ds/status-pill";
 import { Button } from "@/components/ds/button";
 import { PillLink } from "@/components/ds/pill-link";
@@ -78,24 +79,14 @@ export default async function WorkspaceSettingsPage({
       {google === "connected" && <Notice ok>Google Ads connected successfully.</Notice>}
       {google === "error" && <Notice ok={false}>Couldn&apos;t connect Google Ads. The authorization was cancelled or failed.</Notice>}
 
-      <SectionCard title="Plans · active slots" meta={<span className="text-[13px] text-brand-ink-2">Projects Klingit runs at once per client; the rest queue</span>}>
-        <CardRows>
-          {(Object.keys(DEFAULT_ACTIVE_SLOTS) as (keyof typeof DEFAULT_ACTIVE_SLOTS)[]).map((tier) => (
-            <li key={tier} className="flex flex-wrap items-center gap-x-4 gap-y-3 px-6 py-4">
-              <span className="min-w-0 flex-1 text-[15px]">{PLAN_TIER_LABEL[tier]}</span>
-              <form action={setPlanSlotsAction} className="flex items-center gap-2">
-                <input type="hidden" name="tier" value={tier} />
-                <label className="sr-only" htmlFor={`slots-${tier}`}>
-                  Active slots on {PLAN_TIER_LABEL[tier]}
-                </label>
-                <input id={`slots-${tier}`} name="activeSlots" type="number" min={1} max={50} defaultValue={slotsFor(tier)} className="h-9 w-20 rounded-[8px] border border-brand-outline bg-white px-3 text-[14px] outline-none focus:border-brand-ink" />
-                <Button type="submit" size="sm" variant="secondary">
-                  Save
-                </Button>
-              </form>
-            </li>
-          ))}
-        </CardRows>
+      <SectionCard title="Plans · active slots">
+        <CardNote>
+          Plans (active slots, AI and team credits, prices) and AI-credit bundles moved to{" "}
+          <Link href="/ops/plans" className="text-brand-ink underline underline-offset-2">
+            Plans &amp; AI credits
+          </Link>
+          .
+        </CardNote>
       </SectionCard>
 
       <SectionCard title="Ad platform connections">

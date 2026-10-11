@@ -598,6 +598,18 @@ async function main() {
     if (holiday) await phaseList("screenshots/review", [["08-video", `/review/${holiday.id}?kind=video`]]);
     return;
   }
+  if (phase === "phase-q") {
+    // Phase Q (nav v3, skills, output library, AI credits, usage), with ouhers data: Maja (admin) and Teddy (staff).
+    return phaseList(
+      "screenshots/phase-q",
+      [["01-home", "/dashboard"]].map(([n, path]) => [n, path] as [string, string]).filter(([n]) => !pageFilter || pageFilter.some((f) => n.startsWith(f))),
+      [
+        ["s01-plans", "/ops/plans"],
+        ["s02-client-admin", "/ops/clients/client-ouhers/admin"],
+      ].map(([n, path]) => [n, path] as [string, string]).filter(([n]) => !pageFilter || pageFilter.some((f) => n.startsWith(f))),
+      "maja@ouhers.demo"
+    );
+  }
   if (phase === "library") {
     // Brand OS library and an asset's page (performance, how it was made): the top ad and the brand film.
     const prisma = new PrismaClient({ datasourceUrl: "file:./prisma/screens.db" });

@@ -45,7 +45,7 @@ afterAll(async () => fx.cleanup());
 
 describe("active slots", () => {
   it("counts activated projects until sign-off; a paused one keeps its slot", async () => {
-    expect(DEFAULT_ACTIVE_SLOTS).toMatchObject({ GROWTH: 2, SCALE: 3, ENTERPRISE: 5 });
+    expect(DEFAULT_ACTIVE_SLOTS).toMatchObject({ BASIC: 1, STARTER: 1, GROWTH: 3, SCALE: 3, ENTERPRISE: 5 });
     expect(await slotUsage(fx.clientA.id)).toEqual({ total: 2, used: 0, free: 2 });
     const a = await project("Active one", { status: "IN_PRODUCTION", activatedAt: new Date() });
     const paused = await project("Paused one", { status: "PAUSED", pausedFromStatus: "IN_PRODUCTION", activatedAt: new Date() });
