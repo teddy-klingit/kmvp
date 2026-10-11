@@ -28,6 +28,31 @@ export function VideoView({ shell, projectId, items, threads, canReview, focusId
   const video = useRef<HTMLVideoElement>(null);
   const frame = useRef<HTMLDivElement>(null);
   const [t, setT] = useState(0);
+  // Switching 9:16 ↔ 1:1 is a navigation that mounts a new player: the old one leaves its moment here and the new
+  // one starts from it (same film, within a few seconds), so the playhead stays where it was.
+  const handoffKey = `review-playhead:${projectId}`;
+  const tRef = useRef(0);
+  tRef.current = t;
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(handoffKey) ?? "null") as { t: number; at: number } | null;
+      sessionStorage.removeItem(handoffKey);
+      if (saved && Date.now() - saved.at < 10_000 && saved.t > 0) {
+        setT(saved.t);
+        tRef.current = saved.t;
+        if (video.current && video.current.readyState >= 1) video.current.currentTime = saved.t;
+      }
+    } catch {
+      // No storage (private mode): start at 0.
+    }
+    return () => {
+      try {
+        sessionStorage.setItem(handoffKey, JSON.stringify({ t: tRef.current, at: Date.now() }));
+      } catch {
+        // Nothing to hand over.
+      }
+    };
+  }, [handoffKey]);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [muted, setMuted] = useState(false);
@@ -52,7 +77,8 @@ export function VideoView({ shell, projectId, items, threads, canReview, focusId
     let last = performance.now();
     let raf = requestAnimationFrame(function tick(now) {
       if (real) {
-        if (video.current) setT(video.current.currentTime);
+        // Only a playing element: right after a 9:16 ↔ 1:1 switch the new one sits at 0 and must not reset the playhead.
+        if (video.current && !video.current.paused) setT(video.current.currentTime);
       } else {
         setT((x) => {
           const next = x + ((now - last) / 1000) * speed;
@@ -144,7 +170,7 @@ export function VideoView({ shell, projectId, items, threads, canReview, focusId
               className="size-full object-cover"
               onLoadedMetadata={(e) => {
                 // Same moment after switching 9:16 ↔ 1:1.
-                e.currentTarget.currentTime = Math.min(t, e.currentTarget.duration || t);
+                e.currentTarget.currentTime = Math.min(tRef.current, e.currentTarget.duration || tRef.current);
                 e.currentTarget.playbackRate = speed;
               }}
               onPause={(e) => {
