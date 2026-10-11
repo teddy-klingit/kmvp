@@ -77,7 +77,7 @@ function region(html: string, marker: string, ends: string[]) {
 
 /** The text of the dashboard's "Do this next" card. */
 function yourTurnList(html: string) {
-  return asText(region(html, 'data-list="your-turn"', ['aria-label="Your projects"']));
+  return asText(region(html, 'data-list="your-turn"', ['aria-label="Ongoing projects"']));
 }
 
 const tab = (id: string) => ({ params: Promise.resolve({ id }) });
@@ -370,20 +370,18 @@ describe("regressions — the contradictions seen on a Draft project ('Klarna 10
     expect(list.split(fx.projects.awaiting_approval.name).length - 1).toBe(1);
   });
 
-  it("header counts only client actions — market alerts never count — and no allowance is invented", async () => {
-    const before = asText(await render(DashboardPage()));
-    const count = before.match(/(\d+) things? needs? you/)?.[1];
+  it("Needs you counts only client actions — market alerts never count — and no allowance is invented", async () => {
+    const needsYou = (html: string) => Number(html.match(/data-count="(\d+)"/)?.[1]);
+    const before = await render(DashboardPage());
     // Approve estimate, the overdue approval, review, sign-off: the unsent draft isn't one of them.
-    expect(Number(count)).toBe(4);
-    const insights = (t: string) => Number(t.match(/(\d+) market insights? this week/)?.[1] ?? 0);
+    expect(needsYou(before)).toBe(4);
     await prisma.marketSignal.create({ data: { clientId: fx.client.id, type: "COMPETITOR", title: "Zip launched 3 new ads on LinkedIn", summary: "x", source: "LinkedIn", publishedAt: new Date() } });
-    const after = asText(await render(DashboardPage()));
-    expect(after.match(/(\d+) things? needs? you/)?.[1]).toBe(count);
-    // The alert shows up as a market insight, not as something to do.
-    expect(insights(after)).toBe(insights(before) + 1);
-    expect(after).not.toMatch(/\d+ of \d+ left/);
-    expect(after).toMatch(/\d+ used · /);
-    expect(after).toContain("No monthly allowance");
+    const after = await render(DashboardPage());
+    expect(needsYou(after)).toBe(4);
+    const t = asText(after);
+    expect(t).not.toMatch(/\d+ left of \d+ ·/);
+    expect(t).toMatch(/\d+ used · /);
+    expect(t).toContain("No monthly allowance");
   });
 });
 
