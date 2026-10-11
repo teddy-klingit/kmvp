@@ -52,7 +52,7 @@ const n = (v: number) => Math.round(v).toLocaleString("en-GB");
 export default async function DashboardPage() {
   const viewer = await getPortalViewer();
   const now = new Date();
-  const items = await loadProjectStates({ status: { not: "ARCHIVED" }, ...projectVisibilityWhere(viewer.id) }, viewer.clientId, { dueDate: "asc" });
+  const items = await loadProjectStates({ status: { not: "ARCHIVED" }, agentBuild: false, ...projectVisibilityWhere(viewer.id) }, viewer.clientId, { dueDate: "asc" });
   const [client, slots, library, usage, skills, health] = await Promise.all([
     prisma.client.findUniqueOrThrow({ where: { id: viewer.clientId }, select: { name: true } }),
     slotUsage(viewer.clientId),

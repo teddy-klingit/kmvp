@@ -15,6 +15,7 @@ import type { BriefSection, StudioMessage, StudioQuestion } from "@/lib/brief-st
 import { loadBrandHealth } from "@/lib/brand-health";
 import { estimatePreview, type PriceEntry } from "@/lib/brief-studio/formats";
 import type { AgentBuild, BuildStep } from "@/lib/agent-build";
+import { phaseQPack, phaseQText, seedPhaseQ } from "@/lib/demo/ouhers-phase-q";
 
 /**
  * The ouhers demo client (prisma/demo/ouhers, read README.md there): a complete fictional account for demoing every
@@ -112,7 +113,7 @@ export async function seedOuhers(opts: { dir?: string; shift?: boolean; log?: (s
     report.checks.push(c);
     say(`  ${c.match ? "✓" : "≠"} ${what}: computed ${c.computed} · expected ${c.expected}`);
   };
-  const read = <T>(f: string): T => JSON.parse(readFileSync(path.join(dir, "data", f), "utf8")) as T;
+  const read = <T>(f: string): T => JSON.parse(phaseQText(readFileSync(path.join(dir, "data", f), "utf8"))) as T;
 
   // "Today" in the data is 2026-10-06; SEED_SHIFT (default on) moves every date so that day is today.
   const todayUtc = Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate());
@@ -131,6 +132,9 @@ export async function seedOuhers(opts: { dir?: string; shift?: boolean; log?: (s
   }>("account.json");
   const brand = read<Json & { summary: string; platform: Record<string, { status: string; text?: string; items?: string[] }>; personas: { id: string; name: string; age: string; summary: string; barrier: string; channels: string[]; markets: string[] }[]; visualIdentity: Json & { colorPalette: { name: string; hex: string; role: string }[]; approvedTypography: unknown[]; logos: { file: string; use: string }[]; logoRules: string[]; imageryStyle: { text: string } }; voice: { voiceAttributes: string[]; toneRules: string[]; wordsWeUse: string[]; wordsWeAvoid: string[]; mustInclude: { market: string; text: string }[]; examples: { context: string; text: string }[] }; products: { name: string; type: string }[]; sources: { type: string; name: string; items: number }[]; library: { file: string; tags: string[] }[]; competitors: { name: string; note: string }[]; health: { expected: Record<string, string> } }>("brand-os.json");
   const projects = read<PackProject[]>("projects.json");
+  const agents = read<{ readyToUse: { name: string; usage: string }[]; yourAgents: { name: string; status: string; meta: string; what: string }[]; templates: { name: string; format: string; uses: number }[] }>("agents.json");
+  // Phase Q (Growth plan, skills, AI credits): the pack, as the nav v3 designs show it.
+  phaseQPack(account, agents, projects);
   const manifest = JSON.parse(readFileSync(path.join(dir, "creatives/manifest.json"), "utf8")) as { file: string; width: number; height: number }[];
 
   // ─── Start clean: only this client and what hangs off it ─────────────────
@@ -174,7 +178,7 @@ export async function seedOuhers(opts: { dir?: string; shift?: boolean; log?: (s
       website: account.client.website,
       competitorBrands: brand.competitors.map((c) => c.name),
       brandSummary: brand.platform.ourBrand.text,
-      planTier: "SCALE",
+      planTier: "GROWTH",
       status: "ACTIVE",
       monthlyCreditAllowance: account.plan.monthlyCredits,
       creditBalance: account.plan.creditBalance,
@@ -770,7 +774,6 @@ export async function seedOuhers(opts: { dir?: string; shift?: boolean; log?: (s
   }
   await prisma.clientReportingConfig.create({ data: { clientId: OUHERS_CLIENT_ID, cadence: "WEEKLY", sendDay: 1, sendTime: "08:00", recipientUserIds: [maja.userId, clientUserIds.get("ou-oscar")!.userId] } });
 
-  const agents = read<{ readyToUse: { name: string; usage: string }[]; yourAgents: { name: string; status: string; meta: string; what: string }[]; templates: { name: string; format: string; uses: number }[] }>("agents.json");
   const SELF: Record<string, string> = { "Ad gen": "ad_gen", "Brief generator": "brief_generator_agent", "Email copy": "email_copy_agent", "Image gen": "image_gen_agent", "Instagram caption": "instagram_caption_agent", "Landing page copy": "landing_page_copy_agent", "LinkedIn post": "linkedin_post_agent" };
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
   for (const a of agents.readyToUse) {
@@ -807,8 +810,10 @@ export async function seedOuhers(opts: { dir?: string; shift?: boolean; log?: (s
     balance += account.plan.monthlyCredits;
     await prisma.creditLedgerEntry.create({ data: { clientId: OUHERS_CLIENT_ID, type: "ALLOWANCE", amount: account.plan.monthlyCredits, balanceAfter: balance, note: "Monthly allowance (placeholder plan)", createdAt: start } });
     balance -= used;
-    await prisma.creditLedgerEntry.create({ data: { clientId: OUHERS_CLIENT_ID, type: "CONSUMPTION", amount: -used, balanceAfter: balance, note: `Credits used in ${month}`, createdAt: new Date(start.getTime() + 20 * DAY) } });
+    if (used) await prisma.creditLedgerEntry.create({ data: { clientId: OUHERS_CLIENT_ID, type: "CONSUMPTION", amount: -used, balanceAfter: balance, note: `Credits used in ${month}`, createdAt: new Date(start.getTime() + 20 * DAY) } });
   }
+
+  await seedPhaseQ({ clientId: OUHERS_CLIENT_ID, now, userId: (id) => clientUserIds.get(id)!.userId, projectId, say });
 
   // ─── Computed vs expected ───────────────────────────────────────────────
   const health = await loadBrandHealth(OUHERS_CLIENT_ID);

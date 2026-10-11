@@ -41,7 +41,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
   const [items, client, slots, queue, chat] = await Promise.all([
     loadProjectStates(
       // AND, never a spread: the visibility rule is itself an OR and must not be overwritten.
-      { AND: [projectVisibilityWhere(viewer.id), ...(term ? [{ OR: [{ name: { contains: term } }, { assets: { some: { name: { contains: term } } } }] }] : [])] },
+      { AND: [projectVisibilityWhere(viewer.id), { agentBuild: false }, ...(term ? [{ OR: [{ name: { contains: term } }, { assets: { some: { name: { contains: term } } } }] }] : [])] },
       viewer.clientId,
       { dueDate: "asc" }
     ),

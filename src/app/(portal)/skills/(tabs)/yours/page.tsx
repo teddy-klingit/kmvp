@@ -90,9 +90,9 @@ export default async function YourSkillsPage() {
             ) : (
               <CardRows>
                 {custom.map((s) => (
-                  <li key={s.id} className="flex flex-wrap items-center gap-x-5 gap-y-2 px-6 py-4">
+                  <li key={s.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-6 py-4">
                     <SkillIcon custom size={36} />
-                    <span className="flex min-w-0 flex-1 basis-[200px] flex-col">
+                    <span className="flex min-w-0 flex-1 basis-[160px] flex-col">
                       <span className="text-[16px]">{s.name}</span>
                       <span className="truncate text-[14px] text-brand-ink-2">{s.summary}</span>
                     </span>
@@ -101,22 +101,24 @@ export default async function YourSkillsPage() {
                       {s.live ? "Live" : "Paused"}
                     </span>
                     <span className="w-24 text-[14px]">{s.aiPerRun != null ? `≈ ${s.aiPerRun} AI / run` : "—"}</span>
-                    <span className="w-36 text-right text-[13px] text-brand-mute">
+                    <span className="w-32 text-right text-[13px] text-brand-mute">
                       {s.runsThisMonth ? `Run ${s.runsThisMonth}× · ${s.aiThisMonth} AI` : s.lastRunAt ? `Last run ${formatDay(s.lastRunAt)}` : "Not run yet"}
                     </span>
-                    {s.live ? (
-                      <Link href={`/skills/${s.id}`} className={pillClass("primary", "sm")}>
-                        Run
-                      </Link>
-                    ) : (
-                      <form action={setCustomSkillLiveAction}>
-                        <input type="hidden" name="agentId" value={s.id} />
-                        <input type="hidden" name="live" value="true" />
-                        <button type="submit" className={pillClass("secondary", "sm")}>
-                          Resume
-                        </button>
-                      </form>
-                    )}
+                    <span className="flex w-[84px] justify-end">
+                      {s.live ? (
+                        <Link href={`/skills/${s.id}`} className={pillClass("primary", "sm")}>
+                          Run
+                        </Link>
+                      ) : (
+                        <form action={setCustomSkillLiveAction}>
+                          <input type="hidden" name="agentId" value={s.id} />
+                          <input type="hidden" name="live" value="true" />
+                          <button type="submit" className={pillClass("secondary", "sm")}>
+                            Resume
+                          </button>
+                        </form>
+                      )}
+                    </span>
                   </li>
                 ))}
               </CardRows>

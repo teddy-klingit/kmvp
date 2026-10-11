@@ -56,7 +56,7 @@ afterAll(async () => {
 describe("the ouhers demo seed", () => {
   it("is idempotent and never touches other clients", async () => {
     const first = await counts();
-    expect(first).toMatchObject({ projects: 13, daily: 318, users: 4 });
+    expect(first).toMatchObject({ projects: 14, daily: 318, users: 6, demoAgents: 3 });
     await seedOuhers({ shift: true });
     expect(await counts()).toEqual(first);
     expect(await prisma.client.count({ where: { id: { not: OUHERS_CLIENT_ID } } })).toBe(other.clients);

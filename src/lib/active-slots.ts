@@ -33,7 +33,7 @@ export async function slotUsage(clientId: string) {
   const client = await prisma.client.findUniqueOrThrow({ where: { id: clientId }, select: { planTier: true } });
   const [total, holding] = await Promise.all([
     activeSlotsFor(client.planTier),
-    loadProjectStates({ activatedAt: { not: null }, status: { notIn: NOT_HOLDING } }, clientId),
+    loadProjectStates({ activatedAt: { not: null }, agentBuild: false, status: { notIn: NOT_HOLDING } }, clientId),
   ]);
   const used = holding.filter(({ state }) => state.clientStage === "active").length;
   return { total, used, free: Math.max(0, total - used) };

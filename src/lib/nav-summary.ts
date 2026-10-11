@@ -10,7 +10,7 @@ import { aiCreditStatus } from "@/lib/ai-credits";
  */
 export const loadNavSummary = cache(async (viewer: { id: string; clientId: string }) => {
   const [items, team, ai] = await Promise.all([
-    loadProjectStates({ status: { not: "ARCHIVED" }, ...projectVisibilityWhere(viewer.id) }, viewer.clientId),
+    loadProjectStates({ status: { not: "ARCHIVED" }, agentBuild: false, ...projectVisibilityWhere(viewer.id) }, viewer.clientId),
     creditSummary(viewer.clientId),
     aiCreditStatus(viewer.clientId),
   ]);

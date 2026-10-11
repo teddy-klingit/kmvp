@@ -15,7 +15,7 @@ import { AiPerDay } from "@/components/portal/usage/ai-per-day";
 import { Breakdown } from "@/components/portal/usage/breakdown";
 import { TopUp } from "@/components/portal/usage/top-up";
 import { AddSlotDialog } from "@/components/portal/add-slot-dialog";
-import { cn } from "@/lib/utils";
+import { cn, jsonArray } from "@/lib/utils";
 
 const n = (v: number) => Math.round(v).toLocaleString("en-GB");
 const day = (d: Date) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "UTC" }).format(d);
@@ -121,21 +121,21 @@ export default async function UsagePage() {
         method={FORECAST_METHOD}
         footer={
           <p className="m-0 flex flex-wrap gap-x-6 gap-y-1 text-[13px] text-brand-ink-2">
-            <span>
+            <span key="average">
               Average <b className="font-semibold text-brand-ink">{n(ai.average)}</b> a day
             </span>
             {ai.busiest && (
-              <span>
+              <span key="busiest">
                 Busiest: {day(new Date(Date.UTC(u.period.start.getUTCFullYear(), u.period.start.getUTCMonth(), ai.busiest.day)))}
                 {ai.busiest.top ? ` (${ai.busiest.top.name} × ${ai.busiest.top.count})` : ""}
               </span>
             )}
             {ai.reachedDay && (
-              <span>
+              <span key="reached">
                 Allowance {n(ai.allowance)} reached ≈ <span className="text-brand-orange-text">{day(new Date(Date.UTC(u.period.start.getUTCFullYear(), u.period.start.getUTCMonth(), ai.reachedDay)))}</span>
               </span>
             )}
-            <span className="flex-1 text-right" title={FORECAST_METHOD}>
+            <span key="reset" className="flex-1 text-right" title={FORECAST_METHOD}>
               Next reset {day(u.period.nextReset)} · forecast = average a day × days left
             </span>
           </p>
@@ -253,12 +253,10 @@ export default async function UsagePage() {
                 {invoices.map((i) => (
                   <li key={i.id} className="flex items-center gap-3 px-6 py-3">
                     <span className="flex min-w-0 flex-1 flex-col">
-                      <span className="text-[14px]">
-                        {i.currency} {n(i.amount)} · {i.status.toLowerCase()}
-                      </span>
+                      <span className="text-[14px]">{jsonArray<{ label?: string }>(i.lineItems)[0]?.label ?? `${i.currency} ${n(i.amount)}`}</span>
                       <span className="text-[12px] text-brand-mute">
                         {i.number}
-                        {i.issuedAt ? ` · ${formatDay(i.issuedAt)}` : ""}
+                        {i.issuedAt ? ` · ${formatDay(i.issuedAt)}` : ""} · {i.status.toLowerCase()}
                       </span>
                     </span>
                     <Link href={`/settings/usage/invoices/${i.id}`} className="font-brand-mono text-[11px] text-brand-ink underline underline-offset-2">

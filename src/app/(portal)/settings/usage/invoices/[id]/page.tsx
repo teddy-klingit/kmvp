@@ -5,6 +5,7 @@ import { isClientAdmin } from "@/lib/client-roles";
 import { formatDay } from "@/lib/project-state";
 import { jsonArray } from "@/lib/utils";
 import { PrintButton } from "@/components/portal/print-button";
+import { PlaceholderTag } from "@/components/ds/placeholder-tag";
 
 /** An invoice, laid out to print or save as PDF (Usage → Billing). Admins only. */
 export default async function InvoicePage({ params }: { params: Promise<{ id: string }> }) {
@@ -45,7 +46,10 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
         <ul className="m-0 flex list-none flex-col border-t border-brand-line p-0">
           {lines.map((l, i) => (
             <li key={i} className="flex justify-between border-b border-brand-line py-3 text-[14px]">
-              <span>{l.description ?? l.label ?? "Item"}</span>
+              <span className="flex flex-col">
+                <span>{l.label ?? l.description ?? "Item"}</span>
+                {l.label && l.description && <span className="text-[12px] text-brand-ink-2">{l.description}</span>}
+              </span>
               <span className="tabular-nums">{l.amount != null ? l.amount.toLocaleString("en-GB") : ""}</span>
             </li>
           ))}
@@ -53,9 +57,14 @@ export default async function InvoicePage({ params }: { params: Promise<{ id: st
       )}
       <p className="m-0 flex justify-between text-[18px]">
         <span>Total</span>
-        <span className="tabular-nums">
-          {invoice.currency} {invoice.amount.toLocaleString("en-GB")}
-        </span>
+        {/* No price on the line items and none on the invoice: the plan price isn't set yet. */}
+        {invoice.amount === 0 && lines.every((l) => l.amount == null) ? (
+          <PlaceholderTag>Price not set</PlaceholderTag>
+        ) : (
+          <span className="tabular-nums">
+            {invoice.currency} {invoice.amount.toLocaleString("en-GB")}
+          </span>
+        )}
       </p>
     </article>
   );
