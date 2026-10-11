@@ -110,6 +110,10 @@ export async function sendToClient(projectId: string, actorUserId: string) {
     await prisma.pipelineStage.updateMany({ where: { projectId, name: "FEEDBACK" }, data: { status: "ACTIVE", startedAt: now } });
   }
   await prisma.project.update({ where: { id: projectId }, data: { status: "AWAITING_REVIEW", ...(first ? { deliveredAt: now } : {}) } });
+  // In review with the client = no longer in Active: its slot frees, so the next queued project starts.
+  const { activateQueued } = await import("@/lib/active-slots");
+  const { runAutopilot } = await import("@/lib/autopilot-runner");
+  for (const id of await activateQueued(project.clientId)) await runAutopilot(id);
 
   const n = gate.toSend.length;
   const checks = gate.toSend.reduce((a, v) => a + ((v.checks as StoredCheck[] | null)?.length ?? 0), 0);

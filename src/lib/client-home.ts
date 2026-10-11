@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { needsClient, openBriefQuestions } from "@/lib/needs-you";
 import { CLIENT_STAGE_LABEL, clientMilestones, endOfDay, formatDay, shortDate, type ProjectState } from "@/lib/project-state";
 import { jsonArray } from "@/lib/utils";
 import type { ProjectWithStateData } from "@/lib/project-state-loader";
@@ -35,7 +36,7 @@ export type TurnItem = {
 /** The client's actions, from getProjectState only — never notifications or market alerts. */
 export function yourTurn(items: Item[], now = new Date()): TurnItem[] {
   return items
-    .filter(({ state }) => state.ballInCourt === "client" && !state.paused && !state.archived && state.stage !== "closed")
+    .filter(needsClient)
     .map(({ project, state }) => {
       const dueAt = state.nextAction.dueAt ?? state.keyFacts.dueDate ?? null;
       const kind: TurnItem["kind"] =
@@ -50,9 +51,11 @@ export function yourTurn(items: Item[], now = new Date()): TurnItem[] {
             : kind === "signoff"
               ? "Everything's approved. Sign off to close it"
               : kind === "brief"
-                ? state.draft && state.brief.mode === "intake"
-                  ? "Your draft brief isn't sent yet"
-                  : state.nextAction.description
+                ? state.draft && openBriefQuestions(project) > 0
+                  ? `Answer ${openBriefQuestions(project)} question${openBriefQuestions(project) === 1 ? "" : "s"} · Brief assistant`
+                  : state.draft && state.brief.mode === "intake"
+                    ? "Your draft brief isn't sent yet"
+                    : state.nextAction.description
                 : state.nextAction.description;
       let due: TurnItem["due"] = null;
       if (dueAt) {

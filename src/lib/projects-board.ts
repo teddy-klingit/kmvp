@@ -1,6 +1,7 @@
 import { CLIENT_STAGE_LABEL, formatDay, shortDate, type ClientStage, type ProjectState } from "@/lib/project-state";
 import type { ProjectWithStateData } from "@/lib/project-state-loader";
 import type { Lane } from "@/lib/board-rules";
+import { needsClient, openBriefQuestions } from "@/lib/needs-you";
 
 /**
  * The client Projects board (Projects.dc.html): one card per project in its client-stage lane, with one status
@@ -30,20 +31,15 @@ export type BoardCard = {
   projectStatus: string;
 };
 
+/** Ongoing projects (nav v3, 06): four lanes. Delivered work leaves the board (Finished; files in the Output library). */
 export const LANES: { lane: Lane; title: string; hint: string }[] = [
   { lane: "draft", title: "Drafts", hint: "Briefs you are still writing" },
-  { lane: "queued", title: "Queued", hint: "Starts when a slot frees up · drag to reorder" },
-  { lane: "active", title: "Active", hint: "Klingit is working on these" },
-  { lane: "in_review", title: "In review", hint: "Your feedback needed" },
-  { lane: "delivered", title: "Delivered", hint: "Last 30 days" },
+  { lane: "queued", title: "Queued", hint: "Waiting for a free slot" },
+  { lane: "active", title: "Active", hint: "Klingit is working" },
+  { lane: "in_review", title: "In review", hint: "Your feedback is next" },
 ];
 
 const ordinal = (n: number) => (n === 1 ? "Next in line" : `${n}${n % 10 === 2 && n !== 12 ? "nd" : n % 10 === 3 && n !== 13 ? "rd" : "th"} in line`);
-
-function edited(d: Date, now: Date) {
-  const days = Math.floor((new Date(now.toDateString()).getTime() - new Date(d.toDateString()).getTime()) / 86400000);
-  return days <= 0 ? "Edited today" : days === 1 ? "Edited yesterday" : `Edited ${shortDate(d)}`;
-}
 
 function sentence(label: string) {
   const s = label.replace(/^(Your turn|Klingit): /, "");
@@ -60,33 +56,36 @@ export function boardCard(
   const team = state.keyFacts.staffedTeam.map((m) => m.name);
   const lead = ctx.accountLead ? [ctx.accountLead] : [];
   const due = state.keyFacts.dueDate ? `Due ${shortDate(state.keyFacts.dueDate)}` : "No date yet";
-  const turn = state.ballInCourt === "client" && !state.paused;
+  const turn = needsClient({ project, state });
   const base = { id: project.id, lane, name: project.name, meta, href: `/projects/${project.id}`, confidential: project.confidential, needsYou: turn, projectStatus: project.status, quality: null, queuePosition: null, action: null };
+  // Whatever lane it's in, when it waits on the client the card says what to do (orange).
+  const yours = { label: sentence(state.nextAction.label), tone: "you" as const };
 
   if (state.paused) return { ...base, stage: state.clientStage, status: { label: "Paused", tone: "paused" }, foot: due, team: team.length ? team : lead };
 
   switch (state.clientStage) {
-    case "draft":
+    case "draft": {
+      const open = openBriefQuestions(project);
+      const quality = project.brief?.qualityScore ?? null;
       return {
         ...base,
         stage: "draft",
         href: `/brief/${project.id}`,
-        quality: project.brief?.qualityScore ?? null,
-        status: { label: project.brief?.qualityScore != null ? "Brief in progress" : "Not started", tone: "you" },
-        foot: edited(project.updatedAt, ctx.now),
+        status: open ? { label: `Answer ${open} question${open === 1 ? "" : "s"}`, tone: "you" } : { label: "Not sent yet", tone: "paused" },
+        foot: quality != null ? `Brief ${quality}% ready` : `Started ${shortDate(project.createdAt)}`,
         team: [],
-        action: { label: "Continue brief", href: `/brief/${project.id}` },
       };
+    }
     case "queued": {
       const est = project.estimate;
       const position = ctx.queueRank.get(project.id) ?? null;
       const status: BoardCard["status"] =
         est?.status === "SENT"
-          ? { label: `Approve estimate · ${est.totalCredits} credits`, tone: "you" }
+          ? { label: "Approve estimate", tone: "you" }
           : turn
-            ? { label: sentence(state.nextAction.label), tone: "you" }
+            ? yours
             : est?.status === "APPROVED"
-              ? { label: "Approved · starts when a slot frees up", tone: "klingit" }
+              ? { label: "Starts when a slot frees", tone: "paused" }
               : state.stage === "briefing"
                 ? { label: "Klingit is reviewing the brief", tone: "klingit" }
                 : { label: "Klingit is preparing the estimate", tone: "klingit" };
@@ -95,25 +94,24 @@ export function boardCard(
         stage: "queued",
         queuePosition: position,
         status,
-        foot: position ? ordinal(position) : "In the queue",
+        foot: est?.status === "SENT" ? `${est.totalCredits} team credits` : position ? ordinal(position) : "In the queue",
         team: lead,
-        action: est?.status === "SENT" ? { label: "Review estimate", href: `/projects/${project.id}` } : turn ? { label: state.nextAction.cta ?? "Open", href: state.nextAction.href } : null,
       };
     }
     case "active": {
       const eta = state.keyFacts.firstDraftEta;
       const label = eta ? `First draft ${formatDay(eta)}` : state.stage === "staffing" ? "Picking your team" : state.stage === "review" ? "Klingit is revising" : state.stage === "final" ? "Final files on the way" : "In progress";
-      return { ...base, stage: "active", status: { label, tone: "klingit" }, foot: due, team: team.length ? team : lead };
+      const pending = project.estimate?.status === "SENT";
+      return { ...base, stage: "active", status: turn ? yours : { label: label === "In progress" ? "Producing" : `Producing · ${label.charAt(0).toLowerCase()}${label.slice(1)}`, tone: "klingit" }, foot: pending ? `${project.estimate!.totalCredits} team credits` : due, team: team.length ? team : lead };
     }
     case "in_review":
       return {
         ...base,
         stage: "in_review",
         href: state.nextAction.href,
-        status: { label: sentence(state.nextAction.label), tone: "you" },
+        status: yours,
         foot: due,
         team: team.length ? team : lead,
-        action: { label: state.stage === "final" ? "Sign off" : "Review", href: state.nextAction.href },
       };
     default:
       return {

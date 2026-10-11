@@ -34,7 +34,7 @@ const shape = (s: string) => s.replace(/[a-z0-9]{20,}/g, ":id").replace(/ouhers-
     if (!res || res.status() >= 400 || /couldn.t load|could not be found/i.test(top)) bad.push(`${res?.status() ?? "—"} ${path}`);
     for (const l of await p.$$eval("a[href^='/']", (as) => as.map((a) => (a as HTMLAnchorElement).getAttribute("href")!))) {
       const clean = l.split("#")[0];
-      if (!clean || /^\/(api|sign-out)/.test(clean) || /download/.test(clean) || clean.startsWith("/ops") !== ops) continue;
+      if (!clean || /^\/(api|sign-out|brief\/new)/.test(clean) || /download/.test(clean) || clean.startsWith("/ops") !== ops) continue;
       if (![...seen, ...queue].some((s) => shape(s) === shape(clean))) queue.push(clean);
     }
   }

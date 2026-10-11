@@ -138,13 +138,12 @@ export function ProjectsBoard({ cards: initial, slots }: { cards: BoardCard[]; s
       >
         {/* Under 1000px of content the lanes keep their width and the board scrolls inside itself, never the page. */}
         <div className={cn("-mx-4 overflow-x-auto px-4 pb-2 min-[900px]:mx-0 min-[900px]:px-0", rule && !rule.allowed && "cursor-not-allowed")}>
-          <div className="grid min-w-[1180px] grid-cols-5 items-stretch gap-3 min-[1300px]:min-w-0">
+          <div className="grid min-w-[960px] grid-cols-4 items-stretch gap-3 min-[1100px]:min-w-0">
             {LANES.map(({ lane, title, hint }) => {
               const items = cards.filter((c) => c.lane === lane).sort((a, b) => (lane === "queued" ? (a.queuePosition ?? 999) - (b.queuePosition ?? 999) : 0));
               const blocked = dragging && over === lane && !dragRule(dragging.lane, lane).allowed ? dragRule(dragging.lane, lane) : null;
               return (
-                <LaneColumn key={lane} lane={lane} title={title} hint={hint} count={items.length} blockedReason={blocked && !blocked.allowed ? blocked.reason : null} accepting={Boolean(dragging && over === lane && dragRule(dragging.lane, lane).allowed && dragging.lane !== lane)}>
-                  {lane === "active" && <SlotMeter slots={slots} />}
+                <LaneColumn key={lane} lane={lane} title={title} hint={hint} count={lane === "active" ? `${slots.used} / ${slots.total} slots` : items.length} blockedReason={blocked && !blocked.allowed ? blocked.reason : null} accepting={Boolean(dragging && over === lane && dragRule(dragging.lane, lane).allowed && dragging.lane !== lane)}>
                   {lane === "queued" ? (
                     <SortableContext items={items.map((c) => c.id)} strategy={verticalListSortingStrategy}>
                       {items.map((c, i) => (
@@ -192,19 +191,20 @@ export function ProjectsBoard({ cards: initial, slots }: { cards: BoardCard[]; s
   );
 }
 
-function LaneColumn({ lane, title, hint, count, blockedReason, accepting, children }: { lane: Lane; title: string; hint: string; count: number; blockedReason: string | null; accepting: boolean; children: React.ReactNode }) {
+function LaneColumn({ lane, title, hint, count, blockedReason, accepting, children }: { lane: Lane; title: string; hint: string; count: number | string; blockedReason: string | null; accepting: boolean; children: React.ReactNode }) {
   const { setNodeRef } = useDroppable({ id: `lane:${lane}` });
   return (
     <section
       ref={setNodeRef}
       aria-label={title}
       data-column={title}
-      className={cn("relative flex min-h-[520px] min-w-0 flex-col gap-2.5 rounded-[14px] bg-brand-nav p-3 transition-shadow", accepting && "shadow-[inset_0_0_0_1.5px_var(--brand-ink)]", blockedReason && "cursor-not-allowed")}
+      // Only the Active lane is tinted: it's where the plan's slots are.
+      className={cn("relative flex min-h-[480px] min-w-0 flex-col gap-3 rounded-[14px] p-3 transition-shadow", lane === "active" ? "bg-[#EDE6D8]" : "bg-transparent", accepting && "shadow-[inset_0_0_0_1.5px_var(--brand-ink)]", blockedReason && "cursor-not-allowed")}
     >
       <div className="flex flex-col gap-0.5 px-1 pb-0.5 pt-1">
         <div className="flex items-center">
-          <h2 className="m-0 flex-1 text-[15px] font-semibold">{title}</h2>
-          <span className="text-[13px] text-brand-ink-2">{count}</span>
+          <h2 className="m-0 flex-1 text-[16px] font-normal">{title}</h2>
+          <span className={cn("text-[13px] text-brand-ink-2", typeof count === "string" && "font-brand-mono text-[12px] uppercase text-brand-ink")}>{count}</span>
         </div>
         <span className="text-[12px] text-brand-ink-2">{hint}</span>
       </div>
@@ -218,40 +218,19 @@ function LaneColumn({ lane, title, hint, count, blockedReason, accepting, childr
   );
 }
 
-function SlotMeter({ slots }: { slots: Slots }) {
-  // Work that started before slots existed can run over the plan; the meter says so rather than hiding it.
-  const over = slots.used > slots.total;
-  const segments = Math.max(1, slots.total, slots.used);
-  return (
-    <div className="flex flex-col gap-1.5 rounded-[10px] bg-white px-3 py-2.5" aria-label={over ? `${slots.used} active, plan has ${slots.total}` : `Active slots: ${slots.used} of ${slots.total} used`}>
-      <div className="flex text-[12px]">
-        <span className="flex-1">Active slots</span>
-        <span>
-          {slots.used} of {slots.total} used
-        </span>
-      </div>
-      <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${segments}, minmax(0, 1fr))` }}>
-        {Array.from({ length: segments }, (_, i) => (
-          <span key={i} className={cn("h-1.5 rounded-full", i < slots.used ? "bg-brand-ink" : "border border-dashed border-brand-mute")} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
 type GripProps = { attributes?: Record<string, unknown>; listeners?: Record<string, unknown>; locked?: string };
 
-function Card({ card, first, overlay, grip, style, innerRef, faded }: { card: BoardCard; first: boolean; overlay?: boolean; grip?: GripProps; style?: React.CSSProperties; innerRef?: (el: HTMLElement | null) => void; faded?: boolean }) {
+function Card({ card, overlay, grip, style, innerRef, faded }: { card: BoardCard; first: boolean; overlay?: boolean; grip?: GripProps; style?: React.CSSProperties; innerRef?: (el: HTMLElement | null) => void; faded?: boolean }) {
   const locked = grip?.locked ?? (!canPickUp(card.lane) ? "Klingit moves projects along" : undefined);
   return (
-    <article ref={innerRef} style={style} className={cn("relative flex flex-col gap-3 rounded-[12px] bg-white p-3.5 shadow-[0_1px_2px_rgba(30,30,30,0.05)]", overlay && "rotate-1 shadow-[0_8px_24px_rgba(30,30,30,0.18)]", faded && "opacity-40")}>
+    <article ref={innerRef} style={style} className={cn("relative flex flex-col gap-3 rounded-[12px] bg-white p-4 shadow-[0_1px_2px_rgba(30,30,30,0.05)]", card.needsYou && "ring-[1.5px] ring-brand-orange", overlay && "rotate-1 shadow-[0_8px_24px_rgba(30,30,30,0.18)]", faded && "opacity-40")}>
       <div className="flex items-start gap-2">
         <button
           type="button"
           aria-label={locked ? `${card.name}: ${locked}` : `Move ${card.name}`}
           aria-disabled={locked ? true : undefined}
           title={locked}
-          className={cn("relative z-10 -ml-1 mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-[6px] text-brand-mute", locked ? "cursor-not-allowed" : "cursor-grab touch-none hover:bg-brand-chip hover:text-brand-ink active:cursor-grabbing")}
+          className={cn("relative z-10 -ml-1 mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-[6px] text-brand-mute", locked ? "hidden" : "cursor-grab touch-none hover:bg-brand-chip hover:text-brand-ink active:cursor-grabbing")}
           {...(locked ? {} : grip?.attributes)}
           {...(locked ? {} : grip?.listeners)}
         >
@@ -262,7 +241,7 @@ function Card({ card, first, overlay, grip, style, innerRef, faded }: { card: Bo
             {card.confidential && <Lock aria-label="Confidential" className="mt-1 size-3.5 shrink-0 text-brand-ink-2" />}
             <span className="min-w-0">{card.name}</span>
           </Link>
-          <span className="text-[12px] text-brand-ink-2">{card.meta}</span>
+          <span className="text-[13px] text-brand-ink-2">{card.meta}</span>
         </div>
         {card.queuePosition !== null && (
           <span aria-label={`Number ${card.queuePosition} in the queue`} className="flex h-6 min-w-6 items-center justify-center rounded-[6px] bg-brand-chip px-1.5 text-[12px]">
@@ -270,31 +249,11 @@ function Card({ card, first, overlay, grip, style, innerRef, faded }: { card: Bo
           </span>
         )}
       </div>
-      {card.quality !== null && (
-        <div className="flex items-center gap-2 text-[12px] text-brand-ink-2">
-          <span className="h-1 flex-1 rounded-full bg-brand-line">
-            <span className="block h-full rounded-full bg-brand-ink" style={{ width: `${card.quality}%` }} />
-          </span>
-          Brief {card.quality}
-        </div>
-      )}
       <StatusDot tone={card.status.tone} wrap className="text-[13px] leading-[1.4]">{card.status.label}</StatusDot>
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[12px] text-brand-ink-2">{card.foot}</span>
+        <span className="font-brand-mono text-[11px] uppercase text-brand-ink">{card.foot}</span>
         {card.team.length > 0 && <AvatarStack names={card.team} size={28} max={3} overlap={4} />}
       </div>
-      {card.action && (
-        <Link
-          href={card.action.href}
-          className={cn(
-            "relative z-10 inline-flex h-[34px] items-center justify-center rounded-full font-brand-mono text-[11px] no-underline",
-            // One action per card, never orange: black on the lane's first card (queued: always outlined), outlined after it.
-            first && card.lane !== "queued" ? "bg-brand-ink text-white hover:bg-black" : "border border-brand-outline bg-white text-brand-ink hover:border-brand-ink"
-          )}
-        >
-          {card.action.label}
-        </Link>
-      )}
     </article>
   );
 }

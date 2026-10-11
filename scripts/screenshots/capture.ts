@@ -609,6 +609,8 @@ async function main() {
         ["04-skills-templates", "/skills/templates"],
         ["05-brand-os", "/assets"],
         ["05b-brand-os-rules", "/assets/rules"],
+        ["06-ongoing-projects", "/projects"],
+        ["06b-finished", "/projects?show=finished"],
       ].map(([n, path]) => [n, path] as [string, string]).filter(([n]) => !pageFilter || pageFilter.some((f) => n.startsWith(f))),
       [
         ["s01-plans", "/ops/plans"],

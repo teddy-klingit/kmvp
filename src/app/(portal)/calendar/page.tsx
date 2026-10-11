@@ -11,7 +11,7 @@ import { SegmentedNav } from "@/components/ds/segmented-control";
 import { FilterChips } from "@/components/ds/filter-chips";
 import { SectionCard, CardHeader, Card, CardRows, CardNote } from "@/components/ds/card";
 import { Meter } from "@/components/ds/stats";
-import { pillClass } from "@/components/ds/button";
+import { PendingButton } from "@/components/ds/pending-button";
 import { monoLink } from "@/components/ds/pill-link";
 import { AddPlanItemDialog } from "@/components/portal/add-plan-item-dialog";
 import { InspirationExploreButton } from "@/components/portal/inspiration-explore-button";
@@ -31,8 +31,8 @@ const SHOW: Record<string, CalendarKind> = { klingit: "klingit", plan: "plan", s
  * suggestions dashed lime), or the same items as dated rows. Side column: the agent's suggestions, each
  * with Add, and plan coverage against the SOW minimum. Under 900px the month view shows the list.
  */
-export default async function CalendarPage({ searchParams }: { searchParams: Promise<{ view?: string; month?: string; show?: string }> }) {
-  const { view, month: monthValue, show } = await searchParams;
+export default async function CalendarPage({ searchParams }: { searchParams: Promise<{ view?: string; month?: string; show?: string; added?: string }> }) {
+  const { view, month: monthValue, show, added: addedId } = await searchParams;
   const isList = view === "list";
   const now = new Date();
   const month = monthValue && /^\d{4}-\d{2}$/.test(monthValue) ? new Date(Number(monthValue.slice(0, 4)), Number(monthValue.slice(5, 7)) - 1, 1) : new Date(now.getFullYear(), now.getMonth(), 1);
@@ -73,8 +73,23 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
 
   const list = <CalendarList items={monthItems} month={month} />;
 
+  // "Add" on a suggestion confirms what it created: the planned post and, when written, the draft brief.
+  const added = addedId ? await prisma.contentPlanSuggestion.findFirst({ where: { id: addedId, clientId: viewer.clientId, status: "APPROVED" }, select: { title: true, platform: true, briefedProjectId: true } }) : null;
   return (
     <div className="flex flex-col gap-6">
+      {added && (
+        <p role="status" className="m-0 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-[12px] bg-brand-lime-pale px-5 py-3.5 text-[14px]">
+          <span className="min-w-0 flex-1">
+            Added “{added.title}” to your plan{added.platform ? ` as a planned ${added.platform} post` : ""}
+            {added.briefedProjectId ? ", with a draft brief to start from." : "."}
+          </span>
+          {added.briefedProjectId && (
+            <Link href={`/brief/${added.briefedProjectId}`} className="font-brand-mono text-[12px] text-brand-ink underline underline-offset-4">
+              OPEN THE DRAFT
+            </Link>
+          )}
+        </p>
+      )}
       <PageHeader
         eyebrow={monthName}
         title="Calendar"
@@ -160,9 +175,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                       </span>
                       <form action={approveContentPlanSuggestionAction}>
                         <input type="hidden" name="suggestionId" value={s.id} />
-                        <button type="submit" className={pillClass("secondary", "sm")}>
-                          Add
-                        </button>
+                        <PendingButton pendingLabel="Adding…">Add</PendingButton>
                       </form>
                       <form action={rejectContentPlanSuggestionAction}>
                         <input type="hidden" name="suggestionId" value={s.id} />
@@ -193,7 +206,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                       <li key={s.id} className="flex items-center gap-3 px-6 py-3 text-[13px]">
                         <span className="min-w-0 flex-1 truncate">{s.title}</span>
                         {s.briefedProjectId ? (
-                          <Link href={`/projects/${s.briefedProjectId}`} className="text-brand-ink underline underline-offset-4">
+                          <Link href={`/brief/${s.briefedProjectId}`} className="text-brand-ink underline underline-offset-4">
                             Brief
                           </Link>
                         ) : (

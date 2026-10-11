@@ -1,13 +1,15 @@
 import { prisma } from "@/lib/prisma";
+import { loadProjectStates } from "@/lib/project-state-loader";
 import { postProjectEvent } from "@/lib/project-events";
 import { logDecision } from "@/lib/decision-log";
 import type { PlanTier, ProjectStatus } from "@/generated/prisma";
 import { notifyMany } from "@/lib/notifier";
 
 /**
- * Active slots: each plan works on a set number of a client's projects at once. A project holds a slot from
- * activation (its estimate approved and a slot free) until sign-off; the rest wait in the client's queue, in
- * queuePosition order. Activation is automatic.
+ * Active slots: each plan works on a set number of a client's projects at once. A project holds a slot while it's
+ * in the Active column, i.e. while Klingit is working on it (activated, and not in review with the client, signed
+ * off or archived). When it goes to the client for review its slot frees and the next queued project starts. The
+ * rest wait in the client's queue, in queuePosition order. Activation is automatic.
  */
 
 /** Placeholders until an Admin sets them in Settings (Plan rows override these). */
@@ -26,12 +28,14 @@ export async function activeSlotsFor(tier: PlanTier) {
   return plan?.activeSlots ?? DEFAULT_ACTIVE_SLOTS[tier];
 }
 
+/** Slots in use = projects in the Active column (the same project state the board shows), never more than it shows. */
 export async function slotUsage(clientId: string) {
   const client = await prisma.client.findUniqueOrThrow({ where: { id: clientId }, select: { planTier: true } });
-  const [total, used] = await Promise.all([
+  const [total, holding] = await Promise.all([
     activeSlotsFor(client.planTier),
-    prisma.project.count({ where: { clientId, activatedAt: { not: null }, status: { notIn: NOT_HOLDING } } }),
+    loadProjectStates({ activatedAt: { not: null }, status: { notIn: NOT_HOLDING } }, clientId),
   ]);
+  const used = holding.filter(({ state }) => state.clientStage === "active").length;
   return { total, used, free: Math.max(0, total - used) };
 }
 

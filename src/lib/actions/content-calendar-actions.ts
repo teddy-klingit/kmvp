@@ -110,16 +110,22 @@ export async function rejectContentPlanSuggestionAction(formData: FormData) {
   revalidatePath("/calendar");
 }
 
-/** Approving flows straight into a new brief in the Brief studio, so an approved suggestion never
- * dead-ends as just a calendar change. */
+/**
+ * "Add" on a suggestion: it becomes a planned post on the calendar and a draft brief in the Brief studio, then
+ * the Calendar confirms what was created with a link to the draft. The suggestion is claimed first, atomically, so
+ * repeated clicks (the brief takes a few seconds) can never create a second draft.
+ */
 export async function approveContentPlanSuggestionAction(formData: FormData) {
   const viewer = await getPortalViewer();
   const suggestionId = String(formData.get("suggestionId") ?? "");
 
-  const suggestion = await prisma.contentPlanSuggestion.findFirst({
-    where: { id: suggestionId, clientId: viewer.clientId },
+  const claimed = await prisma.contentPlanSuggestion.updateMany({
+    where: { id: suggestionId, clientId: viewer.clientId, status: "PENDING" },
+    data: { status: "APPROVED", stage: "SCHEDULED", resolvedAt: new Date() },
   });
-  if (!suggestion) return;
+  // Already added (a second click, another tab): show what the first one created.
+  if (claimed.count === 0) redirect(`/calendar?added=${encodeURIComponent(suggestionId)}`);
+  const suggestion = await prisma.contentPlanSuggestion.findUniqueOrThrow({ where: { id: suggestionId } });
 
   if (suggestion.platform && suggestion.suggestedVolumeChange) {
     const current = await prisma.contentPlanTarget.findUnique({
@@ -133,9 +139,7 @@ export async function approveContentPlanSuggestionAction(formData: FormData) {
     });
   }
 
-  // Approving visibly moves the suggestion into the plan, not just a
-  // status flip — it becomes a real PLANNED post on the calendar, dated a
-  // week out, so "Upcoming" shows exactly where the approval went.
+  // It becomes a real PLANNED post on the calendar, on the proposed day (or a week out).
   if (suggestion.platform) {
     await prisma.contentPost.create({
       data: {
@@ -144,33 +148,20 @@ export async function approveContentPlanSuggestionAction(formData: FormData) {
         channelType: "ORGANIC",
         title: suggestion.title,
         status: "PLANNED",
-        // The agent's proposed day when it's still ahead; a week out for older suggestions without one.
         scheduledDate: suggestion.proposedDate && suggestion.proposedDate > new Date() ? suggestion.proposedDate : new Date(Date.now() + 7 * 86400000),
         sourceSuggestionId: suggestion.id,
       },
     });
   }
 
-  const rawText = `${suggestion.title}\n\n${suggestion.rationale}`;
-  let projectId: string;
+  // And a draft brief to start from. If writing it fails, the plan change and calendar entry still stand.
   try {
-    projectId = await withAiCharge(assistantCharge(viewer.clientId, viewer.userId, ASSISTANTS.brief), () => startStudio(viewer, rawText));
+    const projectId = await withAiCharge(assistantCharge(viewer.clientId, viewer.userId, ASSISTANTS.brief), () => startStudio(viewer, `${suggestion.title}\n\n${suggestion.rationale}`));
+    await prisma.contentPlanSuggestion.update({ where: { id: suggestion.id }, data: { briefedProjectId: projectId } });
   } catch {
-    // The plan change and calendar entry above still apply even if brief
-    // creation fails — mark it scheduled without a linked brief rather
-    // than losing the approval entirely.
-    await prisma.contentPlanSuggestion.update({
-      where: { id: suggestion.id },
-      data: { status: "APPROVED", stage: "SCHEDULED", resolvedAt: new Date() },
-    });
-    revalidatePath("/calendar");
-    return;
+    // Confirmed below without a draft link.
   }
-
-  await prisma.contentPlanSuggestion.update({
-    where: { id: suggestion.id },
-    data: { status: "APPROVED", stage: "SCHEDULED", resolvedAt: new Date(), briefedProjectId: projectId },
-  });
-
-  redirect(`/brief/${projectId}`);
+  revalidatePath("/calendar");
+  revalidatePath("/projects");
+  redirect(`/calendar?added=${encodeURIComponent(suggestion.id)}`);
 }

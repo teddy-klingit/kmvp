@@ -1,5 +1,6 @@
 "use server";
 
+import { prisma } from "@/lib/prisma";
 import { withAiCharge, assistantCharge, ASSISTANTS } from "@/lib/ai-context";
 import { after } from "next/server";
 import { redirect } from "next/navigation";
@@ -37,6 +38,14 @@ export async function startBriefAction(text: string): Promise<{ projectId?: stri
   const viewer = await getPortalViewer();
   const t = text.trim().slice(0, 4000);
   if (!t) return { error: "Tell us a little about what you need." };
+  // The studio starts on page load (/brief/new?q=…): a reload, Back or a second tab must reopen the same draft,
+  // not create another. Same person, same words, last 15 minutes = the same brief.
+  const recent = await prisma.project.findFirst({
+    where: { clientId: viewer.clientId, createdByClientUserId: viewer.id, status: "DRAFT", createdAt: { gte: new Date(Date.now() - 15 * 60_000) }, brief: { rawIntake: t } },
+    orderBy: { createdAt: "desc" },
+    select: { id: true },
+  });
+  if (recent) return { projectId: recent.id };
   const projectId = await withAiCharge(assistantCharge(viewer.clientId, viewer.userId, ASSISTANTS.brief), () => startStudio(viewer, t));
   revalidatePath("/dashboard");
   revalidatePath("/projects");

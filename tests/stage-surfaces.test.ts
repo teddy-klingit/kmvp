@@ -90,11 +90,12 @@ const EXPECT: Record<StageKey, Expect> = {
   briefing: {
     column: "Drafts",
     badge: "Draft",
-    card: "Continue brief",
+    // An unsent draft without an open question just waits (Phase Q): not "needs you".
+    card: "Not sent yet",
     next: "Your turn: finish your brief",
     title: "Finish your brief",
     eyebrow: "YOUR TURN",
-    dashboard: true,
+    dashboard: false,
     overview: ["Continue brief", "Your brief so far", "Brief quality 40", "Win a pitch or a deal", "Open brief studio"],
   },
   estimating: {
@@ -110,7 +111,7 @@ const EXPECT: Record<StageKey, Expect> = {
   awaiting_approval: {
     column: "Queued",
     badge: "Queued",
-    card: "Approve estimate · 28 credits",
+    card: "Approve estimate",
     next: "Your turn: approve estimate (28 credits)",
     title: "Approve the estimate",
     eyebrow: "YOUR TURN",
@@ -120,7 +121,7 @@ const EXPECT: Record<StageKey, Expect> = {
   staffing: {
     column: "Active",
     badge: "Active",
-    card: "Picking your team",
+    card: "picking your team",
     next: "Klingit: picking your team",
     title: "Picking your team",
     eyebrow: "KLINGIT IS ON IT",
@@ -130,7 +131,7 @@ const EXPECT: Record<StageKey, Expect> = {
   production: {
     column: "Active",
     badge: "Active",
-    card: "First draft",
+    card: "first draft",
     next: "Klingit: producing your first draft",
     title: "Producing your first draft",
     eyebrow: "KLINGIT IS ON IT",
@@ -158,7 +159,8 @@ const EXPECT: Record<StageKey, Expect> = {
     overview: ["Delivery package", "Rate this project", "Sign off", "full project report"],
   },
   closed: {
-    column: "Delivered",
+    // Delivered work leaves the board: it's under Finished (and its files in the Output library).
+    column: "Finished",
     badge: "Delivered",
     card: "Signed off",
     next: "Delivered",
@@ -185,7 +187,13 @@ describe.each(STAGES)("stage %s — every surface agrees", (stage) => {
   const p = () => fx.projects[stage];
 
   it("projects board: the client-stage lane, and the status in plain words", async () => {
-    const html = await render(ProjectsPage({ searchParams: Promise.resolve({}) }));
+    const finished = e.column === "Finished";
+    const html = await render(ProjectsPage({ searchParams: Promise.resolve(finished ? { show: "finished" } : {}) }));
+    if (finished) {
+      expect(asText(await render(ProjectsPage({ searchParams: Promise.resolve({}) })))).not.toContain(p().name);
+      expect(asText(html)).toContain(p().name);
+      return;
+    }
     const column = asText(region(html, `data-column="${e.column}"`, ["data-column="]));
     expect(column).toContain(p().name);
     // The card right after the project's name carries its status (or its one action).
@@ -365,7 +373,8 @@ describe("regressions — the contradictions seen on a Draft project ('Klarna 10
   it("header counts only client actions — market alerts never count — and no allowance is invented", async () => {
     const before = asText(await render(DashboardPage()));
     const count = before.match(/(\d+) things? needs? you/)?.[1];
-    expect(Number(count)).toBe(5);
+    // Approve estimate, the overdue approval, review, sign-off: the unsent draft isn't one of them.
+    expect(Number(count)).toBe(4);
     const insights = (t: string) => Number(t.match(/(\d+) market insights? this week/)?.[1] ?? 0);
     await prisma.marketSignal.create({ data: { clientId: fx.client.id, type: "COMPETITOR", title: "Zip launched 3 new ads on LinkedIn", summary: "x", source: "LinkedIn", publishedAt: new Date() } });
     const after = asText(await render(DashboardPage()));
