@@ -1,52 +1,34 @@
-import { Image as ImageIcon } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import { Suspense } from "react";
 import { getPortalViewer } from "@/lib/current-viewer";
-import { AssetTile, assetTileInclude, tileMedia } from "@/components/portal/asset-tile";
-import { clientCtrAverage } from "@/lib/insights-data";
-import { EmptyState } from "@/components/shared/empty-state";
-import { LibraryChips } from "@/components/portal/library-chips";
-import { clientVisibleAsset } from "@/lib/qc/visibility";
+import { loadOutputLibrary } from "@/lib/output-library";
+import { OutputLibrary } from "@/components/portal/library/output-library";
 
-export default async function AssetsAllPage() {
+const PLATFORM: Record<string, string> = { Meta: "Meta", TikTok: "TikTok", Google: "Google Ads", LinkedIn: "LinkedIn" };
+
+/** Output library (nav v3, 07): produced work only, filters in the URL so views can be shared. */
+export default async function OutputLibraryPage({ searchParams }: { searchParams: Promise<{ q?: string; project?: string; format?: string; channel?: string; days?: string; made?: string; sort?: string }> }) {
+  const sp = await searchParams;
   const viewer = await getPortalViewer();
-  const average = await clientCtrAverage(viewer.clientId);
-  const assets = await prisma.asset.findMany({
-    where: { clientId: viewer.clientId, ...clientVisibleAsset },
-    include: { project: true, ...assetTileInclude },
-    orderBy: { createdAt: "desc" },
+  const lib = await loadOutputLibrary(viewer.clientId, {
+    q: sp.q,
+    project: sp.project,
+    format: sp.format,
+    channel: sp.channel,
+    days: sp.days === "all" ? null : sp.days ? Number(sp.days) || 90 : 90,
+    made: sp.made === "skills" || sp.made === "klingit" ? sp.made : null,
+    sort: sp.sort === "newest" ? "newest" : "best",
   });
-
-  if (assets.length === 0) {
-    return (
-      <EmptyState
-        icon={ImageIcon}
-        title="No assets yet"
-        description="Once your first project reaches production, delivered assets will show up here."
-        actionLabel="Start a brief"
-        actionHref="/brief/new"
-      />
-    );
-  }
-
+  const platforms = lib.dataSources.platforms.map((p) => PLATFORM[p] ?? p);
+  const updated = lib.dataSources.lastUpdate ? (lib.dataSources.lastUpdate === new Date().toISOString().slice(0, 10) ? "updated today" : `updated ${new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(new Date(`${lib.dataSources.lastUpdate}T12:00:00`))}`) : null;
+  const sourcesLine = platforms.length ? `Performance from ${platforms.length > 1 ? `${platforms.slice(0, -1).join(", ")} and ${platforms.at(-1)}` : platforms[0]}${updated ? ` · ${updated}` : ""}` : null;
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <LibraryChips />
-        <span className="text-[12px] text-brand-ink-2">{assets.length} assets</span>
-      </div>
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        {assets.map((a) => (
-          <AssetTile
-            key={a.id}
-            name={a.name}
-            format={a.format}
-            color={a.thumbnailColor}
-            ctr={a.performanceCtr}
-            campaign={a.project.name}
-            {...tileMedia(a)} average={average} href={`/library/${a.id}`}
-          />
-        ))}
-      </div>
-    </div>
+    <Suspense>
+      <OutputLibrary
+        cards={lib.items.map((i) => ({ key: i.key, title: i.title, format: i.format, channel: i.channel, source: i.source, date: i.date.toISOString(), href: i.href, thumb: i.thumb, metric: i.metric?.label ?? null, badge: i.badge }))}
+        facets={lib.facets}
+        summary={lib.summary}
+        sourcesLine={sourcesLine}
+      />
+    </Suspense>
   );
 }
