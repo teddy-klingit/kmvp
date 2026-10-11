@@ -22,6 +22,9 @@ const nextConfig: NextConfig = {
       // notification actionUrls keep working.
       { source: "/assets/agents-templates/brand-os", destination: "/assets/rules", permanent: true },
       { source: "/assets/agents-templates/templates/:rest*", destination: "/assets/visual-identity#layouts", permanent: true },
+      // Phase R: Plan replaces Calendar.
+      { source: "/calendar", destination: "/plan", permanent: true },
+      { source: "/calendar/:rest*", destination: "/plan", permanent: true },
       // Phase R: templates are layouts in Visual identity and "Start from" in a skill run.
       { source: "/skills/templates", destination: "/skills", permanent: true },
       { source: "/skills/templates/:rest*", destination: "/skills", permanent: true },

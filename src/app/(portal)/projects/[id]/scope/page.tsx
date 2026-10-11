@@ -82,7 +82,7 @@ export default async function ProjectScopePage({
         <Card aria-label="Out of scope">
           <CardHeader
             title="Out of scope"
-            meta={<StatusPill tone="watch">Flagged in Klingit's estimate</StatusPill>}
+            meta={<StatusPill tone="watch">Flagged in Klingit’s estimate</StatusPill>}
           />
           <div className="flex flex-col gap-3 px-6 pb-5 pt-4">
             <p className="flex items-center gap-2 text-[13px] text-ds-text-2">

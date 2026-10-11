@@ -57,7 +57,7 @@ export async function computeUrgentMatters(clientId: string, userId: string): Pr
       kind: "suggestion" as const,
       title: `Pending ${daysAgo(s.createdAt)} days — ${s.title}`,
       detail: "Content plan suggestion has been waiting for a decision well past a normal review window.",
-      href: "/calendar#plan-suggestions",
+      href: "/plan",
       actionLabel: "Review",
       createdAt: s.createdAt,
     })),

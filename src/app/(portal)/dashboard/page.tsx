@@ -18,6 +18,7 @@ import { AiCreditMeter } from "@/components/portal/skills/ai-credit-meter";
 import { SkillIcon } from "@/components/portal/skills/skill-icon";
 import { VideoThumb } from "@/components/review/video-thumb";
 import { cn } from "@/lib/utils";
+import { planTurns } from "@/lib/plan";
 
 /** "Needs you" shows at most this many rows; the rest are behind "See all". */
 const TURN_ROWS = 5;
@@ -61,7 +62,8 @@ export default async function DashboardPage() {
     listSkills(viewer.clientId, now),
     loadBrandHealth(viewer.clientId),
   ]);
-  const turns = yourTurn(items, now);
+  // Projects first, then plan items that need a brief this week (Phase R), soonest first within each.
+  const turns = [...yourTurn(items, now), ...(await planTurns(viewer.clientId, now))];
   const live = items.filter(({ state }) => !state.archived);
   const count = (stage: string) => live.filter(({ state }) => state.clientStage === stage).length;
   // When the next slot frees: the soonest first draft (or due date) among projects in Active (as on the board).

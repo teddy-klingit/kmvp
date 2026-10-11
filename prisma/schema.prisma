@@ -1771,16 +1771,43 @@ model Touchpoint {
 // Content the client is planning or running OUTSIDE Klingit (organic social,
 // PR, events, etc.) — tracked here purely for their own visibility on the
 // content calendar, alongside Klingit projects and suggested new work.
+/// A plan item (Phase R: Plan → Calendar). Read and written through src/lib/plan.ts.
 model ClientCalendarItem {
-  id        String   @id @default(cuid())
-  clientId  String
-  title     String
-  date      DateTime
-  channel   String // "Organic social", "PR", "Email", "Event", "Other"
-  notes     String?
-  createdAt DateTime @default(now())
+  id              String    @id @default(cuid())
+  clientId        String
+  title           String
+  /// The live date (or the first day of a range).
+  date            DateTime
+  /// A date range (a campaign): shown as a bar.
+  endDate         DateTime?
+  channel         String // first channel, kept for older readers
+  channels        Json?
+  formats         Json?
+  notes           String?
+  /// Who makes it: "client" (you make it) | "klingit_help" (Klingit's help needed) | "klingit_project" (a project).
+  maker           String    @default("client")
+  /// idea | planned | briefed | in_production | ready | published (a Klingit project's comes from the project).
+  status          String    @default("planned")
+  /// Klingit's help: the live date minus the formats' lead time in working days (plan.ts).
+  briefBy         DateTime?
+  /// Reminders already sent: { "7": iso, "2": iso, "0": iso }.
+  reminded        Json?
+  projectId       String?
+  opportunityId   String?
+  route           String?
+  /// The Output library asset it went live as (performance shows from it).
+  publishedAssetId String?
+  createdByUserId String?
+  /// The Add dialog's key: a double click never makes two items.
+  requestKey      String?
+  archivedAt      DateTime?
+  updatedAt       DateTime  @default(now()) @updatedAt
+  createdAt       DateTime  @default(now())
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, requestKey])
+  @@index([clientId, date])
 }
 
 model Template {
@@ -2089,6 +2116,44 @@ model BrandRuleChange {
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId, createdAt])
+}
+
+/// How long Klingit usually needs per format, in working days (brief-by dates), and a rough team-credit estimate.
+/// Staff edit both in /ops/settings; both are placeholders until measured.
+model PlanLeadTime {
+  id          String   @id @default(cuid())
+  format      String   @unique
+  workingDays Int
+  teamCredits Float?
+  sortOrder   Int      @default(0)
+  updatedAt   DateTime @updatedAt
+}
+
+/// Holidays and shopping days per market (SE / NO / DK / FI) for Plan's Key moments layer. Staff-editable.
+model KeyMoment {
+  id        String    @id @default(cuid())
+  date      DateTime
+  endDate   DateTime?
+  name      String
+  /// ["SE","NO","DK","FI"]
+  markets   Json
+  /// "holiday" | "shopping"
+  kind      String    @default("holiday")
+  createdAt DateTime  @default(now())
+
+  @@index([date])
+}
+
+/// A private iCal feed of a user's plan (Plan → Subscribe). Revoking sets revokedAt; the URL stops working.
+model PlanFeedToken {
+  id        String    @id @default(cuid())
+  userId    String
+  clientId  String
+  token     String    @unique
+  createdAt DateTime  @default(now())
+  revokedAt DateTime?
+
+  @@index([userId])
 }
 
 /// Staff and admin changes that aren't tied to a project: who owns a live ad account, a client's own AI key

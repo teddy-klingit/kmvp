@@ -31,7 +31,7 @@ export function PortalSidebar({ userId, userName, userEmail, clientName, role, a
         { label: "Skills", href: "/skills", icon: Loader },
         { label: "Ongoing projects", href: "/projects", icon: SquareKanban },
         { label: "Output library", href: "/library", icon: Layers },
-        { label: "Calendar", href: "/calendar", icon: CalendarDays },
+        { label: "Plan", href: "/plan", icon: CalendarDays },
         { label: "Insights", href: "/insights", icon: BarChart3 },
       ],
     },

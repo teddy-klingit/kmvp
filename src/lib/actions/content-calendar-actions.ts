@@ -29,7 +29,7 @@ export async function setContentPlanTargetAction(formData: FormData) {
   });
 
   revalidatePath(`/ops/clients/${clientId}/content-plan`);
-  revalidatePath("/calendar");
+  revalidatePath("/plan");
 }
 
 export async function logBusinessOutcomeAction(formData: FormData) {
@@ -47,7 +47,7 @@ export async function logBusinessOutcomeAction(formData: FormData) {
   });
 
   revalidatePath(`/ops/clients/${clientId}/content-plan`);
-  revalidatePath("/calendar");
+  revalidatePath("/plan");
 }
 
 export async function createContentPostAction(formData: FormData) {
@@ -81,7 +81,7 @@ export async function createContentPostAction(formData: FormData) {
   });
 
   revalidatePath(`/ops/clients/${clientId}/content-plan`);
-  revalidatePath("/calendar");
+  revalidatePath("/plan");
 }
 
 // ---------------------------------------------------------------------
@@ -94,7 +94,7 @@ export type GenerateSuggestionsState = { error?: string | null };
 export async function generateContentPlanSuggestionsAction(_prev: GenerateSuggestionsState, _formData: FormData): Promise<GenerateSuggestionsState> {
   const viewer = await getPortalViewer();
   const r = await withAiCharge(assistantCharge(viewer.clientId, viewer.userId, ASSISTANTS.contentPlan), () => writePlanSuggestions(viewer));
-  if (!r.error) revalidatePath("/calendar");
+  if (!r.error) revalidatePath("/plan");
   return r;
 }
 
@@ -107,7 +107,7 @@ export async function rejectContentPlanSuggestionAction(formData: FormData) {
     data: { status: "REJECTED", resolvedAt: new Date() },
   });
 
-  revalidatePath("/calendar");
+  revalidatePath("/plan");
 }
 
 /**
@@ -124,7 +124,7 @@ export async function approveContentPlanSuggestionAction(formData: FormData) {
     data: { status: "APPROVED", stage: "SCHEDULED", resolvedAt: new Date() },
   });
   // Already added (a second click, another tab): show what the first one created.
-  if (claimed.count === 0) redirect(`/calendar?added=${encodeURIComponent(suggestionId)}`);
+  if (claimed.count === 0) redirect(`/plan?added=${encodeURIComponent(suggestionId)}`);
   const suggestion = await prisma.contentPlanSuggestion.findUniqueOrThrow({ where: { id: suggestionId } });
 
   if (suggestion.platform && suggestion.suggestedVolumeChange) {
@@ -161,7 +161,7 @@ export async function approveContentPlanSuggestionAction(formData: FormData) {
   } catch {
     // Confirmed below without a draft link.
   }
-  revalidatePath("/calendar");
+  revalidatePath("/plan");
   revalidatePath("/projects");
-  redirect(`/calendar?added=${encodeURIComponent(suggestion.id)}`);
+  redirect(`/plan?added=${encodeURIComponent(suggestion.id)}`);
 }

@@ -49,7 +49,7 @@ describe("Calendar: Add from a suggestion", () => {
     };
     // Three clicks at once, like an impatient double-click on a slow button.
     const results = await Promise.allSettled([add(), add(), add()]);
-    for (const r of results) expect(r.status === "rejected" && String((r as PromiseRejectedResult).reason)).toMatch(`REDIRECT:/calendar?added=${s.id}`);
+    for (const r of results) expect(r.status === "rejected" && String((r as PromiseRejectedResult).reason)).toMatch(`REDIRECT:/plan?added=${s.id}`);
     expect(await prisma.contentPost.count({ where: { sourceSuggestionId: s.id } })).toBe(1);
     const after = await prisma.contentPlanSuggestion.findUniqueOrThrow({ where: { id: s.id } });
     expect(after.status).toBe("APPROVED");

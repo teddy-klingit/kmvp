@@ -11,7 +11,7 @@ import { legacyTabRedirect, type LegacyTab, type ProjectStage } from "@/lib/proj
 
 import ProjectsPage from "@/app/(portal)/projects/page";
 import DashboardPage from "@/app/(portal)/dashboard/page";
-import CalendarPage from "@/app/(portal)/calendar/page";
+import PlanPage from "@/app/(portal)/plan/page";
 import NotificationsPage from "@/app/(portal)/notifications/page";
 import ProjectLayout from "@/app/(portal)/projects/[id]/layout";
 import OverviewPage from "@/app/(portal)/projects/[id]/page";
@@ -397,18 +397,21 @@ describe("clients never see internal stage names", () => {
     const names = (await prisma.project.findMany({ where: { clientId: fx.client.id }, select: { name: true } })).map((p) => p.name);
     return names.sort((a, b) => b.length - a.length).reduce((acc, n) => acc.split(n).join(" "), t);
   };
-  it("not on the dashboard, the board, the list, the calendar or notifications", async () => {
+  it("not on the dashboard, the board, the list, the plan or notifications", async () => {
     const pages = await Promise.all([
       render(DashboardPage()),
       render(ProjectsPage({ searchParams: Promise.resolve({}) })),
       render(ProjectsPage({ searchParams: Promise.resolve({ view: "list" }) })),
-      render(CalendarPage({ searchParams: Promise.resolve({}) })),
-      render(CalendarPage({ searchParams: Promise.resolve({ view: "list" }) })),
+      render(PlanPage({ searchParams: Promise.resolve({}) })),
+      render(PlanPage({ searchParams: Promise.resolve({ view: "list" }) })),
       render(NotificationsPage({ searchParams: Promise.resolve({}) } as never)),
     ]);
-    for (const html of pages) {
+    for (const [i, html] of pages.entries()) {
       const t = await withoutNames(asText(html));
-      for (const name of INTERNAL_STAGE_NAMES) expect(t).not.toContain(name);
+      // Plan's item statuses (Phase R spec: Idea → Planned → Briefed → In production → Ready → Published) are
+      // client words, not the internal pipeline: "In production" is allowed there.
+      const plan = i === 3 || i === 4;
+      for (const name of INTERNAL_STAGE_NAMES) if (!(plan && name === "In production")) expect(t).not.toContain(name);
     }
   });
 

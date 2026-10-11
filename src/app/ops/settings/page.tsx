@@ -12,6 +12,7 @@ import { INTERNAL_ROLE_LABEL, PLAN_TIER_LABEL } from "@/lib/labels";
 import { DEFAULT_ACTIVE_SLOTS } from "@/lib/active-slots";
 import { setPlanSlotsAction } from "@/lib/actions/plan-actions";
 import { formatDate } from "@/lib/utils";
+import { removeKeyMomentAction, saveKeyMomentAction, saveLeadTimeAction } from "@/lib/actions/ops-plan-actions";
 
 const INTEGRATIONS = [
   { name: "Slack", detail: "Pipeline notifications mirrored into client channels", connected: true },
@@ -64,6 +65,7 @@ export default async function WorkspaceSettingsPage({
   const googleConfigured = Boolean(process.env.GOOGLE_ADS_DEVELOPER_TOKEN && process.env.GOOGLE_ADS_CLIENT_ID);
   const bigQueryConfigured = Boolean(process.env.GOOGLE_BIGQUERY_SERVICE_ACCOUNT_KEY);
   const plans = await prisma.plan.findMany();
+  const [leadTimes, moments] = await Promise.all([prisma.planLeadTime.findMany({ orderBy: { sortOrder: "asc" } }), prisma.keyMoment.findMany({ where: { date: { gte: daysAgo(30) } }, orderBy: { date: "asc" } })]);
   // Live ad accounts belong to one client only (live-ads-owner.ts).
   const owners = (await listLiveAdAccounts()).filter((a) => a.configured);
   const slotsFor = (tier: keyof typeof DEFAULT_ACTIVE_SLOTS) => plans.find((p) => p.tier === tier)?.activeSlots ?? DEFAULT_ACTIVE_SLOTS[tier];
@@ -77,6 +79,63 @@ export default async function WorkspaceSettingsPage({
       {linkedin === "error" && <Notice ok={false}>Couldn&apos;t connect LinkedIn. The authorization was cancelled or failed.</Notice>}
       {google === "connected" && <Notice ok>Google Ads connected successfully.</Notice>}
       {google === "error" && <Notice ok={false}>Couldn&apos;t connect Google Ads. The authorization was cancelled or failed.</Notice>}
+
+      {/* Plan (Phase R): lead times give clients their brief-by dates; key moments show on every client's Plan. */}
+      <SectionCard title="Plan · lead times" meta={<span className="text-[12px] text-brand-ink-2">Working days Klingit needs per format, and ≈ team credits · placeholders</span>}>
+        <ul className="m-0 flex list-none flex-col p-0">
+          {[...leadTimes, null].map((l) => (
+            <li key={l?.id ?? "new"} className="border-b border-brand-line px-6 py-3 last:border-b-0">
+              <form action={saveLeadTimeAction} className="flex flex-wrap items-center gap-3 text-[14px]">
+                {l && <input type="hidden" name="id" value={l.id} />}
+                <input name="format" required defaultValue={l?.format} placeholder="New format" aria-label="Format" className="h-9 w-40 rounded-[8px] border border-brand-outline px-3" />
+                <label className="flex items-center gap-2 text-brand-ink-2">
+                  <input name="workingDays" type="number" min={1} required defaultValue={l?.workingDays} className="h-9 w-16 rounded-[8px] border border-brand-outline px-2 text-brand-ink" /> working days
+                </label>
+                <label className="flex items-center gap-2 text-brand-ink-2">
+                  ≈ <input name="teamCredits" type="number" min={0} step="0.5" defaultValue={l?.teamCredits ?? ""} className="h-9 w-16 rounded-[8px] border border-brand-outline px-2 text-brand-ink" /> team credits
+                </label>
+                <button type="submit" className="text-[13px] underline underline-offset-2">
+                  {l ? "Save" : "Add"}
+                </button>
+              </form>
+            </li>
+          ))}
+        </ul>
+      </SectionCard>
+
+      <SectionCard title="Plan · key moments" meta={<span className="text-[12px] text-brand-ink-2">{moments.length} · holidays and shopping days per market</span>}>
+        <ul className="m-0 flex max-h-[360px] list-none flex-col overflow-y-auto p-0">
+          {moments.map((m) => (
+            <li key={m.id} className="flex items-center gap-3 border-b border-brand-line px-6 py-2.5 text-[14px]">
+              <span className="w-28 shrink-0 text-brand-ink-2">{m.date.toISOString().slice(0, 10)}</span>
+              <span className="flex-1">{m.name}</span>
+              <span className="text-[13px] text-brand-ink-2">{(m.markets as string[]).join(" ")} · {m.kind}</span>
+              <form action={removeKeyMomentAction}>
+                <input type="hidden" name="id" value={m.id} />
+                <button type="submit" className="text-[13px] text-ds-danger-text underline underline-offset-2">
+                  Remove
+                </button>
+              </form>
+            </li>
+          ))}
+        </ul>
+        <form action={saveKeyMomentAction} className="flex flex-wrap items-center gap-3 border-t border-brand-line px-6 py-4 text-[14px]">
+          <input name="name" required placeholder="Name" aria-label="Name" className="h-9 w-44 rounded-[8px] border border-brand-outline px-3" />
+          <input name="date" type="date" required aria-label="Date" className="h-9 rounded-[8px] border border-brand-outline px-2" />
+          {["SE", "NO", "DK", "FI"].map((mk) => (
+            <label key={mk} className="flex items-center gap-1">
+              <input type="checkbox" name="markets" value={mk} defaultChecked /> {mk}
+            </label>
+          ))}
+          <select name="kind" aria-label="Kind" className="h-9 rounded-[8px] border border-brand-outline px-2">
+            <option value="holiday">Holiday</option>
+            <option value="shopping">Shopping day</option>
+          </select>
+          <button type="submit" className="text-[13px] underline underline-offset-2">
+            Add
+          </button>
+        </form>
+      </SectionCard>
 
       <SectionCard title="Plans · active slots">
         <CardNote>
@@ -190,4 +249,9 @@ export default async function WorkspaceSettingsPage({
       </SectionCard>
     </OpsPage>
   );
+}
+
+/** Key moments from a month back on. */
+function daysAgo(n: number) {
+  return new Date(Date.now() - n * 86400000);
 }

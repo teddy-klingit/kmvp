@@ -4,6 +4,7 @@ import { loadTakeaways } from "@/lib/insights-data";
 import { lastClosed, writeReport } from "@/lib/report-data";
 import { syncDailyAdMetrics } from "@/lib/integrations/ad-daily";
 import { logError } from "@/lib/secrets";
+import { sendPlanReminders } from "@/lib/plan";
 
 /**
  * Scheduled agent work (replaces the old page-load runs): for every active client, this week's Insights
@@ -17,6 +18,9 @@ export async function runScheduledAgents(now = new Date()) {
   // Demo accounts are seeded and stay as seeded: no scheduled agent ever writes to them.
   const clients = await prisma.client.findMany({ where: { status: { in: ["ACTIVE", "ONBOARDING"] }, isDemo: false }, select: { id: true, name: true } });
   const done: string[] = [];
+  // Plan reminders: 7 and 2 days before a brief-by date, and on the day (each once).
+  const reminded = await sendPlanReminders(now, clients.map((c) => c.id)).catch(() => 0);
+  if (reminded) done.push(`plan reminders: ${reminded}`);
   for (const c of clients) {
     try {
       // Real per-day ad metrics first (every 6 hours), so the takeaways and charts read today's numbers.

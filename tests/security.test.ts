@@ -22,7 +22,7 @@ describe("cross-client access", () => {
       await deleteClientCalendarItemAction(formData);
 
       const stillThere = await prisma.clientCalendarItem.findUnique({ where: { id: fx.calendarItemA.id } });
-      expect(stillThere).not.toBeNull();
+      expect(stillThere?.archivedAt).toBeNull();
     } finally {
       await fx.cleanup();
     }
@@ -37,8 +37,9 @@ describe("cross-client access", () => {
       formData.set("id", fx.calendarItemA.id);
       await deleteClientCalendarItemAction(formData);
 
+      // Removed from the plan: archived, kept for restore (never hard-deleted).
       const gone = await prisma.clientCalendarItem.findUnique({ where: { id: fx.calendarItemA.id } });
-      expect(gone).toBeNull();
+      expect(gone?.archivedAt).not.toBeNull();
     } finally {
       await fx.cleanup();
     }

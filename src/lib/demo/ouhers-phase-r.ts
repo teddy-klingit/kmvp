@@ -1,6 +1,8 @@
 import type { BrandRuleType, Prisma } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
 import { checkCopy } from "@/lib/rule-check";
+import { briefByFor, loadLeadTimes, mondayOf } from "@/lib/plan";
+import { clientVisibleAsset } from "@/lib/qc/visibility";
 
 
 /**
@@ -97,3 +99,65 @@ export async function seedRuleCounts(clientId: string) {
   return texts.length;
 }
 
+
+/**
+ * Plan (design 04): the ouhers plan for the next five weeks — one of each owner, two "Klingit helps" items with
+ * brief-due markers (the Halloween reel inside its reminder window), a campaign bar over two weeks, the key moments
+ * from the shared layer, and one gap week (week 44: only the Halloween reel on Instagram). Dated relative to the
+ * seed's "now"; items on a key moment sit on that moment's real date.
+ */
+export async function seedPhaseRPlan(ctx: { clientId: string; now: Date; userId: (packUserId: string) => string }) {
+  const { clientId, now } = ctx;
+  const maja = ctx.userId("ou-maja");
+  const leadTimes = await loadLeadTimes();
+  // Week 0 is the week the 5-week view opens on (on a Sunday, tomorrow's).
+  const w0 = mondayOf(now.getDay() === 0 ? new Date(now.getTime() + DAY) : now);
+  const day = (n: number) => new Date(w0.getFullYear(), w0.getMonth(), w0.getDate() + n, 10);
+  const moment = async (name: string, fallback: number) => {
+    const m = await prisma.keyMoment.findFirst({ where: { name, date: { gte: day(7), lt: day(35) } }, orderBy: { date: "asc" } });
+    return m ? new Date(m.date.getFullYear(), m.date.getMonth(), m.date.getDate(), 10) : day(fallback);
+  };
+  const project = async (name: string) => (await prisma.project.findFirst({ where: { clientId, name }, select: { id: true } }))?.id ?? null;
+
+  // The agreement: Instagram from the pack (2 a week), TikTok 1 a week.
+  if (!(await prisma.contentPlanTarget.findFirst({ where: { clientId, platform: "TikTok" } }))) await prisma.contentPlanTarget.create({ data: { clientId, platform: "TikTok", weeklyVolume: 1 } });
+
+  type Item = { title: string; date: Date; endDate?: Date; channels: string[]; formats: string[]; maker: "client" | "klingit_help" | "klingit_project"; status?: string; notes?: string; projectId?: string | null; publishedAssetId?: string | null; reminded?: Record<string, string> };
+  const halloween = await moment("Halloween", 19);
+  const singles = await moment("Singles Day", 30);
+  const published = await prisma.asset.findFirst({ where: { clientId, ...clientVisibleAsset, project: { name: "lip ours: you voted" } }, select: { id: true } });
+  const items: Item[] = [
+    { title: "lip ours: you voted · recap", date: day(-4), channels: ["Instagram"], formats: ["Carousel"], maker: "client", status: "published", publishedAssetId: published?.id ?? null },
+    { title: "Halloween glow reel", date: halloween, channels: ["Instagram", "TikTok"], formats: ["Reel / video"], maker: "klingit_help", notes: "the glow, not the scare: dew drop under candlelight.", reminded: { "7": new Date(now.getTime() - 2 * DAY).toISOString() } },
+    { title: "Singles Day self-care set", date: singles, channels: ["Instagram", "TikTok"], formats: ["Carousel", "Stories", "Reel / video"], maker: "klingit_help", notes: "gift set: cloud cream + lip ours. calm, no countdowns." },
+    { title: "Holiday: the soft set · in market", date: day(21), endDate: day(34), channels: ["Instagram", "TikTok"], formats: ["Reel / video", "Stories"], maker: "klingit_project", projectId: await project("Holiday: the soft set") },
+    { title: "milk wash restock post", date: day(24), channels: ["Instagram"], formats: ["Post"], maker: "client", status: "planned" },
+    { title: "Newsletter · gifting", date: day(32), channels: ["Newsletter"], formats: ["Email"], maker: "client", status: "planned" },
+  ];
+  for (const i of items) {
+    await prisma.clientCalendarItem.create({
+      data: {
+        clientId,
+        title: i.title,
+        date: i.date,
+        endDate: i.endDate ?? null,
+        channel: i.channels[0],
+        channels: i.channels,
+        formats: i.formats,
+        maker: i.maker,
+        status: i.status ?? "planned",
+        notes: i.notes ?? null,
+        projectId: i.projectId ?? null,
+        publishedAssetId: i.publishedAssetId ?? null,
+        briefBy: i.maker === "klingit_help" ? briefByFor(i.date, i.formats, leadTimes).briefBy : null,
+        reminded: i.reminded,
+        createdByUserId: maja,
+        requestKey: `seed-${i.title}`,
+        createdAt: new Date(now.getTime() - 9 * DAY),
+      },
+    });
+  }
+  // The pack's own plan items say what they are.
+  await prisma.clientCalendarItem.updateMany({ where: { clientId, title: { startsWith: "Newsletter" }, channel: "Email" }, data: { channel: "Newsletter", channels: ["Newsletter"], formats: ["Email"] } });
+  return items.length;
+}

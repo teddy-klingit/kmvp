@@ -16,7 +16,7 @@ import { loadBrandHealth } from "@/lib/brand-health";
 import { estimatePreview, type PriceEntry } from "@/lib/brief-studio/formats";
 import type { AgentBuild, BuildStep } from "@/lib/agent-build";
 import { phaseQPack, phaseQText, seedPhaseQ } from "@/lib/demo/ouhers-phase-q";
-import { seedPhaseRRules, seedRuleCounts } from "@/lib/demo/ouhers-phase-r";
+import { seedPhaseRPlan, seedPhaseRRules, seedRuleCounts } from "@/lib/demo/ouhers-phase-r";
 
 /**
  * The ouhers demo client (prisma/demo/ouhers, read README.md there): a complete fictional account for demoing every
@@ -819,6 +819,7 @@ export async function seedOuhers(opts: { dir?: string; shift?: boolean; log?: (s
   // Phase R: Brand OS → Rules as design 01 (the old voice fields above are no longer read), then real rule counts.
   await seedPhaseRRules({ clientId: OUHERS_CLIENT_ID, now, userId: (id) => clientUserIds.get(id)!.userId, staffUserId: staffIds.get("kl-teddy")?.userId ?? null, legalLines: brand.voice.mustInclude });
   say(`Phase R · rules · ${await seedRuleCounts(OUHERS_CLIENT_ID)} pieces of copy run through the rule check`);
+  say(`Phase R · plan · ${await seedPhaseRPlan({ clientId: OUHERS_CLIENT_ID, now, userId: (id) => clientUserIds.get(id)!.userId })} plan items`);
 
   // ─── Computed vs expected ───────────────────────────────────────────────
   const health = await loadBrandHealth(OUHERS_CLIENT_ID);

@@ -3,6 +3,7 @@ import { loadProjectStates } from "@/lib/project-state-loader";
 import { projectVisibilityWhere } from "@/lib/project-visibility";
 import { creditSummary, yourTurn } from "@/lib/client-home";
 import { aiCreditStatus } from "@/lib/ai-credits";
+import { planTurns } from "@/lib/plan";
 
 /**
  * What the client nav shows on every page: the Home badge (things that need you, the same rule as Home's "Needs
@@ -14,8 +15,9 @@ export const loadNavSummary = cache(async (viewer: { id: string; clientId: strin
     creditSummary(viewer.clientId),
     aiCreditStatus(viewer.clientId),
   ]);
+  const plan = await planTurns(viewer.clientId);
   return {
-    needsYou: yourTurn(items).length,
+    needsYou: yourTurn(items).length + plan.length,
     plan: ai.plan.name || "Your",
     team: { left: team.free, allowance: team.allowance },
     // Rounded like every other screen (Home, Skills, Usage), so the numbers match.
