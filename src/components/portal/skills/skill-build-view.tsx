@@ -70,24 +70,24 @@ export async function SkillBuildView({ projectId, build, share }: { projectId: s
                   ["Each run", build.perRunCredits != null ? `≈ ${build.perRunCredits} AI credits` : "Not known yet"],
                   ["Test version", build.dates.Testing ? date(build.dates.Testing, { weekday: "short", day: "numeric", month: "short" }) : "Not planned yet"],
                 ].map(([k, v], i) => (
-                  <div key={k} className={cn("flex flex-col gap-1 px-6 py-4", i > 0 && "border-l border-brand-line", i === 2 && "max-[799px]:border-l-0 max-[799px]:border-t")}>
-                    <dt className="flex items-center gap-2 text-[13px] text-brand-mute">
-                      {k}
+                  <div key={k} className={cn("flex min-w-0 flex-col gap-1 px-5 py-4", i > 0 && "border-l border-brand-line", i === 2 && "max-[799px]:border-l-0 max-[799px]:border-t")}>
+                    <dt className="text-[13px] text-brand-mute">{k}</dt>
+                    <dd className="m-0 flex flex-col items-start gap-1 text-[16px] min-[1200px]:whitespace-nowrap">
+                      {v}
                       {k === "Each run" && build.perRunCredits != null && <PlaceholderTag className="text-[9px]" />}
-                    </dt>
-                    <dd className="m-0 text-[17px]">{v}</dd>
+                    </dd>
                   </div>
                 ))}
-                <div className="flex items-center gap-3 border-l border-brand-line px-6 py-4 max-[799px]:border-t">
-                  <span className="flex">
-                    {builders.map((n, i) => (
-                      <Avatar key={n} name={n} size={30} ring className={i ? "-ml-2" : ""} />
-                    ))}
+                <div className="flex min-w-0 flex-col gap-1 border-l border-brand-line px-5 py-4 max-[799px]:border-t">
+                  <span className="flex items-center gap-2 text-[13px] text-brand-mute">
+                    <span className="flex">
+                      {builders.map((n, i) => (
+                        <Avatar key={n} name={n} size={22} ring className={i ? "-ml-1.5" : ""} />
+                      ))}
+                    </span>
+                    Built by
                   </span>
-                  <span className="flex flex-col">
-                    <span className="text-[13px] text-brand-mute">Built by</span>
-                    <span className="text-[17px]">{builders.map((n) => n.split(" ")[0]).join(" · ") || "Klingit"}</span>
-                  </span>
+                  <span className="text-[16px]">{builders.map((n) => n.split(" ")[0]).join(" · ") || "Klingit"}</span>
                 </div>
               </dl>
               <ol aria-label="Build steps" className="m-0 grid list-none grid-cols-5 px-6 py-6">

@@ -607,6 +607,7 @@ async function main() {
         ["02-skills-run", "/skills"],
         ["03-skills-yours", "/skills/yours"],
         ["04-skills-templates", "/skills/templates"],
+        ["05c-skill-build", "/skills/build/ouhers-p11-agent-seasonal"],
         ["05-brand-os", "/assets"],
         ["05b-brand-os-rules", "/assets/rules"],
         ["06-ongoing-projects", "/projects"],
