@@ -51,6 +51,14 @@ export function phaseQPack(account: Account, agents: Agents, projects: Project[]
   // Custom skills are created by seedPhaseQ, not as pack "agents".
   agents.yourAgents = [];
 
+  // A healthy Growth month (designs 01/08): 22 used · 4 held · 14 left of 40. The estimate waiting on the client
+  // is a 4-credit concept round for the retail display, not the whole 27-credit job.
+  const retail = projects.find((p) => p.id === "p09-retail-display") as (Project & { estimate?: { lines: unknown[]; total: number } }) | undefined;
+  if (retail?.estimate) {
+    retail.estimate = { ...retail.estimate, lines: [{ deliverable: "Retail display, concept round (2 directions)", credits: 4 }], total: 4 };
+    retail.credits = { ...retail.credits, estimated: [4, 4] };
+  }
+
   const build = projects.find((p) => p.id === "p11-agent-seasonal");
   if (build) {
     build.title = "Ingredient explainer";
