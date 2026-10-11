@@ -5,6 +5,8 @@ import { specChecks, type CheckResult } from "@/lib/qc/specs";
 import { visionChecks } from "@/lib/qc/vision-check";
 import { notifyMany } from "@/lib/notifier";
 import { logError } from "@/lib/secrets";
+import { loadActiveRules } from "@/lib/brand-rules";
+import { checkCopy } from "@/lib/rule-check";
 
 /**
  * The Brand OS check, run on every new version before anyone sends it: platform specs (deterministic) plus the
@@ -33,10 +35,22 @@ async function checksFor(versionId: string): Promise<{ results: CheckResult[]; r
       projectId: asset.projectId,
       asset: { name: asset.name, format: asset.format, platform: asset.platform },
       image: { mediaType: v.mimeType as VisionType, data: data.toString("base64") },
-      brand: { clientName: asset.client.name, toneRules: brand?.toneRules, dos: brand?.dos, donts: brand?.donts, colors: brand?.colorPalette ?? brand?.approvedColors },
+      brand: { clientName: asset.client.name, rules: await loadActiveRules(asset.clientId, { channel: asset.platform }), colors: brand?.colorPalette ?? brand?.approvedColors },
     });
     results.push(...vision.results);
     runId = vision.runId;
+  }
+  // The copy that goes with it, through the one rule check every skill and the Test copy card use (Klingit's cost).
+  const copy = Object.values(((asset.tags as { copy?: Record<string, string> } | null)?.copy ?? {})).filter(Boolean).join("\n");
+  if (copy && process.env.QC_AI !== "0") {
+    const c = await checkCopy(asset.clientId, copy, { channel: asset.platform, agentContext: { projectId: asset.projectId } });
+    results.push({
+      key: "rules",
+      label: "Brand OS rules",
+      source: "Rule check",
+      passed: c.violations.length === 0,
+      ...(c.violations.length ? { flag: { label: c.violations.length === 1 ? `1 rule: ${c.violations[0].rule}` : `${c.violations.length} rules broken`, detail: c.violations.map((v) => `${v.rule}${v.offending.length ? ` (“${v.offending.join("”, “")}”)` : ""}`).join(" · ") } } : {}),
+    });
   }
   return { results, runId, width, height };
 }

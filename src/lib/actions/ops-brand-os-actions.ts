@@ -19,19 +19,14 @@ export async function updateBrandOSAction(formData: FormData) {
 
   await prisma.brandOS.upsert({
     where: { clientId },
+    // Rules (tone, do's, words, claims) are edited in Brand OS → Rules (brand-rules.ts), not here.
     update: {
-      toneRules: linesToArray(String(formData.get("toneRules") ?? "")),
-      dos: linesToArray(String(formData.get("dos") ?? "")),
-      donts: linesToArray(String(formData.get("donts") ?? "")),
       approvedColors: linesToArray(String(formData.get("approvedColors") ?? "")),
       approvedTypography: linesToArray(String(formData.get("approvedTypography") ?? "")),
       lastSyncedAt: new Date(),
     },
     create: {
       clientId,
-      toneRules: linesToArray(String(formData.get("toneRules") ?? "")),
-      dos: linesToArray(String(formData.get("dos") ?? "")),
-      donts: linesToArray(String(formData.get("donts") ?? "")),
       approvedColors: linesToArray(String(formData.get("approvedColors") ?? "")),
       approvedTypography: linesToArray(String(formData.get("approvedTypography") ?? "")),
     },

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { runAgentTask } from "@/lib/ai/run-agent";
 import { jsonArray } from "@/lib/utils";
 import type { CheckResult } from "@/lib/qc/specs";
+import { rulesForPrompt, type ActiveRule } from "@/lib/brand-rules";
 
 /**
  * The AI half of the Brand OS check: the brand compliance agent looks at the image against the client's Brand
@@ -30,7 +31,8 @@ const ResultSchema = z.object({
   ),
 });
 
-export type BrandRules = { clientName: string; toneRules: unknown; dos: unknown; donts: unknown; colors: unknown };
+/** The brand as the check sees it: colours, and the active rules from Brand OS → Rules (read fresh). */
+export type BrandRules = { clientName: string; rules: ActiveRule[]; colors: unknown };
 
 export async function visionChecks(args: {
   clientId: string;
@@ -47,9 +49,7 @@ export async function visionChecks(args: {
     "",
     "BRAND OS",
     `Colours: ${list(args.brand.colors).join(", ") || "not set"}`,
-    `Voice rules: ${list(args.brand.toneRules).join("; ") || "not set"}`,
-    `Do: ${list(args.brand.dos).join("; ") || "not set"}`,
-    `Don't: ${list(args.brand.donts).join("; ") || "not set"}`,
+    ...(args.brand.rules.length ? rulesForPrompt(args.brand.rules) : ["Rules: not set"]),
     "",
     "Check the image for each of: identity (logo lockup and brand colours), legal (a legal/disclaimer line where the offer or claim needs one), spelling (spelling and grammar of every word on the image), tone (copy follows the voice rules), safe_zone (text and CTA clear of the platform UI for this format, e.g. the bottom 20% and top 14% of a 9:16 story or reel), text_amount (text covers well under a third of the image).",
     "Fail only for a clear, specific problem you can see. Use n/a when a check doesn't apply or the Brand OS doesn't say enough to judge it.",

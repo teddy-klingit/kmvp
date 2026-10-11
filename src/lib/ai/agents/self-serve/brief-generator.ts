@@ -2,6 +2,7 @@ import { z } from "zod";
 import { runAgentTask } from "@/lib/ai/run-agent";
 import { buildBrandContext } from "@/lib/ai/brand-context";
 import type { Client, BrandOS } from "@/generated/prisma";
+import type { BrandForAgents } from "@/lib/brand-rules";
 
 const BriefDraftSchema = z.object({
   title: z.string().describe("A short, specific project title for this brief"),
@@ -20,7 +21,7 @@ export async function generateSelfServeBrief(args: {
   clientId: string;
   requestedByUserId: string;
   client: Pick<Client, "name" | "industry" | "brandSummary">;
-  brandOS: BrandOS | null;
+  brandOS: BrandForAgents;
   idea: string;
   goal: string;
 }) {

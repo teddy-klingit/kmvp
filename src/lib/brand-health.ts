@@ -5,6 +5,7 @@ import { jsonArray } from "@/lib/utils";
 import { platformStatus } from "@/lib/brand-completeness";
 import { VISUAL_IDENTITY_FOLDERS, VISUAL_IDENTITY_CATEGORY } from "@/lib/brand-iq-taxonomy";
 import { CONNECTABLE_APPS } from "@/lib/brand-sources";
+import { loadActiveRules } from "@/lib/brand-rules";
 
 /**
  * Brand health, 0–100: a weighted sum of five shares, computed from what's in Brand OS and connected. Never stored,
@@ -59,7 +60,7 @@ export function healthTone(share: number): "lime" | "ink" | "orange" {
 
 /** The one Brand health for a client: Brand OS overview, Home and the seed check all read this. Cached per request. */
 export const loadBrandHealth = cache(async (clientId: string) => {
-  const [client, brandOS, assets, sources, connections, adAccounts] = await Promise.all([
+  const [client, brandOS, assets, sources, connections, adAccounts, rules] = await Promise.all([
     prisma.client.findUniqueOrThrow({ where: { id: clientId }, select: { brandSummary: true } }),
     prisma.brandOS.findUnique({ where: { clientId } }),
     prisma.brandAsset.findMany({ where: { clientId }, select: { category: true } }),
@@ -67,6 +68,7 @@ export const loadBrandHealth = cache(async (clientId: string) => {
     prisma.brandConnection.findMany({ where: { clientId, status: "CONNECTED" }, select: { app: true } }),
     // This client's own ad accounts (Settings → Connections), plus the platform's live ones only if it owns them.
     connectedAdAccounts(clientId),
+    loadActiveRules(clientId),
   ]);
   const platform = platformStatus({ brandSummary: client.brandSummary, brandOS });
   const visualDone = VISUAL_IDENTITY_FOLDERS.filter((f) => {
@@ -77,7 +79,8 @@ export const loadBrandHealth = cache(async (clientId: string) => {
     const category = VISUAL_IDENTITY_CATEGORY[f.slug];
     return category ? assets.some((a) => a.category === category) : false;
   }).length;
-  const voice = [jsonArray(brandOS?.voiceAttributes), jsonArray(brandOS?.toneRules), jsonArray(brandOS?.dos), jsonArray(brandOS?.donts)].filter((l) => l.length > 0).length;
+  // Voice & tone: voice attributes, tone rules, do's (incl. claims and channel rules), word lists (Brand OS → Rules).
+  const voice = [jsonArray(brandOS?.voiceAttributes).length > 0, rules.some((r) => r.type === "TONE"), rules.some((r) => r.type === "DO" || r.type === "CLAIMS" || r.type === "CHANNEL"), rules.some((r) => (r.type === "WORDS_USE" || r.type === "WORDS_AVOID") && r.words.length > 0)].filter(Boolean).length;
   // Sources = file and doc apps only (ad accounts and AI models are Connections too, but not brand sources).
   const sourceApp = (a: string) => CONNECTABLE_APPS.some((x) => x.key === a);
   const apps = new Set([...sources.map((s) => s.app), ...connections.map((c) => c.app)].filter(sourceApp));

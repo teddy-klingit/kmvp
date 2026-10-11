@@ -47,6 +47,7 @@ import {
 } from "@/lib/brief-studio/planner";
 import { clientVisibleAsset } from "@/lib/qc/visibility";
 import { notify } from "@/lib/notifier";
+import { loadBrandForAgents, type ActiveRule } from "@/lib/brand-rules";
 
 /**
  * The Brief studio on the server. Not a "use server" module: everything here takes a viewer the caller resolved
@@ -148,9 +149,10 @@ async function formatStatsFor(clientId: string, viewerClientUserId: string): Pro
   return [...best].map(([formatId, v]) => ({ formatId, ctr: v.ctr, projectName: v.projectName }));
 }
 
-function toneFrom(brandOS: { toneRules: unknown; voiceAttributes: unknown; imageryStyle: string | null; colorPalette: unknown } | null) {
+function toneFrom(brandOS: { rules: ActiveRule[]; voiceAttributes: unknown; imageryStyle: string | null; colorPalette: unknown } | null) {
   if (!brandOS) return null;
-  const rules = jsonArray<string>(brandOS.toneRules);
+  // The active Tone rules from Brand OS → Rules (brand-rules.ts).
+  const rules = brandOS.rules.filter((r) => r.type === "TONE").map((r) => r.text);
   const voice = jsonArray<{ leftLabel: string; rightLabel: string; value: number }>(brandOS.voiceAttributes).map((v) => (v.value >= 50 ? v.rightLabel : v.leftLabel));
   const colours = jsonArray<{ name: string }>(brandOS.colorPalette).map((c) => c.name);
   const parts = [
@@ -164,7 +166,7 @@ function toneFrom(brandOS: { toneRules: unknown; voiceAttributes: unknown; image
 export async function loadStudioContext(viewer: PortalViewer, q: { text: string; parsed: ParsedRequest; excludeProjectId?: string }): Promise<StudioContext> {
   const clientId = viewer.clientId;
   const [brandOS, linked, linkedCount, prices, pastProjects, formatStats, pastProjectCount, team, comments] = await Promise.all([
-    prisma.brandOS.findUnique({ where: { clientId } }),
+    loadBrandForAgents(clientId),
     brandSourcesForAgents(clientId),
     prisma.brandSource.count({ where: { clientId, archivedAt: null } }),
     prisma.priceListItem.findMany({ where: { archivedAt: null } }),
@@ -174,7 +176,7 @@ export async function loadStudioContext(viewer: PortalViewer, q: { text: string;
     prisma.clientUser.findMany({ where: { clientId, id: { not: viewer.id }, user: { status: { not: "SUSPENDED" } } }, include: { user: { select: { name: true } } }, orderBy: { createdAt: "asc" } }),
     prisma.communityEscalation.findMany({ where: { clientId }, orderBy: { createdAt: "desc" }, take: 12, select: { platform: true, snippet: true } }),
   ]);
-  const voice = jsonArray(brandOS?.voiceAttributes).length > 0 || jsonArray(brandOS?.toneRules).length > 0;
+  const voice = jsonArray(brandOS?.voiceAttributes).length > 0 || (brandOS?.rules ?? []).some((r) => r.type === "TONE");
   const visual = Boolean(brandOS?.imageryStyle || brandOS?.illustrationStyle || jsonArray(brandOS?.colorPalette).length || brandOS?.approvedTypography);
   return {
     brandName: viewer.client.name,

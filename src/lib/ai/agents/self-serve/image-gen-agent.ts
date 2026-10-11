@@ -3,6 +3,7 @@ import { runAgentTask } from "@/lib/ai/run-agent";
 import { buildBrandContext } from "@/lib/ai/brand-context";
 import { attachGeneratedImage } from "@/lib/ai/agents/self-serve/attach-image";
 import type { Client, BrandOS } from "@/generated/prisma";
+import type { BrandForAgents } from "@/lib/brand-rules";
 
 const ImageGenSchema = z.object({
   concept: z.string().describe("1-2 sentences describing what the image shows and why it fits the brief"),
@@ -22,7 +23,7 @@ export async function generateSelfServeImage(args: {
   clientId: string;
   requestedByUserId: string;
   client: Pick<Client, "name" | "industry" | "brandSummary">;
-  brandOS: BrandOS | null;
+  brandOS: BrandForAgents;
   idea: string;
 }) {
   const system = `You are the Image Gen agent at Klingit, a creative agency. A client is using you directly to generate a standalone on-brand image or illustration — not an ad, no headline or CTA baked in, just a genuinely on-brand visual for whatever they need it for (a blog header, a presentation, a general illustration, an icon-style graphic, background art). Ground the imagery style, color palette, and composition in the brand context you're given rather than defaulting to generic stock-photo aesthetics.`;

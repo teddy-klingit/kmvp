@@ -35,6 +35,8 @@ export const ASSISTANTS = {
   seo: { sourceKey: "seo_agent", sourceName: "SEO & AI visibility check" },
   contentPlan: { sourceKey: "content_plan_agent", sourceName: "Content plan ideas" },
   brandDraft: { sourceKey: "brand_os", sourceName: "Brand OS drafting" },
+  ruleCheck: { sourceKey: "rule_check", sourceName: "Rule check" },
+  ruleImport: { sourceKey: "rule_import", sourceName: "Guidelines import" },
 } as const;
 
 export const assistantCharge = (clientId: string, userId: string | null | undefined, a: (typeof ASSISTANTS)[keyof typeof ASSISTANTS], extra: Partial<AiChargeContext> = {}): AiChargeContext => ({

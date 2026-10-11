@@ -23,6 +23,8 @@ type RunAgentTaskArgs<T> = {
   webSearch?: boolean;
   /** Images the agent looks at with the prompt (e.g. the asset under the Brand OS check), base64. */
   images?: { mediaType: "image/png" | "image/jpeg" | "image/gif" | "image/webp"; data: string }[];
+  /** PDFs the agent reads with the prompt (e.g. brand guidelines to turn into draft rules), base64. */
+  documents?: { mediaType: "application/pdf"; data: string }[];
 };
 
 type RunAgentTaskResult<T> = { ok: true; data: T; runId: string } | { ok: false; error: string };
@@ -43,6 +45,7 @@ export async function runAgentTask<T>({
   summarize,
   webSearch,
   images,
+  documents,
 }: RunAgentTaskArgs<T>): Promise<RunAgentTaskResult<T>> {
   const agent = await prisma.agent.findUnique({ where: { key: agentKey } });
   if (!agent) {
@@ -83,9 +86,14 @@ export async function runAgentTask<T>({
       messages: [
         {
           role: "user",
-          content: images?.length
-            ? [...images.map((img) => ({ type: "image" as const, source: { type: "base64" as const, media_type: img.mediaType, data: img.data } })), { type: "text" as const, text: prompt }]
-            : prompt,
+          content:
+            images?.length || documents?.length
+              ? [
+                  ...(documents ?? []).map((d) => ({ type: "document" as const, source: { type: "base64" as const, media_type: d.mediaType, data: d.data } })),
+                  ...(images ?? []).map((img) => ({ type: "image" as const, source: { type: "base64" as const, media_type: img.mediaType, data: img.data } })),
+                  { type: "text" as const, text: prompt },
+                ]
+              : prompt,
         },
       ],
       output_config: { format: zodOutputFormat(schema) },

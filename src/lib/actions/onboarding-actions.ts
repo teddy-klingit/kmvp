@@ -20,15 +20,18 @@ export async function saveBrandInfoAction(formData: FormData) {
     update: {
       approvedColors: [String(formData.get("primaryColor") ?? "#2F5FE3")],
       approvedTypography: [String(formData.get("primaryFont") ?? "")],
-      toneRules: String(formData.get("personality") ?? "").split(",").filter(Boolean),
     },
     create: {
       clientId: viewer.clientId,
       approvedColors: [String(formData.get("primaryColor") ?? "#2F5FE3")],
       approvedTypography: [String(formData.get("primaryFont") ?? "")],
-      toneRules: String(formData.get("personality") ?? "").split(",").filter(Boolean),
     },
   });
+  // Personality picked in onboarding: tone rules in Brand OS → Rules (the owner sets them up, so they're active).
+  for (const [i, trait] of String(formData.get("personality") ?? "").split(",").map((t) => t.trim()).filter(Boolean).entries()) {
+    const exists = await prisma.brandRule.findFirst({ where: { clientId: viewer.clientId, type: "TONE", text: trait, deletedAt: null } });
+    if (!exists) await prisma.brandRule.create({ data: { clientId: viewer.clientId, type: "TONE", text: trait, source: "onboarding", sortOrder: i, createdByUserId: viewer.userId } });
+  }
 
   revalidatePath("/onboarding");
 }

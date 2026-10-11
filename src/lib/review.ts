@@ -4,6 +4,7 @@ import { jsonArray } from "@/lib/utils";
 import { clientVisibleAsset, clientVisibleVersion } from "@/lib/qc/visibility";
 import { expectedShape } from "@/lib/qc/specs";
 import { clientCheckSummary } from "@/lib/qc/quality-check";
+import { avoidWords, loadActiveRules } from "@/lib/brand-rules";
 export { textDiff } from "@/lib/review-text";
 
 /**
@@ -71,9 +72,9 @@ export function kindOf(a: { type: string; format: string }): ReviewKind {
   return "adset";
 }
 
-/** Words the brand avoids, from Brand OS don'ts written as `Avoid "word"`. */
-export function avoidedWords(donts: unknown) {
-  return jsonArray<string>(donts).flatMap((d) => [...d.matchAll(/"([^"]+)"/g)].map((m) => m[1].toLowerCase()));
+/** Words the brand avoids: the words-to-avoid lists in Brand OS → Rules. */
+export async function avoidedWords(clientId: string) {
+  return avoidWords(await loadActiveRules(clientId));
 }
 
 /** On voice when none of the avoided words is used; nothing to say when the Brand OS lists none. */
@@ -113,7 +114,7 @@ export async function loadReview(projectId: string, clientId: string) {
     clientCheckSummary(projectId),
     prisma.comment.findMany({ where: { projectId, kind: "SYSTEM", body: { startsWith: "Version " } }, orderBy: { createdAt: "desc" }, take: 1 }),
   ]);
-  const avoid = avoidedWords(project.client.brandOS?.donts);
+  const avoid = await avoidedWords(clientId);
 
   const items: ReviewItem[] = assets.map((a) => {
     const kind = kindOf(a);

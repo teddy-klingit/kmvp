@@ -3,6 +3,7 @@ import { runAgentTask } from "@/lib/ai/run-agent";
 import { buildBrandContext } from "@/lib/ai/brand-context";
 import { attachGeneratedImage } from "@/lib/ai/agents/self-serve/attach-image";
 import type { Client, BrandOS } from "@/generated/prisma";
+import type { BrandForAgents } from "@/lib/brand-rules";
 
 const AdConceptSchema = z.object({
   concept: z.string().describe("1-2 sentences describing the creative concept"),
@@ -27,7 +28,7 @@ export async function generateSelfServeAdConcept(args: {
   clientId: string;
   requestedByUserId: string;
   client: Pick<Client, "name" | "industry" | "brandSummary">;
-  brandOS: BrandOS | null;
+  brandOS: BrandForAgents;
   format: string;
   idea: string;
 }) {

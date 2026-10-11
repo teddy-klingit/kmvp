@@ -1,5 +1,6 @@
 import { jsonArray } from "@/lib/utils";
 import type { Client, BrandOS } from "@/generated/prisma";
+import { rulesForPrompt, type ActiveRule } from "@/lib/brand-rules";
 
 type VoiceAttribute = { label: string; leftLabel: string; rightLabel: string; value: number };
 type AudiencePersona = { name: string; description: string; ageRange?: string; traits?: string[] };
@@ -11,7 +12,8 @@ type ColorEntry = { hex: string; name: string; role?: string };
  * brand instead of re-deriving or re-asking for it. */
 /** `linkedSources` is the block from brandSourcesForAgents(): titles, apps and URLs of the client's linked brand
  * material (Drive, Figma, …). Agents may reference them; their contents are never fetched. */
-export function buildBrandContext(client: Pick<Client, "name" | "industry" | "brandSummary">, brandOS: BrandOS | null, linkedSources?: string) {
+/** `brandOS` comes from loadBrandForAgents(): Brand OS with its active rules, read fresh for this run. */
+export function buildBrandContext(client: Pick<Client, "name" | "industry" | "brandSummary">, brandOS: (BrandOS & { rules: ActiveRule[] }) | null, linkedSources?: string) {
   const lines = [`Brand: ${client.name}`, `Industry: ${client.industry ?? "Not specified"}`];
 
   lines.push(`Brand summary: ${client.brandSummary ?? "No summary documented yet."}`);
@@ -48,14 +50,9 @@ export function buildBrandContext(client: Pick<Client, "name" | "industry" | "br
     );
   }
 
-  const toneRules = jsonArray<string>(brandOS?.toneRules);
-  if (toneRules.length > 0) lines.push("Tone rules: " + toneRules.join("; "));
-
-  const dos = jsonArray<string>(brandOS?.dos);
-  if (dos.length > 0) lines.push("Do: " + dos.join("; "));
-
-  const donts = jsonArray<string>(brandOS?.donts);
-  if (donts.length > 0) lines.push("Don't: " + donts.join("; "));
+  // Brand OS → Rules: the active rules only, by type (tone, do, words, claims & legal, channel).
+  const rules = rulesForPrompt(brandOS?.rules ?? []);
+  if (rules.length > 0) lines.push("BRAND RULES (always follow):", ...rules);
 
   const colorPalette = jsonArray<ColorEntry>(brandOS?.colorPalette);
   if (colorPalette.length > 0) {

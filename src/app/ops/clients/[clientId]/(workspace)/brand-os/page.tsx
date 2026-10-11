@@ -7,6 +7,7 @@ import { Field, textareaClass } from "@/components/ops/form-field";
 import { jsonArray } from "@/lib/utils";
 import { typefaces } from "@/lib/brand-typography";
 import { updateBrandOSAction } from "@/lib/actions/ops-brand-os-actions";
+import { RulesView } from "@/components/portal/rules/rules-view";
 
 export default async function BrandOSEditorPage({ params }: { params: Promise<{ clientId: string }> }) {
   const { clientId } = await params;
@@ -17,14 +18,14 @@ export default async function BrandOSEditorPage({ params }: { params: Promise<{ 
   const colors = jsonArray<string>(b?.approvedColors);
 
   return (
+    <div className="flex flex-col gap-6">
+      {/* Brand OS → Rules, as the client sees it; Klingit's edits show as "· Klingit" and tell the account lead. */}
+      <RulesView clientId={clientId} mode="staff" />
     <form action={updateBrandOSAction} className="flex flex-col gap-6">
       <input type="hidden" name="clientId" value={clientId} />
 
-      <SectionCard title="Voice & typography">
-        <CardBody className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-          <Field label="Tone rules" htmlFor="toneRules">
-            <textarea id="toneRules" name="toneRules" defaultValue={jsonArray<string>(b?.toneRules).join("\n")} className={`${textareaClass} min-h-32`} placeholder="One rule per line" />
-          </Field>
+      <SectionCard title="Typography">
+        <CardBody className="grid grid-cols-1 gap-5">
           <Field label="Approved typography" htmlFor="approvedTypography">
             <textarea
               id="approvedTypography"
@@ -33,17 +34,6 @@ export default async function BrandOSEditorPage({ params }: { params: Promise<{ 
               className={`${textareaClass} min-h-32`}
               placeholder="One typeface per line"
             />
-          </Field>
-        </CardBody>
-      </SectionCard>
-
-      <SectionCard title="Do's and don'ts">
-        <CardBody className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-          <Field label="Do's" htmlFor="dos">
-            <textarea id="dos" name="dos" defaultValue={jsonArray<string>(b?.dos).join("\n")} className={`${textareaClass} min-h-28`} placeholder="One per line" />
-          </Field>
-          <Field label="Don'ts" htmlFor="donts">
-            <textarea id="donts" name="donts" defaultValue={jsonArray<string>(b?.donts).join("\n")} className={`${textareaClass} min-h-28`} placeholder="One per line" />
           </Field>
         </CardBody>
       </SectionCard>
@@ -81,5 +71,6 @@ export default async function BrandOSEditorPage({ params }: { params: Promise<{ 
         Save changes
       </Button>
     </form>
+    </div>
   );
 }

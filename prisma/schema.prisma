@@ -281,6 +281,8 @@ model Client {
   aiCreditLedger               AiCreditLedger[]
   aiTopUpRequests              AiTopUpRequest[]
   skillOutputs                 SkillOutput[]
+  brandRules                   BrandRule[]
+  brandRuleChanges             BrandRuleChange[]
   customSkills                 Agent[]
   assets                       Asset[]
   agentRuns                    AgentRun[]
@@ -2009,6 +2011,77 @@ model ProjectStaffNote {
 }
 
 /// Every PM edit and automatic step: who, what, before → after, reason, and the agent run it overrides (if any).
+enum BrandRuleType {
+  TONE
+  DO
+  WORDS_USE
+  WORDS_AVOID
+  CLAIMS
+  CHANNEL
+}
+
+enum BrandRuleStatus {
+  ACTIVE
+  SUGGESTED
+  DRAFT
+  DECLINED
+}
+
+/**
+ * Brand OS → Rules (Phase R): what every skill, assistant and quality check follows. ACTIVE rules apply (when
+ * `active`); SUGGESTED come from members and DRAFT from a guidelines import, both waiting for an admin. Word lists
+ * are WORDS_USE / WORDS_AVOID rules with `words` (the one per type with source "word_list" holds the chips).
+ * Deleting sets deletedAt so a change can be undone. Read only through brand-rules.ts.
+ */
+model BrandRule {
+  id                String          @id @default(cuid())
+  clientId          String
+  type              BrandRuleType
+  text              String
+  /// Words matched as whole words (word lists, and the words a "never say …" rule names).
+  words             Json?
+  /// Where it applies: { channels?: string[], products?: string[] }; none = everywhere.
+  scope             Json?
+  active            Boolean         @default(true)
+  status            BrandRuleStatus @default(ACTIVE)
+  /// "brand_os" (copied from the old fields), "manual", "suggestion", "word_list", "import:<file name>", "seed".
+  source            String          @default("manual")
+  sortOrder         Int             @default(0)
+  /// From the shared rule check (checkCopy): times it applied, and times it caught something. Never invented.
+  usedCount         Int             @default(0)
+  caughtCount       Int             @default(0)
+  createdByUserId   String?
+  suggestedByUserId String?
+  deletedAt         DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, status])
+}
+
+/// Every change to a client's rules (who, when, before/after), shown in Change history; a change can be undone.
+model BrandRuleChange {
+  id          String    @id @default(cuid())
+  clientId    String
+  ruleId      String?
+  actorUserId String?
+  /// A Klingit staff member made it ("· Klingit").
+  byKlingit   Boolean   @default(false)
+  /// added | edited | deactivated | activated | deleted | suggested | approved | declined | imported | undone
+  action      String
+  summary     String
+  before      Json?
+  after       Json?
+  undoneAt    DateTime?
+  createdAt   DateTime  @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, createdAt])
+}
+
 /// Staff and admin changes that aren't tied to a project: who owns a live ad account, a client's own AI key
 /// (added / replaced / removed, never the key itself). Kept when a client goes (plain ids, no relations).
 model AuditLog {

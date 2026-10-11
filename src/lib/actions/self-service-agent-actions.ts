@@ -11,6 +11,7 @@ import { withAiCharge } from "@/lib/ai-context";
 import { generateSelfServeBrief } from "@/lib/ai/agents/self-serve/brief-generator";
 import { generateSelfServeAdConcept } from "@/lib/ai/agents/self-serve/ad-concept-generator";
 import { generateSelfServeImage } from "@/lib/ai/agents/self-serve/image-gen-agent";
+import { loadBrandForAgents } from "@/lib/brand-rules";
 import {
   generateLinkedInPost,
   generateLandingPageCopy,
@@ -40,7 +41,8 @@ async function runSkill(agent: Agent, viewer: Awaited<ReturnType<typeof getPorta
   const agentId = agent.id;
   const startedAt = new Date();
 
-  const brandOS = await prisma.brandOS.findUnique({ where: { clientId: viewer.clientId } });
+  // Brand OS with its rules as they are right now (brand-rules.ts): a rule changed a second ago applies.
+  const brandOS = await loadBrandForAgents(viewer.clientId);
   const common = { clientId: viewer.clientId, requestedByUserId: viewer.userId, client: viewer.client, brandOS };
 
   let result: { ok: true } | { ok: false; error: string };
