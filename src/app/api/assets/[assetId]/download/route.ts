@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { assetFile, fileResponse, findDownloadableAsset, videoPart, videoPartFile } from "@/lib/asset-files";
+import { assetResponseFile, fileResponse, findDownloadableAsset, videoPart, videoPartFile } from "@/lib/asset-files";
 
 /**
  * One asset's file. `?inline=1` serves it for previews instead of as a download; `?part=poster|strip` serves a
@@ -16,5 +16,5 @@ export async function GET(req: Request, { params }: { params: Promise<{ assetId:
     const file = version ? await videoPartFile(version, part) : null;
     return file ? fileResponse(req, file, true) : new Response("Not found", { status: 404 });
   }
-  return fileResponse(req, await assetFile(asset), query.get("inline") === "1");
+  return fileResponse(req, await assetResponseFile(asset), query.get("inline") === "1");
 }

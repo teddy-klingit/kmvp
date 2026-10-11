@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomBytes } from "node:crypto";
 
@@ -51,6 +51,17 @@ export async function saveUpload(projectId: string, file: File) {
 export async function readUpload(storageKey: string): Promise<Buffer | null> {
   try {
     return await readFile(resolveKey(storageKey));
+  } catch {
+    return null;
+  }
+}
+
+/** Where a stored file is on disk and its size (for streaming byte ranges), or null when it isn't there. */
+export async function uploadOnDisk(storageKey: string): Promise<{ path: string; size: number } | null> {
+  try {
+    const full = resolveKey(storageKey);
+    const s = await stat(full);
+    return s.isFile() ? { path: full, size: s.size } : null;
   } catch {
     return null;
   }

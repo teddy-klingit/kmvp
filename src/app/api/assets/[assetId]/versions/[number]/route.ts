@@ -1,4 +1,4 @@
-import { assetFile, fileResponse, findDownloadableVersion, videoPart, videoPartFile } from "@/lib/asset-files";
+import { assetResponseFile, fileResponse, findDownloadableVersion, videoPart, videoPartFile } from "@/lib/asset-files";
 
 /**
  * One version's file (the quality check's cells, "compare with v1"); `?part=poster|strip` for a video's poster or
@@ -14,5 +14,5 @@ export async function GET(req: Request, { params }: { params: Promise<{ assetId:
     const file = await videoPartFile(version, part);
     return file ? fileResponse(req, file, true) : new Response("Not found", { status: 404 });
   }
-  return fileResponse(req, await assetFile({ ...version.asset, storageKey: version.storageKey, mimeType: version.mimeType }), query.get("inline") === "1");
+  return fileResponse(req, await assetResponseFile({ ...version.asset, storageKey: version.storageKey, mimeType: version.mimeType }), query.get("inline") === "1");
 }

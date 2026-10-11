@@ -35,6 +35,7 @@ export function VideoView({ shell, projectId, items, threads, canReview, focusId
   const [active, setActive] = useState<string | null>(null);
   const [draft, setDraft] = useState<{ x: number; y: number } | null>(null);
   const [range, setRange] = useState(false);
+  const [failed, setFailed] = useState<string | null>(null);
   const real = item.hasFile && item.isVideo;
   const tall = item.ratio < 0.8;
   const [, action, saving] = useActionState(async (prev: Record<string, never>, fd: FormData) => {
@@ -68,6 +69,12 @@ export function VideoView({ shell, projectId, items, threads, canReview, focusId
     return () => cancelAnimationFrame(raf);
   }, [real, playing, speed, duration]);
 
+  // A new video element mounts per item (9:16 ↔ 1:1): it starts paused, so the controls must too.
+  useEffect(() => {
+    setPlaying(false);
+    setFailed(null);
+  }, [item.id]);
+
   const seek = (s: number) => {
     const x = Math.max(0, Math.min(duration, s));
     setT(x);
@@ -82,8 +89,15 @@ export function VideoView({ shell, projectId, items, threads, canReview, focusId
     setDraft(null);
     if (real && video.current) {
       if (t >= duration - 0.05) seek(0);
-      void video.current.play();
-    } else if (t >= duration) setT(0);
+      // The element's own play/pause events set `playing`; a refused play (no file, a format the browser can't
+      // play) says so instead of showing a pause button over a still frame.
+      video.current.play().catch((e: unknown) => {
+        setPlaying(false);
+        if (!(e instanceof DOMException && e.name === "AbortError")) setFailed("This video couldn't be played here.");
+      });
+      return;
+    }
+    if (t >= duration) setT(0);
     setPlaying(true);
   };
   const step = (frames: number) => {
@@ -137,8 +151,15 @@ export function VideoView({ shell, projectId, items, threads, canReview, focusId
                 setPlaying(false);
                 setT(e.currentTarget.currentTime);
               }}
-              onPlay={() => setPlaying(true)}
+              onPlay={() => {
+                setFailed(null);
+                setPlaying(true);
+              }}
               onEnded={() => setPlaying(false)}
+              onError={() => {
+                setPlaying(false);
+                setFailed("This video couldn't be loaded.");
+              }}
             />
           ) : (
             // eslint-disable-next-line @next/next/no-img-element -- the access-checked placeholder poster
@@ -162,6 +183,21 @@ export function VideoView({ shell, projectId, items, threads, canReview, focusId
             }}
             className="absolute inset-0 cursor-crosshair"
           />
+          {!playing && !draft && !failed && (
+            <button type="button" onClick={toggle} aria-label="Play" className="absolute left-1/2 top-1/2 flex size-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm hover:bg-black/70">
+              <Play className="ml-1 size-7" fill="currentColor" />
+            </button>
+          )}
+          {failed && (
+            <span role="alert" className="absolute inset-x-4 top-1/2 flex -translate-y-1/2 flex-col items-center gap-2 rounded-[12px] bg-white/95 px-4 py-3 text-center text-[14px]">
+              {failed}
+              {item.fileUrl && (
+                <a href={item.fileUrl.replace("inline=1", "")} className="font-brand-mono text-[12px] text-brand-ink underline underline-offset-2">
+                  Download it instead
+                </a>
+              )}
+            </span>
+          )}
           {/* Comments on screen now: at their pin, or (a moment or range without one) in the top corner. */}
           <span className="pointer-events-none absolute left-3 top-3 flex gap-1.5">
             {visible

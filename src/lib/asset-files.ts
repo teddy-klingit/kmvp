@@ -1,7 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { projectVisibilityWhere } from "@/lib/project-visibility";
-import { readUpload, extensionFor } from "@/lib/uploads";
+import { createReadStream } from "node:fs";
+import { Readable } from "node:stream";
+import { readUpload, uploadOnDisk, extensionFor } from "@/lib/uploads";
 import { assetTitle, formatLabel } from "@/lib/asset-display";
 import { isClientVisibleVersion } from "@/lib/qc/visibility";
 
@@ -69,10 +71,24 @@ export async function assetFile(asset: { name: string; format: string; storageKe
 }
 
 /**
+ * The file to answer a request with: a video is streamed from disk (only the bytes asked for, so seeking a long
+ * film never reads the whole file); anything else is read whole as before.
+ */
+export async function assetResponseFile(asset: { name: string; format: string; storageKey: string | null; mimeType: string | null; thumbnailColor: string }): Promise<ResponseFile> {
+  if (asset.storageKey && asset.mimeType?.startsWith("video/")) {
+    const disk = await uploadOnDisk(asset.storageKey);
+    if (disk) return { ...disk, mimeType: asset.mimeType, filename: `${slug(assetTitle(asset.name, asset.format))}.${extensionFor(asset.mimeType)}` };
+  }
+  return assetFile(asset);
+}
+
+type ResponseFile = { data: Uint8Array; mimeType: string; filename: string } | { path: string; size: number; mimeType: string; filename: string };
+
+/**
  * The file as a response. Honours a Range header (206), which a <video> needs to seek and to start playing before
  * the whole file is in.
  */
-export function fileResponse(req: Request, file: { data: Uint8Array; mimeType: string; filename: string }, inline: boolean) {
+export function fileResponse(req: Request, file: ResponseFile, inline: boolean) {
   const headers: Record<string, string> = {
     "Content-Type": file.mimeType,
     "Content-Disposition": inline ? "inline" : attachment(file.filename),
@@ -80,15 +96,17 @@ export function fileResponse(req: Request, file: { data: Uint8Array; mimeType: s
     "X-Content-Type-Options": "nosniff",
     "Accept-Ranges": "bytes",
   };
-  const size = file.data.byteLength;
+  const size = "data" in file ? file.data.byteLength : file.size;
+  const body = (start: number, end: number) =>
+    "data" in file ? Buffer.from(file.data.subarray(start, end + 1)) : (Readable.toWeb(createReadStream(file.path, { start, end })) as ReadableStream<Uint8Array>);
   const range = req.headers.get("range")?.match(/^bytes=(\d*)-(\d*)$/);
   if (range && (range[1] || range[2])) {
     const start = range[1] ? Number(range[1]) : Math.max(0, size - Number(range[2]));
     const end = range[1] && range[2] ? Math.min(Number(range[2]), size - 1) : size - 1;
     if (start >= size || start > end) return new Response(null, { status: 416, headers: { ...headers, "Content-Range": `bytes */${size}` } });
-    return new Response(Buffer.from(file.data.subarray(start, end + 1)), { status: 206, headers: { ...headers, "Content-Range": `bytes ${start}-${end}/${size}`, "Content-Length": String(end - start + 1) } });
+    return new Response(body(start, end), { status: 206, headers: { ...headers, "Content-Range": `bytes ${start}-${end}/${size}`, "Content-Length": String(end - start + 1) } });
   }
-  return new Response(Buffer.from(file.data), { headers: { ...headers, "Content-Length": String(size) } });
+  return new Response(size ? body(0, size - 1) : new Uint8Array(), { headers: { ...headers, "Content-Length": String(size) } });
 }
 
 export type VideoPart = "poster" | "strip";
