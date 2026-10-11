@@ -4,9 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
-import { withAiCharge, assistantCharge, ASSISTANTS } from "@/lib/ai-context";
-import { startStudio } from "@/lib/brief-studio/studio";
-import { addPlanItem, feedTokenFor, movePlanItem, STATUSES, startBriefText, type Maker, type PlanStatus } from "@/lib/plan";
+import { addPlanItem, feedTokenFor, movePlanItem, STATUSES, type Maker, type PlanStatus } from "@/lib/plan";
+import { startBriefForItem } from "@/lib/plan-brief";
+import { markRoute } from "@/lib/opportunities";
 
 /** Plan → Calendar actions (Phase R step 3). Every read and write is scoped to the signed-in client. */
 
@@ -21,6 +21,7 @@ const dateAt = (v: FormDataEntryValue | null) => {
 
 function refresh() {
   revalidatePath("/plan", "layout");
+  revalidatePath("/plan/opportunities", "layout");
   revalidatePath("/dashboard");
 }
 
@@ -40,12 +41,14 @@ export async function addPlanItemAction(_prev: AddPlanState, formData: FormData)
   const projectId = maker === "klingit_project" ? String(formData.get("projectId") ?? "") || null : null;
   if (projectId && !(await prisma.project.findFirst({ where: { id: projectId, clientId: viewer.clientId }, select: { id: true } }))) return { error: "Pick one of your projects." };
   const opportunityId = String(formData.get("opportunityId") ?? "") || null;
+  if (opportunityId && !(await prisma.opportunity.findFirst({ where: { id: opportunityId, clientId: viewer.clientId }, select: { id: true } }))) return { error: "That opportunity isn't yours." };
   const { item } = await addPlanItem(
     viewer.clientId,
     viewer.userId,
     { title, date, endDate: dateAt(formData.get("endDate")), channels: formData.getAll("channels").map(String), formats: formData.getAll("formats").map(String), maker, notes: String(formData.get("notes") ?? ""), projectId, opportunityId, route: String(formData.get("route") ?? "") || null },
     requestKey
   );
+  if (opportunityId) await markRoute(viewer.clientId, opportunityId, item.route, "added", { planItemId: item.id });
   refresh();
   if (formData.get("start") === "1" && maker !== "klingit_project") await startBriefFor(viewer, item.id);
   return { ok: "Added to your plan." };
@@ -53,11 +56,8 @@ export async function addPlanItemAction(_prev: AddPlanState, formData: FormData)
 
 /** Start brief: a draft in the brief assistant with what the plan knows; the plan item follows that project. */
 async function startBriefFor(viewer: Awaited<ReturnType<typeof getPortalViewer>>, itemId: string) {
-  const item = await prisma.clientCalendarItem.findFirst({ where: { id: itemId, clientId: viewer.clientId, archivedAt: null } });
-  if (!item) return;
-  if (item.projectId) redirect(`/brief/${item.projectId}`);
-  const projectId = await withAiCharge(assistantCharge(viewer.clientId, viewer.userId, ASSISTANTS.brief), () => startStudio(viewer, startBriefText(item)));
-  await prisma.clientCalendarItem.update({ where: { id: item.id }, data: { projectId, maker: item.maker === "client" ? "klingit_help" : item.maker } });
+  const projectId = await startBriefForItem(viewer, itemId);
+  if (!projectId) return;
   refresh();
   redirect(`/brief/${projectId}`);
 }

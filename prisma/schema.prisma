@@ -282,6 +282,7 @@ model Client {
   aiTopUpRequests              AiTopUpRequest[]
   skillOutputs                 SkillOutput[]
   brandRules                   BrandRule[]
+  opportunities                Opportunity[]
   brandRuleChanges             BrandRuleChange[]
   customSkills                 Agent[]
   assets                       Asset[]
@@ -2226,4 +2227,83 @@ model BrandConnection {
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@unique([clientId, app])
+}
+
+/// Plan → Opportunities (Phase R, designs 06–07): one object for what used to be Insights ideas, calendar suggestions
+/// and project inspiration. Evidence items come from real data (Insights, the Market feed, the key-moments table);
+/// demo evidence says so. Written by the weekly scan (Klingit's cost), "Ask for more" (the client's AI credits) or
+/// staff in /ops, who can review, edit and hide them.
+model Opportunity {
+  id                String    @id @default(cuid())
+  clientId          String
+  title             String
+  summary           String
+  /// The card's one line: why now.
+  whyNow            String?
+  /// seasonal | data | trend | competitor
+  sources           Json      @default("[]")
+  /// [{value, text, source, kind, ref?, demo?}] — at most 3 shown.
+  evidence          Json      @default("[]")
+  /// One small chart for "Why we suggest it": {title, subtitle?, bars: [{label, value}], highlight?, source}.
+  chart             Json?
+  windowStart       DateTime?
+  windowEnd         DateTime?
+  /// When there's no window: "Any time · sooner is better".
+  windowNote        String?
+  fitsProjectId     String?
+  fitsLabel         String?
+  /// The self-service skill that could make it ("Make it with a skill").
+  skillKey          String?
+  /// Where the chart that produced it lives in Insights, so Insights can link back.
+  insightHref       String?
+  /// new | added | briefed | live | dismissed
+  status            String    @default("new")
+  dismissReason     String?
+  dismissedAt       DateTime?
+  dismissedByUserId String?
+  /// weekly | ask | staff | migrated | seed
+  origin            String    @default("weekly")
+  reviewedByUserId  String?
+  reviewedAt        DateTime?
+  /// Hidden by staff: never shown to the client.
+  hiddenAt          DateTime?
+  /// What it was made from (idea:<id>, suggestion:<id>, inspiration:<id>, moment:<id>…): never suggested twice.
+  sourceKey         String?
+  isDemo            Boolean   @default(false)
+  createdByUserId   String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  client Client             @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  routes OpportunityRoute[]
+
+  @@unique([clientId, sourceKey])
+  @@index([clientId, status])
+}
+
+/// One way to do an opportunity (2–3 each): a sample line in the client's voice, run through the rule check.
+model OpportunityRoute {
+  id              String   @id @default(cuid())
+  opportunityId   String
+  letter          String
+  name            String
+  description     String
+  formats         Json     @default("[]")
+  channels        Json     @default("[]")
+  sampleLine      String?
+  /// The rule check's result for the sample line: {ok, violations: [{rule, words}]}.
+  sampleCheck     Json?
+  teamCreditsLow  Int?
+  teamCreditsHigh Int?
+  aiCredits       Int?
+  /// new | added | briefed | live | dismissed
+  status          String   @default("new")
+  planItemId      String?
+  projectId       String?
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  opportunity Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  @@index([opportunityId])
 }

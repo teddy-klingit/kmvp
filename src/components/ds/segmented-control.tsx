@@ -54,7 +54,7 @@ export function SegmentedControl<T extends string>({
   );
 }
 
-export type SegmentLink = { label: string; href: string; icon?: React.ReactNode; /** Override the pathname match, e.g. for query-string views. */ active?: boolean };
+export type SegmentLink = { label: string; href: string; icon?: React.ReactNode; /** Override the pathname match, e.g. for query-string views. */ active?: boolean; /** A small count after the label ("3 new"). */ badge?: React.ReactNode };
 
 /**
  * Route-driven version: each pill is a link, so back/forward and deep links work. The most specific
@@ -81,6 +81,7 @@ export function SegmentedNav({ items, label, className }: { items: SegmentLink[]
           <Link key={i.href} href={i.href} aria-current={on ? "page" : undefined} className={cn(pill, on ? pillOn : pillOff)}>
             {i.icon}
             {i.label}
+            {i.badge != null && <span className="ml-1.5 rounded-full bg-brand-orange px-1.5 py-px text-[11px] leading-[1.4] text-white">{i.badge}</span>}
           </Link>
         );
       })}

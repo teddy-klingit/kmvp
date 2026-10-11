@@ -11,7 +11,6 @@ import { prisma } from "@/lib/prisma";
 import { setMockSession } from "./setup";
 import { createSecurityFixtures } from "./fixtures";
 import { slotUsage } from "@/lib/active-slots";
-import { approveContentPlanSuggestionAction } from "@/lib/actions/content-calendar-actions";
 
 type Fx = Awaited<ReturnType<typeof createSecurityFixtures>>;
 let fx: Fx;
@@ -36,25 +35,6 @@ describe("active slots", () => {
     const a = await prisma.asset.create({ data: { projectId: review.id, clientId: fx.clientA.id, name: "Story", format: "Story 9:16", sentVersion: 1, status: "IN_REVIEW" } });
     await prisma.assetVersion.create({ data: { assetId: a.id, projectId: review.id, number: 1, state: "SENT_TO_CLIENT" } });
     expect(await slotUsage(fx.clientA.id)).toEqual({ total: 3, used: 2, free: 1 });
-  });
-});
-
-describe("Calendar: Add from a suggestion", () => {
-  it("creates one draft and one planned post however often it's clicked, then confirms with a link", async () => {
-    const s = await prisma.contentPlanSuggestion.create({ data: { clientId: fx.clientA.id, title: "Refill pouch teaser", rationale: "Refills are trending.", platform: "Instagram" } });
-    const add = () => {
-      const f = new FormData();
-      f.set("suggestionId", s.id);
-      return approveContentPlanSuggestionAction(f);
-    };
-    // Three clicks at once, like an impatient double-click on a slow button.
-    const results = await Promise.allSettled([add(), add(), add()]);
-    for (const r of results) expect(r.status === "rejected" && String((r as PromiseRejectedResult).reason)).toMatch(`REDIRECT:/plan?added=${s.id}`);
-    expect(await prisma.contentPost.count({ where: { sourceSuggestionId: s.id } })).toBe(1);
-    const after = await prisma.contentPlanSuggestion.findUniqueOrThrow({ where: { id: s.id } });
-    expect(after.status).toBe("APPROVED");
-    expect(after.briefedProjectId).toBeTruthy();
-    expect(await prisma.project.count({ where: { clientId: fx.clientA.id, name: { contains: "Refill" } } })).toBe(1);
   });
 });
 

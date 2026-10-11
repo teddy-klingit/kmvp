@@ -5,6 +5,7 @@ import { lastClosed, writeReport } from "@/lib/report-data";
 import { syncDailyAdMetrics } from "@/lib/integrations/ad-daily";
 import { logError } from "@/lib/secrets";
 import { sendPlanReminders } from "@/lib/plan";
+import { runWeeklyOpportunityScans } from "@/lib/opportunities";
 
 /**
  * Scheduled agent work (replaces the old page-load runs): for every active client, this week's Insights
@@ -21,6 +22,8 @@ export async function runScheduledAgents(now = new Date()) {
   // Plan reminders: 7 and 2 days before a brief-by date, and on the day (each once).
   const reminded = await sendPlanReminders(now, clients.map((c) => c.id)).catch(() => 0);
   if (reminded) done.push(`plan reminders: ${reminded}`);
+  // Opportunities: one scan a week per client, on Klingit (no client credits). Mondays from 6, or when one is overdue.
+  if (now.getDay() === 1 && now.getHours() >= 6) done.push(...(await runWeeklyOpportunityScans(clients.map((c) => c.id), now).catch(() => [])).map((d) => `opportunities ${d}`));
   for (const c of clients) {
     try {
       // Real per-day ad metrics first (every 6 hours), so the takeaways and charts read today's numbers.

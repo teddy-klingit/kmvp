@@ -14,7 +14,7 @@ import { getGoogleAdsAccountInsights } from "@/lib/integrations/google-ads";
 import { buildPlatformCampaigns } from "@/lib/performance";
 import { answerMarketIntelligenceQuestion } from "@/lib/ai/agents/market-intelligence-agent";
 
-const MARKET_INTEL_PATHS = ["/insights", "/insights/market", "/insights/market/competitors", "/insights/market/trends", "/insights/market/ideas"];
+const MARKET_INTEL_PATHS = ["/insights", "/insights/market", "/insights/market/competitors", "/insights/market/trends", "/plan/opportunities"];
 
 function revalidateAllTabs() {
   MARKET_INTEL_PATHS.forEach((p) => revalidatePath(p));
@@ -31,29 +31,6 @@ export async function generateMarketIntelligenceAction(
   if (result.error) return result;
   revalidateAllTabs();
   return { error: null };
-}
-
-export async function updateIdeaStatusAction(formData: FormData) {
-  await getPortalViewer();
-  const id = String(formData.get("id") ?? "");
-  const status = String(formData.get("status") ?? "");
-  if (!["SAVED", "DISMISSED", "NEW"].includes(status)) return;
-
-  await prisma.marketIntelligenceIdea.update({ where: { id }, data: { status: status as "SAVED" | "DISMISSED" | "NEW" } });
-  revalidateAllTabs();
-}
-
-export async function startBriefFromIdeaAction(formData: FormData) {
-  await getPortalViewer();
-  const id = String(formData.get("id") ?? "");
-  const title = String(formData.get("title") ?? "");
-  const detail = String(formData.get("detail") ?? "");
-
-  await prisma.marketIntelligenceIdea.update({ where: { id }, data: { status: "BRIEFED" } });
-  revalidateAllTabs();
-
-  // The brief studio starts from the idea: its title and the one-line why (or the reasoning, for older ideas).
-  redirect(`/brief/new?${new URLSearchParams({ q: `${title}. ${detail}` })}`);
 }
 
 export type AskQuestionState = { error?: string | null; question?: string; answer?: string };

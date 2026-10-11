@@ -2,7 +2,7 @@ import type { Client } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
 import { loadMeasuredAssets } from "@/lib/insights-data";
 import { loadDaily } from "@/lib/insights/daily";
-import { isGrounded, numbersIn, textGrounded } from "@/lib/insights/number-guard";
+import { numbersIn, textGrounded } from "@/lib/insights/number-guard";
 import { jsonArray } from "@/lib/utils";
 import { getIndustryNews } from "@/lib/integrations/industry-news";
 import { getCompetitorAdLibraryActivity } from "@/lib/integrations/meta-ad-library";
@@ -135,25 +135,7 @@ export async function runMarketIntelligence(client: Client): Promise<{ error: st
     create: { clientId: client.id, summary: mainResult.data.summary, assumptions: mainResult.data.assumptions, points: implications },
   });
 
-  const existingTitles = new Set(
-    (await prisma.marketIntelligenceIdea.findMany({ where: { clientId: client.id }, select: { title: true } })).map((i) =>
-      i.title.toLowerCase()
-    )
-  );
-  const freshIdeas = mainResult.data.ideas.filter((idea) => !existingTitles.has(idea.title.toLowerCase()));
-  if (freshIdeas.length) {
-    await prisma.marketIntelligenceIdea.createMany({
-      data: freshIdeas.map((idea) => ({
-        clientId: client.id,
-        title: idea.title,
-        detail: idea.detail,
-        why: textGrounded(idea.why, pool) ? idea.why : null,
-        evidence: idea.evidence.filter((e) => textGrounded(e.label, pool)),
-        chart: idea.chart.filter((c) => isGrounded(c.value, pool)),
-        formats: idea.formats,
-      })),
-    });
-  }
+  // Ideas are no longer stored here: Plan → Opportunities (runOpportunityScan) suggests what to make, with routes.
 
   if (mainResult.data.suggestedCompetitors.length) {
     const trackedLower = new Set(competitorBrands.map((b) => b.toLowerCase()));

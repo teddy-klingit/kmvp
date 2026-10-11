@@ -16,7 +16,7 @@ import { loadBrandHealth } from "@/lib/brand-health";
 import { estimatePreview, type PriceEntry } from "@/lib/brief-studio/formats";
 import type { AgentBuild, BuildStep } from "@/lib/agent-build";
 import { phaseQPack, phaseQText, seedPhaseQ } from "@/lib/demo/ouhers-phase-q";
-import { seedPhaseRPlan, seedPhaseRRules, seedRuleCounts } from "@/lib/demo/ouhers-phase-r";
+import { seedPhaseROpportunities, seedPhaseRPlan, seedPhaseRRules, seedRuleCounts } from "@/lib/demo/ouhers-phase-r";
 
 /**
  * The ouhers demo client (prisma/demo/ouhers, read README.md there): a complete fictional account for demoing every
@@ -667,18 +667,7 @@ export async function seedOuhers(opts: { dir?: string; shift?: boolean; log?: (s
     const formats = IDEA_FORMATS[idea.title] ?? ["Stories 9:16"];
     const est = estimatePreview({ formats, ideasCount: 1 }, prices);
     check(`Idea credit estimate · ${idea.title}`, est ? `${est.low}–${est.high}` : "unpriced", `${idea.credits[0]}–${idea.credits[1]}`);
-    await prisma.marketIntelligenceIdea.create({
-      data: {
-        clientId: OUHERS_CLIENT_ID,
-        title: idea.title,
-        why: idea.why,
-        detail: idea.why,
-        evidence: idea.evidence.map((label) => ({ label })),
-        chart: idea.title.startsWith("Creator") ? [{ label: "TikTok ROAS", value: tiktok.roas, display: String(tiktok.roas) }, { label: "Meta ROAS", value: meta.roas, display: String(meta.roas) }] : [],
-        formats,
-        createdAt: at(ins.asOf),
-      },
-    });
+    // Ideas are Plan → Opportunities now (seedPhaseROpportunities).
   }
   await prisma.marketIntelligenceBrief.create({
     data: {
@@ -765,7 +754,6 @@ export async function seedOuhers(opts: { dir?: string; shift?: boolean; log?: (s
   // ─── Calendar, reports, agents, notifications, the automated log ────────
   for (const item of cal.items) {
     if (item.kind === "client_plan") await prisma.clientCalendarItem.create({ data: { clientId: OUHERS_CLIENT_ID, title: item.title, date: at(item.date), channel: /email|newsletter/i.test(item.title) ? "Email" : /influencer/i.test(item.title) ? "Influencers" : "Launch" } });
-    if (item.kind === "suggested") await prisma.contentPlanSuggestion.create({ data: { clientId: OUHERS_CLIENT_ID, title: item.title, rationale: item.reason ?? "", reason: item.reason ?? null, platform: "Instagram", status: "PENDING", stage: "SUBMITTED", sourceCadence: "Weekly trend scan", proposedDate: at(item.date) } });
   }
   const reports = read<{ weekly: { week: string; totals: { spend: number; ctr: number; roas: number; purchases: number } }[]; latest: { takeaways: string[]; topPosts: string[] }; schedule: Json }>("reports.json");
   for (const [i, w] of reports.weekly.entries()) {
@@ -820,6 +808,7 @@ export async function seedOuhers(opts: { dir?: string; shift?: boolean; log?: (s
   await seedPhaseRRules({ clientId: OUHERS_CLIENT_ID, now, userId: (id) => clientUserIds.get(id)!.userId, staffUserId: staffIds.get("kl-teddy")?.userId ?? null, legalLines: brand.voice.mustInclude });
   say(`Phase R · rules · ${await seedRuleCounts(OUHERS_CLIENT_ID)} pieces of copy run through the rule check`);
   say(`Phase R · plan · ${await seedPhaseRPlan({ clientId: OUHERS_CLIENT_ID, now, userId: (id) => clientUserIds.get(id)!.userId })} plan items`);
+  say(`Phase R · opportunities · ${await seedPhaseROpportunities({ clientId: OUHERS_CLIENT_ID, now, staffUserId: staffIds.get("kl-teddy")?.userId ?? null })}`);
 
   // ─── Computed vs expected ───────────────────────────────────────────────
   const health = await loadBrandHealth(OUHERS_CLIENT_ID);

@@ -1,4 +1,5 @@
 import { getPortalViewer } from "@/lib/current-viewer";
+import { OpportunityLinks, opportunityLinksFor } from "@/components/portal/insights/opportunity-links";
 import { connectHref, ctrByFormat, loadMeasuredAssets, loadPaidMedia, loadTakeaways } from "@/lib/insights-data";
 import { compact, dayLabel, loadDaily, money, parseRange, pct } from "@/lib/insights/daily";
 import { paidTiles } from "@/lib/insights/tiles";
@@ -28,6 +29,7 @@ export default async function InsightsPerformancePage({ searchParams }: { search
   const { platform, range } = await searchParams;
   const days = parseRange(range);
   const viewer = await getPortalViewer();
+  const opportunityLinks = await opportunityLinksFor(viewer.clientId, "/insights/performance");
   const clientId = viewer.clientId;
   // No ad account: Performance has nothing to show but the way to connect one.
   if ((await adDataStatus(clientId)) === "none") return <NoAdAccount admin={isClientAdmin(viewer)} />;
@@ -80,6 +82,7 @@ export default async function InsightsPerformancePage({ searchParams }: { search
           }
         />
       </Suspense>
+      <OpportunityLinks rows={opportunityLinks} />
 
       {tiles.length > 0 && (
         <div className="grid grid-cols-2 gap-4 min-[700px]:grid-cols-3 min-[1100px]:grid-cols-5">

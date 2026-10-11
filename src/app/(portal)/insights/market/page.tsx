@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChartColumn, Newspaper, Shield, TrendingUp } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
+import { OpportunityLinks, opportunityLinksFor } from "@/components/portal/insights/opportunity-links";
 import { jsonArray } from "@/lib/utils";
 import { getIndustryNews } from "@/lib/integrations/industry-news";
 import { getCompetitorAdLibraryActivity } from "@/lib/integrations/meta-ad-library";
@@ -38,6 +39,7 @@ export default async function MarketFeedPage({ searchParams }: { searchParams: P
   const { range, all } = await searchParams;
   const days = parseRange(range);
   const viewer = await getPortalViewer();
+  const opportunityLinks = await opportunityLinksFor(viewer.clientId, "/insights/market");
   const client = viewer.client;
   const competitorBrands = jsonArray<string>(client.competitorBrands);
   const newsQuery = client.industry ? `${client.industry} marketing` : client.name;
@@ -66,6 +68,7 @@ export default async function MarketFeedPage({ searchParams }: { searchParams: P
     <PageGrid
       main={
         <>
+          <OpportunityLinks rows={opportunityLinks} />
           <ChartCard
             title="Signals per week"
             meta={<span className="font-brand-mono text-[12px] text-brand-ink">{perWeek.total} SIGNALS</span>}

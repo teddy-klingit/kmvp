@@ -23,7 +23,7 @@ export async function loadSowData(clientId: string) {
     prisma.communityManagementSnapshot.findFirst({ where: { clientId }, orderBy: { periodEnd: "desc" } }),
     prisma.audienceSnapshot.findMany({ where: { clientId }, orderBy: { capturedAt: "desc" } }),
     prisma.competitorProfile.findMany({ where: { clientId }, orderBy: { brand: "asc" } }),
-    prisma.marketIntelligenceIdea.findMany({ where: { clientId, status: "NEW" }, orderBy: { createdAt: "desc" }, take: 3 }),
+    prisma.opportunity.findMany({ where: { clientId, status: "new", hiddenAt: null }, orderBy: { createdAt: "desc" }, take: 3 }).then((rows) => rows.map((o) => ({ title: o.title, detail: o.whyNow ?? o.summary }))),
     prisma.performanceBrief.findUnique({ where: { clientId } }),
   ]);
   const now = new Date();

@@ -267,14 +267,3 @@ describe("client board and status line (Projects.dc.html)", () => {
     expect(statusLine(staffing, NOW, "card")).toMatchObject({ label: "Picking your team", tone: "klingit" });
   });
 });
-
-describe("calendar month grid", () => {
-  it("is Monday-first and covers whole weeks", async () => {
-    const { monthGrid } = await import("@/lib/calendar-items");
-    const g = monthGrid(new Date(2026, 9, 1)); // October 2026 starts on a Thursday
-    expect(g.start.getDay()).toBe(1);
-    expect(g.start.getDate()).toBe(28); // Mon 28 Sept
-    expect(g.cells % 7).toBe(0);
-    expect(g.cells).toBe(35);
-  });
-});

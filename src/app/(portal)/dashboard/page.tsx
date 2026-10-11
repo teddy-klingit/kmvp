@@ -13,6 +13,8 @@ import { listSkills, type SkillRow } from "@/lib/skills";
 import { loadBrandHealth } from "@/lib/brand-health";
 import { WORK_TZ } from "@/lib/working-hours";
 import { CardHeader } from "@/components/ds/card";
+import { newOpportunities } from "@/lib/opportunities";
+import { SourcePills } from "@/components/portal/plan/opportunity-bits";
 import { monoLink } from "@/components/ds/pill-link";
 import { AiCreditMeter } from "@/components/portal/skills/ai-credit-meter";
 import { SkillIcon } from "@/components/portal/skills/skill-icon";
@@ -54,13 +56,14 @@ export default async function DashboardPage() {
   const viewer = await getPortalViewer();
   const now = new Date();
   const items = await loadProjectStates({ status: { not: "ARCHIVED" }, agentBuild: false, ...projectVisibilityWhere(viewer.id) }, viewer.clientId, { dueDate: "asc" });
-  const [client, slots, library, usage, skills, health] = await Promise.all([
+  const [client, slots, library, usage, skills, health, fresh] = await Promise.all([
     prisma.client.findUniqueOrThrow({ where: { id: viewer.clientId }, select: { name: true } }),
     slotUsage(viewer.clientId),
     loadOutputLibrary(viewer.clientId, { sort: "newest", days: null }, now),
     loadUsage(viewer.clientId, now),
     listSkills(viewer.clientId, now),
     loadBrandHealth(viewer.clientId),
+    newOpportunities(viewer.clientId, now, 1),
   ]);
   // Projects first, then plan items that need a brief this week (Phase R), soonest first within each.
   const turns = [...yourTurn(items, now), ...(await planTurns(viewer.clientId, now))];
@@ -186,6 +189,24 @@ export default async function DashboardPage() {
 
         <aside className="flex min-w-0 flex-col gap-6 min-[1000px]:col-span-4">
           <Credits team={usage.team} ai={usage.ai} runOut={usage.ai.reachedDay && usage.ai.runsOutBeforeReset ? new Date(Date.UTC(usage.period.start.getUTCFullYear(), usage.period.start.getUTCMonth(), usage.ai.reachedDay)) : null} reset={usage.period.nextReset} />
+
+          {fresh.count > 0 && (
+            <section aria-label="New opportunities" className={card}>
+              <CardHeader
+                title={`${fresh.count} new opportunit${fresh.count === 1 ? "y" : "ies"}`}
+                action={
+                  <Link href="/plan/opportunities" className={monoLink}>
+                    ALL
+                  </Link>
+                }
+              />
+              <Link href={`/plan/opportunities/${fresh.newest[0].id}`} className="flex flex-col gap-2 px-6 py-5 text-brand-ink no-underline hover:bg-[#FBF9F4]">
+                <SourcePills sources={fresh.newest[0].sources} />
+                <span className="text-[16px]">{fresh.newest[0].title}</span>
+                {fresh.newest[0].whyNow && <span className="line-clamp-2 text-[13px] text-brand-ink-2">{fresh.newest[0].whyNow}</span>}
+              </Link>
+            </section>
+          )}
 
           <section aria-label="Run a skill" className={card}>
             <CardHeader

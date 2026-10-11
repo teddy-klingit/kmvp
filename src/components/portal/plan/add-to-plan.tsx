@@ -44,8 +44,7 @@ function Dialog({ leadTimes, projects, prefill, onClose }: { leadTimes: LeadTime
     if (state.ok) onClose();
   }, [state, onClose]);
   const toggle = (list: string[], v: string) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
-  const live = date ? new Date(`${date}T10:00:00`) : null;
-  const brief = useMemo(() => (live ? briefByFor(live, formats, leadTimes) : null), [live, formats, leadTimes]);
+  const brief = useMemo(() => (date ? briefByFor(new Date(`${date}T10:00:00`), formats, leadTimes) : null), [date, formats, leadTimes]);
   const credits = teamCreditsFor(formats, leadTimes);
 
   return (

@@ -12,7 +12,6 @@ import PerformancePage from "@/app/(portal)/insights/performance/page";
 import FeedPage from "@/app/(portal)/insights/market/page";
 import CompetitorsPage from "@/app/(portal)/insights/market/competitors/page";
 import TrendsPage from "@/app/(portal)/insights/market/trends/page";
-import IdeasPage from "@/app/(portal)/insights/market/ideas/page";
 import SeoPage from "@/app/(portal)/insights/seo/page";
 
 // No network in tests: every ad account reads as "not connected", and the agent never runs on page load.
@@ -132,7 +131,6 @@ describe("every insights tab renders", () => {
     ["Market feed", () => FeedPage({ searchParams: Promise.resolve({}) })],
     ["Competitors", () => CompetitorsPage({ searchParams: Promise.resolve({ range: "7" }) })],
     ["Trends", () => TrendsPage({ searchParams: Promise.resolve({ range: "90" }) })],
-    ["Ideas", () => IdeasPage()],
     ["SEO", () => SeoPage()],
   ] as [string, () => Promise<ReactNode>][])("%s, without a '—' tile", async (_name, page) => {
     setMockSession({ user: { id: fx.userA.id, role: "CLIENT" } });
@@ -148,7 +146,10 @@ describe("insights redirects", () => {
     const rules = (await nextConfig.redirects!()) as { source: string; destination: string }[];
     const to = (source: string) => rules.find((r) => r.source === source)?.destination;
     expect(to("/insights/market-intelligence")).toBe("/insights/market");
-    expect(to("/insights/market-intelligence/:view(competitors|trends|ideas)")).toBe("/insights/market/:view");
+    expect(to("/insights/market-intelligence/:view(competitors|trends)")).toBe("/insights/market/:view");
+    // Ideas are Plan → Opportunities now (Phase R).
+    expect(to("/insights/market-intelligence/ideas")).toBe("/plan/opportunities");
+    expect(to("/insights/market/ideas")).toBe("/plan/opportunities");
     expect(to("/insights/market-intelligence/seo")).toBe("/insights/seo");
     expect(to("/insights/community")).toBe("/insights/audience#community");
     expect(to("/insights/website")).toBe("/insights/audience#website");

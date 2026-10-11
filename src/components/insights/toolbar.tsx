@@ -65,5 +65,5 @@ export function SubBar({ chips, range = true }: { chips: React.ReactNode; range?
 /** Market's views keep the range on the right, except Ideas, which has none. */
 export function MarketBar({ chips }: { chips: React.ReactNode }) {
   const pathname = usePathname() ?? "";
-  return <SubBar chips={chips} range={pathname !== "/insights/market/ideas"} />;
+  return <SubBar chips={chips} range />;
 }

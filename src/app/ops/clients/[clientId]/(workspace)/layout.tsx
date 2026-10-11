@@ -36,6 +36,7 @@ export default async function ClientWorkspaceLayout({ children, params }: { chil
               { label: "Brand assets", href: `${base}/brand-assets` },
               { label: "Brand OS", href: `${base}/brand-os` },
               { label: "Content plan", href: `${base}/content-plan` },
+              { label: "Opportunities", href: `${base}/opportunities` },
               { label: "Custom apps", href: `${base}/custom-apps` },
               { label: "Project files", href: `${base}/project-files` },
               { label: "Admin", href: `${base}/admin` },

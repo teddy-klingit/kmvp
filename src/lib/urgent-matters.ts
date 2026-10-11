@@ -17,8 +17,8 @@ export type UrgentMatter = {
  * no parallel alerts model. Three sources:
  *  - Notification rows the app already creates for genuinely urgent types
  *    (APPROVAL_NEEDED / SLA_BREACH / AGENT_FAILURE), unread.
- *  - ContentPlanSuggestion rows that have sat PENDING for several days —
- *    not just "waiting", but aging past a normal review window.
+ *  - Opportunities still new after several days whose best window opens
+ *    within two weeks (Plan → Opportunities).
  *  - CommunityEscalation rows that are OPEN and NEGATIVE — a real
  *    complaint nobody has responded to yet.
  */
@@ -30,8 +30,8 @@ export async function computeUrgentMatters(clientId: string, userId: string): Pr
       where: { userId, clientId, read: false, type: { in: ["APPROVAL_NEEDED", "SLA_BREACH", "AGENT_FAILURE"] } },
       orderBy: { createdAt: "asc" },
     }),
-    prisma.contentPlanSuggestion.findMany({
-      where: { clientId, status: "PENDING", createdAt: { lte: staleThreshold } },
+    prisma.opportunity.findMany({
+      where: { clientId, status: "new", hiddenAt: null, createdAt: { lte: staleThreshold }, windowStart: { lte: new Date(Date.now() + 14 * 86400000) } },
       orderBy: { createdAt: "asc" },
     }),
     prisma.communityEscalation.findMany({
@@ -55,9 +55,9 @@ export async function computeUrgentMatters(clientId: string, userId: string): Pr
     ...staleSuggestions.map((s) => ({
       id: `s-${s.id}`,
       kind: "suggestion" as const,
-      title: `Pending ${daysAgo(s.createdAt)} days — ${s.title}`,
-      detail: "Content plan suggestion has been waiting for a decision well past a normal review window.",
-      href: "/plan",
+      title: `New for ${daysAgo(s.createdAt)} days — ${s.title}`,
+      detail: "Its best window opens soon. Add it to your plan, brief Klingit, or say it's not for you.",
+      href: `/plan/opportunities/${s.id}`,
       actionLabel: "Review",
       createdAt: s.createdAt,
     })),

@@ -9,7 +9,7 @@
  */
 import { prisma } from "../../src/lib/prisma";
 import { generatePerformanceBrief } from "../../src/lib/insights-brief";
-import { writePlanSuggestions } from "../../src/lib/content-plan-suggestions";
+import { runOpportunityScan } from "../../src/lib/opportunities";
 import { lastClosed, weekOf, writeReport } from "../../src/lib/report-data";
 import { draftSections } from "../../src/lib/brand-drafts";
 
@@ -35,10 +35,10 @@ async function main() {
       const rows = await prisma.brandSectionDraft.findMany({ where: { clientId: c.id, status: "PENDING" } });
       console.log("brand drafts", r.error ?? "ok", rows.map((d) => [d.section, d.content.slice(0, 80), d.basis]));
     }
-    if (args.includes("--suggestions")) {
-      const s = await writePlanSuggestions({ clientId: c.id, client: { name: c.name } });
-      const rows = await prisma.contentPlanSuggestion.findMany({ where: { clientId: c.id, status: "PENDING" } });
-      console.log("suggestions", s.error ?? "ok", rows.map((r) => [r.title, r.proposedDate?.toISOString().slice(0, 10), r.reason]));
+    if (args.includes("--opportunities")) {
+      const s = await runOpportunityScan(c.id, { origin: "staff" });
+      const rows = await prisma.opportunity.findMany({ where: { clientId: c.id, status: "new" }, include: { routes: true } });
+      console.log("opportunities", s.error ?? `${s.created} new`, rows.map((r) => [r.title, r.windowStart?.toISOString().slice(0, 10), r.routes.map((x) => x.sampleLine)]));
     }
   }
 }

@@ -10,6 +10,8 @@ import { pillClass } from "@/components/ds/button";
 import { PlaceholderTag } from "@/components/ds/placeholder-tag";
 import { PlanGrid, MAKER_CHIP, type GridEntry } from "@/components/portal/plan/plan-grid";
 import { AddToPlan } from "@/components/portal/plan/add-to-plan";
+import { OpportunitiesSideCard } from "@/components/portal/plan/opportunity-bits";
+import { newOpportunities, prefillFromOpportunity } from "@/lib/opportunities";
 import { cn } from "@/lib/utils";
 
 const DAY = 86400000;
@@ -35,7 +37,7 @@ const parseDay = (s?: string) => (s && /^\d{4}-\d{2}-\d{2}$/.test(s) ? new Date(
  * brief-due markers, campaign bars, key moments and gap warnings; on the side what needs a brief soon and this
  * month's coverage against the agreement. Drag an item to move it; Add to plan is idempotent.
  */
-export default async function PlanPage({ searchParams }: { searchParams: Promise<{ view?: string; show?: string; start?: string; item?: string; title?: string; date?: string; channels?: string; formats?: string; maker?: string; notes?: string }> }) {
+export default async function PlanPage({ searchParams }: { searchParams: Promise<{ view?: string; show?: string; start?: string; item?: string; opportunity?: string; route?: string; title?: string; date?: string; channels?: string; formats?: string; maker?: string; notes?: string }> }) {
   const q = await searchParams;
   const viewer = await getPortalViewer();
   const now = new Date();
@@ -57,17 +59,22 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
     month = null;
   }
   const to = new Date(from.getFullYear(), from.getMonth(), from.getDate() + weeks * 7);
-  const [plan, soon, coverage, leadTimes, projects, detail] = await Promise.all([
+  const [plan, soon, coverage, leadTimes, projects, detail, fresh, fromOpportunity] = await Promise.all([
     loadPlan(viewer.clientId, viewer, from, to, now),
     needsBrief(viewer.clientId, 21, now),
     coverageThisMonth(viewer.clientId, viewer, now),
     loadLeadTimes(),
     prisma.project.findMany({ where: { clientId: viewer.clientId, status: { notIn: ["ARCHIVED", "DELIVERED", "DRAFT"] }, agentBuild: false }, orderBy: { updatedAt: "desc" }, take: 30, select: { id: true, name: true } }),
     q.item ? prisma.clientCalendarItem.findFirst({ where: { id: q.item, clientId: viewer.clientId, archivedAt: null } }) : null,
+    newOpportunities(viewer.clientId, now),
+    q.opportunity ? prefillFromOpportunity(viewer.clientId, q.opportunity, q.route) : null,
   ]);
   const keep = (extra: Record<string, string | null>) => {
     const s = new URLSearchParams(Object.entries({ view: q.view, show: q.show, start: q.start }).filter((e): e is [string, string] => Boolean(e[1])));
-    for (const [k, v] of Object.entries(extra)) (v ? s.set(k, v) : s.delete(k));
+    for (const [k, v] of Object.entries(extra)) {
+      if (v) s.set(k, v);
+      else s.delete(k);
+    }
     return `/plan${s.size ? `?${s}` : ""}`;
   };
   const visible = plan.entries.filter((e) => (show === "all" ? true : show === "moments" ? false : e.maker === (show as Maker)));
@@ -174,6 +181,8 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
             </p>
           </section>
 
+          <OpportunitiesSideCard count={fresh.count} newest={fresh.newest} />
+
           <section aria-label="Coverage this month" className="overflow-hidden rounded-[12px] bg-white">
             <h2 className="m-0 border-b border-brand-line px-6 py-5 text-[18px] font-normal">Coverage this month</h2>
             {coverage.length === 0 ? (
@@ -199,14 +208,16 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
       </div>
       <Suspense>
         <AddToPlan leadTimes={leadTimes.map((l) => ({ format: l.format, workingDays: l.workingDays, teamCredits: l.teamCredits }))} projects={projects}
-          prefill={{
-            title: q.title,
-            date: parseDay(q.date) ? q.date : undefined,
-            channels: q.channels?.split(",").filter(Boolean),
-            formats: q.formats?.split(",").filter((f) => leadTimes.some((l) => l.format === f)),
-            maker: (["client", "klingit_help", "klingit_project"] as const).find((m) => m === q.maker),
-            notes: q.notes,
-          }}
+          prefill={
+            fromOpportunity ?? {
+              title: q.title,
+              date: parseDay(q.date) ? q.date : undefined,
+              channels: q.channels?.split(",").filter(Boolean),
+              formats: q.formats?.split(",").filter((f) => leadTimes.some((l) => l.format === f)),
+              maker: (["client", "klingit_help", "klingit_project"] as const).find((m) => m === q.maker),
+              notes: q.notes,
+            }
+          }
         />
       </Suspense>
     </>
