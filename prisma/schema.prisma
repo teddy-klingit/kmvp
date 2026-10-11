@@ -244,7 +244,11 @@ model Client {
   brandSummary           String? // short blurb for the Brand Intelligence rail
   planTier               PlanTier     @default(GROWTH)
   status                 ClientStatus @default(ONBOARDING)
+  /// Legacy copy of the plan's team credits, no longer read: teamAllowance() (ai-credits.ts) uses the Plan table
+  /// unless staff set teamCreditsOverride.
   monthlyCreditAllowance Int          @default(0)
+  /// Staff override of the plan's team credits a month (a negotiated deal); null = the plan's value. Logged in AuditLog.
+  teamCreditsOverride    Int?
   creditBalance          Int          @default(0)
   healthScore            Int          @default(80) // 0-100
   /// Data sources filled with dummy data for the demo (e.g. ["LinkedIn", "Google Analytics"]). The UI labels them "demo"; there is no real connection.

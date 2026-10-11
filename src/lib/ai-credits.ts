@@ -47,6 +47,17 @@ export async function teamAllowanceFor(tier: PlanTier) {
 }
 
 /**
+ * A client's team credits a month — the one source every screen reads (Home, the profile menu, Usage, Account,
+ * ops): the plan's value from the Plan table, unless staff set a per-client override.
+ */
+export async function teamAllowance(clientId: string) {
+  const client = await prisma.client.findUniqueOrThrow({ where: { id: clientId }, select: { planTier: true, teamCreditsOverride: true } });
+  const plan = await planFor(client.planTier);
+  const override = client.teamCreditsOverride;
+  return { value: override ?? plan.monthlyTeamCredits, planValue: plan.monthlyTeamCredits, planName: plan.name, source: override === null ? ("plan" as const) : ("override" as const) };
+}
+
+/**
  * The client's current monthly period: creates its ClientPlan row and the month's ALLOWANCE ledger row the first
  * time it's needed (idempotent), so the allowance resets every month without a cron job.
  */

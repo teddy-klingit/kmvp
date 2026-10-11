@@ -13,10 +13,12 @@ import {
   reactivateClientAction,
   offboardClientAction,
   setLiveAdsOwnerAction,
+  setTeamCreditsOverrideAction,
 } from "@/lib/actions/ops-client-admin-actions";
+import { PlaceholderTag } from "@/components/ds/placeholder-tag";
 import { listLiveAdAccounts } from "@/lib/integrations/live-ads-owner";
 import { adjustAiCreditsAction } from "@/lib/actions/plan-actions";
-import { aiCreditStatus } from "@/lib/ai-credits";
+import { aiCreditStatus, teamAllowance } from "@/lib/ai-credits";
 
 const INVOICE: Record<string, { label: string; tone: PillTone }> = {
   PAID: { label: "Paid", tone: "success" },
@@ -38,13 +40,13 @@ export default async function ClientAdminPage({ params }: { params: Promise<{ cl
     },
   });
   if (!client) notFound();
-  const ai = await aiCreditStatus(clientId);
+  const [ai, team] = await Promise.all([aiCreditStatus(clientId), teamAllowance(clientId)]);
   const ledger = await prisma.aiCreditLedger.findMany({ where: { clientId }, orderBy: { createdAt: "desc" }, take: 8 });
   const [adAccounts, adLog] = await Promise.all([listLiveAdAccounts(), prisma.auditLog.findMany({ where: { area: "ad-accounts", clientId }, orderBy: { createdAt: "desc" }, take: 5 })]);
   const actors = new Map((await prisma.user.findMany({ where: { id: { in: adLog.flatMap((l) => (l.actorUserId ? [l.actorUserId] : [])) } }, select: { id: true, name: true } })).map((u) => [u.id, u.name]));
 
   const credits: Stat[] = [
-    { label: "Monthly credit allowance", value: `${client.monthlyCreditAllowance}c` },
+    { label: team.source === "override" ? `Team credits / month · custom (${team.planName} plan: ${team.planValue})` : `Team credits / month · ${team.planName} plan`, value: `${team.value}c` },
     { label: "Current balance", value: `${client.creditBalance}c` },
     ...(client.renewalDate ? [{ label: "Renewal date", value: formatDate(client.renewalDate) }] : []),
   ];
@@ -65,6 +67,20 @@ export default async function ClientAdminPage({ params }: { params: Promise<{ cl
             </form>
           </div>
           <StatRows rows={credits} />
+          {/* Team credits come from the plan (Plan table); a negotiated deal is an explicit, logged override. */}
+          <form action={setTeamCreditsOverrideAction} className="flex flex-wrap items-end gap-3 border-t border-brand-line px-6 py-4">
+            <input type="hidden" name="clientId" value={clientId} />
+            <label className="flex flex-col gap-1 text-[13px] text-brand-ink-2">
+              Team credits override
+              <input name="override" type="number" min={0} defaultValue={team.source === "override" ? team.value : ""} placeholder={`${team.planValue} (plan)`} className="h-9 w-32 rounded-[8px] border border-brand-outline bg-white px-3 text-[14px] text-brand-ink" />
+            </label>
+            <Button type="submit" size="sm" variant="secondary">
+              {team.source === "override" ? "Save" : "Set override"}
+            </Button>
+            <span className="flex items-center gap-2 text-[12px] text-brand-ink-2">
+              Empty = the plan&apos;s value. Plan numbers are <PlaceholderTag />
+            </span>
+          </form>
         </SectionCard>
 
         <SectionCard title="AI credits" meta={<span className="font-brand-mono text-[12px] text-brand-ink-2">{ai.plan.name.toUpperCase()} · {ai.periodKey}</span>}>

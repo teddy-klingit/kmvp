@@ -8,6 +8,7 @@ import { StatTiles } from "@/components/ds/stats";
 import { StatusPill, type PillTone } from "@/components/ds/status-pill";
 import { pillClass } from "@/components/ds/button";
 import { formatDate } from "@/lib/utils";
+import { PlaceholderTag } from "@/components/ds/placeholder-tag";
 import { generateInvoiceAction, markInvoicePaidAction } from "@/lib/actions/ops-billing-actions";
 
 const STATUS: Record<string, { label: string; tone: PillTone }> = {
@@ -16,22 +17,18 @@ const STATUS: Record<string, { label: string; tone: PillTone }> = {
   OVERDUE: { label: "Overdue", tone: "danger" },
   DRAFT: { label: "Draft", tone: "neutral" },
 };
-const PLAN_PRICING = [
-  { tier: "Starter", credits: 16, price: "€2,400/mo" },
-  { tier: "Growth", credits: 40, price: "€5,600/mo" },
-  { tier: "Scale", credits: 80, price: "€10,400/mo" },
-];
 
 const short = (d: Date) => formatDate(d, { day: "numeric", month: "short", year: "numeric" });
 
 export default async function BillingPage() {
   await requireOpsPage(["ADMIN"]);
-  const [invoices, uninvoicedProjects] = await Promise.all([
+  const [invoices, uninvoicedProjects, plans] = await Promise.all([
     prisma.invoice.findMany({ include: { client: true }, orderBy: { issuedAt: "desc" } }),
     prisma.project.findMany({
       where: { status: "DELIVERED", invoices: { none: {} }, priceAmount: { not: null } },
       include: { client: true },
     }),
+    prisma.plan.findMany({ orderBy: { sortOrder: "asc" } }),
   ]);
 
   const overdue = invoices.filter((i) => i.status === "SENT" && i.dueAt && i.dueAt < new Date());
@@ -115,8 +112,9 @@ export default async function BillingPage() {
         />
       </SectionCard>
 
-      <SectionCard title="Plan-tier pricing">
-        <StatTiles tiles={PLAN_PRICING.map((p) => ({ label: p.tier, value: p.price, note: `${p.credits} credits / month` }))} />
+      {/* From the Plan table (edited at /ops/plans): the same numbers clients see. */}
+      <SectionCard title="Plan-tier pricing" meta={<PlaceholderTag />}>
+        <StatTiles tiles={plans.map((p) => ({ label: p.name, value: p.priceAmount != null ? `${p.currency} ${p.priceAmount.toLocaleString("en-GB")}/mo` : "Price not set", note: `${p.monthlyTeamCredits} team credits · ${p.monthlyAiCredits.toLocaleString("en-GB")} AI credits / month` }))} />
       </SectionCard>
     </OpsPage>
   );

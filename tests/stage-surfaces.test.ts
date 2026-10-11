@@ -376,7 +376,10 @@ describe("regressions — the contradictions seen on a Draft project ('Klarna 10
     // Approve estimate, the overdue approval, review, sign-off: the unsent draft isn't one of them.
     expect(needsYou(before)).toBe(4);
     await prisma.marketSignal.create({ data: { clientId: fx.client.id, type: "COMPETITOR", title: "Zip launched 3 new ads on LinkedIn", summary: "x", source: "LinkedIn", publishedAt: new Date() } });
+    // A client staff set to no team allowance (override 0): no "left of" is ever invented.
+    await prisma.client.update({ where: { id: fx.client.id }, data: { teamCreditsOverride: 0 } });
     const after = await render(DashboardPage());
+    await prisma.client.update({ where: { id: fx.client.id }, data: { teamCreditsOverride: null } });
     expect(needsYou(after)).toBe(4);
     const t = asText(after);
     expect(t).not.toMatch(/\d+ left of \d+ ·/);

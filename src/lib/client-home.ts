@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { needsClient, openBriefQuestions } from "@/lib/needs-you";
 import { CLIENT_STAGE_LABEL, clientMilestones, endOfDay, formatDay, shortDate, type ProjectState } from "@/lib/project-state";
 import { jsonArray } from "@/lib/utils";
+import { teamAllowance } from "@/lib/ai-credits";
 import type { ProjectWithStateData } from "@/lib/project-state-loader";
 
 type Item = { project: ProjectWithStateData; state: ProjectState };
@@ -158,7 +159,7 @@ export type CreditSummary = {
 export async function creditSummary(clientId: string, now = new Date()): Promise<CreditSummary> {
   const start = new Date(now.getFullYear(), now.getMonth(), 1);
   const [client, ledger, sent] = await Promise.all([
-    prisma.client.findUniqueOrThrow({ where: { id: clientId }, select: { monthlyCreditAllowance: true } }),
+    teamAllowance(clientId),
     prisma.creditLedgerEntry.findMany({ where: { clientId, createdAt: { gte: start } } }),
     prisma.estimate.findMany({
       where: { status: "SENT", project: { clientId, status: { notIn: ["ARCHIVED", "DRAFT"] } } },
@@ -168,7 +169,7 @@ export async function creditSummary(clientId: string, now = new Date()): Promise
   const used = -ledger.filter((e) => e.type === "CONSUMPTION").reduce((n, e) => n + e.amount, 0);
   const extra = ledger.filter((e) => e.type === "PURCHASE" || e.type === "ADJUSTMENT").reduce((n, e) => n + e.amount, 0);
   const awaiting = sent.reduce((n, e) => n + Math.max(0, e.totalCredits - (e.revisions[0]?.totalCredits ?? 0)), 0);
-  const allowance = client.monthlyCreditAllowance > 0 ? client.monthlyCreditAllowance : null;
+  const allowance = client.value > 0 ? client.value : null;
   const available = allowance !== null ? allowance + extra : null;
   return {
     month: new Intl.DateTimeFormat("en-GB", { month: "long" }).format(now),

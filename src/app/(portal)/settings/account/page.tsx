@@ -38,7 +38,7 @@ export default async function AccountOverviewPage() {
               <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                 <span className="text-[36px] font-light leading-none">{PLAN_TIER_LABEL[client.planTier] ?? client.planTier}</span>
                 <span className="text-[16px] text-brand-ink-2">
-                  {client.monthlyCreditAllowance} credits a month{client.renewalDate ? ` · renews ${formatDate(client.renewalDate, { day: "numeric", month: "short" })}` : ""}
+                  {credits.allowance ?? 0} team credits a month{client.renewalDate ? ` · renews ${formatDate(client.renewalDate, { day: "numeric", month: "short" })}` : ""}
                 </span>
               </div>
               {credits.available !== null && (

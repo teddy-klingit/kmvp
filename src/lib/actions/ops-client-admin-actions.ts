@@ -18,6 +18,7 @@ export async function updateClientPlanAction(formData: FormData) {
   // This month moves to the new plan: team allowance from the plan, and the AI allowance difference as an adjustment.
   const { period, plan: oldPlan } = await ensurePeriod(clientId);
   const plan = await planFor(planTier);
+  // Team credits follow the plan (teamAllowance), unless staff set an override on the client.
   await prisma.client.update({ where: { id: clientId }, data: { planTier, monthlyCreditAllowance: plan.monthlyTeamCredits } });
   await prisma.clientPlan.update({ where: { id: period.id }, data: { tier: planTier } });
   const diff = plan.monthlyAiCredits - oldPlan.monthlyAiCredits;
@@ -64,4 +65,31 @@ export async function setLiveAdsOwnerAction(formData: FormData) {
   revalidatePath(`/ops/clients/${clientId}/admin`);
   revalidatePath("/ops");
   revalidatePath("/insights", "layout");
+}
+
+/** Staff set (a number) or clear (empty) a client's team-credit override; logged in the AuditLog. */
+export async function setTeamCreditsOverrideAction(formData: FormData) {
+  const viewer = await requireOpsRole(["ADMIN"]);
+  const clientId = String(formData.get("clientId") ?? "");
+  const raw = String(formData.get("override") ?? "").trim();
+  const override = raw === "" ? null : Math.round(Number(raw));
+  if (!clientId || (override !== null && (!Number.isFinite(override) || override < 0))) return;
+  const client = await prisma.client.findUniqueOrThrow({ where: { id: clientId }, select: { teamCreditsOverride: true, planTier: true } });
+  if (client.teamCreditsOverride === override) return;
+  const plan = await planFor(client.planTier);
+  await prisma.$transaction([
+    prisma.client.update({ where: { id: clientId }, data: { teamCreditsOverride: override } }),
+    prisma.auditLog.create({
+      data: {
+        clientId,
+        actorUserId: viewer.userId,
+        area: "team-credits",
+        action: override === null ? `Team credits back to the ${plan.name} plan (${plan.monthlyTeamCredits} a month)` : `Team credits set to ${override} a month (${plan.name} plan: ${plan.monthlyTeamCredits})`,
+        before: { override: client.teamCreditsOverride, plan: plan.monthlyTeamCredits },
+        after: { override, plan: plan.monthlyTeamCredits },
+      },
+    }),
+  ]);
+  revalidatePath(`/ops/clients/${clientId}/admin`);
+  revalidatePath("/", "layout");
 }

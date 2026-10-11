@@ -16,7 +16,8 @@ export type ClientHealth = { score: number; atRisk: boolean; reasons: string[] }
 type HealthInput = {
   projects: OpsProject[];
   creditBalance: number;
-  monthlyCreditAllowance: number;
+  /** Team credits a month (plan or staff override). */
+  teamAllowance: number;
   renewalDate: Date | null;
   brandDone: number;
 };
@@ -39,7 +40,7 @@ export function healthFrom(i: HealthInput, now = new Date()): ClientHealth {
   if (other) hit(Math.min(15, other * 5), `${other} open item${other === 1 ? "" : "s"} for the PM`);
 
   if (i.creditBalance < 0) hit(15, "credit balance below zero");
-  else if (i.monthlyCreditAllowance > 0 && i.creditBalance < i.monthlyCreditAllowance * 0.1) hit(10, "under 10% of credits left");
+  else if (i.teamAllowance > 0 && i.creditBalance < i.teamAllowance * 0.1) hit(10, "under 10% of credits left");
 
   if (i.renewalDate) {
     const days = (i.renewalDate.getTime() - now.getTime()) / DAY;
@@ -59,6 +60,8 @@ export async function clientHealthMap(now = new Date()) {
     loadOpsProjects({}, now),
     prisma.client.findMany({ include: { brandOS: true } }),
   ]);
+  // Team credits a month: the plan's, unless staff set an override (teamAllowance in ai-credits.ts).
+  const plans = new Map((await prisma.plan.findMany({ select: { tier: true, monthlyTeamCredits: true } })).map((p) => [p.tier, p.monthlyTeamCredits]));
   return new Map(
     clients.map((c) => [
       c.id,
@@ -66,7 +69,7 @@ export async function clientHealthMap(now = new Date()) {
         {
           projects: projects.filter((p) => p.project.clientId === c.id),
           creditBalance: c.creditBalance,
-          monthlyCreditAllowance: c.monthlyCreditAllowance,
+          teamAllowance: c.teamCreditsOverride ?? plans.get(c.planTier) ?? 0,
           renewalDate: c.renewalDate,
           brandDone: platformStatus({ brandSummary: c.brandSummary, brandOS: c.brandOS }).done,
         },
