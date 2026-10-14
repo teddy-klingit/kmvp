@@ -114,7 +114,7 @@ export async function NeedsYouHome({ viewer, inboxCount, scope }: { viewer: Staf
         </header>
 
         <div className="flex flex-wrap items-center gap-3">
-          <NeedsYouChips active="needs" needs={open} inbox={inboxCount} />
+          <NeedsYouChips active="needs" needs={open} inbox={inboxCount} quality={needs.filter((n) => n.kind === "quality_check").length} />
           <nav aria-label="Whose clients" className="ml-auto flex rounded-full bg-[var(--seg-track)] p-1">
             {[
               ["mine", "Mine"],

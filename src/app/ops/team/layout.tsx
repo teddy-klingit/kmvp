@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { OpsPage } from "@/components/ops/ops-page";
 import { PageHeader } from "@/components/ds/page-header";
 
-/** Ops → Team: Capacity · Forecast (the forecast used to be unreachable). */
+/** Ops → Team: Capacity · Workload · Forecast (the forecast used to be unreachable). */
 export default async function TeamLayout({ children }: { children: React.ReactNode }) {
   const staff = await prisma.staffMember.findMany({ select: { capacityHoursPerWeek: true } });
   const capacity = staff.reduce((s, m) => s + m.capacityHoursPerWeek, 0);
@@ -14,6 +14,7 @@ export default async function TeamLayout({ children }: { children: React.ReactNo
         tabsLabel="Team views"
         tabs={[
           { label: "Capacity", href: "/ops/team" },
+          { label: "Workload", href: "/ops/team/workload" },
           { label: "Forecast", href: "/ops/team/forecast" },
         ]}
       />
