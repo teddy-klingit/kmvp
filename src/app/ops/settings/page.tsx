@@ -81,6 +81,18 @@ export default async function WorkspaceSettingsPage({
       {google === "error" && <Notice ok={false}>Couldn&apos;t connect Google Ads. The authorization was cancelled or failed.</Notice>}
 
       {/* Plan (Phase R): lead times give clients their brief-by dates; key moments show on every client's Plan. */}
+      <SectionCard title="Elsewhere">
+        <div className="flex flex-wrap gap-x-6 gap-y-2 px-6 py-4 text-[14px]">
+          <Link href="/ops/skills">Skills &amp; AI</Link>
+          <Link href="/ops/analytics">Analytics</Link>
+          <Link href="/ops/projects">All projects</Link>
+          <Link href="/ops/archive">Archive</Link>
+          <Link href="/ops/inbox">Inbox</Link>
+          <Link href="/ops/plans">Old plans &amp; AI bundles (until clients are migrated)</Link>
+          <Link href="/ops/migration">Migration</Link>
+        </div>
+      </SectionCard>
+
       <SectionCard title="Plan · lead times" meta={<span className="text-[12px] text-brand-ink-2">Working days Klingit needs per format, and ≈ team credits · placeholders</span>}>
         <ul className="m-0 flex list-none flex-col p-0">
           {[...leadTimes, null].map((l) => (

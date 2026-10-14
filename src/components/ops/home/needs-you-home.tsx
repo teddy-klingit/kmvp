@@ -5,7 +5,9 @@ import { Card, CardHeader } from "@/components/ds/card";
 import { StatusPill, type PillTone } from "@/components/ds/status-pill";
 import { Button } from "@/components/ds/button";
 import { EmptyState } from "@/components/ds/empty-state";
-import { loadOpsProjects, projectHealth, rankExceptions, type OpsException, type OpsProject } from "@/lib/ops-exceptions";
+import { projectHealth, type OpsException, type OpsProject } from "@/lib/ops-exceptions";
+import { loadToday } from "@/lib/today";
+import type { Scope } from "@/lib/staff-scope";
 import { nextAutomatedStep } from "@/lib/autopilot";
 import { internalStagePill } from "@/lib/ops-cockpit";
 import { formatDay } from "@/lib/project-state";
@@ -50,20 +52,24 @@ function when(p: OpsProject) {
   }
 }
 
-export async function NeedsYouHome({ viewer, inboxCount }: { viewer: StaffMember & { user: User }; inboxCount: number }) {
+/**
+ * Today (Phase S, S7.1): the PM's home. One list across their clients (Mine) or every client (All), sorted by
+ * urgency, one main action each; then what's running on its own.
+ */
+export async function NeedsYouHome({ viewer, inboxCount, scope }: { viewer: StaffMember & { user: User }; inboxCount: number; scope: Scope }) {
   const now = new Date();
   const startOfDay = new Date(now);
   startOfDay.setHours(0, 0, 0, 0);
   const endOfWeek = new Date(startOfDay);
   endOfWeek.setDate(endOfWeek.getDate() + ((7 - endOfWeek.getDay()) % 7) + 1);
 
-  const [projects, runsToday, overriddenToday, unassigned] = await Promise.all([
-    loadOpsProjects({}, now),
+  const [today, runsToday, overriddenToday, unassigned] = await Promise.all([
+    loadToday(scope, now),
     prisma.agentRun.count({ where: { createdAt: { gte: startOfDay }, projectId: { not: null } } }),
     prisma.agentRun.count({ where: { createdAt: { gte: startOfDay }, projectId: { not: null }, overridden: true } }),
     unassignedLiveAdAccounts(),
   ]);
-  const needs = rankExceptions(projects);
+  const { items: needs, projects } = today;
   const open = needs.length + unassigned.length;
   const running = projects.filter((p) => p.exceptions.length === 0);
   const draftsThisWeek = projects.filter((p) => {
@@ -107,7 +113,19 @@ export async function NeedsYouHome({ viewer, inboxCount }: { viewer: StaffMember
           </form>
         </header>
 
-        <NeedsYouChips active="needs" needs={open} inbox={inboxCount} />
+        <div className="flex flex-wrap items-center gap-3">
+          <NeedsYouChips active="needs" needs={open} inbox={inboxCount} />
+          <nav aria-label="Whose clients" className="ml-auto flex rounded-full bg-[var(--seg-track)] p-1">
+            {[
+              ["mine", "Mine"],
+              ["all", "All"],
+            ].map(([k, l]) => (
+              <Link key={k} href={`/ops?scope=${k}`} aria-current={(k === "mine") === scope.mine ? "page" : undefined} className={`rounded-full px-4 py-1.5 text-[14px] no-underline ${(k === "mine") === scope.mine ? "bg-brand-ink text-white" : "text-brand-ink"}`}>
+                {l}
+              </Link>
+            ))}
+          </nav>
+        </div>
 
         <section aria-label="Summary" className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {tiles.map((t) => (
@@ -123,7 +141,7 @@ export async function NeedsYouHome({ viewer, inboxCount }: { viewer: StaffMember
 
         <Card aria-label="Needs you" className="overflow-hidden">
           <CardHeader
-            title="Needs you"
+            title={scope.mine ? "Needs you · your clients" : "Needs you · all clients"}
             meta={open > 0 ? <StatusPill tone="turn">{open} open</StatusPill> : undefined}
             action={<span className="text-[12px] text-ds-text-2">Sorted by urgency</span>}
           />
@@ -158,7 +176,7 @@ export async function NeedsYouHome({ viewer, inboxCount }: { viewer: StaffMember
                 const tone = EXCEPTION_TONE[n.tone];
                 return (
                   <li key={n.id} className={`flex flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center sm:gap-4 ${i > 0 ? "border-t border-ds-divider" : ""}`}>
-                    <span className={`flex size-10 shrink-0 items-center justify-center rounded-[10px] text-[12px] font-semibold ${tone.tile}`}>{n.kindShort}</span>
+                    <span className={`flex size-10 shrink-0 items-center justify-center rounded-[10px] text-[12px] font-semibold ${tone.tile}`}>{n.short}</span>
                     <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-[14px] font-semibold text-ds-text">{n.title}</span>
@@ -166,7 +184,7 @@ export async function NeedsYouHome({ viewer, inboxCount }: { viewer: StaffMember
                       </div>
                       <span className="text-[14px] text-ds-text-2">{n.detail}</span>
                       <span className="text-[12px] text-ds-text-3">
-                        {n.clientName} · {n.projectName} · waiting {n.waiting}
+                        {n.clientName} · {n.waiting}
                       </span>
                     </div>
                     <Button asChild variant="primary" size="md">

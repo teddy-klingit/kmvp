@@ -12,11 +12,11 @@ import { cancelContract, ContractError, createContract, endContract, pauseContra
  * person. Every change is logged (ContractChange + AuditLog). Errors come back on the page as ?error=.
  */
 
-const back = (clientId: string, msg?: { ok?: string; error?: string }) => {
+const back = (clientId: string, msg?: { ok?: string; error?: string }, tab = "contract") => {
   revalidatePath(`/ops/clients/${clientId}`, "layout");
   revalidatePath("/settings/plan");
   const q = new URLSearchParams(Object.entries(msg ?? {}).filter((e): e is [string, string] => Boolean(e[1])));
-  redirect(`/ops/clients/${clientId}/contract${q.size ? `?${q}` : ""}`);
+  redirect(`/ops/clients/${clientId}/${tab === "balances" ? "balances" : "contract"}${q.size ? `?${q}` : ""}`);
 };
 
 async function run(formData: FormData, fn: (viewer: Awaited<ReturnType<typeof requireOpsRole>>, clientId: string, contractId: string) => Promise<string>) {
@@ -27,10 +27,10 @@ async function run(formData: FormData, fn: (viewer: Awaited<ReturnType<typeof re
   try {
     ok = await fn(viewer, clientId, contractId);
   } catch (e) {
-    if (e instanceof ContractError) back(clientId, { error: e.message });
+    if (e instanceof ContractError) back(clientId, { error: e.message }, String(formData.get("back") ?? ""));
     throw e;
   }
-  back(clientId, { ok });
+  back(clientId, { ok }, String(formData.get("back") ?? ""));
 }
 
 const num = (v: FormDataEntryValue | null) => (String(v ?? "").trim() === "" ? null : Number(String(v).replace(",", ".")));

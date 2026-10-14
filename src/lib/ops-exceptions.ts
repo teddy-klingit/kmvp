@@ -63,7 +63,7 @@ function cockpit(projectId: string, rest = "") {
 }
 
 /** Every active (non-draft) project with its state, autopilot plan and exceptions, for the PM home and the cockpit. */
-export async function loadOpsProjects(where: { id?: string } = {}, now = new Date()): Promise<OpsProject[]> {
+export async function loadOpsProjects(where: { id?: string; clientId?: { in: string[] } } = {}, now = new Date()): Promise<OpsProject[]> {
   const projects = await prisma.project.findMany({
     where: { status: { in: [...ACTIVE] }, ...where },
     include: {

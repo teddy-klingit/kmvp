@@ -1,7 +1,7 @@
 import { IntelligenceRail } from "@/components/ops/intelligence-rail";
 import { PageHeader } from "@/components/ds/page-header";
 import { getClientWorkspace } from "@/lib/data/ops-client-workspace";
-import { getOpsViewer } from "@/lib/current-viewer";
+import { requireOpsPage } from "@/lib/authz";
 import { PLAN_TIER_LABEL } from "@/lib/labels";
 import { roleTierFor } from "@/lib/role-tier";
 import { OUHERS_CLIENT_ID } from "@/lib/demo/ouhers";
@@ -10,11 +10,12 @@ import { ResetDemoButton } from "@/components/ops/reset-demo-button";
 const STATUS: Record<string, string> = { ACTIVE: "Active", ONBOARDING: "Onboarding", PAUSED: "Paused", OFFBOARDED: "Offboarded" };
 
 /**
- * One client's workspace (ops): one header with a single segmented control for every view (it used to be
- * two overlapping tab bars), and the intelligence rail on the right on wide screens.
+ * One client's workspace (ops): one header with a single segmented control for every view, and the intelligence rail
+ * on the right on wide screens. Phase S: Overview · Contract · Balances · Projects · Plan · Billing · Activity first.
  */
 export default async function ClientWorkspaceLayout({ children, params }: { children: React.ReactNode; params: Promise<{ clientId: string }> }) {
-  const viewer = await getOpsViewer();
+  // Client detail (Phase S, S7.3) holds contracts, balances and billing: admins and PMs only.
+  const viewer = await requireOpsPage(["ADMIN", "PM"]);
   const { clientId } = await params;
   const workspace = await getClientWorkspace(clientId);
   const { client } = workspace;
@@ -31,15 +32,18 @@ export default async function ClientWorkspaceLayout({ children, params }: { chil
             title={client.name}
             tabsLabel="Client workspace"
             tabs={[
-              { label: "Dashboard", href: `${base}/dashboard` },
+              { label: "Overview", href: `${base}/dashboard` },
               { label: "Contract", href: `${base}/contract` },
-              { label: "Delivery", href: `${base}/delivery` },
-              { label: "Brand assets", href: `${base}/brand-assets` },
+              { label: "Balances", href: `${base}/balances` },
+              { label: "Projects", href: `${base}/projects` },
+              { label: "Plan", href: `${base}/plan` },
+              { label: "Billing", href: `${base}/billing` },
+              { label: "Activity", href: `${base}/activity` },
               { label: "Brand OS", href: `${base}/brand-os` },
-              { label: "Content plan", href: `${base}/content-plan` },
+              { label: "Brand assets", href: `${base}/brand-assets` },
               { label: "Opportunities", href: `${base}/opportunities` },
+              { label: "Content plan", href: `${base}/content-plan` },
               { label: "Custom apps", href: `${base}/custom-apps` },
-              { label: "Project files", href: `${base}/project-files` },
               { label: "Admin", href: `${base}/admin` },
             ]}
           />
