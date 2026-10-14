@@ -14,7 +14,7 @@ import { getSetting } from "@/lib/platform-settings";
  * and a daily fair-use limit applies instead (assistantFairUse).
  *
  * ── Tokens → AI credits (PLACEHOLDER rate, one place) ──────────────────────────────────────────────────────────
- * 1 AI credit = 1,000 weighted tokens. Weighted tokens = input tokens + 5 × output tokens (output costs ~5× input
+ * 1 AI credit = 1,000 weighted tokens by default; staff change it in Price List → Currencies & terms (Phase S). Weighted tokens = input tokens + 5 × output tokens (output costs ~5× input
  * on Claude), times the model's price relative to the default model. A web search adds 1,000 weighted tokens; a
  * generated image adds IMAGE_CREDITS. Change the numbers here and nowhere else.
  */
@@ -26,10 +26,10 @@ const MODEL_WEIGHT: Record<string, number> = { "claude-opus-5": 1, "claude-sonne
 /** Shown everywhere a credit number has no measured source yet. */
 export const AI_CREDITS_ARE_PLACEHOLDERS = true;
 
-export function creditsForTokens(u: { tokensIn: number; tokensOut: number; model?: string | null; webSearches?: number; images?: number }) {
+export function creditsForTokens(u: { tokensIn: number; tokensOut: number; model?: string | null; webSearches?: number; images?: number }, tokensPerCredit = TOKENS_PER_AI_CREDIT) {
   const weight = (u.model ? MODEL_WEIGHT[u.model] : undefined) ?? 1;
   const weighted = (u.tokensIn + OUTPUT_TOKEN_WEIGHT * u.tokensOut) * weight + (u.webSearches ?? 0) * WEB_SEARCH_TOKENS;
-  return Math.round((weighted / TOKENS_PER_AI_CREDIT + (u.images ?? 0) * IMAGE_CREDITS) * 100) / 100;
+  return Math.round((weighted / tokensPerCredit + (u.images ?? 0) * IMAGE_CREDITS) * 100) / 100;
 }
 
 // ─── Plans and periods ────────────────────────────────────────────────────────────────────────────────────────────
@@ -175,7 +175,8 @@ export type AiCharge = {
  * nothing. Tells the client's admins once each at 80% and 100% of the allowance. Returns the credits charged.
  */
 export async function chargeAi(c: AiCharge, now = new Date()) {
-  const credits = creditsForTokens(c);
+  // The token → credit rate is one staff setting (PlatformSetting aiTokensPerCredit; TOKENS_PER_AI_CREDIT is its default).
+  const credits = creditsForTokens(c, await getSetting("aiTokensPerCredit"));
   const before = await aiCreditStatus(c.clientId, now);
   const base = { clientId: c.clientId, userId: c.userId ?? null, kind: "USAGE" as const, sourceType: c.sourceType, sourceKey: c.sourceKey, sourceName: c.sourceName, projectId: c.projectId ?? null, format: c.format ?? null, model: c.model ?? null, agentRunId: c.agentRunId ?? null, createdAt: now };
   // Assistants: the cost is logged so Klingit can see it, never counted against the client.

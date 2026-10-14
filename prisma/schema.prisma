@@ -2317,3 +2317,57 @@ model PlatformSetting {
   updatedByUserId String?
   updatedAt       DateTime @updatedAt
 }
+
+/// Phase S: what a client pays for the platform (EUR per month, placeholders, staff-editable). A contract locks the
+/// price at signing, so editing a plan never changes what an existing client pays.
+model PlatformPlan {
+  key               String   @id // basic | pro | enterprise
+  name              String
+  priceEur          Float
+  aiCreditsPerMonth Int
+  /// Basic: the client's own AI (Claude via MCP or their key); their provider bills it.
+  ownModel          Boolean  @default(false)
+  /// One-line pitch and the feature bullets shown on the plan card.
+  tagline           String?
+  features          Json     @default("[]")
+  sortOrder         Int      @default(0)
+  active            Boolean  @default(true)
+  updatedAt         DateTime @updatedAt
+}
+
+/// Phase S: Klingit's team, sold as packs of PM and creative credits (EUR per month for the team part; the
+/// Enterprise platform fee comes on top). "Per request" has no fixed numbers: staff set them on the contract.
+model TeamPack {
+  key             String   @id // pm10 | pm20 | pm40 | pmc10_20 | pmc20_40 | pmc40_80 | per_request
+  name            String
+  pmCredits       Int      @default(0)
+  creativeCredits Int      @default(0)
+  priceEur        Float?
+  perRequest      Boolean  @default(false)
+  /// The platform plan a pack needs (Enterprise for every pack).
+  requiresPlanKey String   @default("enterprise")
+  sortOrder       Int      @default(0)
+  active          Boolean  @default(true)
+  updatedAt       DateTime @updatedAt
+}
+
+/// Phase S: units of a currency per 1 EUR (staff-editable). Converted price = EUR × rate × 1.02, rounded to 5.
+model FxRate {
+  currency        String   @id // SEK | NOK | GBP | USD
+  perEur          Float
+  updatedByUserId String?
+  updatedAt       DateTime @updatedAt
+}
+
+/// Phase S: a staff override of one converted list price (e.g. Pro in SEK is exactly 1,095).
+model PriceOverride {
+  id              String   @id @default(cuid())
+  /// "plan:<key>" | "pack:<key>"
+  ref             String
+  currency        String
+  amount          Float
+  updatedByUserId String?
+  updatedAt       DateTime @updatedAt
+
+  @@unique([ref, currency])
+}

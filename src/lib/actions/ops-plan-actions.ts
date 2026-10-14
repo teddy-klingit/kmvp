@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireOpsRole } from "@/lib/authz";
-import { setSetting } from "@/lib/platform-settings";
 
 /** Staff edit Plan's lead times (working days and ≈ team credits per format) and key moments (Phase R). */
 
@@ -40,11 +39,3 @@ export async function removeKeyMomentAction(formData: FormData) {
   revalidatePath("/plan", "layout");
 }
 
-/** Assistants' daily fair-use limit per client (assistants never use AI credits). Admins only; logged. */
-export async function saveFairUseAction(formData: FormData) {
-  const viewer = await requireOpsRole(["ADMIN"]);
-  const limit = Math.round(Number(formData.get("limit") ?? 0));
-  if (!Number.isFinite(limit) || limit < 1) return;
-  await setSetting("assistantFairUsePerDay", limit, viewer.userId);
-  revalidatePath("/ops/settings");
-}

@@ -10,6 +10,7 @@ import { DataTable } from "@/components/ds/data-table";
 import { StatusPill, type PillTone } from "@/components/ds/status-pill";
 import { pillClass } from "@/components/ds/button";
 import { PriceListItemDialog } from "@/components/ops/price-list-item-dialog";
+import { PRICE_LIST_TABS } from "@/components/ops/price-list-tabs";
 import { deletePriceListItemAction } from "@/lib/actions/price-list-actions";
 
 const TIER_LABEL = { LOW: "Low", MEDIUM: "Medium", HIGH: "High" } as const;
@@ -27,7 +28,7 @@ export default async function PriceListPage({ searchParams }: { searchParams: Pr
 
   return (
     <OpsPage>
-      <PageHeader eyebrow={`${types} deliverable${types === 1 ? "" : "s"} · ${items.length} prices`} title="Price list" actions={<PriceListItemDialog />} />
+      <PageHeader eyebrow={`${types} deliverable${types === 1 ? "" : "s"} · ${items.length} prices`} title="Price List" actions={<PriceListItemDialog />} tabsLabel="Price List sections" tabs={PRICE_LIST_TABS} />
       <FilterChips
         label="Complexity"
         items={[

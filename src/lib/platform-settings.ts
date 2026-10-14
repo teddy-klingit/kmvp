@@ -8,6 +8,30 @@ import { prisma } from "@/lib/prisma";
 export const SETTING_DEFAULTS = {
   /** Assistant calls per client per day before the calm fair-use message (assistants never use AI credits). */
   assistantFairUsePerDay: 200 as number,
+  /** Weighted tokens per AI credit (1 AI credit ≈ one short piece of copy). */
+  aiTokensPerCredit: 1000 as number,
+  /** Price adjustment per contract term in months, against the 12-month default (+0.05 = 5% more). */
+  termAdjustments: { "3": 0.1, "6": 0.05, "12": 0, "18": -0.05 } as Record<string, number>,
+  /** Paying the whole term upfront. */
+  upfrontAdjustment: -0.03 as number,
+  /** EUR → other currencies: EUR × rate × (1 + markup), rounded to the nearest 5. */
+  fxMarkup: 0.02 as number,
+  /** PM and creative credits roll over up to this × the monthly amount. */
+  teamRolloverCap: 1.5 as number,
+  /** AI credits roll over to next month. */
+  aiRollover: false as boolean,
+  /** Active projects at once: one per this many creative credits (PM-only packs get 1). */
+  creativeCreditsPerSlot: 10 as number,
+  /** Each estimate's PM line: this share of the creative credits, at least pmLineMin. */
+  pmLinePercent: 0.1 as number,
+  pmLineMin: 0.5 as number,
+  /** Extra creative credits come in packs of this size, at the pack's per-credit price plus this surcharge. */
+  creativePackSize: 10 as number,
+  creativePackSurcharge: 0.1 as number,
+  /** An AI credit top-up. */
+  aiTopUp: { credits: 500, priceEur: 49 } as { credits: number; priceEur: number },
+  /** VAT for clients in Sweden; clients abroad are reverse charge (0). */
+  vatRateDomestic: 0.25 as number,
 };
 export type SettingKey = keyof typeof SETTING_DEFAULTS;
 
