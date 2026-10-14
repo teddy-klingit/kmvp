@@ -31,14 +31,16 @@ export async function loadToday(scope: Scope, now = new Date()) {
     prisma.purchaseRequest.findMany({ where: { ...inScope, status: "pending" }, include: { client: { select: { name: true } } } }),
     prisma.contract.findMany({ where: { ...inScope, status: { in: ["active", "paused"] } }, include: { client: { select: { name: true } } } }),
   ]);
+  const needsNumber = new Set(estimates.map((e) => e.project.id));
   const items: TodayItem[] = rankExceptions(projects)
-    .filter((e) => e.kind !== "out_of_scope") // shown below as "needs your number", with the estimate lines
+    // Shown below as "needs your number", with the estimate lines (one item per estimate, not two).
+    .filter((e) => e.kind !== "out_of_scope" && !(e.kind === "estimate_send" && needsNumber.has(e.projectId)))
     .map((e) => {
       const p = projects.find((x) => x.project.id === e.projectId);
       return { id: e.id, kind: e.kind, kindLabel: e.kindLabel, short: e.kindShort, tone: e.tone, rank: e.rank, title: e.title, detail: `${e.detail} · ${e.projectName}`, clientId: p?.project.clientId ?? "", clientName: e.clientName, since: e.since, action: e.action };
     });
   for (const est of estimates)
-    items.push({ id: `est-${est.id}`, kind: "estimate_number", kindLabel: "Needs your number", short: "EST", tone: "turn", rank: 1, title: `${est.lineItems.length} estimate line${est.lineItems.length === 1 ? "" : "s"} need your number`, detail: `${est.project.name}: estimate or quote items from the Price List`, clientId: est.project.clientId, clientName: est.project.client.name, since: est.createdAt, action: { label: "Price it", href: `/ops/projects/${est.project.id}?edit=estimate#estimate` } });
+    items.push({ id: `est-${est.id}`, kind: "estimate_number", kindLabel: "Needs your number", short: "EST", tone: "turn", rank: 1, title: `${est.lineItems.length} estimate line${est.lineItems.length === 1 ? " needs" : "s need"} your number`, detail: `${est.project.name}: estimate or quote items from the Price List`, clientId: est.project.clientId, clientName: est.project.client.name, since: est.createdAt, action: { label: "Price it", href: `/ops/projects/${est.project.id}?edit=estimate#estimate` } });
   for (const est of quotes)
     for (const n of (est.unresolvedNeeds as { description: string; resolution?: unknown }[] | null) ?? [])
       if (!n.resolution)

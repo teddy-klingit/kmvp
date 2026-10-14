@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { aiCreditStatus } from "@/lib/ai-credits";
-import { teamBalances } from "@/lib/team-ledger";
+import { poolOf, teamBalances } from "@/lib/team-ledger";
 import { PLAN_TIER_LABEL } from "@/lib/labels";
 import type { Scope } from "@/lib/staff-scope";
 
@@ -52,7 +52,7 @@ export async function loadClientRows(scope: Scope, now = new Date()): Promise<Cl
     const [ai, team] = await Promise.all([aiCreditStatus(c.id, now), teamBalances(c.id, now)]);
     const pool = (k: "pm" | "creative"): Bal => {
       const p = team?.[k];
-      return p && (p.monthly > 0 || p.left !== 0) ? { left: p.left, of: p.monthly + p.carried + p.purchased - p.services } : null;
+      return p && (p.monthly > 0 || p.left !== 0) ? { left: p.left, of: poolOf(p) } : null;
     };
     const way: Way | null = contract ? (!contract.teamPackKey ? 1 : contract.creativeCreditsPerMonth > 0 ? 3 : 2) : null;
     const contactStaff = contract?.contact ?? c.accountLead ?? null;

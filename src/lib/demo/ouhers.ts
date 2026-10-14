@@ -16,6 +16,7 @@ import { loadBrandHealth } from "@/lib/brand-health";
 import { estimatePreview, priceEntries, type PriceEntry } from "@/lib/brief-studio/formats";
 import type { AgentBuild, BuildStep } from "@/lib/agent-build";
 import { phaseQPack, phaseQText, seedPhaseQ } from "@/lib/demo/ouhers-phase-q";
+import { seedPhaseS } from "@/lib/demo/ouhers-phase-s";
 import { seedPhaseROpportunities, seedPhaseRPlan, seedPhaseRRules, seedRuleCounts } from "@/lib/demo/ouhers-phase-r";
 
 /**
@@ -809,6 +810,9 @@ export async function seedOuhers(opts: { dir?: string; shift?: boolean; log?: (s
   say(`Phase R · rules · ${await seedRuleCounts(OUHERS_CLIENT_ID)} pieces of copy run through the rule check`);
   say(`Phase R · plan · ${await seedPhaseRPlan({ clientId: OUHERS_CLIENT_ID, now, userId: (id) => clientUserIds.get(id)!.userId })} plan items`);
   say(`Phase R · opportunities · ${await seedPhaseROpportunities({ clientId: OUHERS_CLIENT_ID, now, staffUserId: staffIds.get("kl-teddy")?.userId ?? null })}`);
+
+  // Phase S: the contract, its two team ledgers, invoices, a pending pack and an estimate waiting for the PM's number.
+  await seedPhaseS({ clientId: OUHERS_CLIENT_ID, now, contactStaffId: teddy?.staffId ?? null, staffUserId: teddy?.userId ?? null, userId: (id) => clientUserIds.get(id)!.userId, projectId, say });
 
   // ─── Computed vs expected ───────────────────────────────────────────────
   const health = await loadBrandHealth(OUHERS_CLIENT_ID);

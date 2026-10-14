@@ -10,7 +10,7 @@ import { PlanBuilder, type PriceMatrix } from "@/components/portal/plan/plan-bui
 import { RequestForm } from "@/components/portal/plan/request-form";
 import { liveContract } from "@/lib/contracts";
 import { aiCreditStatus } from "@/lib/ai-credits";
-import { slotsForContract, teamBalances } from "@/lib/team-ledger";
+import { poolNotes, poolOf, slotsForContract, teamBalances } from "@/lib/team-ledger";
 import { marketingPm } from "@/lib/contact-person";
 import { isCurrency, loadPricing, monthlyPrice, TERMS, type Currency } from "@/lib/pricing";
 import { money } from "@/lib/invoicing";
@@ -62,7 +62,7 @@ export default async function PlanSettingsPage() {
         {Math.round(left).toLocaleString("en-GB")} <span className="text-[14px] text-brand-ink-2">of {Math.round(of).toLocaleString("en-GB")} left</span>
       </span>
       <span className="h-1.5 overflow-hidden rounded-full bg-brand-track">
-        <span className={`block h-full rounded-full ${purple ? "bg-[#B455B6]" : "bg-brand-ink"}`} style={{ width: `${Math.min(100, of > 0 ? (left / of) * 100 : 0)}%` }} />
+        <span className={`block h-full rounded-full ${purple ? "bg-[#B455B6]" : "bg-brand-ink"}`} style={{ width: `${of > 0 ? Math.max(0, Math.min(100, ((of - left) / of) * 100)) : 0}%` }} />
       </span>
       <span className="text-[12px] text-brand-ink-2">{sub}</span>
     </div>
@@ -74,8 +74,8 @@ export default async function PlanSettingsPage() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {balance("AI credits", ai.ownModel ? 0 : ai.left, ai.allowance, ai.ownModel ? "Your own AI model: your provider bills it" : "For skills you run · reset monthly, don't roll over", true)}
-        {balances && balances.pm.monthly > 0 && balance("PM credits", balances.pm.left, balances.pm.monthly + balances.pm.carried + balances.pm.purchased, `${balances.pm.monthly} a month · roll over up to 150%`)}
-        {balances && (balances.creative.monthly > 0 || balances.creative.left > 0) && balance("Creative credits", balances.creative.left, balances.creative.monthly + balances.creative.carried + balances.creative.purchased - balances.creative.services, `${balances.creative.monthly} a month${balances.services.length ? ` · ${balances.services.map((s) => `${s.name} ${s.creditsPerMonth}`).join(", ")} reserved` : ""}`)}
+        {balances && balances.pm.monthly > 0 && balance("PM credits", balances.pm.left, poolOf(balances.pm), [`${balances.pm.monthly} a month · roll over up to 150%`, ...poolNotes(balances.pm)].join(" · "))}
+        {balances && (balances.creative.monthly > 0 || balances.creative.left > 0) && balance("Creative credits", balances.creative.left, poolOf(balances.creative), [`${balances.creative.monthly} a month`, ...poolNotes({ ...balances.creative, services: 0 }), ...balances.services.map((s) => `${s.name} ${s.creditsPerMonth} reserved`)].join(" · "))}
       </div>
 
       <div className="grid grid-cols-1 gap-6 min-[1000px]:grid-cols-[minmax(0,1fr)_320px]">

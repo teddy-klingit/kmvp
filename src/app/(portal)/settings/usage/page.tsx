@@ -17,7 +17,7 @@ import { TopUp } from "@/components/portal/usage/top-up";
 import { AddSlotDialog } from "@/components/portal/add-slot-dialog";
 import { cn } from "@/lib/utils";
 import { quoteRequest } from "@/lib/requests";
-import { teamBalances } from "@/lib/team-ledger";
+import { poolNotes, poolOf, teamBalances } from "@/lib/team-ledger";
 import { money } from "@/lib/invoicing";
 
 const n = (v: number) => Math.round(v).toLocaleString("en-GB");
@@ -53,6 +53,41 @@ export default async function UsagePage() {
     <div className="flex flex-col gap-6">
       {/* Team and AI credits this month */}
       <div className="grid grid-cols-1 gap-6 min-[1000px]:grid-cols-2">
+        {pools ? (
+          // Phase S: on a contract, PM and creative are two balances, never pooled (the table below has the detail).
+          <section aria-label="PM and creative credits" className="flex flex-col gap-4 rounded-[12px] bg-white px-6 py-5">
+            <span className="flex items-center gap-2">
+              <span aria-hidden className="size-2.5 rounded-[3px] bg-brand-ink" />
+              <span className="flex-1 text-[16px]">PM and creative credits</span>
+              <span className="text-[12px] text-brand-mute">Klingit team time · 1 credit ≈ 1 hour</span>
+            </span>
+            {(["pm", "creative"] as const)
+              .filter((k) => pools[k].monthly > 0 || pools[k].left > 0)
+              .map((k) => {
+                const p = pools[k];
+                const of = poolOf(p);
+                return (
+                  <span key={k} className="flex flex-col gap-2">
+                    <span className="flex items-baseline gap-2">
+                      <span className="w-[72px] text-[14px]">{k === "pm" ? "PM" : "Creative"}</span>
+                      <span className="text-[32px] font-light leading-none tabular-nums">{n(p.left)}</span>
+                      <span className="text-[14px] text-brand-ink-2">left of {n(of)}{p.monthly > 0 ? " a month" : ""}</span>
+                    </span>
+                    <span className="flex h-2 overflow-hidden rounded-full bg-brand-line" role="img" aria-label={`${n(p.left)} of ${n(of)} left`}>
+                      <span className="h-full bg-brand-ink" style={{ width: `${of ? Math.max(0, Math.min(100, ((of - p.left) / of) * 100)) : 0}%` }} />
+                    </span>
+                    {poolNotes(p).length > 0 && <span className="text-[12px] text-brand-ink-2">{poolNotes(p).join(" · ")}</span>}
+                  </span>
+                );
+              })}
+            {team.awaiting > 0 && (
+              <p className="m-0 flex items-center gap-2 rounded-[10px] bg-brand-page px-4 py-2.5 text-[13px]">
+                <span aria-hidden className="size-2 rounded-full bg-[#BDB6A8]" />
+                {n(team.awaiting)} held for estimates waiting on you.
+              </p>
+            )}
+          </section>
+        ) : (
         <section aria-label="Team credits" className="flex flex-col gap-4 rounded-[12px] bg-white px-6 py-5">
           <span className="flex items-center gap-2">
             <span aria-hidden className="size-2.5 rounded-[3px] bg-brand-ink" />
@@ -77,6 +112,7 @@ export default async function UsagePage() {
             Forecast: {n(teamForecast)} of {n(team.available ?? 0)} by {day(new Date(u.period.end.getTime() - 86400000))}, based on approved and waiting estimates. {teamForecast <= (team.available ?? 0) ? "On track." : "Over the plan."}
           </p>
         </section>
+        )}
 
         <section aria-label="AI credits" className="flex flex-col gap-4 rounded-[12px] bg-white px-6 py-5">
           <span className="flex items-center gap-2">

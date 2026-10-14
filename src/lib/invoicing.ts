@@ -19,12 +19,16 @@ export type InvoiceLine = { kind: string; description: string; quantity: number;
 const DAY = 86400000;
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
-/** The contract's invoice periods for its current term. */
+/**
+ * The contract's invoice periods for its current term. Quarterly follows calendar quarters: a contract that starts
+ * mid-quarter gets a first invoice up to the quarter (1 Sept → September, then Q4), and the last one runs to the end.
+ */
 export function invoicePeriods(c: Pick<Contract, "startDate" | "endDate" | "termMonths" | "invoicing">) {
   const step = c.invoicing === "upfront" ? c.termMonths : c.invoicing === "monthly" ? 1 : 3;
+  const next = (s: Date) => (c.invoicing === "quarterly" ? new Date(s.getFullYear(), Math.floor(s.getMonth() / 3) * 3 + 3, 1, s.getHours()) : addMonths(s, step));
   const out: { start: Date; end: Date; months: number }[] = [];
-  for (let s = c.startDate; s < c.endDate; s = addMonths(s, step)) {
-    const e = addMonths(s, step) < c.endDate ? addMonths(s, step) : c.endDate;
+  for (let s = c.startDate; s < c.endDate; s = next(s)) {
+    const e = next(s) < c.endDate ? next(s) : c.endDate;
     out.push({ start: s, end: e, months: Math.max(1, Math.round((e.getTime() - s.getTime()) / (30.44 * DAY))) });
   }
   return out;

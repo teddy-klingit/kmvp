@@ -12,6 +12,9 @@ vi.mock("@/lib/integrations/meta-ads", async (orig) => ({
 }));
 
 import { prisma } from "@/lib/prisma";
+import { teamBalances } from "@/lib/team-ledger";
+import { aiCreditStatus } from "@/lib/ai-credits";
+import { loadToday } from "@/lib/today";
 import { setMockSession } from "./setup";
 import { OUHERS_CLIENT_ID, seedOuhers } from "@/lib/demo/ouhers";
 import { loadPaidMedia } from "@/lib/insights-data";
@@ -50,13 +53,15 @@ afterAll(async () => {
   await prisma.notification.deleteMany({ where: { clientId: OUHERS_CLIENT_ID } });
   await prisma.template.deleteMany({ where: { clientId: OUHERS_CLIENT_ID } });
   await prisma.creditLedgerEntry.deleteMany({ where: { clientId: OUHERS_CLIENT_ID } });
+  await prisma.invoice.deleteMany({ where: { clientId: OUHERS_CLIENT_ID } });
   await prisma.client.deleteMany({ where: { id: OUHERS_CLIENT_ID } });
 });
 
 describe("the ouhers demo seed", () => {
   it("is idempotent and never touches other clients", async () => {
     const first = await counts();
-    expect(first).toMatchObject({ projects: 14, daily: 318, users: 6, demoAgents: 3 });
+    // 15 projects: one more in Phase S, the estimate waiting for the PM's number.
+    expect(first).toMatchObject({ projects: 15, daily: 318, users: 6, demoAgents: 3 });
     await seedOuhers({ shift: true });
     expect(await counts()).toEqual(first);
     expect(await prisma.client.count({ where: { id: { not: OUHERS_CLIENT_ID } } })).toBe(other.clients);
@@ -144,5 +149,22 @@ describe("the ouhers demo seed", () => {
     expect(live.calls).toBe(0);
     const client = await prisma.client.findUniqueOrThrow({ where: { id: OUHERS_CLIENT_ID } });
     expect((await runMarketIntelligence(client)).error).toContain("demo account");
+  });
+
+  it("Phase S: on a contract, with the pricing page's balances, invoices, a pending pack and an estimate for the PM", async () => {
+    const c = await prisma.contract.findFirstOrThrow({ where: { clientId: OUHERS_CLIENT_ID }, include: { contact: { include: { user: true } } } });
+    expect([c.platformPlanKey, c.teamPackKey, c.termMonths, c.invoicing, c.currency, c.contact?.user.name, c.startDate.getDate()]).toEqual(["enterprise", "pmc20_40", 12, "quarterly", "EUR", "Teddy W.", 1]);
+    const b = (await teamBalances(OUHERS_CLIENT_ID))!;
+    expect([b.pm.left, b.pm.monthly, b.creative.left, b.creative.monthly]).toEqual([14, 20, 31, 40]);
+    expect([b.creative.carried, b.creative.services, b.creative.used]).toEqual([20, 15, 14]);
+    const ai = await aiCreditStatus(OUHERS_CLIENT_ID);
+    expect([ai.left, ai.allowance]).toEqual([640, 1000]);
+    const inv = await prisma.invoice.findMany({ where: { clientId: OUHERS_CLIENT_ID, contractId: c.id }, orderBy: { periodStart: "asc" } });
+    expect(inv.map((i) => i.status)).toEqual(["PAID", "SENT"]);
+    expect(await prisma.purchaseRequest.count({ where: { clientId: OUHERS_CLIENT_ID, kind: "creative_pack", status: "pending" } })).toBe(1);
+    const today = await loadToday({ mine: false, clientIds: [OUHERS_CLIENT_ID] });
+    expect(today.items.filter((i) => i.kind === "estimate_number")).toHaveLength(1);
+    expect(today.items.some((i) => i.kind === "plan_brief")).toBe(true);
+    expect(await prisma.assetVersion.count({ where: { state: "QC_READY", asset: { clientId: OUHERS_CLIENT_ID } } })).toBeGreaterThan(0);
   });
 });

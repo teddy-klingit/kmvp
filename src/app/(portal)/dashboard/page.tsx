@@ -16,7 +16,7 @@ import { CardHeader } from "@/components/ds/card";
 import { Avatar } from "@/components/ds/avatar";
 import { newOpportunities } from "@/lib/opportunities";
 import { marketingPm } from "@/lib/contact-person";
-import { teamBalances } from "@/lib/team-ledger";
+import { poolNotes, poolOf, teamBalances } from "@/lib/team-ledger";
 import { SourcePills } from "@/components/portal/plan/opportunity-bits";
 import { monoLink } from "@/components/ds/pill-link";
 import { AiCreditMeter } from "@/components/portal/skills/ai-credit-meter";
@@ -321,21 +321,21 @@ function Credits({ team, ai, runOut, reset, pools }: { team: CreditSummary & { u
             .filter((k) => pools[k].monthly > 0 || pools[k].left > 0)
             .map((k) => {
               const p = pools[k];
-              const of = p.monthly + p.carried + p.purchased - p.services;
+              const of = poolOf(p);
               return (
                 <div key={k} className="flex flex-col gap-2">
                   <div className="flex items-baseline gap-3">
                     <span className="flex-1 text-[15px]">{k === "pm" ? "PM credits" : "Creative credits"}</span>
                     <span className="text-[13px] text-brand-ink-2">
-                      <span className="text-[22px] tabular-nums text-brand-ink">{n(p.left)}</span> left of {n(of)}
+                      <span className="text-[22px] tabular-nums text-brand-ink">{n(p.left)}</span> left of {n(of)}{p.monthly > 0 ? " a month" : ""}
                     </span>
                   </div>
                   <div role="img" aria-label={`${n(p.used)} of ${n(of)} used`} className="flex h-2 overflow-hidden rounded-full bg-brand-track">
-                    <span className="h-full bg-brand-ink" style={{ width: `${of ? Math.min(100, ((of - p.left) / of) * 100) : 0}%` }} />
+                    <span className="h-full bg-brand-ink" style={{ width: `${of ? Math.max(0, Math.min(100, ((of - p.left) / of) * 100)) : 0}%` }} />
                   </div>
                   <span className="text-[12px] leading-[1.5] text-brand-ink-2">
                     {k === "pm" ? "Your Marketing PM's time" : "Klingit's creative team"} · 1 credit ≈ 1 hour
-                    {k === "creative" && p.services ? ` · ${n(p.services)} reserved for fixed services` : ""}
+                    {poolNotes(p).map((x) => ` · ${x}`)}
                   </span>
                 </div>
               );

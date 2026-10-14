@@ -97,6 +97,18 @@ export async function ensureAllGrants(now = new Date()) {
   return ids.length;
 }
 
+/**
+ * How a balance reads everywhere ("31 left of 40"): left of the monthly amount, as on the pricing page; what was
+ * carried over, bought or reserved for fixed services is named next to it. Without a monthly amount (packs only),
+ * left of what's available.
+ */
+export function poolOf(p: PoolState) {
+  return p.monthly > 0 ? p.monthly : Math.max(0, p.carried + p.purchased - p.services);
+}
+export function poolNotes(p: PoolState) {
+  return [p.carried ? `${Math.round(p.carried * 10) / 10} carried over` : null, p.purchased ? `${Math.round(p.purchased * 10) / 10} bought` : null, p.services ? `${Math.round(p.services * 10) / 10} reserved for fixed services` : null].filter((x): x is string => Boolean(x));
+}
+
 export type PoolState = { monthly: number; granted: number; carried: number; purchased: number; used: number; services: number; expired: number; left: number };
 
 /** This month per balance: carried in, granted, bought, used (approved estimates), reserved by services, left. */

@@ -148,7 +148,9 @@ const SOURCES: Source[] = [
 ];
 /** AI credits used per day this month (the shape of the Usage chart), and the totals of the two months before. */
 const THIS_MONTH_DAYS = [62, 95, 70, 38, 33, 118, 140, 96, 128, 106, 84, 91, 77, 99, 88];
-const EARLIER_MONTHS = [640, 1320];
+const EARLIER_MONTHS = [640, 880];
+/** Phase S: this month's billable AI use, so Enterprise shows 640 of 1,000 left (the pricing page's example). */
+export const AI_USED_THIS_MONTH = 360;
 
 export async function seedPhaseQ(ctx: {
   clientId: string;
@@ -196,8 +198,10 @@ export async function seedPhaseQ(ctx: {
     const days = Math.round((p.end.getTime() - p.start.getTime()) / DAY);
     const thisMonth = i === periods.length - 1;
     const today = thisMonth ? Math.floor((now.getTime() - p.start.getTime()) / DAY) + 1 : days;
+    const shape = Array.from({ length: today }, (_, d) => THIS_MONTH_DAYS[d % THIS_MONTH_DAYS.length]);
+    const scale = (AI_USED_THIS_MONTH * 0.9) / shape.reduce((a, x) => a + x, 0);
     const perDay = thisMonth
-      ? Array.from({ length: today }, (_, d) => THIS_MONTH_DAYS[d % THIS_MONTH_DAYS.length])
+      ? shape.map((x) => x * scale)
       : Array.from({ length: days }, () => (EARLIER_MONTHS[i] / days) * (0.4 + rnd() * 1.2));
     for (const [d, target] of perDay.entries()) {
       let left = target;
@@ -240,8 +244,14 @@ export async function seedPhaseQ(ctx: {
   for (const d of [3, 7, 11]) {
     rows.push({ clientId, userId: ctx.userId("ou-sofia"), kind: "USAGE", fundedBy: "allowance", sourceType: "skill", sourceKey: customSkillKey("product_feed_captions"), sourceName: "Product feed captions", format: "Caption", amount: -3, tokensIn: 1800, tokensOut: 240, model: "claude-sonnet-5-5", createdAt: new Date(periods[1].start.getTime() + d * DAY + 11 * 3600000) });
   }
+  // This month adds up to exactly AI_USED_THIS_MONTH: trim the day-by-day draw, then one last run for the rest.
+  const billableNow = () => rows.filter((r) => r.kind === "USAGE" && r.billable !== false && new Date(r.createdAt!) >= periods[2].start);
+  const total = () => billableNow().reduce((a, r) => a - r.amount, 0);
+  while (total() > AI_USED_THIS_MONTH) rows.splice(rows.indexOf(billableNow()[0]), 1);
+  const rest = Math.round((AI_USED_THIS_MONTH - total()) * 10) / 10;
+  if (rest > 0) rows.push({ clientId, userId: ctx.userId("ou-maja"), kind: "USAGE", fundedBy: "allowance", sourceType: "skill", sourceKey: "image_gen_agent", sourceName: "Image gen", format: "Image", amount: -rest, tokensIn: Math.round(rest * 600), tokensOut: Math.round(rest * 80), model: "claude-sonnet-5-5", createdAt: new Date(now.getTime() - 2 * 3600000) });
   await prisma.aiCreditLedger.createMany({ data: rows });
-  const used = rows.filter((r) => r.kind === "USAGE" && new Date(r.createdAt!) >= periods[2].start).reduce((a, r) => a - r.amount, 0);
+  const used = rows.filter((r) => r.kind === "USAGE" && r.billable !== false && new Date(r.createdAt!) >= periods[2].start).reduce((a, r) => a - r.amount, 0);
   ctx.say(`Phase Q · Growth plan · ${rows.length} AI credit rows · ${Math.round(used)} AI credits used this month (demo)`);
 
   // ─── Team credits this month, per project, person and format ────────────

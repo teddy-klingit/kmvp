@@ -28,7 +28,9 @@ afterAll(async () => {
 describe("invoicing: by invoice, from the contract's schedule", () => {
   it("periods follow the invoicing: quarterly, monthly or upfront", () => {
     const base = { startDate: d("2026-09-01"), endDate: d("2027-09-01"), termMonths: 12 };
-    expect(invoicePeriods({ ...base, invoicing: "quarterly" }).map((p) => p.months)).toEqual([3, 3, 3, 3]);
+    // Quarterly follows calendar quarters: September, Q4, Q1, Q2, then July–August.
+    expect(invoicePeriods({ ...base, invoicing: "quarterly" }).map((p) => p.months)).toEqual([1, 3, 3, 3, 2]);
+    expect(invoicePeriods({ ...base, startDate: d("2026-10-01"), endDate: d("2027-10-01"), invoicing: "quarterly" }).map((p) => p.months)).toEqual([3, 3, 3, 3]);
     expect(invoicePeriods({ ...base, invoicing: "monthly" })).toHaveLength(12);
     expect(invoicePeriods({ ...base, invoicing: "upfront" }).map((p) => p.months)).toEqual([12]);
   });
@@ -38,10 +40,10 @@ describe("invoicing: by invoice, from the contract's schedule", () => {
     expect(made).toHaveLength(1);
     const inv = await prisma.invoice.findFirstOrThrow({ where: { clientId: fx.clientA.id } });
     expect((inv.lineItems as { kind: string; amount: number }[]).map((l) => [l.kind, l.amount])).toEqual([
-      ["platform", 747],
-      ["team", 13800],
-    ]);
-    expect([inv.status, inv.netAmount, inv.vatRate, inv.vatAmount, inv.amount, inv.currency]).toEqual(["DRAFT", 14547, 0.25, 3636.75, 18183.75, "EUR"]);
+      ["platform", 249],
+      ["team", 4600],
+    ]); // September only: the next invoice is Q4
+    expect([inv.status, inv.netAmount, inv.vatRate, inv.vatAmount, inv.amount, inv.currency]).toEqual(["DRAFT", 4849, 0.25, 1212.25, 6061.25, "EUR"]);
     expect(inv.number).toMatch(/^KL-2026-\d{4}$/);
     expect(await generateDueInvoices(d("2026-09-20"), [fx.clientA.id])).toEqual([]); // once per period
   });
@@ -63,7 +65,7 @@ describe("invoicing: by invoice, from the contract's schedule", () => {
     const c = await prisma.contract.findFirstOrThrow({ where: { clientId: fx.clientA.id } });
     expect(await slotsForContract(c)).toBe(5);
     await generateDueInvoices(d("2026-12-02"), [fx.clientA.id]);
-    const dec = await prisma.invoice.findFirstOrThrow({ where: { clientId: fx.clientA.id, periodStart: d("2026-12-01") } });
+    const dec = await prisma.invoice.findFirstOrThrow({ where: { clientId: fx.clientA.id, periodStart: d("2026-10-01") } }); // Q4
     const kinds = (dec.lineItems as { kind: string; amount: number }[]).map((l) => [l.kind, l.amount]);
     expect(kinds).toContainEqual(["creative_pack", 843]);
     expect(kinds).toContainEqual(["extra_slot", 1380]);
