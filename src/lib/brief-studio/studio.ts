@@ -27,7 +27,7 @@ import {
 } from "@/lib/brief-studio/model";
 import { briefQuality, type BriefQuality } from "@/lib/brief-studio/quality";
 import { briefTitle, parseRequest, parseMarkets, MARKETS, type ParsedRequest } from "@/lib/brief-studio/parse";
-import { earliestDates, estimatePreview, formatByLabel, formatForAsset, fromIsoDay, isoDay, type PriceEntry } from "@/lib/brief-studio/formats";
+import { earliestDates, estimatePreview, formatByLabel, formatForAsset, fromIsoDay, isoDay, priceEntries, type PriceEntry } from "@/lib/brief-studio/formats";
 import { CLOSING_FOLLOW_UP, LANGUAGE_FOR, QUESTION_BANK, formatsForChannels } from "@/lib/brief-studio/question-bank";
 import {
   activeQuestion,
@@ -186,7 +186,7 @@ export async function loadStudioContext(viewer: PortalViewer, q: { text: string;
     personas: jsonArray<Persona>(brandOS?.audiencePersonas),
     usps: jsonArray<string>(brandOS?.usps),
     tone: toneFrom(brandOS),
-    prices: prices.map((p) => ({ deliverableType: p.deliverableType, complexityTier: p.complexityTier, creditCost: p.creditCost, leadTimeDays: p.leadTimeDays })),
+    prices: priceEntries(prices),
     formatStats,
     pastProjects,
     pastProjectCount,

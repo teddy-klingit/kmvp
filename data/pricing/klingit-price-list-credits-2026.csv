@@ -1,0 +1,64 @@
+category,item,squad,credits,unit,status,notes
+Social & Digital Design,Unique social media design (1 post),Production,3,per post,fixed,
+Social & Digital Design,Iteration (small content/layout tweak),Production,0.5,per iteration,fixed,
+Social & Digital Design,"Resize (same design, different format)",Production,0.5,per resize,fixed,
+Social & Digital Design,Animated post (static turned into motion),Production/Motion,4,per post,fixed,
+Social & Digital Design,Canva: unique design,Production,3,per design,fixed,
+Social & Digital Design,Canva: template design (client-editable),Production,7,per template,fixed,
+Social & Digital Design,Canva: resize of existing design,Production,0.5,per resize,fixed,
+Social & Digital Design,Canva: small content iteration,Production,0.75,per iteration,fixed,
+Presentations & Documents,Basic slide design,Presentation,1,per slide,fixed,
+Presentations & Documents,Presentation clean-up,Presentation,0.5,per slide,fixed,
+Presentations & Documents,"Base deck, brand-aligned layout (10-15 slides)",Presentation,18,per deck,fixed,15-slide deck
+Presentations & Documents,Fully branded master deck + editable template system (10-15 slides),Presentation,30,per deck,fixed,15-slide template
+Presentations & Documents,New template design,Presentation,1.25,per slide,fixed,
+Presentations & Documents,Re-templating,Presentation,0.5,per slide,fixed,
+Presentations & Documents,Infographic slide,Presentation,6,per slide,fixed,
+Presentations & Documents,Data visualisation,Presentation,2.5,per design,fixed,
+Presentations & Documents,Word doc template,Presentation,5,per page,fixed,
+Presentations & Documents,Word doc design (custom page),Presentation,3,per page,fixed,
+General Design & Print,Print ad (A4/A5),Production,4,per ad,fixed,
+General Design & Print,Expo stand design (3 concepts),Production,15,per project,fixed,
+General Design & Print,Expo stand roll-out (concept approved),Production,6,per project,fixed,
+General Design & Print,Image retouching,Production,2,per image,estimate,TBC on requirement
+General Design & Print,eBook / white paper,Production,1.5,per page,fixed,
+General Design & Print,Booklet / brochure design,Production,12,per 4 pages,fixed,
+General Design & Print,Google display ads (3 concepts),Production,12,per project,fixed,
+General Design & Print,Google display ads: size roll-out,Production,0.5,per size,fixed,
+General Design & Print,Web banner (3 concepts),Production,12,per project,fixed,
+General Design & Print,Web banners,Production,0.75,per size,fixed,
+Illustration & Visuals,Storyboard,Illustration,3,per scene/frame,fixed,
+Illustration & Visuals,Illustration,Illustration,8,per character,fixed,
+Illustration & Visuals,Infographic design,Illustration,6,per design,fixed,
+Illustration & Visuals,Icon design,Illustration,8,per set of 10,fixed,
+Creative Concept,"High level creative concept, micro pitches",,40,per project,estimate,"TBC, not sure if we should fix this price"
+Copywriting,Tagline / slogan (3 options + rationale),Copywriting,8.5,per project,fixed,
+Copywriting,Value proposition,Copywriting,9,per project,fixed,
+Copywriting,"About us / bio, short (100-150 words)",Copywriting,4,per text,fixed,
+Copywriting,Social media captions (3-5 posts),Copywriting,10,per set,fixed,
+Copywriting,Email copy (1 marketing email),Copywriting,6,per email,fixed,
+Copywriting,"Newsletter, short-form (2-3 sections)",Copywriting,6,per newsletter,fixed,
+Copywriting,"Messaging framework (value props, pillars, proof points, key messages)",Copywriting/Strategy,25,per project,fixed,Strategic deliverable
+Copywriting,Copy editing / proofreading (light touch),Copywriting,4,per text,fixed,
+Copywriting,Website copy,Copywriting,8,per page,estimate,Depends on AI use
+Performance,SEO,Partner agency (Druce),30,per month,fixed,Partner agency Druce; confirm per month
+Performance,Google Ads,Partner agency (Druce),20,per month,fixed,Partner agency Druce; confirm per month
+Performance,Meta Ads,Partner agency (Druce),15,per month,fixed,Partner agency Druce; confirm per month
+Performance,LinkedIn Ads,Partner agency (Druce),15,per month,fixed,Partner agency Druce; confirm per month
+Performance,TikTok Ads,Partner agency (Druce),15,per month,fixed,Partner agency Druce; confirm per month
+Web (UX/UI),Brand / content audit (if redesigning),UX/UI,6,per project,legacy,15h. Old way of working; 10k SEK/month web retainer covers this via AI. Hidden from clients.
+Web (UX/UI),"Sitemap creation (simple, up to 10 pages)",UX/UI,,per project,legacy,10h. Old way of working; 10k SEK/month web retainer covers this via AI. Hidden from clients.
+Web (UX/UI),"Sitemap (complex, 10+ pages or multi-site)",UX/UI,,per project,legacy,20h. Old way of working; 10k SEK/month web retainer covers this via AI. Hidden from clients.
+Web (UX/UI),Navigation structure recommendations,UX/UI,,per project,legacy,5h. Old way of working; 10k SEK/month web retainer covers this via AI. Hidden from clients.
+Web (UX/UI),Content migration plan (for redesign),UX/UI,,per project,legacy,10h. Old way of working; 10k SEK/month web retainer covers this via AI. Hidden from clients.
+Web (UX/UI),"Conversion strategy (CTA placement, lead flows)",UX/UI,,per project,legacy,25h. Old way of working; 10k SEK/month web retainer covers this via AI. Hidden from clients.
+Web (UX/UI),UX flows / journey mapping,UX/UI,,per project,legacy,15h. Old way of working; 10k SEK/month web retainer covers this via AI. Hidden from clients.
+Web (UX/UI),Wireframes,UX/UI,1.5,per page,legacy,1h. Old way of working; 10k SEK/month web retainer covers this via AI. Hidden from clients.
+Web (UX/UI),UI design,UX/UI,1.5,per page,legacy,1h. Old way of working; 10k SEK/month web retainer covers this via AI. Hidden from clients.
+Web (UX/UI),Responsive design,UX/UI,1.5,per page,legacy,1h. Old way of working; 10k SEK/month web retainer covers this via AI. Hidden from clients.
+Web (UX/UI),Prototyping,UX/UI,7.5,per user flow,legacy,5h. Old way of working; 10k SEK/month web retainer covers this via AI. Hidden from clients.
+Web (UX/UI),Landing page design (1-pager),UX/UI,7.5,per page,legacy,5h. Old way of working; 10k SEK/month web retainer covers this via AI. Hidden from clients.
+Web (UX/UI),Website optimisation,UX/UI,,per project,legacy,?. Old way of working; 10k SEK/month web retainer covers this via AI. Hidden from clients.
+Web (UX/UI),Support & maintenance,UX/UI,,per month,legacy,"2,500/5,500/9,000 SEK/month. Old way of working; 10k SEK/month web retainer covers this via AI. Hidden from clients."
+Other,HTML banner or email build,Production,,per item,quote,Relook: should be done with AI
+Other,Figma design system,UX/UI,20,per project,estimate,Needs a deliverables breakdown

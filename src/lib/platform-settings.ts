@@ -30,6 +30,16 @@ export const SETTING_DEFAULTS = {
   creativePackSurcharge: 0.1 as number,
   /** An AI credit top-up. */
   aiTopUp: { credits: 500, priceEur: 49 } as { credits: number; priceEur: number },
+  /** Custom PM quotes only (never Price List items): hours × the task type's multiplier = credits. */
+  customQuoteMultipliers: {
+    "PM, global": 1,
+    "PM, local": 1.25,
+    "Production, illustration, presentation": 1,
+    "UX/UI, motion, multi-discipline": 1.25,
+    "3D, AI, brand, strategy, copy, web dev, marketing": 1.5,
+    Specialist: 2,
+    "Assets and stock": 0.5,
+  } as Record<string, number>,
   /** VAT for clients in Sweden; clients abroad are reverse charge (0). */
   vatRateDomestic: 0.25 as number,
 };

@@ -33,14 +33,14 @@ beforeAll(async () => {
     await prisma.agent.upsert({ where: { key }, update: {}, create: { key, name: key.replace("_", " "), category: "ESTIMATE", description: "test" } });
   }
   await prisma.priceListItem.upsert({
-    where: { deliverableType_complexityTier: { deliverableType: "PPT slide", complexityTier: "MEDIUM" } },
-    update: { creditCost: 2, displayName: "Presentation slides" },
-    create: { deliverableType: "PPT slide", complexityTier: "MEDIUM", creditCost: 2, displayName: "Presentation slides" },
+    where: { sourceKey: "test_ppt_medium" },
+    update: { creditCost: 2, displayName: "Presentation slides", archivedAt: null },
+    create: { sourceKey: "test_ppt_medium", deliverableType: "PPT slide", complexityTier: "MEDIUM", creditCost: 2, displayName: "Presentation slides" },
   });
   await prisma.priceListItem.upsert({
-    where: { deliverableType_complexityTier: { deliverableType: "PPT slide", complexityTier: "HIGH" } },
-    update: { creditCost: 4 },
-    create: { deliverableType: "PPT slide", complexityTier: "HIGH", creditCost: 4, displayName: "Data visualisation slides" },
+    where: { sourceKey: "test_ppt_high" },
+    update: { creditCost: 4, archivedAt: null },
+    create: { sourceKey: "test_ppt_high", deliverableType: "PPT slide", complexityTier: "HIGH", creditCost: 4, displayName: "Data visualisation slides" },
   });
 });
 
@@ -62,8 +62,8 @@ const form = (fields: Record<string, string>) => {
 async function sentEstimateProject(status: "ESTIMATING" | "IN_PRODUCTION" = "ESTIMATING", approved = false) {
   const project = await prisma.project.create({ data: { clientId: fx.clientA.id, name: `Deck ${Math.random()}`, type: "PRESENTATION", status } });
   const [med, high] = await Promise.all([
-    prisma.priceListItem.findUniqueOrThrow({ where: { deliverableType_complexityTier: { deliverableType: "PPT slide", complexityTier: "MEDIUM" } } }),
-    prisma.priceListItem.findUniqueOrThrow({ where: { deliverableType_complexityTier: { deliverableType: "PPT slide", complexityTier: "HIGH" } } }),
+    prisma.priceListItem.findUniqueOrThrow({ where: { sourceKey: "test_ppt_medium" } }),
+    prisma.priceListItem.findUniqueOrThrow({ where: { sourceKey: "test_ppt_high" } }),
   ]);
   const estimate = await prisma.estimate.create({
     data: { projectId: project.id, status: approved ? "APPROVED" : "SENT", totalCredits: 28, sentAt: new Date(), version: 1, approvedVersion: approved ? 1 : null },
@@ -90,16 +90,20 @@ async function sentEstimateProject(status: "ESTIMATING" | "IN_PRODUCTION" = "EST
   return { project, estimate, run };
 }
 
-const editedLines = JSON.stringify([
-  { kind: "price", deliverableType: "PPT slide", complexityTier: "MEDIUM", quantity: 10, detail: "10 slides" },
-  { kind: "price", deliverableType: "PPT slide", complexityTier: "MEDIUM", quantity: 2, detail: "Reuse the Q3 charts" },
-]);
+/** Two lines from the price list (by item id, Phase S): 10 + 2 medium slides at 2 credits. */
+const editedLines = () =>
+  prisma.priceListItem.findUniqueOrThrow({ where: { sourceKey: "test_ppt_medium" } }).then((med) =>
+    JSON.stringify([
+      { kind: "price", priceListItemId: med.id, quantity: 10, detail: "10 slides" },
+      { kind: "price", priceListItemId: med.id, quantity: 2, detail: "Reuse the Q3 charts" },
+    ])
+  );
 
 describe("I4 permissions", () => {
   it("a Creator can't edit an estimate", async () => {
     const { project, estimate } = await sentEstimateProject();
     asCreator();
-    await expect(saveEstimateAction({}, form({ projectId: project.id, lines: editedLines, reason: "Cheaper" }))).rejects.toThrow(/permission/);
+    await expect(saveEstimateAction({}, form({ projectId: project.id, lines: await editedLines(), reason: "Cheaper" }))).rejects.toThrow(/permission/);
     const after = await prisma.estimate.findUniqueOrThrow({ where: { id: estimate.id } });
     expect(after.version).toBe(1);
     expect(after.totalCredits).toBe(28);
@@ -126,7 +130,7 @@ describe("PM override changes the data and is logged", () => {
   it("editing an estimate the client already has creates v2, recomputes credits on the server, overrides the agent run and tells the client", async () => {
     const { project, estimate, run } = await sentEstimateProject();
     asPM();
-    const result = await saveEstimateAction({}, form({ projectId: project.id, lines: editedLines, reason: "Reusing your Q3 charts" }));
+    const result = await saveEstimateAction({}, form({ projectId: project.id, lines: await editedLines(), reason: "Reusing your Q3 charts" }));
     expect(result.error).toBeUndefined();
 
     const after = await prisma.estimate.findUniqueOrThrow({ where: { id: estimate.id }, include: { lineItems: { orderBy: { order: "asc" } } } });
@@ -156,14 +160,14 @@ describe("PM override changes the data and is logged", () => {
   it("a revision needs a reason for the client", async () => {
     const { project } = await sentEstimateProject();
     asPM();
-    const result = await saveEstimateAction({}, form({ projectId: project.id, lines: editedLines, reason: "" }));
+    const result = await saveEstimateAction({}, form({ projectId: project.id, lines: await editedLines(), reason: "" }));
     expect(result.error).toMatch(/reason/i);
   });
 
   it("a declined revision restores the last approved version, and the stage never moves back", async () => {
     const { project, estimate } = await sentEstimateProject("IN_PRODUCTION", true);
     asPM();
-    await saveEstimateAction({}, form({ projectId: project.id, lines: editedLines, reason: "Cheaper charts" }));
+    await saveEstimateAction({}, form({ projectId: project.id, lines: await editedLines(), reason: "Cheaper charts" }));
     asClient();
     await requestEstimateChangesAction(form({ estimateId: estimate.id }));
     const after = await prisma.estimate.findUniqueOrThrow({ where: { id: estimate.id }, include: { lineItems: true } });
@@ -177,7 +181,7 @@ describe("PM override changes the data and is logged", () => {
   it("an approved revision keeps the project where it is", async () => {
     const { project, estimate } = await sentEstimateProject("IN_PRODUCTION", true);
     asPM();
-    await saveEstimateAction({}, form({ projectId: project.id, lines: editedLines, reason: "Cheaper charts" }));
+    await saveEstimateAction({}, form({ projectId: project.id, lines: await editedLines(), reason: "Cheaper charts" }));
     asClient();
     await approveEstimateAction(form({ estimateId: estimate.id }));
     const after = await prisma.estimate.findUniqueOrThrow({ where: { id: estimate.id } });
@@ -288,7 +292,7 @@ describe("Autopilot rules", () => {
   it("runAutopilot sends a clean draft, logs it and tells the client; paused projects are left alone", async () => {
     const project = await prisma.project.create({ data: { clientId: fx.clientA.id, name: "Auto deck", type: "PRESENTATION", status: "ESTIMATING" } });
     const est = await prisma.estimate.create({ data: { projectId: project.id, status: "DRAFT", totalCredits: 20 } });
-    const med = await prisma.priceListItem.findUniqueOrThrow({ where: { deliverableType_complexityTier: { deliverableType: "PPT slide", complexityTier: "MEDIUM" } } });
+    const med = await prisma.priceListItem.findUniqueOrThrow({ where: { sourceKey: "test_ppt_medium" } });
     await prisma.estimateLineItem.create({ data: { estimateId: est.id, deliverable: "PPT slide", detail: "", quantity: 10, complexityTier: "MEDIUM", priceListItemId: med.id, credits: 20, hours: 20 } });
 
     await prisma.project.update({ where: { id: project.id }, data: { autopilot: false } });

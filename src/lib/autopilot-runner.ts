@@ -5,6 +5,7 @@ import { planAutopilot, ROLES_FOR_TYPE, AUTO_STAFF_THRESHOLD, type AutopilotPlan
 import { postProjectEvent } from "@/lib/project-events";
 import { logDecision } from "@/lib/decision-log";
 import { generateDraftEstimate, type UnresolvedNeed } from "@/lib/estimate-generation";
+import { sendBlockers } from "@/lib/estimate-lines";
 import { addBusinessDays, formatDay, FIRST_DRAFT_BUSINESS_DAYS } from "@/lib/project-state";
 import { INTERNAL_ROLE_LABEL } from "@/lib/labels";
 import type { InternalRole } from "@/generated/prisma";
@@ -79,7 +80,8 @@ export async function autopilotInputFor(projectId: string) {
         ? {
             status: project.estimate.status,
             lines: project.estimate.lineItems.length,
-            customLines: project.estimate.lineItems.filter((l) => l.isCustom || !l.priceListItemId).length,
+            customLines: project.estimate.lineItems.filter((l) => l.isCustom).length,
+            unconfirmedLines: project.estimate.lineItems.filter((l) => l.needsConfirm && !l.confirmedAt).length,
             unresolvedNeeds: unresolved.length,
             totalCredits: project.estimate.totalCredits,
           }
@@ -142,8 +144,8 @@ export async function runAutopilot(projectId: string) {
       }
 
       if (step.kind === "send_estimate") {
-        const estimate = await prisma.estimate.findUnique({ where: { projectId } });
-        if (!estimate) continue;
+        const estimate = await prisma.estimate.findUnique({ where: { projectId }, include: { lineItems: true } });
+        if (!estimate || sendBlockers(estimate).length) continue;
         const sent = await prisma.estimate.updateMany({
           where: { id: estimate.id, status: "DRAFT" },
           data: { status: "SENT", sentAt: new Date(), expiresAt: new Date(Date.now() + 4 * 86400000) },
@@ -198,8 +200,8 @@ export async function snapshotLines(estimateId: string) {
     deliverable: l.priceListItem?.displayName ?? l.deliverable,
     detail: l.detail,
     quantity: l.quantity,
-    complexityTier: l.complexityTier,
     credits: l.credits,
+    balance: l.balance,
     isCustom: l.isCustom,
     customReason: l.customReason,
     priceListItemId: l.priceListItemId,

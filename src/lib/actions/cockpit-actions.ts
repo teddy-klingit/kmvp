@@ -18,8 +18,7 @@ import { saveUpload, rejectUpload } from "@/lib/uploads";
 import { DEMO_PASSWORD, DEMO_PERSONAS } from "@/lib/demo-personas";
 import { addBusinessDays, formatDay, FIRST_DRAFT_BUSINESS_DAYS } from "@/lib/project-state";
 import { jsonArray } from "@/lib/utils";
-import { COMPLEXITY_LABEL } from "@/lib/estimate-display";
-import type { ComplexityTier } from "@/generated/prisma";
+import { lineRow, priceLines, sendBlockers, totals } from "@/lib/estimate-lines";
 import { notify } from "@/lib/notifier";
 
 export type CockpitState = { error?: string; ok?: string };
@@ -104,49 +103,34 @@ export async function updateBriefAction(_prev: CockpitState, formData: FormData)
 const LineSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("price"),
-    deliverableType: z.string().min(1),
-    complexityTier: z.enum(["LOW", "MEDIUM", "HIGH"]),
+    priceListItemId: z.string().min(1),
     quantity: z.number().int().min(1).max(500),
     detail: z.string().max(200).default(""),
+    /** Estimate and quote items: the PM's number, and whether they confirmed it. */
+    credits: z.number().min(0).max(10000).nullable().default(null),
+    confirmed: z.boolean().default(false),
   }),
   z.object({
     kind: z.literal("custom"),
     deliverable: z.string().min(1).max(120),
     detail: z.string().max(200).default(""),
     quantity: z.number().int().min(1).max(500).default(1),
-    complexityTier: z.enum(["LOW", "MEDIUM", "HIGH"]).nullable().default(null),
-    credits: z.number().int().min(0).max(10000),
+    credits: z.number().min(0).max(10000),
     reason: z.string().trim().min(1, "Every custom line needs a reason."),
+    balance: z.enum(["pm", "creative"]).default("creative"),
+    taskType: z.string().max(80).nullable().default(null),
   }),
+  z.object({ kind: z.literal("pm"), credits: z.number().min(0).max(10000), detail: z.string().max(200).default("") }),
 ]);
-const ResolutionSchema = z.object({ index: z.number().int().min(0), kind: z.enum(["priced", "excluded"]), credits: z.number().int().min(0).optional(), note: z.string().optional() });
+const ResolutionSchema = z.object({ index: z.number().int().min(0), kind: z.enum(["priced", "excluded"]), credits: z.number().min(0).optional(), note: z.string().optional() });
 
 export type EstimateLineInput = z.input<typeof LineSchema>;
 
-/** Credits are always computed here: quantity × Price List cost, or the stated credits on a custom line. */
-async function priceLines(lines: z.infer<typeof LineSchema>[]) {
-  const priced: {
-    deliverable: string;
-    detail: string;
-    quantity: number;
-    complexityTier: ComplexityTier | null;
-    priceListItemId: string | null;
-    isCustom: boolean;
-    customReason: string | null;
-    credits: number;
-    hours: number;
-    order: number;
-  }[] = [];
-  for (const [order, l] of lines.entries()) {
-    if (l.kind === "price") {
-      const row = await prisma.priceListItem.findUnique({ where: { deliverableType_complexityTier: { deliverableType: l.deliverableType, complexityTier: l.complexityTier } } });
-      if (!row || row.archivedAt) throw new Error(`${l.deliverableType} has no ${COMPLEXITY_LABEL[l.complexityTier].toLowerCase()} tier on the price list.`);
-      priced.push({ deliverable: row.deliverableType, detail: l.detail, quantity: l.quantity, complexityTier: row.complexityTier, priceListItemId: row.id, isCustom: false, customReason: null, credits: l.quantity * row.creditCost, hours: l.quantity * row.creditCost, order });
-    } else {
-      priced.push({ deliverable: l.deliverable, detail: l.detail, quantity: l.quantity, complexityTier: l.complexityTier, priceListItemId: null, isCustom: true, customReason: l.reason, credits: l.credits, hours: l.credits, order });
-    }
-  }
-  return priced;
+/** Credits are always computed on the server (estimate-lines.ts): quantity × the item's credits, or the PM's number. */
+async function priceEstimate(lines: z.infer<typeof LineSchema>[]) {
+  const ids = lines.flatMap((l) => (l.kind === "price" ? [l.priceListItemId] : []));
+  const items = await prisma.priceListItem.findMany({ where: { id: { in: ids } } });
+  return priceLines(lines, items);
 }
 
 /**
@@ -184,29 +168,36 @@ export async function saveEstimateAction(_prev: CockpitState, formData: FormData
     if (!need || need.resolution) continue;
     if (r.kind === "priced") {
       if (r.credits === undefined) return { error: `Add credits for “${need.description}”.` };
-      lines.push({ kind: "custom", deliverable: need.description, detail: r.note ?? "", quantity: 1, complexityTier: null, credits: r.credits, reason: "Out-of-scope item priced by the PM" });
+      lines.push({ kind: "custom", deliverable: need.description, detail: r.note ?? "", quantity: 1, credits: r.credits, reason: "PM quote: not on the price list", balance: "creative", taskType: null });
     }
     need.resolution = { kind: r.kind, byUserId: viewer.userId, byName: viewer.user.name, at: new Date().toISOString(), credits: r.credits, note: r.note };
   }
 
-  let priced: Awaited<ReturnType<typeof priceLines>>;
+  let priced: Awaited<ReturnType<typeof priceEstimate>>;
   try {
-    priced = await priceLines(lines);
+    priced = await priceEstimate(lines);
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Couldn't price these lines." };
   }
   if (priced.length === 0) return { error: "An estimate needs at least one line." };
-  const total = priced.reduce((n, l) => n + l.credits, 0);
+  const { pm: pmCredits, creative: creativeCredits, total } = totals(priced);
+  // Sending a new version to the client: every estimate/quote line needs the PM's number first.
+  if (clientHasVersion) {
+    const blockers = sendBlockers({ lineItems: priced.map((l) => ({ needsConfirm: l.needsConfirm, confirmedAt: l.confirmed ? new Date() : null })), unresolvedNeeds: needs });
+    if (blockers.length) return { error: `Can't send yet: ${blockers.join(" and ")}.` };
+  }
   const beforeLines = await snapshotLines(estimate.id);
   const nextVersion = clientHasVersion ? estimate.version + 1 : estimate.version;
 
   await prisma.$transaction(async (tx) => {
     await tx.estimateLineItem.deleteMany({ where: { estimateId: estimate.id } });
-    await tx.estimateLineItem.createMany({ data: priced.map((l) => ({ ...l, estimateId: estimate.id })) });
+    await tx.estimateLineItem.createMany({ data: priced.map((l) => ({ ...lineRow(l, viewer.id), estimateId: estimate.id })) });
     await tx.estimate.update({
       where: { id: estimate.id },
       data: {
         totalCredits: total,
+        pmCredits,
+        creativeCredits,
         totalHours: priced.reduce((n, l) => n + l.hours, 0),
         unresolvedNeeds: needs.length ? needs : undefined,
         ...(clientHasVersion
@@ -246,8 +237,10 @@ export async function saveEstimateAction(_prev: CockpitState, formData: FormData
 export async function sendEstimateAction(formData: FormData) {
   const viewer = await requireOpsRole(["ADMIN", "PM"]);
   const projectId = String(formData.get("projectId") ?? "");
-  const estimate = await prisma.estimate.findFirst({ where: { projectId, status: "DRAFT", project: { status: { notIn: ["DRAFT", "ARCHIVED"] } } } });
+  const estimate = await prisma.estimate.findFirst({ where: { projectId, status: "DRAFT", project: { status: { notIn: ["DRAFT", "ARCHIVED"] } } }, include: { lineItems: true } });
   if (!estimate) return;
+  // Estimate and quote lines need the PM's number, and unmatched items a PM quote, before it goes to the client.
+  if (sendBlockers(estimate).length) return;
   const sent = await prisma.estimate.updateMany({
     where: { id: estimate.id, status: "DRAFT" },
     data: { status: "SENT", sentAt: new Date(), expiresAt: new Date(Date.now() + ESTIMATE_VALID_MS), sentByStaffId: viewer.id },

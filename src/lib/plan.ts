@@ -31,7 +31,15 @@ const dayStart = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate(
 
 // ─── Brief-by ─────────────────────────────────────────────────────────────
 
-export const loadLeadTimes = () => prisma.planLeadTime.findMany({ orderBy: { sortOrder: "asc" } });
+/**
+ * Plan's lead times per format. When a format points at a Price List item that has a lead time, the item's wins
+ * (Phase S: brief-by uses the Price List); otherwise the per-format table's working days are the fallback.
+ */
+export async function loadLeadTimes() {
+  const [rows, items] = await Promise.all([prisma.planLeadTime.findMany({ orderBy: { sortOrder: "asc" } }), prisma.priceListItem.findMany({ where: { archivedAt: null, sourceKey: { not: null }, leadTimeDays: { not: null } }, select: { sourceKey: true, leadTimeDays: true } })]);
+  const lead = new Map(items.map((i) => [i.sourceKey, i.leadTimeDays!]));
+  return rows.map((r) => ({ ...r, workingDays: (r.priceListKey ? lead.get(r.priceListKey) : undefined) ?? r.workingDays, fromPriceList: Boolean(r.priceListKey && lead.has(r.priceListKey)) }));
+}
 
 // ─── Add, move, change ────────────────────────────────────────────────────
 

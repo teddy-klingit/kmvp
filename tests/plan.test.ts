@@ -32,8 +32,21 @@ describe("brief-by = live date − lead time, in working days", () => {
     expect(ymd(briefByFor(at("2026-11-11"), ["Carousel", "Stories", "Reel / video"], lt).briefBy)).toBe("2026-10-28");
     // Carousel + stories only (7) → Mon 2 Nov.
     expect(briefByFor(at("2026-11-11"), ["Carousel", "Stories"], lt)).toMatchObject({ days: 7, format: "Carousel" });
-    // No format: a post's lead time.
-    expect(briefByFor(at("2026-11-11"), [], lt).days).toBe(5);
+    // No format: a post's lead time, which comes from the Price List (Phase S): 3 working days there.
+    expect(briefByFor(at("2026-11-11"), [], lt).days).toBe(3);
+  });
+
+  it("brief-by uses the Price List's lead time when the format points at an item, else the per-format table", async () => {
+    const lt = await loadLeadTimes();
+    const post = lt.find((l) => l.format === "Post")!;
+    expect([post.workingDays, post.fromPriceList]).toEqual([3, true]);
+    expect(lt.find((l) => l.format === "Reel / video")).toMatchObject({ workingDays: 10, fromPriceList: false });
+    await prisma.priceListItem.update({ where: { sourceKey: "unique_social_media_design_1_post" }, data: { leadTimeDays: null } });
+    try {
+      expect((await loadLeadTimes()).find((l) => l.format === "Post")).toMatchObject({ workingDays: 5, fromPriceList: false });
+    } finally {
+      await prisma.priceListItem.update({ where: { sourceKey: "unique_social_media_design_1_post" }, data: { leadTimeDays: 3 } });
+    }
   });
 
   it("a weekend live date counts from the Friday before (design 04: Halloween reel, Sat 31 Oct → Fri 16 Oct)", async () => {
@@ -76,8 +89,8 @@ describe("Add to plan is idempotent", () => {
 describe("reminders and Start brief", () => {
   it("reminds once at 7 days, then at 2, then on the day", async () => {
     const now = new Date(2026, 9, 9, 9); // Fri 9 Oct
-    const { item } = await addPlanItem(fx.clientA.id, fx.userA.id, { title: "Reminder test", date: at("2026-10-30"), channels: ["Instagram"], formats: ["Post"], maker: "klingit_help" }, "remind-1");
-    expect(ymd(item.briefBy!)).toBe("2026-10-23"); // 5 working days
+    const { item } = await addPlanItem(fx.clientA.id, fx.userA.id, { title: "Reminder test", date: at("2026-10-30"), channels: ["Instagram"], formats: ["Carousel"], maker: "klingit_help" }, "remind-1");
+    expect(ymd(item.briefBy!)).toBe("2026-10-21"); // 7 working days
     expect(await sendPlanReminders(now, [fx.clientA.id])).toBe(0); // 14 days out: nothing yet
     const seven = new Date(2026, 9, 16, 9);
     expect(await sendPlanReminders(seven, [fx.clientA.id])).toBeGreaterThan(0);

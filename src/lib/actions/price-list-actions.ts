@@ -1,88 +1,89 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { Prisma } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
-import { requireOpsRole, ForbiddenError } from "@/lib/authz";
+import { requireOpsRole } from "@/lib/authz";
 
-const TIERS = ["LOW", "MEDIUM", "HIGH"] as const;
+/**
+ * Price List → Deliverables (Phase S step 3). Admins and PMs edit items inline; a change to the credits, unit,
+ * balance or status is a new version (valid from now). "Remove" archives: old estimate lines keep their link.
+ * Every change goes to the AuditLog.
+ */
 
-export type PriceListState = { error?: string | null };
+const STATUSES = ["fixed", "estimate", "quote", "legacy"] as const;
+const num = (v: FormDataEntryValue | null) => {
+  const s = String(v ?? "").trim().replace(",", ".");
+  if (s === "") return null;
+  const n = Number(s);
+  return Number.isFinite(n) && n >= 0 ? n : undefined;
+};
+const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 60);
 
-async function requireAdminOrPm(): Promise<string | null> {
-  try {
-    await requireOpsRole(["ADMIN", "PM"]);
-    return null;
-  } catch (err) {
-    if (err instanceof ForbiddenError) return err.message;
-    throw err;
-  }
+function refresh() {
+  revalidatePath("/ops/price-list", "layout");
 }
 
-export async function createPriceListItemAction(_prev: PriceListState, formData: FormData): Promise<PriceListState> {
-  const forbidden = await requireAdminOrPm();
-  if (forbidden) return { error: forbidden };
-
-  const deliverableType = String(formData.get("deliverableType") ?? "").trim();
-  const complexityTier = String(formData.get("complexityTier") ?? "");
-  const creditCost = Number(formData.get("creditCost") ?? "");
-  const notes = String(formData.get("notes") ?? "").trim();
-
-  if (!deliverableType) return { error: "Name the deliverable type." };
-  if (!TIERS.includes(complexityTier as (typeof TIERS)[number])) return { error: "Pick a complexity tier." };
-  if (!Number.isInteger(creditCost) || creditCost <= 0) return { error: "Credit cost must be a positive whole number." };
-
-  const existing = await prisma.priceListItem.findUnique({
-    where: { deliverableType_complexityTier: { deliverableType, complexityTier: complexityTier as (typeof TIERS)[number] } },
-  });
-  if (existing && !existing.archivedAt) return { error: `${deliverableType} (${complexityTier}) already has a price — edit that row instead.` };
-
-  if (existing) {
-    // Re-adding an archived row brings it back with the new price.
-    await prisma.priceListItem.update({ where: { id: existing.id }, data: { creditCost, notes: notes || null, archivedAt: null } });
-  } else {
-    await prisma.priceListItem.create({
-      data: { deliverableType, complexityTier: complexityTier as (typeof TIERS)[number], creditCost, notes: notes || null },
-    });
-  }
-
-  revalidatePath("/ops/price-list");
-  return { error: null };
-}
-
-export async function updatePriceListItemAction(_prev: PriceListState, formData: FormData): Promise<PriceListState> {
-  const forbidden = await requireAdminOrPm();
-  if (forbidden) return { error: forbidden };
-
+export async function savePriceListItemAction(formData: FormData) {
+  const viewer = await requireOpsRole(["ADMIN", "PM"]);
   const id = String(formData.get("id") ?? "");
-  const deliverableType = String(formData.get("deliverableType") ?? "").trim();
-  const complexityTier = String(formData.get("complexityTier") ?? "");
-  const creditCost = Number(formData.get("creditCost") ?? "");
-  const notes = String(formData.get("notes") ?? "").trim();
-
-  if (!id) return { error: "Missing row." };
-  if (!deliverableType) return { error: "Name the deliverable type." };
-  if (!TIERS.includes(complexityTier as (typeof TIERS)[number])) return { error: "Pick a complexity tier." };
-  if (!Number.isInteger(creditCost) || creditCost <= 0) return { error: "Credit cost must be a positive whole number." };
-
-  const clash = await prisma.priceListItem.findUnique({
-    where: { deliverableType_complexityTier: { deliverableType, complexityTier: complexityTier as (typeof TIERS)[number] } },
-  });
-  if (clash && clash.id !== id) return { error: `${deliverableType} (${complexityTier}) already has a price on another row.` };
-
-  await prisma.priceListItem.update({
-    where: { id },
-    data: { deliverableType, complexityTier: complexityTier as (typeof TIERS)[number], creditCost, notes: notes || null },
-  });
-
-  revalidatePath("/ops/price-list");
-  return { error: null };
+  const before = await prisma.priceListItem.findUnique({ where: { id } });
+  if (!before || before.archivedAt) return;
+  const credits = num(formData.get("creditCost"));
+  const lead = num(formData.get("leadTimeDays"));
+  const status = STATUSES.find((s) => s === formData.get("status")) ?? before.status;
+  const data = {
+    creditCost: credits === undefined ? before.creditCost : credits,
+    unit: String(formData.get("unit") ?? "").trim() || before.unit,
+    balance: formData.get("balance") === "pm" ? "pm" : "creative",
+    status,
+    leadTimeDays: lead === undefined ? before.leadTimeDays : lead == null ? null : Math.round(lead),
+    // Legacy items are staff reference only: never visible to clients.
+    visibleToClients: status === "legacy" ? false : formData.get("visibleToClients") === "on",
+    notes: String(formData.get("notes") ?? "").trim() || null,
+  };
+  const priced = data.creditCost !== before.creditCost || data.unit !== before.unit || data.balance !== before.balance || data.status !== before.status;
+  await prisma.priceListItem.update({ where: { id }, data: { ...data, ...(priced ? { version: before.version + 1, validFrom: new Date() } : {}) } });
+  const pick = (o: typeof before | typeof data) => ({ creditCost: o.creditCost, unit: o.unit, balance: o.balance, status: o.status, leadTimeDays: o.leadTimeDays, visibleToClients: o.visibleToClients, notes: o.notes });
+  await prisma.auditLog.create({ data: { actorUserId: viewer.userId, area: "price-list", action: `${before.displayName ?? before.deliverableType}${priced ? ` → v${before.version + 1}` : ""}`, before: pick(before) as Prisma.InputJsonValue, after: pick(data) as Prisma.InputJsonValue } });
+  refresh();
 }
 
-export async function deletePriceListItemAction(formData: FormData) {
-  await requireOpsRole(["ADMIN", "PM"]);
+export async function addPriceListItemAction(formData: FormData) {
+  const viewer = await requireOpsRole(["ADMIN", "PM"]);
+  const item = String(formData.get("item") ?? "").trim();
+  const category = String(formData.get("category") ?? "").trim() || "Other";
+  if (!item) return;
+  const credits = num(formData.get("creditCost"));
+  const status = STATUSES.find((s) => s === formData.get("status")) ?? "fixed";
+  let key = slug(item);
+  if (await prisma.priceListItem.findUnique({ where: { sourceKey: key } })) key = `${key}_${Date.now().toString(36)}`;
+  const data = {
+    deliverableType: item,
+    displayName: item,
+    category,
+    squad: String(formData.get("squad") ?? "").trim() || null,
+    unit: String(formData.get("unit") ?? "").trim() || "per item",
+    creditCost: credits ?? null,
+    balance: formData.get("balance") === "pm" ? "pm" : "creative",
+    status,
+    monthly: formData.get("monthly") === "on",
+    visibleToClients: status !== "legacy",
+    notes: String(formData.get("notes") ?? "").trim() || null,
+    sourceKey: key,
+    sortOrder: (await prisma.priceListItem.count()) + 1,
+  };
+  await prisma.priceListItem.create({ data });
+  await prisma.auditLog.create({ data: { actorUserId: viewer.userId, area: "price-list", action: `Added ${item}`, after: data as Prisma.InputJsonValue } });
+  refresh();
+}
+
+export async function archivePriceListItemAction(formData: FormData) {
+  const viewer = await requireOpsRole(["ADMIN", "PM"]);
   const id = String(formData.get("id") ?? "");
-  if (!id) return;
-  // Soft archive, never a hard delete: estimates that used this row keep their history.
+  const item = await prisma.priceListItem.findUnique({ where: { id } });
+  if (!item || item.archivedAt) return;
   await prisma.priceListItem.update({ where: { id }, data: { archivedAt: new Date() } });
-  revalidatePath("/ops/price-list");
+  await prisma.auditLog.create({ data: { actorUserId: viewer.userId, area: "price-list", action: `Removed ${item.displayName ?? item.deliverableType}` } });
+  refresh();
 }

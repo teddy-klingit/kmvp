@@ -41,10 +41,8 @@ const ESSENTIALS: BriefSection[] = [
 ];
 
 const PRICES = [
-  { deliverableType: "Social post (static)", complexityTier: "MEDIUM" as const, creditCost: 4, leadTimeDays: 3 },
-  { deliverableType: "Social post (static)", complexityTier: "HIGH" as const, creditCost: 7, leadTimeDays: 3 },
-  { deliverableType: "Video cutdown (<30s)", complexityTier: "MEDIUM" as const, creditCost: 9, leadTimeDays: 5 },
-  { deliverableType: "Video cutdown (<30s)", complexityTier: "HIGH" as const, creditCost: 15, leadTimeDays: 5 },
+  { key: "unique_social_media_design_1_post", creditCost: 3, leadTimeDays: 3 },
+  { key: "animated_post_static_turned_into_motion", creditCost: 4, leadTimeDays: null },
 ];
 
 function ctx(over: Partial<StudioContext> = {}): StudioContext {

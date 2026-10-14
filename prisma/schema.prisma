@@ -251,7 +251,7 @@ model Client {
   monthlyCreditAllowance Int          @default(0)
   /// Staff override of the plan's team credits a month (a negotiated deal); null = the plan's value. Logged in AuditLog.
   teamCreditsOverride    Int?
-  creditBalance          Int          @default(0)
+  creditBalance          Float        @default(0)
   healthScore            Int          @default(80) // 0-100
   /// Data sources filled with dummy data for the demo (e.g. ["LinkedIn", "Google Analytics"]). The UI labels them "demo"; there is no real connection.
   demoSources            Json?
@@ -1002,8 +1002,8 @@ model Project {
   dueDate                 DateTime?
   startedAt               DateTime?
   deliveredAt             DateTime?
-  creditsQuoted           Int?
-  creditsActual           Int?
+  creditsQuoted           Float?
+  creditsActual           Float?
   priceAmount             Float?
   priceCurrency           String         @default("EUR")
   // Confidential projects are hidden from other client-side teammates —
@@ -1161,7 +1161,10 @@ model Estimate {
   sentByStaffId   String?
   status          EstimateStatus @default(DRAFT)
   totalHours      Float          @default(0)
-  totalCredits    Int            @default(0)
+  totalCredits    Float          @default(0)
+  /// Phase S: the split of totalCredits between the PM and the creative balance.
+  pmCredits       Float          @default(0)
+  creativeCredits Float          @default(0)
   currency        String         @default("EUR")
   totalPrice      Float?
   notes           String?
@@ -1200,40 +1203,66 @@ enum ComplexityTier {
 }
 
 model PriceListItem {
-  id              String             @id @default(cuid())
-  deliverableType String
-  // Client-facing name, e.g. "Presentation slides" for deliverableType "PPT slide".
-  displayName     String?
-  // What one unit is, e.g. "slide", "post", "cutdown".
-  unit            String?
-  complexityTier  ComplexityTier
-  creditCost      Int
-  notes           String?
-  /// Business days from staffing to final delivery; the Brief studio's earliest realistic deadline adds the first-draft rule.
-  leadTimeDays    Int                @default(5)
+  id               String             @id @default(cuid())
+  /// The item's name (for Price List rows from the 2026 sheet, the same as displayName).
+  deliverableType  String
+  displayName      String?
+  /// Phase S: the sheet's category and squad.
+  category         String?
+  squad            String?
+  /// What one unit is: "per post", "per slide", "per month"…
+  unit             String?
+  /// Only on the old tiered rows (archived); the 2026 list has one fixed number per item.
+  complexityTier   ComplexityTier?
+  /// Credits per unit (fractional, e.g. 0.5). Null on a quote item: the PM sets the number.
+  creditCost       Float?
+  /// Which balance the item draws on: creative (default) or pm.
+  balance          String             @default("creative")
+  /// fixed: used as is · estimate: a starting point the PM confirms · quote: no number, the PM quotes · legacy: staff reference only.
+  status           String             @default("fixed")
+  /// A monthly fixed-credit service (Performance via Druce, the web retainer): reserved each month, never rolls over.
+  monthly          Boolean            @default(false)
+  notes            String?
+  /// Business days from staffing to final delivery; blank when unknown (Plan falls back to its per-format table).
+  leadTimeDays     Int?
+  /// Hidden items (legacy) are never shown to clients or offered to the Estimate agent.
+  visibleToClients Boolean            @default(true)
+  version          Int                @default(1)
+  validFrom        DateTime           @default(now())
+  /// Slug of the sheet's item name (data/pricing/klingit-price-list-credits-2026.csv).
+  sourceKey        String?            @unique
+  sortOrder        Int                @default(0)
   /// Soft archive ("Remove" on the price list): hidden from the list and from new estimates; old estimate lines keep their link.
-  archivedAt      DateTime?
-  lineItems       EstimateLineItem[]
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
+  archivedAt       DateTime?
+  lineItems        EstimateLineItem[]
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
 
-  @@unique([deliverableType, complexityTier])
+  @@index([deliverableType])
 }
 
 model EstimateLineItem {
-  id              String          @id @default(cuid())
-  estimateId      String
-  deliverable     String
-  detail          String
-  hours           Float
+  id                 String          @id @default(cuid())
+  estimateId         String
+  deliverable        String
+  detail             String
+  hours              Float
   // Always computed on the server: quantity × Price List cost, or the stated credits on a custom line.
-  credits         Int
-  order           Int             @default(0)
-  quantity        Int             @default(1)
-  complexityTier  ComplexityTier?
-  priceListItemId String?
-  isCustom        Boolean         @default(false)
-  customReason    String?
+  credits            Float
+  order              Int             @default(0)
+  quantity           Int             @default(1)
+  complexityTier     ComplexityTier?
+  priceListItemId    String?
+  isCustom           Boolean         @default(false)
+  customReason       String?
+  /// Phase S: the balance this line draws on (pm | creative).
+  balance            String          @default("creative")
+  /// An estimate or quote item (or a PM quote): the estimate can't be sent until the PM confirms the number.
+  needsConfirm       Boolean         @default(false)
+  confirmedAt        DateTime?
+  confirmedByStaffId String?
+  /// For a custom PM quote: the task type whose multiplier turned hours into credits.
+  taskType           String?
 
   estimate      Estimate       @relation(fields: [estimateId], references: [id], onDelete: Cascade)
   priceListItem PriceListItem? @relation(fields: [priceListItemId], references: [id], onDelete: SetNull)
@@ -1540,34 +1569,34 @@ enum AgentKind {
 /// clientId), ASSISTANT = built-in helpers (Brief assistant, Ask your data, …), INTERNAL = Klingit's production
 /// automation (estimate, staffing, QC). Table and model keep their internal name.
 model Agent {
-  id                String        @id @default(cuid())
-  key               String        @unique // "brand_os", "brief_agent", "ad_gen", ...
-  name              String
-  category          AgentCategory
-  description       String
-  status            AgentStatus   @default(LIVE)
-  version           String        @default("1.0.0")
-  costPerRunCredits Float?
-  selfService       Boolean       @default(false) // true = the client can run this themselves from Brand IQ, not just Klingit staff internally
-  kind              AgentKind     @default(INTERNAL)
+  id                  String        @id @default(cuid())
+  key                 String        @unique // "brand_os", "brief_agent", "ad_gen", ...
+  name                String
+  category            AgentCategory
+  description         String
+  status              AgentStatus   @default(LIVE)
+  version             String        @default("1.0.0")
+  costPerRunCredits   Float?
+  selfService         Boolean       @default(false) // true = the client can run this themselves from Brand IQ, not just Klingit staff internally
+  kind                AgentKind     @default(INTERNAL)
   /// A custom skill built for one client; null = standard (every client).
-  clientId          String?
+  clientId            String?
   /// Run a skill category chip: Copy | Visual | Social | Briefs
-  skillCategory     String?
+  skillCategory       String?
   /// ≈ AI credits per run shown before a run (PLACEHOLDER until measured).
-  aiCreditsPerRun   Float?
+  aiCreditsPerRun     Float?
   /// One line under the skill's name.
-  summary           String?
+  summary             String?
   /// Skills page label (Phase R): "self_service" (the client runs it, AI credits), "klingit_run" (the client asks,
   /// Klingit does it, team credits) or "custom" (the client's own). Null = not shown to clients (internal, assistants).
-  availability      String?
+  availability        String?
   /// Skills page group: "make_ad" | "write_copy" | "plan_brief". Editable by staff in /ops/skills.
-  goal              String?
+  goal                String?
   /// Staff-picked example outputs for the skill card when the client has none of their own: [{ title, text?, color }].
-  examples          Json?
+  examples            Json?
   /// Run by Klingit: ≈ team credits for one request (a placeholder until priced).
   teamCreditsEstimate Float?
-  createdAt         DateTime      @default(now())
+  createdAt           DateTime      @default(now())
 
   runs   AgentRun[]
   client Client?    @relation(fields: [clientId], references: [id], onDelete: Cascade)
@@ -1702,8 +1731,8 @@ model CreditLedgerEntry {
   userId       String?
   format       String?
   type         LedgerEntryType
-  amount       Int // signed: + for allowance/purchase, - for consumption
-  balanceAfter Int
+  amount       Float // signed: + for allowance/purchase, - for consumption
+  balanceAfter Float
   note         String?
   createdAt    DateTime        @default(now())
 
@@ -1776,36 +1805,36 @@ model Touchpoint {
 // content calendar, alongside Klingit projects and suggested new work.
 /// A plan item (Phase R: Plan → Calendar). Read and written through src/lib/plan.ts.
 model ClientCalendarItem {
-  id              String    @id @default(cuid())
-  clientId        String
-  title           String
+  id               String    @id @default(cuid())
+  clientId         String
+  title            String
   /// The live date (or the first day of a range).
-  date            DateTime
+  date             DateTime
   /// A date range (a campaign): shown as a bar.
-  endDate         DateTime?
-  channel         String // first channel, kept for older readers
-  channels        Json?
-  formats         Json?
-  notes           String?
+  endDate          DateTime?
+  channel          String // first channel, kept for older readers
+  channels         Json?
+  formats          Json?
+  notes            String?
   /// Who makes it: "client" (you make it) | "klingit_help" (Klingit's help needed) | "klingit_project" (a project).
-  maker           String    @default("client")
+  maker            String    @default("client")
   /// idea | planned | briefed | in_production | ready | published (a Klingit project's comes from the project).
-  status          String    @default("planned")
+  status           String    @default("planned")
   /// Klingit's help: the live date minus the formats' lead time in working days (plan.ts).
-  briefBy         DateTime?
+  briefBy          DateTime?
   /// Reminders already sent: { "7": iso, "2": iso, "0": iso }.
-  reminded        Json?
-  projectId       String?
-  opportunityId   String?
-  route           String?
+  reminded         Json?
+  projectId        String?
+  opportunityId    String?
+  route            String?
   /// The Output library asset it went live as (performance shows from it).
   publishedAssetId String?
-  createdByUserId String?
+  createdByUserId  String?
   /// The Add dialog's key: a double click never makes two items.
-  requestKey      String?
-  archivedAt      DateTime?
-  updatedAt       DateTime  @default(now()) @updatedAt
-  createdAt       DateTime  @default(now())
+  requestKey       String?
+  archivedAt       DateTime?
+  updatedAt        DateTime  @default(now()) @updatedAt
+  createdAt        DateTime  @default(now())
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
@@ -2124,12 +2153,14 @@ model BrandRuleChange {
 /// How long Klingit usually needs per format, in working days (brief-by dates), and a rough team-credit estimate.
 /// Staff edit both in /ops/settings; both are placeholders until measured.
 model PlanLeadTime {
-  id          String   @id @default(cuid())
-  format      String   @unique
-  workingDays Int
-  teamCredits Float?
-  sortOrder   Int      @default(0)
-  updatedAt   DateTime @updatedAt
+  id           String   @id @default(cuid())
+  format       String   @unique
+  workingDays  Int
+  teamCredits  Float?
+  /// The Price List item whose lead time wins over workingDays (Phase S).
+  priceListKey String?
+  sortOrder    Int      @default(0)
+  updatedAt    DateTime @updatedAt
 }
 
 /// Holidays and shopping days per market (SE / NO / DK / FI) for Plan's Key moments layer. Staff-editable.

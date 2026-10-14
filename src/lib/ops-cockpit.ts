@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getSetting } from "@/lib/platform-settings";
 import { jsonArray } from "@/lib/utils";
 import { loadOpsProjects, projectHealth, type OpsProject } from "@/lib/ops-exceptions";
 import { computeStaffingSuggestions } from "@/lib/staffing";
@@ -91,7 +92,7 @@ export async function loadCockpit(projectId: string) {
         pipelineStages: { orderBy: { order: "asc" } },
       },
     }),
-    prisma.priceListItem.findMany({ where: { archivedAt: null }, orderBy: [{ deliverableType: "asc" }, { complexityTier: "asc" }] }),
+    prisma.priceListItem.findMany({ where: { archivedAt: null }, orderBy: [{ sortOrder: "asc" }] }),
     loadStaffPool(),
     prisma.agentRun.findMany({ where: { projectId }, include: { agent: true, overriddenByUser: true }, orderBy: { createdAt: "desc" }, take: 50 }),
     prisma.decisionLog.findMany({ where: { projectId }, include: { actor: true }, orderBy: { createdAt: "desc" }, take: 50 }),
@@ -129,6 +130,8 @@ export async function loadCockpit(projectId: string) {
     health: projectHealth(ops),
     timeline,
     priceList,
+    multipliers: await getSetting("customQuoteMultipliers"),
+    pmLine: { percent: await getSetting("pmLinePercent"), min: await getSetting("pmLineMin") },
     suggestions,
     autoStaffThreshold: AUTO_STAFF_THRESHOLD,
     runs,

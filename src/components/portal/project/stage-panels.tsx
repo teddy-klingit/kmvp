@@ -211,10 +211,17 @@ export type EstimateTableLine = {
   credits: number;
   quantity?: number;
   complexityTier: ComplexityTier | null;
+  /** Phase S: which balance the line draws on (pm | creative). */
+  balance?: string;
   priceListItem?: { displayName: string | null } | null;
 };
+const balanceLabel = (b?: string) => (b === "pm" ? "PM" : "Creative");
+const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/0$/, ""));
 
-/** Deliverable · Details · Complexity · Credits, with the total row — as in Main.dc.html. `changes` highlights a revision. */
+/**
+ * Deliverable · Details · Balance · Credits, with the total row split into PM and creative credits (Phase S; older
+ * lines still show their complexity). `changes` highlights a revision.
+ */
 export function EstimateTable({
   lines,
   total,
@@ -232,7 +239,7 @@ export function EstimateTable({
         <tr className="text-left text-[12px] text-ds-text-2">
           <th scope="col" className="px-6 py-2.5 font-medium">Deliverable</th>
           <th scope="col" className="hidden px-3 py-2.5 font-medium sm:table-cell">Details</th>
-          <th scope="col" className="hidden px-3 py-2.5 font-medium sm:table-cell">Complexity</th>
+          <th scope="col" className="hidden px-3 py-2.5 font-medium sm:table-cell">Balance</th>
           <th scope="col" className="px-6 py-2.5 text-right font-medium">Credits</th>
         </tr>
       </thead>
@@ -260,29 +267,36 @@ export function EstimateTable({
               {/* Phones: details and complexity move under the name. */}
               <span className="mt-1 flex flex-wrap items-center gap-2 font-normal text-ds-text-2 sm:hidden">
                 {li.detail}
-                {li.complexityTier && <StatusPill>{COMPLEXITY_LABEL[li.complexityTier]}</StatusPill>}
+                <StatusPill>{li.complexityTier ? COMPLEXITY_LABEL[li.complexityTier] : balanceLabel(li.balance)}</StatusPill>
               </span>
             </td>
             <td className="hidden px-3 py-3.5 text-ds-text-2 sm:table-cell">{li.detail}</td>
             <td className="hidden px-3 py-3.5 sm:table-cell">
-              {li.complexityTier && <StatusPill>{COMPLEXITY_LABEL[li.complexityTier]}</StatusPill>}
+              <StatusPill>{li.complexityTier ? COMPLEXITY_LABEL[li.complexityTier] : balanceLabel(li.balance)}</StatusPill>
             </td>
             <td className="px-6 py-3.5 text-right tabular-nums text-ds-text">
               {change?.prevCredits !== undefined && change.prevCredits !== li.credits && (
-                <span className="mr-1.5 text-ds-text-3 line-through">{change.prevCredits}</span>
+                <span className="mr-1.5 text-ds-text-3 line-through">{fmt(change.prevCredits)}</span>
               )}
-              {li.credits}
+              {fmt(li.credits)}
             </td>
           </tr>
           );
         })}
         <tr className="border-t border-ds-border bg-ds-subtle-2">
-          <td className="px-6 py-3.5 font-semibold text-ds-text">Total</td>
+          <td className="px-6 py-3.5 font-semibold text-ds-text">
+            Total
+            {lines.some((l) => l.balance === "pm" && l.credits > 0) && (
+              <span className="block text-[12px] font-normal text-ds-text-2">
+                PM {fmt(lines.filter((l) => l.balance === "pm").reduce((n, l) => n + l.credits, 0))} · Creative {fmt(lines.filter((l) => l.balance !== "pm").reduce((n, l) => n + l.credits, 0))}
+              </span>
+            )}
+          </td>
           <td className="hidden sm:table-cell" />
           <td className="hidden sm:table-cell" />
           <td className="whitespace-nowrap px-6 py-3.5 text-right font-semibold tabular-nums text-ds-text">
             {prevTotal !== undefined && prevTotal !== total && <span className="mr-1.5 font-medium text-ds-text-3 line-through">{prevTotal}</span>}
-            {total} credits
+            {fmt(total)} credits
           </td>
         </tr>
       </tbody>

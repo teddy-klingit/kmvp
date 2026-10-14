@@ -8,10 +8,6 @@ export type { DeliverableKind, FormatDef };
  * the material answer moving the tiers) and the earliest realistic deadline.
  */
 
-type Tier = "LOW" | "MEDIUM" | "HIGH";
-const TIERS: Tier[] = ["LOW", "MEDIUM", "HIGH"];
-const up = (t: Tier) => TIERS[Math.min(2, TIERS.indexOf(t) + 1)];
-
 export { formatByLabel };
 
 /** The bank format an existing asset was made in (for past CTR per format). */
@@ -20,21 +16,22 @@ export function formatForAsset(assetFormat: string) {
   return FORMATS.find((f) => f.channel === "Meta" && f.matches.test(assetFormat)) ?? FORMATS.find((f) => f.matches.test(assetFormat)) ?? null;
 }
 
-export type PriceEntry = { deliverableType: string; complexityTier: Tier; creditCost: number; leadTimeDays: number };
+/** A Price List item as the studio needs it: its key (sourceKey), credits per unit and lead time. */
+export type PriceEntry = { key: string; creditCost: number | null; leadTimeDays: number | null };
 
-function cost(prices: PriceEntry[], type: string, tier: Tier) {
-  const forType = prices.filter((p) => p.deliverableType === type);
-  if (forType.length === 0) return null;
-  const ranked = [...forType].sort((a, b) => Math.abs(TIERS.indexOf(a.complexityTier) - TIERS.indexOf(tier)) - Math.abs(TIERS.indexOf(b.complexityTier) - TIERS.indexOf(tier)));
-  return ranked[0].creditCost;
+export const priceEntries = (rows: { sourceKey: string | null; creditCost: number | null; leadTimeDays: number | null; archivedAt: Date | null; status: string }[]): PriceEntry[] =>
+  rows.filter((r) => r.sourceKey && !r.archivedAt && r.status !== "legacy").map((r) => ({ key: r.sourceKey!, creditCost: r.creditCost, leadTimeDays: r.leadTimeDays }));
+
+function cost(prices: PriceEntry[], key: string) {
+  return prices.find((p) => p.key === key)?.creditCost ?? null;
 }
 
 export type Material = { clientProvides?: string | null; klingitMakes?: string | null; needsShoot?: boolean };
 
 /**
  * "Estimate preview": the Estimate agent's Price List lookup for what's being made. Units = ideas × sizes; with the
- * client's own material the format's usual tiers apply, Klingit creating the visuals (or a shoot) moves each up one.
- * Formats not on the price list, and a shoot, are left out and named in `unpriced`.
+ * client's own material the format's usual item applies, Klingit creating the visuals (or a shoot) uses the richer
+ * one. Formats not on the price list (a PM quotes them), and a shoot, are left out and named in `unpriced`.
  */
 export function estimatePreview(d: { formats: string[]; ideasCount?: number | null }, prices: PriceEntry[], material: Material = {}) {
   const ideas = d.ideasCount && d.ideasCount > 0 ? d.ideasCount : 3;
@@ -49,9 +46,8 @@ export function estimatePreview(d: { formats: string[]; ideasCount?: number | nu
       unpriced.push(label);
       continue;
     }
-    const tiers: [Tier, Tier] = makes ? [up(f.tiers[0]), up(f.tiers[1])] : f.tiers;
-    const lo = cost(prices, f.priceType, tiers[0]);
-    const hi = cost(prices, f.priceType, tiers[1]);
+    const lo = cost(prices, makes ? f.priceType[1] : f.priceType[0]);
+    const hi = cost(prices, f.priceType[1]);
     if (lo === null || hi === null) {
       unpriced.push(label);
       continue;
@@ -70,7 +66,7 @@ export function leadTimeFor(formats: string[], prices: PriceEntry[]) {
   const days = formats
     .map((l) => formatByLabel(l))
     .filter((f): f is FormatDef => Boolean(f?.priceType))
-    .flatMap((f) => prices.filter((p) => p.deliverableType === f.priceType).map((p) => p.leadTimeDays));
+    .flatMap((f) => prices.filter((p) => f.priceType!.includes(p.key) && p.leadTimeDays != null).map((p) => p.leadTimeDays!));
   return days.length ? Math.max(...days) : 5;
 }
 

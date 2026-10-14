@@ -6,7 +6,7 @@ import type { InternalRole, ProjectStatus, ProjectType } from "@/generated/prism
  * Approved rules (2026-10-01):
  * - Brief: auto-accepted when the brief agent found 0 gaps and every question is answered.
  * - Estimate: auto-generated; auto-sent only when every line is priced from the Price List, nothing is
- *   out of scope, and the total is at most AUTO_SEND_CREDIT_CAP. Otherwise it's a "Needs you" item.
+ *   out of scope, no estimate/quote line waits for the PM's number, and the total is at most AUTO_SEND_CREDIT_CAP. Otherwise it's a "Needs you" item.
  * - Staffing: auto-staffed and confirmed on client approval when the best match for each needed role
  *   scores at least AUTO_STAFF_THRESHOLD. Otherwise it's a "Needs you" item.
  * - Production, QA and delivery stay manual: no agent produces work today.
@@ -36,6 +36,8 @@ export type AutopilotInput = {
     status: string;
     lines: number;
     customLines: number;
+    /** Estimate/quote lines still waiting for the PM's number (Phase S). */
+    unconfirmedLines?: number;
     unresolvedNeeds: number;
     totalCredits: number;
   } | null;
@@ -85,6 +87,7 @@ export function planAutopilot(p: AutopilotInput): AutopilotPlan {
       const reasons: string[] = [];
       if (p.estimate.lines === 0) reasons.push("it has no priced lines");
       if (p.estimate.customLines > 0) reasons.push(`${p.estimate.customLines} line${p.estimate.customLines === 1 ? " isn't" : "s aren't"} from the price list`);
+      if ((p.estimate.unconfirmedLines ?? 0) > 0) reasons.push(`${p.estimate.unconfirmedLines} line${p.estimate.unconfirmedLines === 1 ? " needs" : "s need"} the PM’s number`);
       if (p.estimate.unresolvedNeeds > 0) reasons.push(`${p.estimate.unresolvedNeeds} item${p.estimate.unresolvedNeeds === 1 ? " is" : "s are"} out of scope`);
       if (p.estimate.totalCredits > AUTO_SEND_CREDIT_CAP) reasons.push(`${p.estimate.totalCredits} credits is over the ${AUTO_SEND_CREDIT_CAP}-credit auto-send cap`);
       if (reasons.length) blocked.push({ kind: "estimate_needs_pm", reason: `Not sent automatically: ${reasons.join(", ")}.` });

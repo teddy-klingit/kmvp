@@ -87,13 +87,12 @@ async function main() {
       inclusions: ["Applied to your existing Klarna deck template", "2 rounds of revisions", "Editable .pptx plus PDF"],
     },
   });
-  const price = (deliverableType: string, complexityTier: "LOW" | "MEDIUM" | "HIGH") =>
-    prisma.priceListItem.findUniqueOrThrow({ where: { deliverableType_complexityTier: { deliverableType, complexityTier } } });
+  const price = (sourceKey: string) => prisma.priceListItem.findUniqueOrThrow({ where: { sourceKey } });
   const [slideMed, slideHigh, postMed, cutLow] = await Promise.all([
-    price("PPT slide", "MEDIUM"),
-    price("PPT slide", "HIGH"),
-    price("Social post (static)", "MEDIUM"),
-    price("Video cutdown (<30s)", "LOW"),
+    price("basic_slide_design"),
+    price("new_template_design"),
+    price("unique_social_media_design_1_post"),
+    price("animated_post_static_turned_into_motion"),
   ]);
   await prisma.estimateLineItem.createMany({
     data: [
@@ -230,7 +229,7 @@ async function main() {
   const checkoutEst = await prisma.estimate.create({
     data: { projectId: checkout.id, sentByStaffId: teddy.id, status: "APPROVED", approvedVersion: 1, totalCredits: 33, sentAt: day(-3), respondedAt: day(-1) },
   });
-  const cutMed = await price("Video cutdown (<30s)", "MEDIUM");
+  const cutMed = await price("animated_post_static_turned_into_motion");
   await prisma.estimateLineItem.createMany({
     data: [
       { estimateId: checkoutEst.id, deliverable: "Video cutdown (<30s)", detail: "3 story cutdowns", quantity: 3, complexityTier: "MEDIUM", priceListItemId: cutMed.id, credits: 27, hours: 27, order: 0 },
@@ -238,7 +237,7 @@ async function main() {
     ],
   });
   await prisma.estimateLineItem.create({
-    data: { estimateId: checkoutEst.id, deliverable: "Email copy", detail: "Launch email", quantity: 1, complexityTier: "LOW", priceListItemId: (await price("Email copy", "LOW")).id, credits: 2, hours: 2, order: 2 },
+    data: { estimateId: checkoutEst.id, deliverable: "Email copy", detail: "Launch email", quantity: 1, complexityTier: "LOW", priceListItemId: (await price("email_copy_1_marketing_email")).id, credits: 2, hours: 2, order: 2 },
   });
 
   // Estimating: the agent couldn't price two items, so the draft waits for a PM.
@@ -261,7 +260,7 @@ async function main() {
   await prisma.estimateLineItem.createMany({
     data: [
       { estimateId: goodBoyEst.id, deliverable: "Social post (static)", detail: "Commute posters, 4 formats", quantity: 4, complexityTier: "MEDIUM", priceListItemId: postMed.id, credits: 16, hours: 16, order: 0 },
-      { estimateId: goodBoyEst.id, deliverable: "Video cutdown (<30s)", detail: "15s commute spot", quantity: 1, complexityTier: "HIGH", priceListItemId: (await price("Video cutdown (<30s)", "HIGH")).id, credits: 15, hours: 15, order: 1 },
+      { estimateId: goodBoyEst.id, deliverable: "Video cutdown (<30s)", detail: "15s commute spot", quantity: 1, complexityTier: "HIGH", priceListItemId: (await price("animated_post_static_turned_into_motion")).id, credits: 15, hours: 15, order: 1 },
     ],
   });
   await prisma.agentRun.create({

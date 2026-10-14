@@ -1,5 +1,6 @@
 "use server";
 
+import { sendBlockers } from "@/lib/estimate-lines";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { sendToClient } from "@/lib/qc/quality-check";
@@ -59,8 +60,10 @@ export async function sendEstimateToClientAction(formData: FormData) {
   const estimateId = String(formData.get("estimateId") ?? "");
   const clientId = String(formData.get("clientId") ?? "");
 
-  const existing = await prisma.estimate.findFirst({ where: { id: estimateId, project: { clientId } } });
+  const existing = await prisma.estimate.findFirst({ where: { id: estimateId, project: { clientId } }, include: { lineItems: true } });
   if (!existing) return;
+  // Estimate and quote lines need the PM's number, and unmatched items a PM quote, before anything is sent.
+  if (sendBlockers(existing).length) return;
 
   const estimate = await prisma.estimate.update({
     where: { id: estimateId },

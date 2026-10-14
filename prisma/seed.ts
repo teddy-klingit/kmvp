@@ -1,3 +1,4 @@
+import { syncPriceListFromCsv } from "../src/lib/price-list-sync";
 import bcrypt from "bcryptjs";
 import { PrismaClient, InternalRole, type Prisma } from "../src/generated/prisma";
 import { DEMO_DUE_IN_DAYS } from "./demo-dates";
@@ -71,23 +72,6 @@ async function syncStages(projectId: string, stages: Partial<Record<StageName, S
 // Deliverable-type strings here are what the Estimate agent is constrained
 // to pick from, so keep them specific and production-meaningful.
 // ---------------------------------------------------------------------------
-const PRICE_LIST_ITEMS: { deliverableType: string; complexityTier: "LOW" | "MEDIUM" | "HIGH"; creditCost: number; notes?: string; displayName?: string; unit?: string }[] = [
-  { deliverableType: "Social post (static)", complexityTier: "LOW", creditCost: 2, notes: "Single platform, existing template", displayName: "Social posts", unit: "post" },
-  { deliverableType: "Social post (static)", complexityTier: "MEDIUM", creditCost: 4, displayName: "Social posts", unit: "post" },
-  { deliverableType: "Social post (static)", complexityTier: "HIGH", creditCost: 7, notes: "Custom illustration or photo shoot needed", displayName: "Custom social posts", unit: "post" },
-  { deliverableType: "PPT slide", complexityTier: "LOW", creditCost: 1, notes: "Text + existing template", displayName: "Presentation slides", unit: "slide" },
-  { deliverableType: "PPT slide", complexityTier: "MEDIUM", creditCost: 2, displayName: "Presentation slides", unit: "slide" },
-  { deliverableType: "PPT slide", complexityTier: "HIGH", creditCost: 4, notes: "Custom data viz or diagram", displayName: "Data visualisation slides", unit: "slide" },
-  { deliverableType: "Video cutdown (<30s)", complexityTier: "LOW", creditCost: 5, notes: "Re-edit of existing footage", displayName: "Video cutdowns", unit: "cutdown" },
-  { deliverableType: "Video cutdown (<30s)", complexityTier: "MEDIUM", creditCost: 9, displayName: "Video cutdowns", unit: "cutdown" },
-  { deliverableType: "Video cutdown (<30s)", complexityTier: "HIGH", creditCost: 15, notes: "New motion graphics", displayName: "Motion cutdowns", unit: "cutdown" },
-  { deliverableType: "Full video production", complexityTier: "HIGH", creditCost: 30, notes: "Script to final cut, 60-90s", displayName: "Video production", unit: "video" },
-  { deliverableType: "Landing page build", complexityTier: "MEDIUM", creditCost: 16, notes: "Single page, existing component library", displayName: "Landing page", unit: "page" },
-  { deliverableType: "Landing page build", complexityTier: "HIGH", creditCost: 32, notes: "Custom layout or new components", displayName: "Custom landing page", unit: "page" },
-  { deliverableType: "Email copy", complexityTier: "LOW", creditCost: 2, displayName: "Email copy", unit: "email" },
-  { deliverableType: "Email copy", complexityTier: "MEDIUM", creditCost: 4, notes: "Multi-section campaign email", displayName: "Campaign email copy", unit: "email" },
-  { deliverableType: "Brand guidelines deck", complexityTier: "HIGH", creditCost: 40, notes: "Full visual identity system", displayName: "Brand guidelines", unit: "deck" },
-];
 
 async function main() {
   console.log("Seeding…");
@@ -96,13 +80,8 @@ async function main() {
   // ---------------------------------------------------------------------
   // Price list (DRAFT placeholder rates)
   // ---------------------------------------------------------------------
-  for (const item of PRICE_LIST_ITEMS) {
-    await prisma.priceListItem.upsert({
-      where: { deliverableType_complexityTier: { deliverableType: item.deliverableType, complexityTier: item.complexityTier } },
-      update: { creditCost: item.creditCost, notes: item.notes ?? null, displayName: item.displayName ?? null, unit: item.unit ?? null },
-      create: item,
-    });
-  }
+  // The 2026 Price List, from data/pricing/klingit-price-list-credits-2026.csv (Phase S).
+  await syncPriceListFromCsv();
   console.log("Price list seeded");
 
   // ---------------------------------------------------------------------

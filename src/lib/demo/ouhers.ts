@@ -13,7 +13,7 @@ import { briefQuality } from "@/lib/brief-studio/quality";
 import { deliverablesText } from "@/lib/brief-studio/planner";
 import type { BriefSection, StudioMessage, StudioQuestion } from "@/lib/brief-studio/model";
 import { loadBrandHealth } from "@/lib/brand-health";
-import { estimatePreview, type PriceEntry } from "@/lib/brief-studio/formats";
+import { estimatePreview, priceEntries, type PriceEntry } from "@/lib/brief-studio/formats";
 import type { AgentBuild, BuildStep } from "@/lib/agent-build";
 import { phaseQPack, phaseQText, seedPhaseQ } from "@/lib/demo/ouhers-phase-q";
 import { seedPhaseROpportunities, seedPhaseRPlan, seedPhaseRRules, seedRuleCounts } from "@/lib/demo/ouhers-phase-r";
@@ -267,7 +267,7 @@ export async function seedOuhers(opts: { dir?: string; shift?: boolean; log?: (s
   say(`Brand OS · ${brand.visualIdentity.logos.length} logos, ${brand.library.length} photos${motion?.reference ? ", the motion reference" : ""} uploaded`);
 
   // ─── Projects ────────────────────────────────────────────────────────────
-  const prices: PriceEntry[] = (await prisma.priceListItem.findMany({ where: { archivedAt: null } })).map((x) => ({ deliverableType: x.deliverableType, complexityTier: x.complexityTier, creditCost: x.creditCost, leadTimeDays: x.leadTimeDays }));
+  const prices: PriceEntry[] = priceEntries(await prisma.priceListItem.findMany({ where: { archivedAt: null } }));
   const brandFacts = { voice: true, visual: true, linkedSources: brand.sources.length };
   const projectId = (packId: string) => `ouhers-${packId}`;
   const fileAsset = new Map<string, string>();

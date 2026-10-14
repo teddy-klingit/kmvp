@@ -5,10 +5,11 @@
  */
 
 export type DeliverableKind = "ads" | "video" | "web" | "print" | "social" | "email" | "deck" | "brand" | "other";
-type Tier = "LOW" | "MEDIUM" | "HIGH";
-
-/** A format a channel takes, priced as a Price List deliverable type (null = not on the price list yet). */
-export type FormatDef = { id: string; label: string; channel: string; priceType: string | null; tiers: [Tier, Tier]; matches: RegExp };
+/**
+ * A format a channel takes, priced from the 2026 Price List by item key (data/pricing/…csv): [usual, when Klingit
+ * makes the visuals or there's a shoot]. null = not on the price list: a PM quotes it.
+ */
+export type FormatDef = { id: string; label: string; channel: string; priceType: [string, string] | null; matches: RegExp };
 
 export const CHANNEL_GROUPS: { group: string; channels: string[] }[] = [
   { group: "Social", channels: ["Meta", "TikTok", "LinkedIn", "Snapchat"] },
@@ -16,36 +17,36 @@ export const CHANNEL_GROUPS: { group: string; channels: string[] }[] = [
   { group: "Offline", channels: ["Print", "Out-of-home", "In-store"] },
 ];
 
-const SOCIAL_POST = "Social post (static)";
-const CUTDOWN = "Video cutdown (<30s)";
+const POST: [string, string] = ["unique_social_media_design_1_post", "animated_post_static_turned_into_motion"];
+const MOTION: [string, string] = ["animated_post_static_turned_into_motion", "animated_post_static_turned_into_motion"];
 
 export const FORMATS: FormatDef[] = [
-  { id: "meta_stories", label: "Stories 9:16", channel: "Meta", priceType: SOCIAL_POST, tiers: ["MEDIUM", "HIGH"], matches: /^(story|stories)\b|story 9:16/i },
-  { id: "meta_reels", label: "Reels 9:16", channel: "Meta", priceType: CUTDOWN, tiers: ["MEDIUM", "HIGH"], matches: /reel|video 9:16/i },
-  { id: "meta_feed", label: "Feed 1:1", channel: "Meta", priceType: SOCIAL_POST, tiers: ["LOW", "MEDIUM"], matches: /static|feed|1:1/i },
-  { id: "meta_carousel", label: "Carousel", channel: "Meta", priceType: SOCIAL_POST, tiers: ["MEDIUM", "HIGH"], matches: /carousel/i },
-  { id: "tiktok_infeed", label: "TikTok in-feed", channel: "TikTok", priceType: CUTDOWN, tiers: ["MEDIUM", "HIGH"], matches: /tiktok/i },
-  { id: "tiktok_spark", label: "Spark ads", channel: "TikTok", priceType: CUTDOWN, tiers: ["LOW", "MEDIUM"], matches: /spark/i },
-  { id: "linkedin_single", label: "Single image", channel: "LinkedIn", priceType: SOCIAL_POST, tiers: ["LOW", "MEDIUM"], matches: /single image/i },
-  { id: "linkedin_carousel", label: "Document carousel", channel: "LinkedIn", priceType: SOCIAL_POST, tiers: ["MEDIUM", "HIGH"], matches: /document/i },
-  { id: "linkedin_video", label: "LinkedIn video", channel: "LinkedIn", priceType: CUTDOWN, tiers: ["MEDIUM", "HIGH"], matches: /linkedin video/i },
-  { id: "snap_ad", label: "Snap ad 9:16", channel: "Snapchat", priceType: CUTDOWN, tiers: ["LOW", "MEDIUM"], matches: /snap/i },
-  { id: "display_set", label: "Display banners", channel: "Search & display", priceType: SOCIAL_POST, tiers: ["LOW", "MEDIUM"], matches: /banner|\d+\s*[×x]\s*\d+/i },
-  { id: "search_ads", label: "Search ads", channel: "Search & display", priceType: "Email copy", tiers: ["LOW", "MEDIUM"], matches: /search ad/i },
-  { id: "yt_bumper", label: "Bumper 6s", channel: "YouTube / CTV", priceType: CUTDOWN, tiers: ["LOW", "MEDIUM"], matches: /bumper/i },
-  { id: "yt_instream", label: "In-stream 15s", channel: "YouTube / CTV", priceType: CUTDOWN, tiers: ["MEDIUM", "HIGH"], matches: /in-?stream/i },
-  { id: "ctv_30", label: "CTV 30s", channel: "YouTube / CTV", priceType: "Full video production", tiers: ["HIGH", "HIGH"], matches: /ctv|tv spot|30s/i },
-  { id: "print_ad", label: "Print ad", channel: "Print", priceType: null, tiers: ["MEDIUM", "HIGH"], matches: /print/i },
-  { id: "ooh_poster", label: "Poster", channel: "Out-of-home", priceType: null, tiers: ["MEDIUM", "HIGH"], matches: /poster|billboard/i },
-  { id: "dooh", label: "Digital out-of-home", channel: "Out-of-home", priceType: CUTDOWN, tiers: ["MEDIUM", "HIGH"], matches: /dooh|digital out/i },
-  { id: "pos", label: "Point of sale", channel: "In-store", priceType: null, tiers: ["MEDIUM", "HIGH"], matches: /point of sale|pos\b|in-?store/i },
+  { id: "meta_stories", label: "Stories 9:16", channel: "Meta", priceType: POST, matches: /^(story|stories)\b|story 9:16/i },
+  { id: "meta_reels", label: "Reels 9:16", channel: "Meta", priceType: MOTION, matches: /reel|video 9:16/i },
+  { id: "meta_feed", label: "Feed 1:1", channel: "Meta", priceType: POST, matches: /static|feed|1:1/i },
+  { id: "meta_carousel", label: "Carousel", channel: "Meta", priceType: POST, matches: /carousel/i },
+  { id: "tiktok_infeed", label: "TikTok in-feed", channel: "TikTok", priceType: MOTION, matches: /tiktok/i },
+  { id: "tiktok_spark", label: "Spark ads", channel: "TikTok", priceType: MOTION, matches: /spark/i },
+  { id: "linkedin_single", label: "Single image", channel: "LinkedIn", priceType: POST, matches: /single image/i },
+  { id: "linkedin_carousel", label: "Document carousel", channel: "LinkedIn", priceType: POST, matches: /document/i },
+  { id: "linkedin_video", label: "LinkedIn video", channel: "LinkedIn", priceType: null, matches: /linkedin video/i },
+  { id: "snap_ad", label: "Snap ad 9:16", channel: "Snapchat", priceType: MOTION, matches: /snap/i },
+  { id: "display_set", label: "Display banners", channel: "Search & display", priceType: ["web_banners", "web_banners"], matches: /banner|\d+\s*[×x]\s*\d+/i },
+  { id: "search_ads", label: "Search ads", channel: "Search & display", priceType: null, matches: /search ad/i },
+  { id: "yt_bumper", label: "Bumper 6s", channel: "YouTube / CTV", priceType: null, matches: /bumper/i },
+  { id: "yt_instream", label: "In-stream 15s", channel: "YouTube / CTV", priceType: null, matches: /in-?stream/i },
+  { id: "ctv_30", label: "CTV 30s", channel: "YouTube / CTV", priceType: null, matches: /ctv|tv spot|30s/i },
+  { id: "print_ad", label: "Print ad", channel: "Print", priceType: ["print_ad_a4_a5", "print_ad_a4_a5"], matches: /print/i },
+  { id: "ooh_poster", label: "Poster", channel: "Out-of-home", priceType: null, matches: /poster|billboard/i },
+  { id: "dooh", label: "Digital out-of-home", channel: "Out-of-home", priceType: MOTION, matches: /dooh|digital out/i },
+  { id: "pos", label: "Point of sale", channel: "In-store", priceType: null, matches: /point of sale|pos\b|in-?store/i },
   // Channel-less deliverable types.
-  { id: "film", label: "Brand film", channel: "Video", priceType: "Full video production", tiers: ["HIGH", "HIGH"], matches: /film|commercial/i },
-  { id: "cutdowns", label: "Cutdowns", channel: "Video", priceType: CUTDOWN, tiers: ["LOW", "MEDIUM"], matches: /cutdown/i },
-  { id: "landing", label: "Landing page", channel: "Web", priceType: "Landing page build", tiers: ["MEDIUM", "HIGH"], matches: /landing|web ?page/i },
-  { id: "email", label: "Email", channel: "Email", priceType: "Email copy", tiers: ["LOW", "MEDIUM"], matches: /email|newsletter/i },
-  { id: "deck", label: "Deck, about 10 slides", channel: "Deck", priceType: "PPT slide", tiers: ["MEDIUM", "MEDIUM"], matches: /deck|slides/i },
-  { id: "guidelines", label: "Brand guidelines", channel: "Brand", priceType: "Brand guidelines deck", tiers: ["HIGH", "HIGH"], matches: /guidelines/i },
+  { id: "film", label: "Brand film", channel: "Video", priceType: null, matches: /film|commercial/i },
+  { id: "cutdowns", label: "Cutdowns", channel: "Video", priceType: null, matches: /cutdown/i },
+  { id: "landing", label: "Landing page", channel: "Web", priceType: null, matches: /landing|web ?page/i },
+  { id: "email", label: "Email", channel: "Email", priceType: ["email_copy_1_marketing_email", "email_copy_1_marketing_email"], matches: /email|newsletter/i },
+  { id: "deck", label: "Deck, about 10 slides", channel: "Deck", priceType: ["basic_slide_design", "new_template_design"], matches: /deck|slides/i },
+  { id: "guidelines", label: "Brand guidelines", channel: "Brand", priceType: null, matches: /guidelines/i },
 ];
 
 export const formatsForChannels = (channels: string[]) => FORMATS.filter((f) => channels.includes(f.channel));

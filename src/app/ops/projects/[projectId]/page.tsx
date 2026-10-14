@@ -10,7 +10,8 @@ import { activityFeed, clientThread, staffNotesThread, type ActivityItem } from 
 import { scheduleAutopilot } from "@/lib/autopilot-schedule";
 import { PROJECT_TYPE_LABEL, INTERNAL_ROLE_LABEL } from "@/lib/labels";
 import { formatDay, shortDate } from "@/lib/project-state";
-import { COMPLEXITY_LABEL, lineName } from "@/lib/estimate-display";
+import { lineName } from "@/lib/estimate-display";
+import { offerable, sendBlockers } from "@/lib/estimate-lines";
 import { assetTitle, formatLabel } from "@/lib/asset-display";
 import { AUTO_SEND_CREDIT_CAP } from "@/lib/autopilot";
 import { Card } from "@/components/ds/card";
@@ -337,6 +338,7 @@ function EstimateStep({ c, canEdit, editing, base, clientFirst }: { c: Cockpit; 
   const status: StepStatus = est?.status === "APPROVED" && est.approvedVersion ? "done" : ["estimating", "awaiting_approval"].includes(stage) ? "current" : est ? "done" : "upcoming";
   const open = c.unresolved.filter((n) => !n.resolution);
   const blocked = c.ops.plan.blocked.find((b) => b.kind === "estimate_needs_pm");
+  const blockers = est ? sendBlockers(est) : [];
   const clientHasVersion = Boolean(est && est.status !== "DRAFT");
   const latest = est?.revisions[0];
   const pills: { label: string; tone: PillTone }[] = [];
@@ -377,7 +379,8 @@ function EstimateStep({ c, canEdit, editing, base, clientFirst }: { c: Cockpit; 
         canEdit && !editing ? (
           <>
             {(!est || est.status === "DRAFT") && stage === "estimating" && <RegenerateEstimateButton projectId={c.project.id} />}
-            {est?.status === "DRAFT" && open.length === 0 && (
+            {est?.status === "DRAFT" && blockers.length > 0 && <span className="self-center text-[13px] text-ds-watch-text">Can&apos;t send yet: {blockers.join(" and ")}</span>}
+            {est?.status === "DRAFT" && blockers.length === 0 && (
               <form action={sendEstimateAction}>
                 <input type="hidden" name="projectId" value={c.project.id} />
                 <Button type="submit" variant="primary" size="sm">
@@ -396,18 +399,23 @@ function EstimateStep({ c, canEdit, editing, base, clientFirst }: { c: Cockpit; 
           clientHasVersion={clientHasVersion}
           clientFirstName={clientFirst}
           version={est.version}
-          priceList={c.priceList.map((p) => ({ deliverableType: p.deliverableType, complexityTier: p.complexityTier, creditCost: p.creditCost, displayName: p.displayName }))}
+          priceList={c.priceList.filter(offerable).map((p) => ({ id: p.id, name: p.displayName ?? p.deliverableType, category: p.category, unit: p.unit, creditCost: p.creditCost, status: p.status, balance: p.balance }))}
+          multipliers={c.multipliers}
+          pmLine={c.pmLine}
           needs={c.unresolved.map((n) => ({ description: n.description, reason: n.reason, resolved: Boolean(n.resolution) }))}
           lines={est.lineItems.map((l) => ({
             id: l.id,
             deliverable: l.deliverable,
             detail: l.detail,
             quantity: l.quantity,
-            complexityTier: l.complexityTier,
             credits: l.credits,
             isCustom: l.isCustom,
             customReason: l.customReason,
             priceListItemId: l.priceListItemId,
+            balance: l.balance,
+            needsConfirm: l.needsConfirm,
+            confirmed: Boolean(l.confirmedAt),
+            taskType: l.taskType,
           }))}
         />
       )}
@@ -416,16 +424,19 @@ function EstimateStep({ c, canEdit, editing, base, clientFirst }: { c: Cockpit; 
           <div className="flex flex-wrap gap-x-6 gap-y-1.5 text-[14px] text-ds-text-body">
             {est.lineItems.map((l) => (
               <span key={l.id}>
-                {lineName(l)} · {l.quantity}
-                {l.complexityTier ? ` · ${COMPLEXITY_LABEL[l.complexityTier]}` : ""} · {l.credits}
-                {l.isCustom && <span className="text-ds-text-3"> (custom)</span>}
+                {lineName(l)} · {l.quantity} · {l.credits}
+                {l.balance === "pm" && <span className="text-ds-text-3"> (PM)</span>}
+                {l.isCustom && <span className="text-ds-text-3"> (PM quote)</span>}
+                {l.needsConfirm && !l.confirmedAt && <span className="text-ds-watch-text"> · needs your number</span>}
               </span>
             ))}
-            <span className="font-semibold text-ds-text">Total {est.totalCredits}</span>
+            <span className="font-semibold text-ds-text">
+              Total {est.totalCredits} <span className="font-normal text-ds-text-2">· PM {est.pmCredits} · Creative {est.creativeCredits}</span>
+            </span>
           </div>
           {open.length > 0 && (
             <div className="rounded-[8px] bg-ds-watch-tint px-3 py-2 text-[13px] text-ds-watch-text">
-              Out of scope: {open.map((n) => n.description).join(", ")}. Price them or exclude them in Edit.
+              Needs PM quote: {open.map((n) => n.description).join(", ")}. Quote them or exclude them in Edit.
             </div>
           )}
           {est.revisions.length > 1 && (
