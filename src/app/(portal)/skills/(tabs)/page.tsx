@@ -31,12 +31,11 @@ export default async function AllSkillsPage({ searchParams }: { searchParams: Pr
   const { start, end } = monthPeriod();
   const [skills, assistants] = await Promise.all([
     listSkills(viewer.clientId),
-    prisma.aiCreditLedger.aggregate({ where: { clientId: viewer.clientId, kind: "USAGE", sourceType: "assistant", createdAt: { gte: start, lt: end } }, _sum: { amount: true } }),
+    prisma.aiCreditLedger.count({ where: { clientId: viewer.clientId, kind: "USAGE", sourceType: "assistant", createdAt: { gte: start, lt: end } } }),
   ]);
   const shown = skills.filter((s) => s.live || s.custom);
   const active = FILTERS.find((f) => f.key === label)?.key ?? null;
   const visible = shown.filter((s) => !active || s.availability === active);
-  const assistantCredits = Math.round(-(assistants._sum.amount ?? 0));
 
   return (
     <div className="flex flex-col gap-8">
@@ -76,8 +75,8 @@ export default async function AllSkillsPage({ searchParams }: { searchParams: Pr
 
       <p className="m-0 flex flex-wrap items-center gap-3 rounded-[12px] border border-dashed border-brand-field px-5 py-3.5 text-[14px] text-brand-ink-2">
         <Sparkles className="size-4" strokeWidth={1.75} />
-        <span className="flex-1">Built-in assistants work inside Brief, Insights and Home: Brief assistant, Ask your data, Opportunities, Performance insights. They use AI credits too.</span>
-        <span className="font-brand-mono text-[12px] uppercase text-brand-ink">{assistantCredits} AI this month</span>
+        <span className="flex-1">Built-in assistants work inside Brief, Insights and Home: Brief assistant, Ask your data, Opportunities, Performance insights. They’re included and never use AI credits.</span>
+        <span className="font-brand-mono text-[12px] uppercase text-brand-ink">{assistants} uses this month · included</span>
       </p>
       <p className="m-0 flex flex-wrap items-center gap-3 rounded-[12px] border border-dashed border-brand-field px-5 py-3.5 text-[14px] text-brand-ink-2">
         <LayoutTemplate className="size-4" strokeWidth={1.75} />

@@ -2,6 +2,7 @@ import type { PlanTier } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
 import { notifyMany } from "@/lib/notifier";
 import { decryptSecret } from "@/lib/secrets";
+import { getSetting } from "@/lib/platform-settings";
 
 /**
  * AI credits (Phase Q). Two credit types exist:
@@ -9,7 +10,8 @@ import { decryptSecret } from "@/lib/secrets";
  *  - AI credits: LLM use by the skills a client runs and the built-in assistants they use (AiCreditLedger, here).
  * Klingit's own production AI (estimates, staffing, the quality check, scheduled jobs) never charges a client:
  * a run is charged only inside a client-triggered context (withAiCharge in src/lib/ai-context.ts) or as a
- * client's own skill run.
+ * client's own skill run. Assistants (Phase S) never charge either: their token cost is logged as billable: false
+ * and a daily fair-use limit applies instead (assistantFairUse).
  *
  * ── Tokens → AI credits (PLACEHOLDER rate, one place) ──────────────────────────────────────────────────────────
  * 1 AI credit = 1,000 weighted tokens. Weighted tokens = input tokens + 5 × output tokens (output costs ~5× input
@@ -84,9 +86,9 @@ const sum = (rows: { amount: number }[]) => rows.reduce((a, r) => a + r.amount, 
 export async function aiCreditStatus(clientId: string, now = new Date()) {
   const { plan, start, end, key } = await ensurePeriod(clientId, now);
   const [period, bundles, bundleUse, provider] = await Promise.all([
-    prisma.aiCreditLedger.findMany({ where: { clientId, billedTo: "klingit", createdAt: { gte: start, lt: end }, kind: { in: ["ALLOWANCE", "ADJUSTMENT", "USAGE"] } }, select: { kind: true, amount: true, fundedBy: true } }),
+    prisma.aiCreditLedger.findMany({ where: { clientId, billedTo: "klingit", billable: true, createdAt: { gte: start, lt: end }, kind: { in: ["ALLOWANCE", "ADJUSTMENT", "USAGE"] } }, select: { kind: true, amount: true, fundedBy: true } }),
     prisma.aiCreditLedger.findMany({ where: { clientId, kind: "BUNDLE" }, select: { amount: true } }),
-    prisma.aiCreditLedger.findMany({ where: { clientId, kind: "USAGE", fundedBy: "bundle", billedTo: "klingit" }, select: { amount: true } }),
+    prisma.aiCreditLedger.findMany({ where: { clientId, kind: "USAGE", fundedBy: "bundle", billedTo: "klingit", billable: true }, select: { amount: true } }),
     prisma.aiCreditLedger.aggregate({ where: { clientId, billedTo: "client_provider", createdAt: { gte: start, lt: end } }, _sum: { tokensIn: true, tokensOut: true } }),
   ]);
   const allowance = sum(period.filter((r) => r.kind === "ALLOWANCE")) + sum(period.filter((r) => r.kind === "ADJUSTMENT"));
@@ -115,7 +117,7 @@ export type AiGate = { ok: true; warning: string | null } | { ok: false; error: 
 
 /**
  * May this client start something that uses AI credits? A skill run is blocked when nothing is left (with Top up);
- * an assistant only warns. On Basic the client's own model pays, so only a missing connection blocks.
+ * an assistant never uses AI credits, so it's never blocked or warned about here (see assistantFairUse). On Basic the client's own model pays, so only a missing connection blocks.
  */
 export async function aiGate(clientId: string, sourceType: "skill" | "assistant", now = new Date()): Promise<AiGate> {
   const s = await aiCreditStatus(clientId, now);
@@ -123,9 +125,10 @@ export async function aiGate(clientId: string, sourceType: "skill" | "assistant"
     const own = await ownModelConnection(clientId);
     return own ? { ok: true, warning: null } : { ok: false, error: "You're on Basic: connect your own AI model in Settings → Connections first.", topUp: false };
   }
+  // Assistants never use AI credits (Phase S): nothing to warn about.
+  if (sourceType === "assistant") return { ok: true, warning: null };
   if (s.left > 0) return { ok: true, warning: s.allowance > 0 && s.left < s.allowance * 0.2 ? `${Math.floor(s.left)} AI credits left this month.` : null };
-  if (sourceType === "skill") return { ok: false, error: "You've used this month's AI credits. Top up to keep running skills, or wait for the reset.", topUp: true };
-  return { ok: true, warning: "You're out of AI credits this month: answers still work, but top up soon." };
+  return { ok: false, error: "You've used this month's AI credits. Top up to keep running skills, or wait for the reset.", topUp: true };
 }
 
 /**
@@ -137,6 +140,17 @@ export async function ownModelConnection(clientId: string) {
   if (!conn) return null;
   const meta = (conn.meta ?? {}) as { encryptedKey?: string };
   return { provider: conn.app as "claude" | "openai", apiKey: decryptSecret(meta.encryptedKey) };
+}
+
+/**
+ * Assistants are free but fair-use limited: a staff-set number of calls per client per day (placeholder 200).
+ * Returns the calm message to show once the limit is reached, or null.
+ */
+export async function assistantFairUse(clientId: string, now = new Date()) {
+  const limit = await getSetting("assistantFairUsePerDay");
+  const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const used = await prisma.aiCreditLedger.count({ where: { clientId, kind: "USAGE", sourceType: "assistant", createdAt: { gte: dayStart } } });
+  return used >= limit ? "That's a lot of questions for one day. The assistants take a breather until tomorrow; your Marketing PM can help in the meantime." : null;
 }
 
 export type AiCharge = {
@@ -164,6 +178,11 @@ export async function chargeAi(c: AiCharge, now = new Date()) {
   const credits = creditsForTokens(c);
   const before = await aiCreditStatus(c.clientId, now);
   const base = { clientId: c.clientId, userId: c.userId ?? null, kind: "USAGE" as const, sourceType: c.sourceType, sourceKey: c.sourceKey, sourceName: c.sourceName, projectId: c.projectId ?? null, format: c.format ?? null, model: c.model ?? null, agentRunId: c.agentRunId ?? null, createdAt: now };
+  // Assistants: the cost is logged so Klingit can see it, never counted against the client.
+  if (c.sourceType === "assistant") {
+    await prisma.aiCreditLedger.create({ data: { ...base, amount: -credits, tokensIn: c.tokensIn, tokensOut: c.tokensOut, billable: false, billedTo: before.ownModel ? "client_provider" : "klingit", note: "Assistant · included, not billed" } });
+    return { credits: 0, billedTo: before.ownModel ? ("client_provider" as const) : ("klingit" as const) };
+  }
   if (before.ownModel) {
     await prisma.aiCreditLedger.create({ data: { ...base, amount: -credits, tokensIn: c.tokensIn, tokensOut: c.tokensOut, billedTo: "client_provider", note: "Billed by your provider" } });
     return { credits: 0, billedTo: "client_provider" as const };

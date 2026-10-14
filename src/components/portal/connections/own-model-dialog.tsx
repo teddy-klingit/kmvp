@@ -20,7 +20,7 @@ export function OwnModelDialog({ app, name, basic }: { app: string; name: string
         <DialogHeader>
           <DialogTitle>Connect {name}</DialogTitle>
           <DialogDescription>
-            {basic ? "Your skills and assistants will run on this account; your provider bills the tokens and Klingit shows how many were used." : "This is used only on the Basic plan. On your current plan, skills and assistants use Klingit AI credits."}
+            {basic ? "Your skills and assistants will run on this account; your provider bills the tokens and Klingit shows how many were used." : "This is used only on the Basic plan. On your current plan, skills use Klingit AI credits; assistants are included."}
           </DialogDescription>
         </DialogHeader>
         {state.ok ? (

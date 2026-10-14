@@ -68,13 +68,13 @@ describe("AI credits", () => {
     expect(titles.filter((t) => t.includes("AI credits"))).toEqual(["You've used this month's AI credits"]);
   });
 
-  it("blocks a skill run when nothing is left; assistants only warn", async () => {
+  it("blocks a skill run when nothing is left; assistants are never blocked or warned (they don't use AI credits)", async () => {
     await prisma.aiCreditLedger.create({ data: { clientId: fx.clientA.id, kind: "USAGE", amount: -248, fundedBy: "bundle", sourceType: "skill", sourceKey: "ad_gen", sourceName: "Ad gen", createdAt: NOW } });
     const skill = await aiGate(fx.clientA.id, "skill", NOW);
     expect(skill.ok).toBe(false);
     expect(!skill.ok && skill.topUp).toBe(true);
     const assistant = await aiGate(fx.clientA.id, "assistant", NOW);
-    expect(assistant.ok && assistant.warning).toMatch(/out of AI credits/);
+    expect(assistant).toEqual({ ok: true, warning: null });
   });
 
   it("on Basic, logs the tokens as billed by the client's provider and deducts nothing", async () => {
@@ -95,13 +95,18 @@ describe("AI credits", () => {
     const run = await prisma.agentRun.findUniqueOrThrow({ where: { id: internal.ok ? internal.runId : "" } });
     expect([run.tokensIn, run.tokensOut, run.aiCredits]).toEqual([2000, 400, null]);
     expect(await prisma.aiCreditLedger.count({ where: { clientId: fx.clientA.id, kind: "USAGE" } })).toBe(before);
-    // A client-triggered assistant answer: charged.
+    // A client-triggered assistant answer: its cost is logged (billable: false), never charged.
     await prisma.aiCreditLedger.create({ data: { clientId: fx.clientA.id, kind: "ADJUSTMENT", amount: 100, note: "test" } });
     const asked = await withAiCharge({ clientId: fx.clientA.id, sourceType: "assistant", sourceKey: "ask_your_data", sourceName: "Ask your data" }, () => runAgentTask({ agentKey: "test_internal", clientId: fx.clientA.id, system: "s", prompt: "p", schema }));
     const charged = await prisma.agentRun.findUniqueOrThrow({ where: { id: asked.ok ? asked.runId : "" } });
-    expect(charged.aiCredits).toBe(4);
+    expect(charged.aiCredits).toBe(0);
     const row = await prisma.aiCreditLedger.findFirstOrThrow({ where: { agentRunId: charged.id } });
-    expect([row.sourceName, row.tokensIn, row.tokensOut, row.amount]).toEqual(["Ask your data", 2000, 400, -4]);
+    expect([row.sourceName, row.tokensIn, row.tokensOut, row.amount, row.billable]).toEqual(["Ask your data", 2000, 400, -4, false]);
+    // A client-triggered skill run is charged.
+    const before2 = (await aiCreditStatus(fx.clientA.id)).used;
+    const ran = await withAiCharge({ clientId: fx.clientA.id, sourceType: "skill", sourceKey: "ad_gen", sourceName: "Ad gen" }, () => runAgentTask({ agentKey: "test_internal", clientId: fx.clientA.id, system: "s", prompt: "p", schema }));
+    expect((await prisma.agentRun.findUniqueOrThrow({ where: { id: ran.ok ? ran.runId : "" } })).aiCredits).toBe(4);
+    expect((await aiCreditStatus(fx.clientA.id)).used).toBe(before2 + 4);
   });
 });
 

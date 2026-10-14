@@ -32,11 +32,11 @@ export async function loadUsage(clientId: string, now = new Date()) {
   const [ai, team, aiRows, teamRows, held, members, history, teamHistory] = await Promise.all([
     aiCreditStatus(clientId, now),
     creditSummary(clientId, now),
-    prisma.aiCreditLedger.findMany({ where: { clientId, kind: "USAGE", billedTo: "klingit", createdAt: { gte: start, lt: end } } }),
+    prisma.aiCreditLedger.findMany({ where: { clientId, kind: "USAGE", billedTo: "klingit", billable: true, createdAt: { gte: start, lt: end } } }),
     prisma.creditLedgerEntry.findMany({ where: { clientId, type: "CONSUMPTION", createdAt: { gte: start, lt: end } }, include: { project: { select: { name: true, status: true } } } }),
     prisma.estimate.findMany({ where: { status: "SENT", project: { clientId, status: { notIn: ["ARCHIVED", "DRAFT"] } } }, include: { project: { select: { id: true, name: true } }, revisions: { where: { status: "APPROVED" }, orderBy: { version: "desc" }, take: 1 } } }),
     prisma.clientUser.findMany({ where: { clientId }, include: { user: { select: { id: true, name: true } } } }),
-    prisma.aiCreditLedger.findMany({ where: { clientId, kind: "USAGE", billedTo: "klingit", createdAt: { gte: yearStart, lt: end } }, select: { amount: true, createdAt: true } }),
+    prisma.aiCreditLedger.findMany({ where: { clientId, kind: "USAGE", billedTo: "klingit", billable: true, createdAt: { gte: yearStart, lt: end } }, select: { amount: true, createdAt: true } }),
     prisma.creditLedgerEntry.findMany({ where: { clientId, type: "CONSUMPTION", createdAt: { gte: yearStart, lt: end } }, select: { amount: true, createdAt: true } }),
   ]);
   const projects = new Map((await prisma.project.findMany({ where: { id: { in: aiRows.map((r) => r.projectId).filter((x): x is string => Boolean(x)) } }, select: { id: true, name: true } })).map((p) => [p.id, p.name]));
@@ -134,7 +134,7 @@ export async function loadUsage(clientId: string, now = new Date()) {
 export async function loadMyUsage(clientId: string, userId: string, now = new Date()) {
   const { start, end } = monthPeriod(now);
   const [ai, team] = await Promise.all([
-    prisma.aiCreditLedger.findMany({ where: { clientId, userId, kind: "USAGE", createdAt: { gte: start, lt: end } } }),
+    prisma.aiCreditLedger.findMany({ where: { clientId, userId, kind: "USAGE", billable: true, createdAt: { gte: start, lt: end } } }),
     prisma.creditLedgerEntry.findMany({ where: { clientId, userId, type: "CONSUMPTION", createdAt: { gte: start, lt: end } }, include: { project: { select: { name: true } } } }),
   ]);
   const bySource = [...groupSum(ai, (r) => r.sourceName ?? "Other", (r) => -r.amount)].map(([label, value]) => ({ key: label, label, value: round(value) })).sort((a, b) => b.value - a.value);

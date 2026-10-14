@@ -169,6 +169,8 @@ model AiCreditLedger {
   model       String?
   /// "klingit" = counts against the client's AI credits; "client_provider" = Basic plan, their provider bills it
   billedTo    String       @default("klingit")
+  /// false: logged for cost only, never counted against the client (assistants, Phase S).
+  billable    Boolean      @default(true)
   agentRunId  String?
   note        String?
   createdById String?
@@ -2306,4 +2308,12 @@ model OpportunityRoute {
   opportunity Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
 
   @@index([opportunityId])
+}
+
+/// Staff-editable platform settings (Phase S): one row per key, the value as JSON. Placeholders until set.
+model PlatformSetting {
+  key             String   @id
+  value           Json
+  updatedByUserId String?
+  updatedAt       DateTime @updatedAt
 }

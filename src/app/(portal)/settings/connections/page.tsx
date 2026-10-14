@@ -105,7 +105,7 @@ export default async function ConnectionsPage({ searchParams }: { searchParams: 
             </span>
           ) : (
             <span>
-              You&apos;re on <b className="font-semibold">{plan.name}</b>: skills and assistants use Klingit AI credits. On <b className="font-semibold">Basic</b>, connect your own model here and your provider bills the tokens.
+              You&apos;re on <b className="font-semibold">{plan.name}</b>: skills use Klingit AI credits and assistants are included. On <b className="font-semibold">Basic</b>, connect your own model here and your provider bills the tokens.
             </span>
           )}
         </p>

@@ -4,7 +4,7 @@ import type { z } from "zod";
 import { anthropic, AGENT_MODEL } from "@/lib/ai/client";
 import { prisma } from "@/lib/prisma";
 import { currentAiCharge, type AiChargeContext } from "@/lib/ai-context";
-import { aiCreditStatus, chargeAi, ownModelConnection } from "@/lib/ai-credits";
+import { aiCreditStatus, chargeAi, ownModelConnection, assistantFairUse } from "@/lib/ai-credits";
 import { redactSecrets } from "@/lib/secrets";
 
 type RunAgentTaskArgs<T> = {
@@ -65,6 +65,10 @@ export async function runAgentTask<T>({
   let client = anthropic;
   // The client's key, if this run uses it: masked out of anything the run stores or returns.
   let ownKey: string | null = null;
+  if (charge?.sourceType === "assistant") {
+    const limited = await assistantFairUse(charge.clientId);
+    if (limited) return { ok: false, error: limited };
+  }
   if (charge) {
     const status = await aiCreditStatus(charge.clientId);
     if (status.ownModel) {

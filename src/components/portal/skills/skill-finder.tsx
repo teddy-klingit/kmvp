@@ -10,7 +10,7 @@ const EXAMPLES = ["a launch email for sun day", "product copy from an INCI list"
 
 /**
  * "What do you want to make?" (design 02): plain words in, the best skill (or two) with its settings out, and
- * "Set it up" opens the run page pre-filled. One small assistant call (AI credits). Nothing fits: Ask Klingit or
+ * "Set it up" opens the run page pre-filled. One small assistant call (included, never AI credits). Nothing fits: Ask Klingit or
  * request a custom skill.
  */
 export function SkillFinder() {

@@ -3,7 +3,6 @@
 import { useActionState, useState } from "react";
 import { AlertTriangle, Check } from "lucide-react";
 import { pillClass } from "@/components/ds/button";
-import { PlaceholderTag } from "@/components/ds/placeholder-tag";
 import { importGuidelinesAction, testCopyAction, type RuleFormState, type TestCopyState } from "@/lib/actions/brand-rule-actions";
 
 /** The copy with every offending word or character marked, as the check found them. */
@@ -27,7 +26,7 @@ function Highlighted({ text, marks }: { text: string; marks: string[] }) {
   );
 }
 
-/** "Test copy against your rules": the one shared rule check (rule-check.ts), ≈1 AI credit a check. */
+/** "Test copy against your rules": the one shared rule check (rule-check.ts). An assistant: never uses AI credits. */
 export function TestCopyCard({ clientId }: { clientId?: string }) {
   const [state, action, pending] = useActionState<TestCopyState, FormData>(testCopyAction, {});
   const [copied, setCopied] = useState(false);
@@ -94,7 +93,7 @@ export function TestCopyCard({ clientId }: { clientId?: string }) {
           )}
         </div>
         <span className="flex flex-wrap items-center gap-2 text-[12px] text-brand-ink-2">
-          ≈ 1 AI credit per check <PlaceholderTag />
+          Included: checks never use AI credits
         </span>
       </form>
     </section>
@@ -127,7 +126,7 @@ export function ImportCard({ clientId }: { clientId?: string }) {
         {state.error && <p className="m-0 text-[13px] text-ds-danger-text">{state.error}</p>}
         {state.ok && <p className="m-0 text-[13px]">{state.ok}</p>}
         <span className="flex flex-wrap items-center gap-2 text-[12px] text-brand-ink-2">
-          Uses AI credits to read the file <PlaceholderTag />
+          Included: reading the file never uses AI credits
         </span>
       </form>
     </section>

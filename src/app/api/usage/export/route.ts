@@ -24,9 +24,9 @@ export async function GET() {
   const name = (id: string | null) => (id ? (users.find((u) => u.id === id)?.name ?? "") : "");
   const projects = new Map((await prisma.project.findMany({ where: { id: { in: ai.map((r) => r.projectId).filter((x): x is string => Boolean(x)) } }, select: { id: true, name: true } })).map((p) => [p.id, p.name]));
   const lines = [
-    ["date", "credits", "kind", "source", "project", "format", "person", "amount", "tokens_in", "tokens_out", "billed_to", "note"].join(","),
-    ...team.map((r) => [r.createdAt.toISOString(), "team", r.type.toLowerCase(), "", r.project?.name, r.format, name(r.userId), r.amount, "", "", "", r.note].map(csv).join(",")),
-    ...ai.map((r) => [r.createdAt.toISOString(), "ai", r.kind.toLowerCase(), r.sourceName, r.projectId ? projects.get(r.projectId) : "", r.format, name(r.userId), r.amount, r.tokensIn, r.tokensOut, r.billedTo, r.note].map(csv).join(",")),
+    ["date", "credits", "kind", "source", "project", "format", "person", "amount", "tokens_in", "tokens_out", "billed_to", "billable", "note"].join(","),
+    ...team.map((r) => [r.createdAt.toISOString(), "team", r.type.toLowerCase(), "", r.project?.name, r.format, name(r.userId), r.amount, "", "", "", "yes", r.note].map(csv).join(",")),
+    ...ai.map((r) => [r.createdAt.toISOString(), "ai", r.kind.toLowerCase(), r.sourceName, r.projectId ? projects.get(r.projectId) : "", r.format, name(r.userId), r.amount, r.tokensIn, r.tokensOut, r.billedTo, r.billable ? "yes" : "no", r.note].map(csv).join(",")),
   ];
   return new Response(lines.join("\n"), { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="klingit-usage-${key}.csv"`, "Cache-Control": "no-store" } });
 }

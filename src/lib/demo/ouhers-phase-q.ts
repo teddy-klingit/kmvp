@@ -208,7 +208,10 @@ export async function seedPhaseQ(ctx: {
           if (++n > 20) break;
           continue;
         }
-        left -= s.credits;
+        // Assistants never use AI credits (Phase S): their rows are cost-only and don't count toward the day's use.
+        const billable = s.type !== "assistant";
+        if (billable) left -= s.credits;
+        else if (++n > 20) continue;
         // Today: only before the seed's "now".
         const hour = thisMonth && d === today - 1 ? 7 + rnd() * 2.5 : 8 + rnd() * 9;
         const scheduled = s.key === "performance_agent" || s.key === customSkillKey("market_recap");
@@ -227,6 +230,7 @@ export async function seedPhaseQ(ctx: {
           tokensIn: Math.round(s.credits * 600),
           tokensOut: Math.round(s.credits * 80),
           model: "claude-sonnet-5-5",
+          billable,
           createdAt: new Date(p.start.getTime() + d * DAY + hour * 3600000),
         });
       }

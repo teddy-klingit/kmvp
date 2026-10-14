@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import { pillClass } from "@/components/ds/button";
 import { askForMoreAction, anotherRouteAction, type AskState } from "@/lib/actions/opportunity-actions";
 
-/** "Ask for more" (06) and "Ask for another route" (07): both on the client's AI credits. */
+/** "Ask for more" (06) and "Ask for another route" (07): assistants, so included (never AI credits). */
 export function AskForMore() {
   const [state, action, pending] = useActionState<AskState, FormData>(askForMoreAction, {});
   return (
@@ -12,7 +12,7 @@ export function AskForMore() {
       <button type="submit" disabled={pending} className={pillClass("secondary", "sm")}>
         {pending ? "Looking…" : "Ask for more"}
       </button>
-      <span className="text-[12px] text-brand-ink-2">Uses a few AI credits. The weekly look is on Klingit.</span>
+      <span className="text-[12px] text-brand-ink-2">Included, like the weekly look.</span>
       {(state.error || state.ok) && <span className={state.error ? "text-[13px] text-ds-danger-text" : "text-[13px]"}>{state.error ?? state.ok}</span>}
     </form>
   );
