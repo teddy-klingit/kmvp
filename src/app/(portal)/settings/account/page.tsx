@@ -74,15 +74,10 @@ export default async function AccountOverviewPage() {
         <>
           <SectionCard title="Billing">
             <dl className="m-0 flex flex-col gap-3 px-6 py-5 text-[15px]">
-              {client.cardLast4 && (
-                <div className="flex items-baseline justify-between gap-3">
-                  <dt className="text-brand-ink-2">Card</dt>
-                  <dd className="m-0 flex items-center gap-2 text-right">
-                    {client.cardBrand ?? "Card"} •••• {client.cardLast4}
-                    {client.cardIsDemo && <StatusPill tone="watch">Demo</StatusPill>}
-                  </dd>
-                </div>
-              )}
+              <div className="flex items-baseline justify-between gap-3">
+                <dt className="text-brand-ink-2">Payment</dt>
+                <dd className="m-0 text-right">By invoice</dd>
+              </div>
               {lastInvoice ? (
                 <div className="flex items-baseline justify-between gap-3">
                   <dt className="text-brand-ink-2">Last invoice</dt>
@@ -93,9 +88,14 @@ export default async function AccountOverviewPage() {
               ) : (
                 <dd className="m-0 text-brand-ink-2">No invoices yet.</dd>
               )}
-              <Link href="/settings/usage/billing" className={`${monoLink} self-start`}>
-                ALL INVOICES
-              </Link>
+              <span className="flex flex-wrap gap-4">
+                <Link href="/settings/usage#billing" className={monoLink}>
+                  ALL INVOICES
+                </Link>
+                <Link href="/settings/billing" className={monoLink}>
+                  BILLING DETAILS
+                </Link>
+              </span>
             </dl>
           </SectionCard>
           <SectionCard title="Security">

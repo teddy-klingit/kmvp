@@ -15,7 +15,9 @@ import { AiPerDay } from "@/components/portal/usage/ai-per-day";
 import { Breakdown } from "@/components/portal/usage/breakdown";
 import { TopUp } from "@/components/portal/usage/top-up";
 import { AddSlotDialog } from "@/components/portal/add-slot-dialog";
-import { cn, jsonArray } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { quoteRequest } from "@/lib/requests";
+import { money } from "@/lib/invoicing";
 
 const n = (v: number) => Math.round(v).toLocaleString("en-GB");
 const day = (d: Date) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "UTC" }).format(d);
@@ -33,12 +35,13 @@ export default async function UsagePage() {
     loadUsage(viewer.clientId),
     slotUsage(viewer.clientId),
     prisma.plan.findMany({ orderBy: { sortOrder: "asc" }, where: { tier: { not: "ENTERPRISE" } } }),
-    prisma.aiCreditBundle.findMany({ where: { active: true }, orderBy: { size: "asc" } }),
-    prisma.aiTopUpRequest.findFirst({ where: { clientId: viewer.clientId, status: "PENDING" }, include: { bundle: true } }),
+    Promise.all([1, 2, 4].map((count) => quoteRequest(viewer.clientId, "ai_topup", { count }).then((q) => ({ id: String(count), size: q.credits, price: q.price != null ? money(q.price, q.currency) : "—" })))),
+    prisma.purchaseRequest.findFirst({ where: { clientId: viewer.clientId, kind: "ai_topup", status: "pending" } }),
     prisma.invoice.findMany({ where: { clientId: viewer.clientId, status: { not: "DRAFT" } }, orderBy: { issuedAt: "desc" }, take: 4 }),
     prisma.clientUser.findFirst({ where: { clientId: viewer.clientId, permission: "OWNER" }, include: { user: { select: { email: true } } } }),
     klingitChatHref(viewer.clientId),
   ]);
+  const billing = await prisma.billingProfile.findUnique({ where: { clientId: viewer.clientId } });
   const { ai, team } = u;
   const teamLeft = team.free ?? 0;
   const runOut = ai.reachedDay && ai.runsOutBeforeReset ? new Date(Date.UTC(u.period.start.getUTCFullYear(), u.period.start.getUTCMonth(), ai.reachedDay)) : null;
@@ -240,12 +243,12 @@ export default async function UsagePage() {
             <h2 className="m-0 border-b border-brand-line px-6 py-5 text-[18px] font-normal">Top up AI credits</h2>
             <TopUp
               admin
-              bundles={bundles.map((b) => ({ id: b.id, size: b.size, price: b.priceAmount != null ? `€${n(b.priceAmount)}` : "€ —" }))}
-              pending={pendingTopUp ? `${n(pendingTopUp.bundle.size)} AI credits requested ${formatDay(pendingTopUp.createdAt)}: waiting for Klingit to confirm.` : null}
+              bundles={bundles}
+              pending={pendingTopUp ? `${n(Number((pendingTopUp.payload as { credits?: number }).credits ?? 0))} AI credits requested ${formatDay(pendingTopUp.createdAt)}: waiting for Klingit to approve.` : null}
             />
           </section>
 
-          <SectionCard title="Billing" action={invoices.length ? <span className="font-brand-mono text-[12px] uppercase text-brand-ink">{invoices.length} recent</span> : undefined}>
+          <SectionCard id="billing" title="Billing" action={invoices.length ? <span className="font-brand-mono text-[12px] uppercase text-brand-ink">{invoices.length} recent</span> : undefined}>
             {invoices.length === 0 ? (
               <CardNote>No invoices yet.</CardNote>
             ) : (
@@ -253,10 +256,15 @@ export default async function UsagePage() {
                 {invoices.map((i) => (
                   <li key={i.id} className="flex items-center gap-3 px-6 py-3">
                     <span className="flex min-w-0 flex-1 flex-col">
-                      <span className="text-[14px]">{jsonArray<{ label?: string }>(i.lineItems)[0]?.label ?? `${i.currency} ${n(i.amount)}`}</span>
+                      <span className="text-[14px]">
+                        {money(i.amount, i.currency)}
+                        {i.vatAmount ? <span className="text-brand-ink-2"> incl. VAT</span> : null}
+                        {i.status === "OVERDUE" && <span className="text-brand-orange-text"> · overdue</span>}
+                      </span>
                       <span className="text-[12px] text-brand-mute">
                         {i.number}
-                        {i.issuedAt ? ` · ${formatDay(i.issuedAt)}` : ""} · {i.status.toLowerCase()}
+                        {i.issuedAt ? ` · ${formatDay(i.issuedAt)}` : ""}
+                        {i.dueAt && i.status !== "PAID" ? ` · due ${formatDay(i.dueAt)}` : ""} · {i.status.toLowerCase()}
                       </span>
                     </span>
                     <Link href={`/settings/usage/invoices/${i.id}`} className="font-brand-mono text-[11px] text-brand-ink underline underline-offset-2">
@@ -267,8 +275,10 @@ export default async function UsagePage() {
               </CardRows>
             )}
             <p className="m-0 border-t border-brand-line px-6 py-4 text-[13px] leading-[1.5] text-brand-ink-2">
-              {viewer.client.cardLast4 ? `${viewer.client.cardBrand ?? "Card"} •••• ${viewer.client.cardLast4}${viewer.client.cardIsDemo ? " (demo)" : ""}` : "No payment method on file"}
-              {owner ? ` · invoices to ${owner.user.email}` : ""}
+              Paid by invoice{billing?.paymentTermsDays ? `, ${billing.paymentTermsDays} days` : ""} · to {billing?.invoiceEmail ?? owner?.user.email ?? "your account owner"} ·{" "}
+              <Link href="/settings/billing" className="text-brand-ink underline underline-offset-2">
+                Billing details
+              </Link>
             </p>
           </SectionCard>
         </aside>

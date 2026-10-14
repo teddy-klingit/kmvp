@@ -1,37 +1,42 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/prisma";
 import { requireOpsRole } from "@/lib/authz";
+import { generateDueInvoices, markInvoicePaid, refreshOverdue, sendInvoice } from "@/lib/invoicing";
+import { decideRequest, RequestError } from "@/lib/requests";
+import { redirect } from "next/navigation";
 
-export async function generateInvoiceAction(formData: FormData) {
+/** Ops → Billing (Phase S): drafts from the contracts' schedules, send, mark paid. Admins only; every step logged. */
+
+export async function createDueInvoicesAction() {
   await requireOpsRole(["ADMIN"]);
-  const projectId = String(formData.get("projectId") ?? "");
+  await generateDueInvoices();
+  await refreshOverdue();
+  revalidatePath("/ops/billing");
+}
 
-  const project = await prisma.project.findUnique({ where: { id: projectId } });
-  if (!project || !project.priceAmount) return;
-
-  const count = await prisma.invoice.count();
-  await prisma.invoice.create({
-    data: {
-      clientId: project.clientId,
-      projectId: project.id,
-      number: `INV-2026-${String(1000 + count).padStart(4, "0")}`,
-      amount: project.priceAmount,
-      currency: project.priceCurrency,
-      status: "SENT",
-      issuedAt: new Date(),
-      dueAt: new Date(Date.now() + 14 * 86400000),
-      lineItems: [{ label: `${project.name} — full scope`, amount: project.priceAmount }],
-    },
-  });
-
+export async function sendInvoiceAction(formData: FormData) {
+  const viewer = await requireOpsRole(["ADMIN"]);
+  await sendInvoice(String(formData.get("invoiceId") ?? ""), viewer.userId);
   revalidatePath("/ops/billing");
 }
 
 export async function markInvoicePaidAction(formData: FormData) {
-  await requireOpsRole(["ADMIN"]);
-  const invoiceId = String(formData.get("invoiceId") ?? "");
-  await prisma.invoice.update({ where: { id: invoiceId }, data: { status: "PAID", paidAt: new Date() } });
+  const viewer = await requireOpsRole(["ADMIN"]);
+  await markInvoicePaid(String(formData.get("invoiceId") ?? ""), viewer.userId);
+  revalidatePath("/ops/billing");
+}
+
+/** Ops → Requests: approve or decline, with a note the client sees. */
+export async function decideRequestAction(formData: FormData) {
+  const viewer = await requireOpsRole(["ADMIN", "PM"]);
+  const id = String(formData.get("requestId") ?? "");
+  try {
+    await decideRequest(id, viewer.userId, formData.get("decision") === "approve", String(formData.get("note") ?? "").trim() || null);
+  } catch (e) {
+    if (e instanceof RequestError) redirect(`/ops/requests?error=${encodeURIComponent(e.message)}`);
+    throw e;
+  }
+  revalidatePath("/ops/requests");
   revalidatePath("/ops/billing");
 }

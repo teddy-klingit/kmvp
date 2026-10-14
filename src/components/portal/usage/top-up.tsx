@@ -19,15 +19,15 @@ export function TopUp({ bundles, pending, admin }: { bundles: { id: string; size
           <span className="text-brand-ink-2">{b.price}</span>
         </label>
       ))}
-      <span className="text-[12px] leading-[1.5] text-brand-mute">Bundles never expire and are used after your monthly allowance.</span>
+      <span className="text-[12px] leading-[1.5] text-brand-mute">Top-ups never expire and are used after your monthly allowance. Klingit approves it; it comes on your next invoice.</span>
       {pending ? (
         <p className="m-0 text-[14px]">{pending}</p>
       ) : (
         <span className="flex flex-wrap items-center justify-between gap-3">
           <button type="submit" disabled={!admin || busy} className={cn(pillClass("primary"), "disabled:opacity-50")} title={admin ? undefined : "Only an admin can top up"}>
-            {busy ? "Requesting…" : "Buy bundle"}
+            {busy ? "Asking…" : "Ask for a top-up"}
           </button>
-          <PlaceholderTag>Sizes and prices TBD</PlaceholderTag>
+          <PlaceholderTag>Prices</PlaceholderTag>
         </span>
       )}
       {state.error && <p className="m-0 text-[13px] text-ds-danger-text">{state.error}</p>}

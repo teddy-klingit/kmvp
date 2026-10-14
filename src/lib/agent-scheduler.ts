@@ -8,6 +8,7 @@ import { sendPlanReminders } from "@/lib/plan";
 import { runWeeklyOpportunityScans } from "@/lib/opportunities";
 import { applyAllDueChanges } from "@/lib/contracts";
 import { ensureAllGrants } from "@/lib/team-ledger";
+import { generateDueInvoices, refreshOverdue } from "@/lib/invoicing";
 
 /**
  * Scheduled agent work (replaces the old page-load runs): for every active client, this week's Insights
@@ -28,6 +29,9 @@ export async function runScheduledAgents(now = new Date()) {
   await applyAllDueChanges(now).catch(() => 0);
   // Team credits: the month's PM and creative grants, rollover expiry and fixed services (idempotent).
   await ensureAllGrants(now).catch(() => 0);
+  // Invoices: drafts for periods that started (staff send them), and sent invoices past due become overdue.
+  await generateDueInvoices(now).catch(() => []);
+  await refreshOverdue(now).catch(() => 0);
   // Opportunities: one scan a week per client, on Klingit (no client credits). Mondays from 6, or when one is overdue.
   if (now.getDay() === 1 && now.getHours() >= 6) done.push(...(await runWeeklyOpportunityScans(clients.map((c) => c.id), now).catch(() => [])).map((d) => `opportunities ${d}`));
   for (const c of clients) {

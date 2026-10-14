@@ -4,7 +4,7 @@ import { setMockSession, authMocks } from "./setup";
 import { createSecurityFixtures } from "./fixtures";
 import { deleteClientCalendarItemAction } from "@/lib/actions/calendar-actions";
 import { pauseClientAction } from "@/lib/actions/ops-client-admin-actions";
-import { generateInvoiceAction } from "@/lib/actions/ops-billing-actions";
+import { sendInvoiceAction } from "@/lib/actions/ops-billing-actions";
 import { updateAgentStatusAction } from "@/lib/actions/ops-agent-actions";
 import { switchPersonaAction } from "@/lib/actions/persona-actions";
 import { postCommentAction, approveEstimateAction, signOffProjectAction } from "@/lib/actions/project-actions";
@@ -151,7 +151,7 @@ describe("role escalation", () => {
     const fx = await createSecurityFixtures();
     try {
       setMockSession({ user: { id: fx.creatorUser.id, role: "INTERNAL" } });
-      await expect(generateInvoiceAction(new FormData())).rejects.toThrow(ForbiddenError);
+      await expect(sendInvoiceAction(new FormData())).rejects.toThrow(ForbiddenError);
     } finally {
       await fx.cleanup();
     }

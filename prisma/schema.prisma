@@ -287,6 +287,9 @@ model Client {
   opportunities                Opportunity[]
   contracts                    Contract[]
   serviceAllocations           ServiceAllocation[]
+  billingProfile               BillingProfile?
+  billingItems                 BillingItem[]
+  purchaseRequests             PurchaseRequest[]
   brandRuleChanges             BrandRuleChange[]
   customSkills                 Agent[]
   assets                       Asset[]
@@ -1702,21 +1705,32 @@ enum InvoiceStatus {
 }
 
 model Invoice {
-  id        String        @id @default(cuid())
-  clientId  String
-  projectId String?
-  number    String        @unique
-  amount    Float
-  currency  String        @default("EUR")
-  status    InvoiceStatus @default(DRAFT)
-  issuedAt  DateTime?
-  dueAt     DateTime?
-  paidAt    DateTime?
-  lineItems Json?
-  createdAt DateTime      @default(now())
+  id          String        @id @default(cuid())
+  clientId    String
+  projectId   String?
+  number      String        @unique
+  amount      Float
+  currency    String        @default("EUR")
+  status      InvoiceStatus @default(DRAFT)
+  issuedAt    DateTime?
+  dueAt       DateTime?
+  paidAt      DateTime?
+  lineItems   Json?
+  /// Phase S: the contract and period it bills, and the VAT split (amount is the total incl. VAT).
+  contractId  String?
+  periodStart DateTime?
+  periodEnd   DateTime?
+  netAmount   Float?
+  vatRate     Float?
+  vatAmount   Float?
+  reference   String?
+  createdAt   DateTime      @default(now())
 
-  client  Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  project Project? @relation(fields: [projectId], references: [id])
+  client       Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  project      Project?      @relation(fields: [projectId], references: [id])
+  billingItems BillingItem[]
+
+  @@index([contractId, periodStart])
 }
 
 enum LedgerEntryType {
@@ -2503,4 +2517,71 @@ model ServiceAllocation {
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
+}
+
+/// Phase S: who and how to invoice. Admins on the client edit it; staff set payment terms and VAT.
+model BillingProfile {
+  clientId               String   @id
+  company                String?
+  orgNumber              String?
+  vatNumber              String?
+  address                String?
+  country                String   @default("SE")
+  invoiceEmail           String?
+  reference              String?
+  eInvoiceAddress        String?
+  paymentTermsDays       Int      @default(30)
+  /// 0.25 for Sweden; 0 for reverse charge abroad. Staff-set.
+  vatRate                Float    @default(0.25)
+  /// AI credit top-ups up to this price are approved without staff (null: always ask).
+  aiTopUpAutoApproveUpTo Float?
+  updatedAt              DateTime @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+/// Phase S: something to bill on the client's next invoice (an approved extra pack, an AI top-up, a service sold
+/// outside the pack). invoiceId is set when it lands on an invoice.
+model BillingItem {
+  id          String   @id @default(cuid())
+  clientId    String
+  kind        String
+  description String
+  quantity    Float    @default(1)
+  unitPrice   Float
+  amount      Float
+  currency    String
+  requestId   String?
+  invoiceId   String?
+  createdAt   DateTime @default(now())
+
+  client  Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  invoice Invoice? @relation(fields: [invoiceId], references: [id])
+
+  @@index([clientId, invoiceId])
+}
+
+/// Phase S: everything a client buys or changes is a request: they see the price and the rule, staff approve, the
+/// change applies and the line goes on the next invoice. AI top-ups can be auto-approved up to a set price.
+model PurchaseRequest {
+  id                String    @id @default(cuid())
+  clientId          String
+  /// creative_pack | ai_topup | extra_slot | plan_change | pause | per_request
+  kind              String
+  payload           Json      @default("{}")
+  /// The price the client saw, in their contract's currency (per month for slots and plan changes).
+  price             Float?
+  currency          String    @default("EUR")
+  /// pending | approved | declined
+  status            String    @default("pending")
+  requestedByUserId String?
+  decidedByUserId   String?
+  decidedAt         DateTime?
+  decisionNote      String?
+  createdAt         DateTime  @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([clientId, status])
 }
