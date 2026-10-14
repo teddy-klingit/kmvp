@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { teamBalances } from "@/lib/team-ledger";
 import { needsClient, openBriefQuestions } from "@/lib/needs-you";
 import { CLIENT_STAGE_LABEL, clientMilestones, endOfDay, formatDay, shortDate, type ProjectState } from "@/lib/project-state";
 import { jsonArray } from "@/lib/utils";
@@ -158,6 +159,23 @@ export type CreditSummary = {
  */
 export async function creditSummary(clientId: string, now = new Date()): Promise<CreditSummary> {
   const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  // Phase S: on a contract, the PM and creative balances (carried over, granted, bought) are what's available.
+  const balances = await teamBalances(clientId, now);
+  if (balances) {
+    const sent = await prisma.estimate.findMany({ where: { status: "SENT", project: { clientId, status: { notIn: ["ARCHIVED", "DRAFT"] } } }, include: { revisions: { where: { status: "APPROVED" }, orderBy: { version: "desc" }, take: 1 } } });
+    const awaiting = sent.reduce((n, e) => n + Math.max(0, e.totalCredits - (e.revisions[0]?.totalCredits ?? 0)), 0);
+    const { pm, creative } = balances;
+    const used = pm.used + creative.used + pm.services + creative.services;
+    const left = pm.left + creative.left;
+    return {
+      month: new Intl.DateTimeFormat("en-GB", { month: "long" }).format(now),
+      allowance: pm.monthly + creative.monthly,
+      available: left + used,
+      used,
+      awaiting,
+      free: Math.max(0, left - awaiting),
+    };
+  }
   const [client, ledger, sent] = await Promise.all([
     teamAllowance(clientId),
     prisma.creditLedgerEntry.findMany({ where: { clientId, createdAt: { gte: start } } }),

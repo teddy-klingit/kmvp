@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { contractFor, slotsForContract } from "@/lib/team-ledger";
 import { loadProjectStates } from "@/lib/project-state-loader";
 import { postProjectEvent } from "@/lib/project-events";
 import { logDecision } from "@/lib/decision-log";
@@ -29,10 +30,16 @@ export async function activeSlotsFor(tier: PlanTier) {
 }
 
 /** Slots in use = projects in the Active column (the same project state the board shows), never more than it shows. */
+/** A client's active slots: from the contract's creative credits (Phase S), else the old plan's slots. */
+export async function slotsForClient(clientId: string, tier: PlanTier) {
+  const contract = await contractFor(clientId);
+  return contract ? slotsForContract(contract) : activeSlotsFor(tier);
+}
+
 export async function slotUsage(clientId: string) {
   const client = await prisma.client.findUniqueOrThrow({ where: { id: clientId }, select: { planTier: true } });
   const [total, holding] = await Promise.all([
-    activeSlotsFor(client.planTier),
+    slotsForClient(clientId, client.planTier),
     loadProjectStates({ activatedAt: { not: null }, agentBuild: false, status: { notIn: NOT_HOLDING } }, clientId),
   ]);
   const used = holding.filter(({ state }) => state.clientStage === "active").length;

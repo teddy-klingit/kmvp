@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireOpsRole } from "@/lib/authz";
+import { prisma } from "@/lib/prisma";
+import { poolBalance } from "@/lib/team-ledger";
 import { cancelContract, ContractError, createContract, endContract, pauseContract, resumeContract, scheduleDowngrade, scheduleUpgrade, setContact, type Invoicing } from "@/lib/contracts";
 
 /**
@@ -101,5 +103,46 @@ export async function endAction(formData: FormData) {
   await run(formData, async (viewer, _clientId, contractId) => {
     await endContract(contractId, viewer.userId, String(formData.get("note") ?? "") || null);
     return "Contract ended.";
+  });
+}
+
+/** A manual adjustment to the PM or creative balance, with a reason (ledger + AuditLog). */
+export async function adjustBalanceAction(formData: FormData) {
+  await run(formData, async (viewer, clientId) => {
+    const pool = formData.get("pool") === "pm" ? "pm" : "creative";
+    const amount = Number(String(formData.get("amount") ?? "").replace(",", "."));
+    const reason = String(formData.get("reason") ?? "").trim();
+    if (!Number.isFinite(amount) || amount === 0) throw new ContractError("Give an amount (negative to take credits away).");
+    if (!reason) throw new ContractError("Say why: the reason is logged.");
+    const before = await poolBalance(clientId, pool);
+    await prisma.creditLedgerEntry.create({ data: { clientId, pool, type: "ADJUSTMENT", amount, balanceAfter: before + amount, note: reason, userId: viewer.userId } });
+    await prisma.auditLog.create({ data: { clientId, actorUserId: viewer.userId, area: "balance", action: `${pool} ${amount > 0 ? "+" : ""}${amount}: ${reason}`, before: { balance: before }, after: { balance: before + amount } } });
+    return "Balance adjusted.";
+  });
+}
+
+/** A fixed-credit monthly service (Performance via Druce, the web retainer…), reserved from creative each month. */
+export async function addServiceAction(formData: FormData) {
+  await run(formData, async (viewer, clientId) => {
+    const item = await prisma.priceListItem.findUnique({ where: { id: String(formData.get("priceListItemId") ?? "") } });
+    if (!item || !item.monthly) throw new ContractError("Pick a monthly service from the Price List.");
+    const months = Number(formData.get("months") ?? 0);
+    if (![3, 6, 12].includes(months)) throw new ContractError("A service runs 3, 6 or 12 months.");
+    const start = String(formData.get("startDate") ?? "");
+    const s = await prisma.serviceAllocation.create({
+      data: { clientId, priceListItemId: item.id, name: item.displayName ?? item.deliverableType, creditsPerMonth: Number(formData.get("credits") ?? item.creditCost ?? 0) || (item.creditCost ?? 0), startDate: /^\d{4}-\d{2}-\d{2}$/.test(start) ? new Date(`${start}T00:00:00`) : new Date(), months, outsidePack: formData.get("outsidePack") === "on", createdByUserId: viewer.userId },
+    });
+    await prisma.auditLog.create({ data: { clientId, actorUserId: viewer.userId, area: "balance", action: `service ${s.name} · ${s.creditsPerMonth}/month for ${months} months${s.outsidePack ? " (outside the pack)" : ""}` } });
+    return `${s.name} added: ${s.creditsPerMonth} credits a month for ${months} months.`;
+  });
+}
+
+export async function endServiceAction(formData: FormData) {
+  await run(formData, async (viewer, clientId) => {
+    const s = await prisma.serviceAllocation.findFirst({ where: { id: String(formData.get("serviceId") ?? ""), clientId } });
+    if (!s) throw new ContractError("Service not found.");
+    await prisma.serviceAllocation.update({ where: { id: s.id }, data: { endedAt: new Date() } });
+    await prisma.auditLog.create({ data: { clientId, actorUserId: viewer.userId, area: "balance", action: `service ${s.name} ended` } });
+    return `${s.name} ended.`;
   });
 }

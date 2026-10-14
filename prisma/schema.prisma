@@ -286,6 +286,7 @@ model Client {
   brandRules                   BrandRule[]
   opportunities                Opportunity[]
   contracts                    Contract[]
+  serviceAllocations           ServiceAllocation[]
   brandRuleChanges             BrandRuleChange[]
   customSkills                 Agent[]
   assets                       Asset[]
@@ -1723,6 +1724,10 @@ enum LedgerEntryType {
   PURCHASE
   CONSUMPTION
   ADJUSTMENT
+  /// Phase S: credits over the rollover cap, expired at the monthly grant.
+  EXPIRY
+  /// Phase S: a fixed-credit service's monthly reservation (never rolls over).
+  SERVICE
 }
 
 model CreditLedgerEntry {
@@ -1736,10 +1741,18 @@ model CreditLedgerEntry {
   amount       Float // signed: + for allowance/purchase, - for consumption
   balanceAfter Float
   note         String?
+  /// Phase S: the balance it belongs to (pm | creative); PM and creative credits are never pooled.
+  pool         String          @default("creative")
+  /// The month a grant, expiry or service reservation is for (YYYY-MM): makes the monthly run idempotent.
+  periodKey    String?
+  serviceId    String?
   createdAt    DateTime        @default(now())
 
   client  Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
   project Project? @relation(fields: [projectId], references: [id])
+
+  @@unique([clientId, pool, type, periodKey, serviceId])
+  @@index([clientId, pool, createdAt])
 }
 
 // ---------------------------------------------------------------------------
@@ -2434,6 +2447,8 @@ model Contract {
   contactStaffId          String?
   pausedFrom              DateTime?
   pausedDays              Int       @default(0)
+  /// Extra active projects bought on top of what the creative credits give (each 10% of the team price).
+  extraSlots              Int       @default(0)
   signedAt                DateTime  @default(now())
   createdByUserId         String?
   createdAt               DateTime  @default(now())
@@ -2466,4 +2481,26 @@ model ContractChange {
   contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
 
   @@index([contractId, status, effectiveFrom])
+}
+
+/// Phase S: a fixed-credit monthly service (Performance via Druce, the web retainer…): its credits are reserved
+/// from the creative balance on the first of each month for `months` months, never roll over, and show as their own
+/// line in Usage. Sold inside the pack (from its credits) or outside it (then invoiced on its own line).
+model ServiceAllocation {
+  id              String    @id @default(cuid())
+  clientId        String
+  priceListItemId String?
+  name            String
+  creditsPerMonth Float
+  startDate       DateTime
+  months          Int
+  /// Sold outside the pack: invoiced on its own line instead of taken from the pack's credits.
+  outsidePack     Boolean   @default(false)
+  endedAt         DateTime?
+  createdByUserId String?
+  createdAt       DateTime  @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId])
 }

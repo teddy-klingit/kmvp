@@ -54,6 +54,13 @@ export async function teamAllowanceFor(tier: PlanTier) {
  * ops): the plan's value from the Plan table, unless staff set a per-client override.
  */
 export async function teamAllowance(clientId: string) {
+  // Phase S: a client on a contract gets its pack's PM + creative credits.
+  const contract = await prisma.contract.findFirst({ where: { clientId, status: { in: ["active", "paused", "ending"] } }, orderBy: { startDate: "desc" } });
+  if (contract) {
+    const value = contract.pmCreditsPerMonth + contract.creativeCreditsPerMonth;
+    const pack = contract.teamPackKey ? await prisma.teamPack.findUnique({ where: { key: contract.teamPackKey }, select: { name: true } }) : null;
+    return { value, planValue: value, planName: pack?.name ?? "Platform only", source: "contract" as const };
+  }
   const client = await prisma.client.findUniqueOrThrow({ where: { id: clientId }, select: { planTier: true, teamCreditsOverride: true } });
   const plan = await planFor(client.planTier);
   const override = client.teamCreditsOverride;
@@ -72,7 +79,11 @@ export async function ensurePeriod(clientId: string, now = new Date()) {
     update: {},
     create: { clientId, tier: client.planTier, periodStart: p.start, periodEnd: p.end },
   });
-  const plan = await planFor(row.tier);
+  // Phase S: a contract's platform plan sets the AI credits (and Basic's own model) instead of the old Plan.
+  const contract = await prisma.contract.findFirst({ where: { clientId, status: { in: ["active", "paused", "ending"] } }, orderBy: { startDate: "desc" } });
+  const platform = contract ? await prisma.platformPlan.findUnique({ where: { key: contract.platformPlanKey } }) : null;
+  const legacy = await planFor(row.tier);
+  const plan = platform ? { ...legacy, name: platform.name, monthlyAiCredits: platform.aiCreditsPerMonth, ownModel: platform.ownModel } : legacy;
   const has = await prisma.aiCreditLedger.findFirst({ where: { clientId, kind: "ALLOWANCE", createdAt: { gte: p.start, lt: p.end } }, select: { id: true } });
   if (!has && plan.monthlyAiCredits > 0) {
     await prisma.aiCreditLedger.create({ data: { clientId, kind: "ALLOWANCE", amount: plan.monthlyAiCredits, note: `${plan.name} plan · ${p.key}`, createdAt: p.start } });

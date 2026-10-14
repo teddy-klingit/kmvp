@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { contractFor, poolBalance, poolFor } from "@/lib/team-ledger";
 
 /**
  * Team credits (Klingit team time, 1 credit = 1 hour). Approving an estimate takes its credits: one CONSUMPTION
@@ -16,16 +17,19 @@ export async function consumeForApprovedEstimate(estimateId: string, approverUse
   // First approval: one row per deliverable. A revision: one row for the difference (+ or −).
   const rows =
     taken === 0
-      ? estimate.lineItems.filter((l) => l.credits > 0).map((l) => ({ credits: l.credits, format: l.deliverable, note: `${l.deliverable} · estimate approved` }))
+      ? estimate.lineItems.filter((l) => l.credits > 0).map((l) => ({ credits: l.credits, format: l.deliverable, balance: l.balance, note: `${l.deliverable} · estimate approved` }))
       : total !== taken
-        ? [{ credits: total - taken, format: estimate.lineItems[0]?.deliverable ?? null, note: `Estimate v${estimate.version} approved (${total - taken > 0 ? "+" : ""}${total - taken})` }]
+        ? [{ credits: total - taken, format: estimate.lineItems[0]?.deliverable ?? null, balance: "creative", note: `Estimate v${estimate.version} approved (${total - taken > 0 ? "+" : ""}${total - taken})` }]
         : [];
   const written = [];
   for (const r of rows) {
+    // Phase S: PM lines draw on the PM balance (creative when the client has none); creative lines on creative.
+    const pool = await poolFor(clientId, r.balance);
     const client = await prisma.client.update({ where: { id: clientId }, data: { creditBalance: { decrement: r.credits } }, select: { creditBalance: true } });
+    const before = await poolBalance(clientId, pool);
     written.push(
       await prisma.creditLedgerEntry.create({
-        data: { clientId, projectId, userId: approverUserId, format: r.format, type: "CONSUMPTION", amount: -r.credits, balanceAfter: client.creditBalance, note: r.note },
+        data: { clientId, projectId, userId: approverUserId, format: r.format, type: "CONSUMPTION", pool, amount: -r.credits, balanceAfter: (await contractFor(clientId)) ? before - r.credits : client.creditBalance, note: r.note },
       })
     );
   }
