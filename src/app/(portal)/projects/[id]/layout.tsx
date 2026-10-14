@@ -17,6 +17,7 @@ import { loadProjectConversation } from "@/lib/project-conversation";
 import { postCommentAction } from "@/lib/actions/project-actions";
 import { markChannelReadAction, postInternalMessageAction } from "@/lib/actions/conversation-actions";
 import { clientVisibleAsset } from "@/lib/qc/visibility";
+import { marketingPm } from "@/lib/contact-person";
 
 export default async function ProjectLayout({
   children,
@@ -35,9 +36,10 @@ export default async function ProjectLayout({
   if (project.agentBuild) redirect(`/skills/build/${id}`);
 
   scheduleAutopilot(id);
-  const [conversation, assetCounts] = await Promise.all([
+  const [conversation, assetCounts, pm] = await Promise.all([
     loadProjectConversation(id, viewer, state.keyFacts.staffedTeam),
     prisma.asset.groupBy({ by: ["status"], where: { projectId: id, ...clientVisibleAsset }, _count: true }),
+    marketingPm(viewer.clientId),
   ]);
   const total = assetCounts.reduce((n, a) => n + a._count, 0);
   const approved = assetCounts.filter((a) => a.status === "APPROVED" || a.status === "DELIVERED").reduce((n, a) => n + a._count, 0);
@@ -58,13 +60,21 @@ export default async function ProjectLayout({
       <div className="flex min-h-full">
         <div className="@container/main min-w-0 flex-1 px-4 pb-24 pt-6 md:px-10 md:pb-12 md:pt-8">
           <div className="mx-auto flex max-w-[1040px] flex-col gap-5">
-            <Link
-              href="/projects"
-              className="inline-flex items-center gap-1.5 self-start text-[13px] text-ds-text-2 no-underline hover:text-ds-text"
-            >
-              <ChevronLeft className="size-4" strokeWidth={1.75} />
-              All projects
-            </Link>
+            <div className="flex flex-wrap items-center gap-3">
+              <Link href="/projects" className="inline-flex flex-1 items-center gap-1.5 text-[13px] text-ds-text-2 no-underline hover:text-ds-text">
+                <ChevronLeft className="size-4" strokeWidth={1.75} />
+                All projects
+              </Link>
+              {pm && (
+                // Phase S: the client's Marketing PM on every project, with Message (this project's Klingit thread).
+                <span className="flex items-center gap-2 text-[13px] text-ds-text-2">
+                  Your Marketing PM <b className="font-semibold text-ds-text">{pm.name}</b>
+                  <Link href={`/projects/${id}?channel=klingit`} scroll={false} className="text-ds-text underline underline-offset-2">
+                    Message
+                  </Link>
+                </span>
+              )}
+            </div>
             <ProjectHeaderCard
               project={project}
               state={state}

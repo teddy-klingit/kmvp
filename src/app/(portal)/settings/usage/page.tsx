@@ -17,6 +17,7 @@ import { TopUp } from "@/components/portal/usage/top-up";
 import { AddSlotDialog } from "@/components/portal/add-slot-dialog";
 import { cn } from "@/lib/utils";
 import { quoteRequest } from "@/lib/requests";
+import { teamBalances } from "@/lib/team-ledger";
 import { money } from "@/lib/invoicing";
 
 const n = (v: number) => Math.round(v).toLocaleString("en-GB");
@@ -42,6 +43,7 @@ export default async function UsagePage() {
     klingitChatHref(viewer.clientId),
   ]);
   const billing = await prisma.billingProfile.findUnique({ where: { clientId: viewer.clientId } });
+  const pools = await teamBalances(viewer.clientId);
   const { ai, team } = u;
   const teamLeft = team.free ?? 0;
   const runOut = ai.reachedDay && ai.runsOutBeforeReset ? new Date(Date.UTC(u.period.start.getUTCFullYear(), u.period.start.getUTCMonth(), ai.reachedDay)) : null;
@@ -116,6 +118,54 @@ export default async function UsagePage() {
           )}
         </section>
       </div>
+
+      {pools && (
+        // Phase S: AI, PM and creative are three ledgers; fixed monthly services are their own lines.
+        <section aria-label="Team credits by balance" className="overflow-hidden rounded-[12px] bg-white">
+          <h2 className="m-0 border-b border-brand-line px-6 py-5 text-[18px] font-normal">PM and creative credits this month</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] border-collapse text-[14px]">
+              <thead>
+                <tr className="text-left text-[12px] text-brand-ink-2">
+                  {["", "A month", "Carried over", "Bought", "Used", "Fixed services", "Expired", "Left"].map((h) => (
+                    <th key={h} className="px-3 py-2.5 text-right font-medium first:pl-6 first:text-left last:pr-6">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {(["pm", "creative"] as const).map((k) => {
+                  const p = pools[k];
+                  return (
+                    <tr key={k} className="border-t border-brand-line tabular-nums">
+                      <td className="py-3 pl-6 pr-3 text-left">{k === "pm" ? "PM" : "Creative"}</td>
+                      {[p.monthly, p.carried, p.purchased, p.used, p.services, p.expired].map((v, i) => (
+                        <td key={i} className="px-3 py-3 text-right">
+                          {n(v)}
+                        </td>
+                      ))}
+                      <td className="py-3 pl-3 pr-6 text-right font-semibold">{n(p.left)}</td>
+                    </tr>
+                  );
+                })}
+                {pools.services.map((svc) => (
+                  <tr key={svc.id} className="border-t border-brand-line text-brand-ink-2">
+                    <td className="py-3 pl-6 pr-3 text-left" colSpan={5}>
+                      {svc.name} · fixed monthly service{svc.outsidePack ? " (billed on its own)" : ""}
+                    </td>
+                    <td className="px-3 py-3 text-right tabular-nums">{svc.outsidePack ? "—" : n(svc.creditsPerMonth)}</td>
+                    <td className="py-3 pl-3 pr-6 text-right" colSpan={2}>
+                      until {day(svc.until)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="m-0 px-6 py-4 text-[12px] text-brand-ink-2">PM and creative credits roll over up to 150% of the monthly amount; fixed services never roll over. AI credits are above.</p>
+        </section>
+      )}
 
       <AiPerDay
         perDay={ai.perDay}

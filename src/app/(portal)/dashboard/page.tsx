@@ -13,7 +13,10 @@ import { listSkills, type SkillRow } from "@/lib/skills";
 import { loadBrandHealth } from "@/lib/brand-health";
 import { WORK_TZ } from "@/lib/working-hours";
 import { CardHeader } from "@/components/ds/card";
+import { Avatar } from "@/components/ds/avatar";
 import { newOpportunities } from "@/lib/opportunities";
+import { marketingPm } from "@/lib/contact-person";
+import { teamBalances } from "@/lib/team-ledger";
 import { SourcePills } from "@/components/portal/plan/opportunity-bits";
 import { monoLink } from "@/components/ds/pill-link";
 import { AiCreditMeter } from "@/components/portal/skills/ai-credit-meter";
@@ -56,7 +59,7 @@ export default async function DashboardPage() {
   const viewer = await getPortalViewer();
   const now = new Date();
   const items = await loadProjectStates({ status: { not: "ARCHIVED" }, agentBuild: false, ...projectVisibilityWhere(viewer.id) }, viewer.clientId, { dueDate: "asc" });
-  const [client, slots, library, usage, skills, health, fresh] = await Promise.all([
+  const [client, slots, library, usage, skills, health, fresh, pm, pools] = await Promise.all([
     prisma.client.findUniqueOrThrow({ where: { id: viewer.clientId }, select: { name: true } }),
     slotUsage(viewer.clientId),
     loadOutputLibrary(viewer.clientId, { sort: "newest", days: null }, now),
@@ -64,6 +67,8 @@ export default async function DashboardPage() {
     listSkills(viewer.clientId, now),
     loadBrandHealth(viewer.clientId),
     newOpportunities(viewer.clientId, now, 1),
+    marketingPm(viewer.clientId),
+    teamBalances(viewer.clientId, now),
   ]);
   // Projects first, then plan items that need a brief this week (Phase R), soonest first within each.
   const turns = [...yourTurn(items, now), ...(await planTurns(viewer.clientId, now))];
@@ -188,7 +193,21 @@ export default async function DashboardPage() {
         </div>
 
         <aside className="flex min-w-0 flex-col gap-6 min-[1000px]:col-span-4">
-          <Credits team={usage.team} ai={usage.ai} runOut={usage.ai.reachedDay && usage.ai.runsOutBeforeReset ? new Date(Date.UTC(usage.period.start.getUTCFullYear(), usage.period.start.getUTCMonth(), usage.ai.reachedDay)) : null} reset={usage.period.nextReset} />
+          {pm && (
+            <section aria-label="Your Marketing PM" className={card}>
+              <div className="flex items-center gap-3 px-6 py-4">
+                <Avatar name={pm.name} size={40} />
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="text-[12px] text-brand-ink-2">Your Marketing PM</span>
+                  <span className="truncate text-[16px]">{pm.name}</span>
+                </span>
+                <Link href={pm.messageHref} className={monoLink}>
+                  MESSAGE
+                </Link>
+              </div>
+            </section>
+          )}
+          <Credits pools={pools} team={usage.team} ai={usage.ai} runOut={usage.ai.reachedDay && usage.ai.runsOutBeforeReset ? new Date(Date.UTC(usage.period.start.getUTCFullYear(), usage.period.start.getUTCMonth(), usage.ai.reachedDay)) : null} reset={usage.period.nextReset} />
 
           {fresh.count > 0 && (
             <section aria-label="New opportunities" className={card}>
@@ -283,7 +302,9 @@ type UsageData = Awaited<ReturnType<typeof loadUsage>>;
  * Credits this month: team credits (Klingit's time; approved estimates come from here, ones still waiting are held)
  * and AI credits (skills and assistants), with the same forecast as Usage. No allowance = no "left": never invented.
  */
-function Credits({ team, ai, runOut, reset }: { team: CreditSummary & { usedThisMonth: number }; ai: UsageData["ai"]; runOut: Date | null; reset: Date }) {
+type Pools = NonNullable<Awaited<ReturnType<typeof teamBalances>>>;
+
+function Credits({ team, ai, runOut, reset, pools }: { team: CreditSummary & { usedThisMonth: number }; ai: UsageData["ai"]; runOut: Date | null; reset: Date; pools: Pools | null }) {
   const month = team.month.slice(0, 3);
   const total = team.available;
   const pct = (v: number) => (total ? `${Math.min(100, (v / total) * 100)}%` : "0%");
@@ -294,6 +315,32 @@ function Credits({ team, ai, runOut, reset }: { team: CreditSummary & { usedThis
     <section aria-label="Credits" className={card}>
       <CardHeader title="Credits this month" action={<span className="font-brand-mono text-[12px] uppercase text-brand-ink">{ai.plan.name} plan</span>} />
       <div className="flex flex-col gap-5 px-6 py-5">
+        {pools ? (
+          // Phase S: on a contract, PM and creative credits are two balances, never pooled.
+          (["pm", "creative"] as const)
+            .filter((k) => pools[k].monthly > 0 || pools[k].left > 0)
+            .map((k) => {
+              const p = pools[k];
+              const of = p.monthly + p.carried + p.purchased - p.services;
+              return (
+                <div key={k} className="flex flex-col gap-2">
+                  <div className="flex items-baseline gap-3">
+                    <span className="flex-1 text-[15px]">{k === "pm" ? "PM credits" : "Creative credits"}</span>
+                    <span className="text-[13px] text-brand-ink-2">
+                      <span className="text-[22px] tabular-nums text-brand-ink">{n(p.left)}</span> left of {n(of)}
+                    </span>
+                  </div>
+                  <div role="img" aria-label={`${n(p.used)} of ${n(of)} used`} className="flex h-2 overflow-hidden rounded-full bg-brand-track">
+                    <span className="h-full bg-brand-ink" style={{ width: `${of ? Math.min(100, ((of - p.left) / of) * 100) : 0}%` }} />
+                  </div>
+                  <span className="text-[12px] leading-[1.5] text-brand-ink-2">
+                    {k === "pm" ? "Your Marketing PM's time" : "Klingit's creative team"} · 1 credit ≈ 1 hour
+                    {k === "creative" && p.services ? ` · ${n(p.services)} reserved for fixed services` : ""}
+                  </span>
+                </div>
+              );
+            })
+        ) : (
         <div className="flex flex-col gap-2">
           <div className="flex items-baseline gap-3">
             <span className="flex-1 text-[15px]">Team credits</span>
@@ -317,6 +364,7 @@ function Credits({ team, ai, runOut, reset }: { team: CreditSummary & { usedThis
             {total === null ? "No monthly allowance. Credits are billed as you approve estimates." : `Klingit team time, 1 credit = 1 hour · ${team.used} used${team.awaiting ? ` · ${team.awaiting} held` : ""}`}
           </span>
         </div>
+        )}
 
         <div className="flex flex-col gap-2">
           {ai.ownModel ? (
@@ -340,7 +388,7 @@ function Credits({ team, ai, runOut, reset }: { team: CreditSummary & { usedThis
                 )}
               </div>
               {aiTotal > 0 && <AiCreditMeter used={ai.used} allowance={aiTotal} />}
-              <span className="text-[12px] leading-[1.5] text-brand-ink-2">Skills and assistants you run · {n(ai.used)} used</span>
+              <span className="text-[12px] leading-[1.5] text-brand-ink-2">Skills you run · {n(ai.used)} used · assistants are included</span>
             </>
           )}
         </div>
@@ -353,9 +401,14 @@ function Credits({ team, ai, runOut, reset }: { team: CreditSummary & { usedThis
             </span>
           </p>
         )}
-        <Link href="/settings/usage" className="self-start text-[13px] text-brand-ink underline">
-          See usage
-        </Link>
+        <span className="flex gap-4">
+          <Link href="/settings/usage" className="self-start text-[13px] text-brand-ink underline">
+            See usage
+          </Link>
+          <Link href="/settings/plan" className="self-start text-[13px] text-brand-ink underline">
+            Your plan
+          </Link>
+        </span>
       </div>
     </section>
   );

@@ -28,15 +28,30 @@ export async function contractFor(clientId: string) {
 
 export const monthlyFor = (c: Pick<Contract, "pmCreditsPerMonth" | "creativeCreditsPerMonth">, pool: Pool) => (pool === "pm" ? c.pmCreditsPerMonth : c.creativeCreditsPerMonth);
 
+/**
+ * Where a client's contract ledger starts: its first term's start date. Rows before it belong to the earlier
+ * single-balance model and never count against the PM and creative balances.
+ */
+export async function ledgerSince(clientId: string) {
+  const c = await contractFor(clientId);
+  if (!c) return null;
+  const created = await prisma.contractChange.findFirst({ where: { contractId: c.id, kind: "created" }, select: { effectiveFrom: true } });
+  return created?.effectiveFrom ?? c.startDate;
+}
+
 export async function poolBalance(clientId: string, pool: Pool, before?: Date) {
-  const r = await prisma.creditLedgerEntry.aggregate({ where: { clientId, pool, ...(before ? { createdAt: { lt: before } } : {}) }, _sum: { amount: true } });
+  const since = await ledgerSince(clientId);
+  const createdAt = { ...(since ? { gte: since } : {}), ...(before ? { lt: before } : {}) };
+  const r = await prisma.creditLedgerEntry.aggregate({ where: { clientId, pool, ...(since || before ? { createdAt } : {}) }, _sum: { amount: true } });
   return round(r._sum.amount ?? 0);
 }
 
 async function write(clientId: string, pool: Pool, data: { type: "ALLOWANCE" | "EXPIRY" | "SERVICE"; amount: number; note: string; periodKey: string; serviceId?: string | null; createdAt: Date }) {
   const balance = await poolBalance(clientId, pool);
   try {
-    await prisma.creditLedgerEntry.create({ data: { clientId, pool, ...data, serviceId: data.serviceId ?? null, balanceAfter: round(balance + data.amount) } });
+    // serviceId is "" (not null) on grants and expiries: SQLite treats nulls as distinct in a unique index, so only a
+    // value makes the (client, pool, type, period, service) key stop a second, concurrent grant.
+    await prisma.creditLedgerEntry.create({ data: { clientId, pool, ...data, serviceId: data.serviceId ?? "", balanceAfter: round(balance + data.amount) } });
   } catch {
     // Already written for this period (unique key): a second run changes nothing.
   }
@@ -52,7 +67,7 @@ export async function grantMonth(contract: Contract, month: Date) {
   for (const pool of POOLS) {
     const monthly = monthlyFor(contract, pool);
     if (monthly <= 0) continue;
-    const granted = await prisma.creditLedgerEntry.findFirst({ where: { clientId: contract.clientId, pool, type: "ALLOWANCE", periodKey: key, serviceId: null }, select: { id: true } });
+    const granted = await prisma.creditLedgerEntry.findFirst({ where: { clientId: contract.clientId, pool, type: "ALLOWANCE", periodKey: key }, select: { id: true } });
     if (granted) continue;
     const carry = await poolBalance(contract.clientId, pool, start);
     const carryMax = Math.max(0, cap * monthly - monthly);
@@ -88,7 +103,8 @@ export type PoolState = { monthly: number; granted: number; carried: number; pur
 export async function teamBalances(clientId: string, now = new Date()) {
   const contract = await ensureGrants(clientId, now);
   if (!contract) return null;
-  const start = monthStart(now);
+  const since = await ledgerSince(clientId);
+  const start = since && since > monthStart(now) ? since : monthStart(now);
   const rows = await prisma.creditLedgerEntry.findMany({ where: { clientId, createdAt: { gte: start } } });
   const services = await prisma.serviceAllocation.findMany({ where: { clientId, endedAt: null } });
   const state = async (pool: Pool): Promise<PoolState> => {

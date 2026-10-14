@@ -37,8 +37,8 @@ describe("team credit ledgers: PM and creative, never pooled", () => {
     await ensureGrants(fx.clientA.id, d("2026-09-15"));
     expect([await poolBalance(fx.clientA.id, "pm"), await poolBalance(fx.clientA.id, "creative")]).toEqual([20, 40]);
     expect(await teamAllowance(fx.clientA.id)).toMatchObject({ value: 60, source: "contract", planName: "PM + creative 20 + 40" });
-    // A second run changes nothing.
-    await ensureGrants(fx.clientA.id, d("2026-09-20"));
+    // A second run changes nothing, even several at once (pages load balances in parallel).
+    await Promise.all(Array.from({ length: 6 }, () => ensureGrants(fx.clientA.id, d("2026-09-20"))));
     expect(await prisma.creditLedgerEntry.count({ where: { clientId: fx.clientA.id, type: "ALLOWANCE" } })).toBe(2);
   });
 
@@ -48,7 +48,7 @@ describe("team credit ledgers: PM and creative, never pooled", () => {
   });
 
   it("rolls over up to 150% of the monthly amount; the rest expires at the next grant", async () => {
-    await ensureGrants(fx.clientA.id, d("2026-10-02"));
+    await Promise.all(Array.from({ length: 5 }, () => ensureGrants(fx.clientA.id, d("2026-10-02"))));
     // PM: 18 left, at most 10 carries (30 − 20) → 8 expire; creative: 30 left, 20 carries → 10 expire.
     expect([await poolBalance(fx.clientA.id, "pm"), await poolBalance(fx.clientA.id, "creative")]).toEqual([30, 60]);
     const expired = await prisma.creditLedgerEntry.findMany({ where: { clientId: fx.clientA.id, type: "EXPIRY" }, orderBy: { pool: "asc" } });
@@ -86,6 +86,9 @@ describe("team credit ledgers: PM and creative, never pooled", () => {
     await prisma.creditLedgerEntry.create({ data: { clientId: fx.clientB.id, pool: "creative", type: "PURCHASE", amount: 10, balanceAfter: 10, note: "Pack of 10", createdAt: d("2026-09-02") } });
     await approve(fx.clientB.id, [{ credits: 6, balance: "creative" }, { credits: 0.5, balance: "pm" }], d("2026-09-03"));
     expect([await poolBalance(fx.clientB.id, "pm"), await poolBalance(fx.clientB.id, "creative")]).toEqual([0, 3.5]);
+    // A row from before the contract (the earlier single-balance model) never counts.
+    await prisma.creditLedgerEntry.create({ data: { clientId: fx.clientB.id, type: "CONSUMPTION", amount: -50, balanceAfter: -50, note: "Before the contract", createdAt: d("2026-08-15") } });
+    expect(await poolBalance(fx.clientB.id, "creative")).toBe(3.5);
   });
 
   it("a paused month gets no grant", async () => {

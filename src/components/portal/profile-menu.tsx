@@ -38,6 +38,7 @@ const personaForm = (key: string) => {
 export function ProfileMenu({ name, email, clientName, role, admin, summary, onNavigate }: { name: string; email: string; clientName: string; role: string; admin: boolean; summary: NavSummary; onNavigate?: () => void }) {
   const [pending, start] = useTransition();
   const items = [
+    { label: "Plan", href: "/settings/plan", icon: Gauge },
     { label: "Account & team", href: "/settings/account", icon: Users },
     { label: "Notifications", href: "/settings/notifications", icon: Bell },
     { label: "Connections", href: "/settings/connections", icon: Link2 },
@@ -45,7 +46,8 @@ export function ProfileMenu({ name, email, clientName, role, admin, summary, onN
     { label: "Reporting", href: "/settings/reporting", icon: ScrollText },
     ...(admin ? [{ label: "Usage", href: "/settings/usage", icon: Gauge, tag: "Admin" }] : [{ label: "My usage", href: "/settings/usage", icon: Gauge }]),
   ];
-  const team = summary.team.allowance !== null ? `${n(summary.team.left ?? 0)} of ${n(summary.team.allowance)} team` : null;
+  const pools = summary.pools;
+  const team = pools ? [pools.pm.monthly > 0 ? `PM ${n(pools.pm.left)}` : null, pools.creative.monthly > 0 || pools.creative.left > 0 ? `creative ${n(pools.creative.left)}` : null].filter(Boolean).join(" · ") || null : summary.team.allowance !== null ? `${n(summary.team.left ?? 0)} of ${n(summary.team.allowance)} team` : null;
   const ai = summary.ai.ownModel ? "own AI model" : summary.ai.allowance > 0 || summary.ai.left > 0 ? `${n(summary.ai.left)} of ${n(summary.ai.allowance)} AI left` : null;
   return (
     <DropdownMenu>
@@ -74,7 +76,7 @@ export function ProfileMenu({ name, email, clientName, role, admin, summary, onN
           </span>
         </div>
         <DropdownMenuItem asChild className="mb-1 rounded-[12px] p-0 focus:bg-transparent">
-          <Link href="/settings/usage" onClick={onNavigate} className="flex items-center gap-2 rounded-[12px] bg-brand-page px-3 py-2.5 no-underline hover:bg-[#F2EDE3]">
+          <Link href="/settings/plan" onClick={onNavigate} className="flex items-center gap-2 rounded-[12px] bg-brand-page px-3 py-2.5 no-underline hover:bg-[#F2EDE3]">
             <span className="flex min-w-0 flex-1 flex-col">
               <span className="text-[13px] font-semibold text-brand-ink">{summary.plan} plan</span>
               <span className="truncate text-[12px] text-brand-ink-2">{[team, ai].filter(Boolean).join(" · ") || "See usage"}</span>
@@ -82,6 +84,18 @@ export function ProfileMenu({ name, email, clientName, role, admin, summary, onN
             <ChevronRight className="size-4 shrink-0 text-brand-ink-2" strokeWidth={1.75} />
           </Link>
         </DropdownMenuItem>
+        {summary.marketingPm && (
+          <DropdownMenuItem asChild className="mb-1 rounded-[12px] p-0 focus:bg-transparent">
+            <Link href={summary.marketingPm.messageHref} onClick={onNavigate} className="flex items-center gap-2.5 rounded-[12px] px-3 py-2 no-underline hover:bg-[#F2EDE3]">
+              <Avatar name={summary.marketingPm.name} size={28} />
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="text-[12px] text-brand-ink-2">Your Marketing PM</span>
+                <span className="truncate text-[13px] font-semibold text-brand-ink">{summary.marketingPm.name}</span>
+              </span>
+              <span className="text-[12px] text-brand-ink underline underline-offset-2">Message</span>
+            </Link>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator className="my-2 bg-brand-line" />
         {items.map((i) => (
           <DropdownMenuItem key={i.label} asChild className="rounded-[10px] px-2.5 py-2.5 text-[14px] text-brand-ink">
