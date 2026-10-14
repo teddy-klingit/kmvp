@@ -1,5 +1,6 @@
 "use client";
 
+import { useTransition } from "react";
 import Link from "next/link";
 import { Bell, ChevronRight, ChevronsUpDown, Gauge, LayoutGrid, Link2, LogOut, Repeat, ScrollText, Users } from "lucide-react";
 import { Avatar } from "@/components/ds/avatar";
@@ -20,13 +21,22 @@ import type { NavSummary } from "@/lib/nav-summary";
 import { cn } from "@/lib/utils";
 
 const n = (v: number) => v.toLocaleString("en-GB");
+const personaForm = (key: string) => {
+  const f = new FormData();
+  f.set("persona", key);
+  return f;
+};
 
 /**
  * The profile row at the bottom of the client nav and its menu (nav v3, 01): who you are, the plan chip (team and
  * AI credits left, links to Usage), the settings pages, Sign out. Usage is shown to admins only (the page itself
  * checks too). "Switch view" is the demo persona switcher.
+ *
+ * Switch view and Sign out run their action on select: a <form> inside a menu item is unmounted when the menu
+ * closes on click, before it can submit, so clicking did nothing.
  */
 export function ProfileMenu({ name, email, clientName, role, admin, summary, onNavigate }: { name: string; email: string; clientName: string; role: string; admin: boolean; summary: NavSummary; onNavigate?: () => void }) {
+  const [pending, start] = useTransition();
   const items = [
     { label: "Account & team", href: "/settings/account", icon: Users },
     { label: "Notifications", href: "/settings/notifications", icon: Bell },
@@ -90,26 +100,17 @@ export function ProfileMenu({ name, email, clientName, role, admin, summary, onN
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent className="w-56 font-brand">
             {DEMO_PERSONAS.map((p) => (
-              <form key={p.key} action={switchPersonaAction}>
-                <input type="hidden" name="persona" value={p.key} />
-                <DropdownMenuItem asChild>
-                  <button type="submit" className="flex w-full flex-col items-start">
-                    <span className={cn("text-[14px]", p.email === email && "font-semibold")}>{p.name}</span>
-                    <span className="text-[12px] text-brand-ink-2">{p.subtitle}</span>
-                  </button>
-                </DropdownMenuItem>
-              </form>
+              <DropdownMenuItem key={p.key} disabled={pending} onSelect={() => start(() => switchPersonaAction(personaForm(p.key)))} className="flex w-full flex-col items-start">
+                <span className={cn("text-[14px]", p.email === email && "font-semibold")}>{p.name}</span>
+                <span className="text-[12px] text-brand-ink-2">{p.subtitle}</span>
+              </DropdownMenuItem>
             ))}
           </DropdownMenuSubContent>
         </DropdownMenuSub>
-        <form action={signOutAction}>
-          <DropdownMenuItem asChild className="rounded-[10px] px-2.5 py-2.5 text-[14px] text-brand-ink">
-            <button type="submit" className="flex w-full items-center gap-3">
-              <LogOut className="size-4 text-brand-ink-2" strokeWidth={1.75} />
-              Sign out
-            </button>
-          </DropdownMenuItem>
-        </form>
+        <DropdownMenuItem disabled={pending} onSelect={() => start(() => signOutAction())} className="flex w-full items-center gap-3 rounded-[10px] px-2.5 py-2.5 text-[14px] text-brand-ink">
+          <LogOut className="size-4 text-brand-ink-2" strokeWidth={1.75} />
+          Sign out
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

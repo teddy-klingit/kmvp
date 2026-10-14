@@ -1,5 +1,6 @@
 "use client";
 
+import { useTransition } from "react";
 import { Repeat } from "lucide-react";
 import { PersonAvatar } from "@/components/ui/avatar";
 import {
@@ -17,9 +18,11 @@ import { cn } from "@/lib/utils";
 /**
  * Demo-only fast switcher between the client view and the three internal
  * role tiers, so one showcase session can jump personas without separate
- * logins. Shown in both app shells.
+ * logins. Shown in both app shells. Each item runs the switch on select: a <form> inside a menu item is unmounted
+ * when the menu closes, before it can submit.
  */
 export function PersonaSwitcher({ currentEmail, compact = false }: { currentEmail: string; compact?: boolean }) {
+  const [pending, start] = useTransition();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -38,24 +41,23 @@ export function PersonaSwitcher({ currentEmail, compact = false }: { currentEmai
         <DropdownMenuLabel>Preview as (demo)</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {DEMO_PERSONAS.map((persona) => (
-          <form key={persona.key} action={switchPersonaAction}>
-            <input type="hidden" name="persona" value={persona.key} />
-            <DropdownMenuItem asChild>
-              <button type="submit" className="w-full">
-                <PersonAvatar name={persona.name} size="sm" />
-                <span className="min-w-0 flex-1 text-left">
-                  <span
-                    className={
-                      persona.email === currentEmail ? "block truncate font-semibold text-primary" : "block truncate"
-                    }
-                  >
-                    {persona.name}
-                  </span>
-                  <span className="block truncate text-xs text-muted-foreground">{persona.subtitle}</span>
-                </span>
-              </button>
-            </DropdownMenuItem>
-          </form>
+          <DropdownMenuItem
+            key={persona.key}
+            disabled={pending}
+            onSelect={() =>
+              start(() => {
+                const f = new FormData();
+                f.set("persona", persona.key);
+                return switchPersonaAction(f);
+              })
+            }
+          >
+            <PersonAvatar name={persona.name} size="sm" />
+            <span className="min-w-0 flex-1 text-left">
+              <span className={persona.email === currentEmail ? "block truncate font-semibold text-primary" : "block truncate"}>{persona.name}</span>
+              <span className="block truncate text-xs text-muted-foreground">{persona.subtitle}</span>
+            </span>
+          </DropdownMenuItem>
         ))}
       </DropdownMenuContent>
     </DropdownMenu>
