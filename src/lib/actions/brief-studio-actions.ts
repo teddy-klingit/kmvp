@@ -1,5 +1,6 @@
 "use server";
 
+import { ordersPaused, PAUSED_MESSAGE } from "@/lib/contracts";
 import { prisma } from "@/lib/prisma";
 import { withAiCharge, assistantCharge, ASSISTANTS } from "@/lib/ai-context";
 import { after } from "next/server";
@@ -38,6 +39,8 @@ export async function startBriefAction(text: string): Promise<{ projectId?: stri
   const viewer = await getPortalViewer();
   const t = text.trim().slice(0, 4000);
   if (!t) return { error: "Tell us a little about what you need." };
+  // A paused contract keeps the platform but stops new projects (Phase S).
+  if (await ordersPaused(viewer.clientId)) return { error: PAUSED_MESSAGE };
   // The studio starts on page load (/brief/new?q=…): a reload, Back or a second tab must reopen the same draft,
   // not create another. Same person, same words, last 15 minutes = the same brief.
   const recent = await prisma.project.findFirst({

@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { ordersPaused, PAUSED_MESSAGE } from "@/lib/contracts";
 import { jsonArray } from "@/lib/utils";
 import { buildBrandContext } from "@/lib/ai/brand-context";
 import { brandSourcesForAgents } from "@/lib/brand-sources-data";
@@ -436,6 +437,8 @@ export function summaryLine(sections: BriefSection[], parsed: ParsedRequest, lef
 
 /** Creates the project as a draft with its brief straight away (so it autosaves), then runs the smart start. */
 export async function startStudio(viewer: PortalViewer, text: string, now = new Date()) {
+  // Backstop for every way a project starts: a paused contract can't order new work (Phase S).
+  if (await ordersPaused(viewer.clientId)) throw new Error(PAUSED_MESSAGE);
   const parsed = parseRequest(text, now);
   const project = await prisma.project.create({
     data: { clientId: viewer.clientId, name: briefTitle({ kind: parsed.kind, channels: parsed.channels, objectiveId: parsed.objectiveId, markets: parsed.markets, text }), type: parsed.projectType, status: "DRAFT", createdByClientUserId: viewer.id },

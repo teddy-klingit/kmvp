@@ -285,6 +285,7 @@ model Client {
   skillOutputs                 SkillOutput[]
   brandRules                   BrandRule[]
   opportunities                Opportunity[]
+  contracts                    Contract[]
   brandRuleChanges             BrandRuleChange[]
   customSkills                 Agent[]
   assets                       Asset[]
@@ -935,6 +936,7 @@ model StaffMember {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   leadClients         Client[]     @relation("ClientAccountLead")
+  contactContracts    Contract[]   @relation("ContractContact")
   teamMemberships     TeamMember[]
   sentEstimates       Estimate[]
   proposedTeams       Team[]
@@ -2401,4 +2403,67 @@ model PriceOverride {
   updatedAt       DateTime @updatedAt
 
   @@unique([ref, currency])
+}
+
+/// Phase S: a client's contract. One active (or paused / ending) per client; ended ones stay as history. Prices are
+/// locked at signing, in the contract's currency, so list price changes never touch a signed client.
+model Contract {
+  id                      String    @id @default(cuid())
+  clientId                String
+  /// active | paused | ending | ended
+  status                  String    @default("active")
+  platformPlanKey         String
+  /// A TeamPack key, or null for platform only ("per_request": staff set the credits and price below).
+  teamPackKey             String?
+  pmCreditsPerMonth       Float     @default(0)
+  creativeCreditsPerMonth Float     @default(0)
+  termMonths              Int
+  startDate               DateTime
+  endDate                 DateTime
+  /// monthly | quarterly | upfront
+  invoicing               String
+  currency                String
+  /// Per month, in the currency, locked at signing.
+  platformPrice           Float
+  teamPrice               Float     @default(0)
+  /// End date − 2 months: cancel by then, or it renews for the same term.
+  noticeDeadline          DateTime
+  autoRenew               Boolean   @default(true)
+  cancelledAt             DateTime?
+  /// The Marketing PM: required when there's a team pack.
+  contactStaffId          String?
+  pausedFrom              DateTime?
+  pausedDays              Int       @default(0)
+  signedAt                DateTime  @default(now())
+  createdByUserId         String?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  client  Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  contact StaffMember?     @relation("ContractContact", fields: [contactStaffId], references: [id])
+  changes ContractChange[]
+
+  @@index([clientId, status])
+}
+
+/// Every change to a contract, in order: created, upgrade, downgrade, pause, resume, renewed, cancelled, ended,
+/// contact. Upgrades and downgrades are scheduled (effectiveFrom later than createdAt) and applied when due.
+model ContractChange {
+  id            String    @id @default(cuid())
+  contractId    String
+  kind          String
+  /// scheduled | applied | cancelled
+  status        String    @default("applied")
+  effectiveFrom DateTime
+  /// An upgrade's end: the contract goes back to `before` then.
+  until         DateTime?
+  before        Json?
+  after         Json?
+  note          String?
+  byUserId      String?
+  createdAt     DateTime  @default(now())
+
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@index([contractId, status, effectiveFrom])
 }

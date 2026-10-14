@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { ordersPaused, PAUSED_MESSAGE } from "@/lib/contracts";
 import { PIPELINE_STAGE_ORDER } from "@/lib/labels";
 import { enqueue } from "@/lib/active-slots";
 import { postProjectEvent } from "@/lib/project-events";
@@ -13,6 +14,7 @@ import type { PortalViewer } from "@/lib/brief-intake";
  * The account lead hears about sent requests. Repeating the same request within 15 minutes reuses it.
  */
 export async function createKlingitRequest(viewer: PortalViewer, req: { name: string; text: string; event: string; send: boolean; teamCredits?: number | null; projectId?: string | null }) {
+  if (req.send && (await ordersPaused(viewer.clientId))) throw new Error(PAUSED_MESSAGE);
   const name = req.name.trim().slice(0, 80) || "Request to Klingit";
   const recent = await prisma.project.findFirst({ where: { clientId: viewer.clientId, name, createdByClientUserId: viewer.id, createdAt: { gte: new Date(Date.now() - 15 * 60000) }, status: { not: "ARCHIVED" } }, select: { id: true } });
   if (recent) return recent.id;

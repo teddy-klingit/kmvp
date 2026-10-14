@@ -32,6 +32,7 @@ export default async function ClientWorkspaceLayout({ children, params }: { chil
             tabsLabel="Client workspace"
             tabs={[
               { label: "Dashboard", href: `${base}/dashboard` },
+              { label: "Contract", href: `${base}/contract` },
               { label: "Delivery", href: `${base}/delivery` },
               { label: "Brand assets", href: `${base}/brand-assets` },
               { label: "Brand OS", href: `${base}/brand-os` },
