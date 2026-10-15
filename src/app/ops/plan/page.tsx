@@ -8,6 +8,7 @@ import { SectionCard, CardNote } from "@/components/ds/card";
 import { Button } from "@/components/ds/button";
 import { scopeFor } from "@/lib/staff-scope";
 import { daysUntil, loadLeadTimes, teamCreditsFor } from "@/lib/plan";
+import { nudgeDraft } from "@/lib/plan-nudge";
 import { sendNudgeAction } from "@/lib/actions/ops-plan-nudge-actions";
 import { jsonArray, cn } from "@/lib/utils";
 
@@ -57,7 +58,7 @@ export default async function OpsPlanPage({ searchParams }: { searchParams: Prom
             <textarea
               name="text"
               rows={3}
-              defaultValue={`Hi! “${nudge.title}” goes live ${day(nudge.date)}. To make it in time we need the brief by ${nudge.briefBy ? day(nudge.briefBy) : "this week"}. Start it from your plan and I'll take it from there.`}
+              defaultValue={nudgeDraft(nudge)}
               className="rounded-[10px] border border-brand-outline px-3 py-2 text-[14px]"
             />
             <span className="flex gap-2">
