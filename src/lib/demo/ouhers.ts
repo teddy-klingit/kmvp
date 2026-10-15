@@ -17,6 +17,7 @@ import { estimatePreview, priceEntries, type PriceEntry } from "@/lib/brief-stud
 import type { AgentBuild, BuildStep } from "@/lib/agent-build";
 import { phaseQPack, phaseQText, seedPhaseQ } from "@/lib/demo/ouhers-phase-q";
 import { seedPhaseS } from "@/lib/demo/ouhers-phase-s";
+import { seedPhaseU } from "@/lib/demo/ouhers-phase-u";
 import { seedPhaseROpportunities, seedPhaseRPlan, seedPhaseRRules, seedRuleCounts } from "@/lib/demo/ouhers-phase-r";
 
 /**
@@ -813,6 +814,9 @@ export async function seedOuhers(opts: { dir?: string; shift?: boolean; log?: (s
 
   // Phase S: the contract, its two team ledgers, invoices, a pending pack and an estimate waiting for the PM's number.
   await seedPhaseS({ clientId: OUHERS_CLIENT_ID, now, contactStaffId: teddy?.staffId ?? null, staffUserId: teddy?.userId ?? null, userId: (id) => clientUserIds.get(id)!.userId, projectId, say });
+
+  // Phase U: messages with Teddy, the Output library in every category (AI costs are on the Phase Q ledger).
+  await seedPhaseU({ clientId: OUHERS_CLIENT_ID, now, teddyUserId: teddy?.userId ?? null, member: (id) => clientUserIds.get(id)!, projectId, say });
 
   // ─── Computed vs expected ───────────────────────────────────────────────
   const health = await loadBrandHealth(OUHERS_CLIENT_ID);

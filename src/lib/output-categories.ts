@@ -10,7 +10,7 @@ const AD_CHANNEL = /meta|facebook|google|display|tiktok ads|linkedin ads|program
 
 export function categoryFor(o: { format?: string | null; type?: string | null; channel?: string | null; projectType?: string | null; title?: string | null }): Category {
   const f = `${o.format ?? ""} ${o.title ?? ""}`.toLowerCase();
-  if (/deck|slide|presentation|keynote|pptx|master template/.test(f) || o.projectType === "PRESENTATION") return "Presentations";
+  if (/deck|\bslides\b|slideshow|presentation|keynote|pptx|master template/.test(f) || o.projectType === "PRESENTATION") return "Presentations";
   if (o.type === "VIDEO" || /video|reel|motion|bumper|\bcut\b|film|animation|\bgif\b/.test(f) || o.projectType === "MOTION_VIDEO") return "Video & motion";
   if (/illustration|icon|character|\bmap\b|drawing/.test(f)) return "Illustration";
   if (/print|poster|flyer|\ba[3-6]\b|brochure|shelf|gift card|business card|retail display|packaging|leaflet/.test(f)) return "Print";

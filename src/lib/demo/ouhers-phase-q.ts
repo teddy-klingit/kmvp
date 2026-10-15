@@ -1,3 +1,4 @@
+import { demoRunCost } from "@/lib/demo/ouhers-phase-u";
 import type { Prisma } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
 import { monthPeriod, planFor } from "@/lib/ai-credits";
@@ -161,6 +162,8 @@ export async function seedPhaseQ(ctx: {
 }) {
   const { clientId, now } = ctx;
   const rnd = random(20261011);
+  // Phase U: each run's real-looking cost, drawn from its own sequence so the day-by-day draw stays the same.
+  const costRnd = random(20261015);
   const people = [
     { id: ctx.userId("ou-maja"), weight: 0.45 },
     { id: ctx.userId("ou-erik"), weight: 0.35 },
@@ -231,9 +234,7 @@ export async function seedPhaseQ(ctx: {
           projectId: project,
           format: s.format ?? null,
           amount: -s.credits,
-          tokensIn: Math.round(s.credits * 600),
-          tokensOut: Math.round(s.credits * 80),
-          model: "claude-sonnet-5-5",
+          ...demoRunCost(s.key, s.type, s.credits, costRnd),
           billable,
           createdAt: new Date(p.start.getTime() + d * DAY + hour * 3600000),
         });
@@ -242,14 +243,14 @@ export async function seedPhaseQ(ctx: {
   }
   // The paused skill ran last month until it was paused on the 12th.
   for (const d of [3, 7, 11]) {
-    rows.push({ clientId, userId: ctx.userId("ou-sofia"), kind: "USAGE", fundedBy: "allowance", sourceType: "skill", sourceKey: customSkillKey("product_feed_captions"), sourceName: "Product feed captions", format: "Caption", amount: -3, tokensIn: 1800, tokensOut: 240, model: "claude-sonnet-5-5", createdAt: new Date(periods[1].start.getTime() + d * DAY + 11 * 3600000) });
+    rows.push({ clientId, userId: ctx.userId("ou-sofia"), kind: "USAGE", fundedBy: "allowance", sourceType: "skill", sourceKey: customSkillKey("product_feed_captions"), sourceName: "Product feed captions", format: "Caption", amount: -3, ...demoRunCost("product_feed_captions", "skill", 3, costRnd), createdAt: new Date(periods[1].start.getTime() + d * DAY + 11 * 3600000) });
   }
   // This month adds up to exactly AI_USED_THIS_MONTH: trim the day-by-day draw, then one last run for the rest.
   const billableNow = () => rows.filter((r) => r.kind === "USAGE" && r.billable !== false && new Date(r.createdAt!) >= periods[2].start);
   const total = () => billableNow().reduce((a, r) => a - r.amount, 0);
   while (total() > AI_USED_THIS_MONTH) rows.splice(rows.indexOf(billableNow()[0]), 1);
   const rest = Math.round((AI_USED_THIS_MONTH - total()) * 10) / 10;
-  if (rest > 0) rows.push({ clientId, userId: ctx.userId("ou-maja"), kind: "USAGE", fundedBy: "allowance", sourceType: "skill", sourceKey: "image_gen_agent", sourceName: "Image gen", format: "Image", amount: -rest, tokensIn: Math.round(rest * 600), tokensOut: Math.round(rest * 80), model: "claude-sonnet-5-5", createdAt: new Date(now.getTime() - 2 * 3600000) });
+  if (rest > 0) rows.push({ clientId, userId: ctx.userId("ou-maja"), kind: "USAGE", fundedBy: "allowance", sourceType: "skill", sourceKey: "image_gen_agent", sourceName: "Image gen", format: "Image", amount: -rest, ...demoRunCost("image_gen_agent", "skill", rest, costRnd), createdAt: new Date(now.getTime() - 2 * 3600000) });
   await prisma.aiCreditLedger.createMany({ data: rows });
   const used = rows.filter((r) => r.kind === "USAGE" && r.billable !== false && new Date(r.createdAt!) >= periods[2].start).reduce((a, r) => a - r.amount, 0);
   ctx.say(`Phase Q · Growth plan · ${rows.length} AI credit rows · ${Math.round(used)} AI credits used this month (demo)`);

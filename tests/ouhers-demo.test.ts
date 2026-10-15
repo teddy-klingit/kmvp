@@ -27,6 +27,9 @@ import { loadReview } from "@/lib/review";
 import { blockingFlags, fixedBeforeSend } from "@/lib/qc/quality-check";
 import { loadAssetDetail } from "@/lib/asset-detail";
 import { performanceTierFor } from "@/lib/asset-performance";
+import { loadOutputLibrary } from "@/lib/output-library";
+import { loadPmThread } from "@/lib/pm-thread";
+import { CATEGORIES } from "@/lib/output-categories";
 
 const counts = async () => {
   const where = { clientId: OUHERS_CLIENT_ID };
@@ -126,8 +129,9 @@ describe("the ouhers demo seed", () => {
   it("an asset's page: CTR against the client's own average, its rank and its other sizes; only sent work", async () => {
     const top = await prisma.asset.findFirstOrThrow({ where: { clientId: OUHERS_CLIENT_ID, performanceCtr: { not: null } }, orderBy: { performanceCtr: "desc" } });
     const d = (await loadAssetDetail(top.id, OUHERS_CLIENT_ID))!;
-    // 11 measured in the pack, plus the 3 the Phase Q layer measures for the Output library badges.
-    expect(d.performance).toMatchObject({ ctr: 1.77, rank: 1, of: 14 });
+    // 11 measured in the pack, the 3 the Phase Q layer measures for the Output library badges, and 4 more ads that
+    // ran (Phase U).
+    expect(d.performance).toMatchObject({ ctr: 1.77, rank: 1, of: 18 });
     expect(d.performance!.clientAvg).toBeCloseTo(1.08, 1);
     expect(d.performance!.siblings.map((s) => s.format)).toEqual(["Feed · 4:5", "Square · 1:1", "Link ad 1.91:1"]);
     // The tier is relative to the client: their best ad is a top performer even at 1.77%.
@@ -166,5 +170,28 @@ describe("the ouhers demo seed", () => {
     expect(today.tasks.filter((i) => i.kind === "ESTIMATE" && i.clientId === OUHERS_CLIENT_ID && /number/.test(i.sentence))).toHaveLength(1);
     expect(today.tasks.some((i) => i.kind === "PLAN")).toBe(true);
     expect(await prisma.assetVersion.count({ where: { state: "QC_READY", asset: { clientId: OUHERS_CLIENT_ID } } })).toBeGreaterThan(0);
+  });
+
+  it("Phase U: 92% of Enterprise's AI with a real cost per run, 8 messages with Teddy, and ~60 outputs in every category", async () => {
+    const ai = await aiCreditStatus(OUHERS_CLIENT_ID);
+    expect([ai.used, ai.allowance]).toEqual([2760, 3000]);
+    expect((await prisma.billingProfile.findUniqueOrThrow({ where: { clientId: OUHERS_CLIENT_ID } })).autoTopUp).toBe(false);
+    const runs = await prisma.aiCreditLedger.findMany({ where: { clientId: OUHERS_CLIENT_ID, kind: "USAGE", sourceType: "skill" }, select: { amount: true, costUsd: true, model: true } });
+    expect(runs.every((r) => r.costUsd != null && Math.max(1, Math.ceil(r.costUsd / 0.01 - 1e-9)) === -r.amount)).toBe(true);
+    expect(new Set(runs.map((r) => r.model))).toEqual(new Set(["claude-sonnet-5-5", "claude-haiku-5-5"]));
+
+    const maja = await prisma.user.findUniqueOrThrow({ where: { email: "maja@ouhers.demo" } });
+    const thread = await loadPmThread(OUHERS_CLIENT_ID, maja.id);
+    expect(thread.filter((m) => m.source === "general")).toHaveLength(5);
+    expect(thread.find((m) => m.body === "Saw them! Will review tomorrow morning.")?.project?.name).toBe("Brand film: dewy by default");
+    expect(thread.at(-1)?.fromKlingit).toBe(true);
+
+    const lib = await loadOutputLibrary(OUHERS_CLIENT_ID);
+    expect(lib.total).toBeGreaterThanOrEqual(55);
+    for (const c of CATEGORIES) expect(lib.categoryCounts[c] ?? 0).toBeGreaterThan(0);
+    const decksAndPrint = lib.items.filter((i) => i.category === "Presentations" || i.category === "Print");
+    expect(decksAndPrint.some((i) => i.info.kind === "used")).toBe(true);
+    expect(decksAndPrint.every((i) => i.info.kind !== "performed")).toBe(true);
+    expect(lib.items.filter((i) => i.info.kind === "add").length).toBeGreaterThan(0);
   });
 });

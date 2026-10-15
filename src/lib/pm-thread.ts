@@ -25,13 +25,19 @@ export type ThreadMessage = {
 const DAY = 86400000;
 export const attachmentHref = (clientId: string, a: Attachment) => `/api/messages/${clientId}/${encodeURIComponent(a.storageKey.split("/").pop() ?? "")}`;
 
-/** The whole thread (general + every project's messages), oldest first. */
+/**
+ * A project Comment sent from the message panel ("about a project"). Only these join the PM thread; the rest of a
+ * project's Discussion (the team, the client's colleagues) stays in the project.
+ */
+export const PM_CONTEXT = "pm";
+
+/** The whole thread (general + the messages about projects sent to or from the PM), oldest first. */
 export async function loadPmThread(clientId: string, viewerUserId: string, opts: { take?: number } = {}) {
   const take = opts.take ?? 300;
   const [general, project] = await Promise.all([
     prisma.clientMessage.findMany({ where: { clientId, archivedAt: null }, orderBy: { createdAt: "desc" }, take }),
     prisma.comment.findMany({
-      where: { kind: "MESSAGE", archivedAt: null, project: { clientId, status: { not: "DRAFT" } } },
+      where: { kind: "MESSAGE", contextKind: PM_CONTEXT, archivedAt: null, project: { clientId, status: { not: "DRAFT" } } },
       include: { project: { select: { id: true, name: true } }, author: { select: { name: true } }, clientAuthor: { include: { user: { select: { id: true, name: true } } } } },
       orderBy: { createdAt: "desc" },
       take,
@@ -75,7 +81,7 @@ export async function pmUnread(clientId: string, userId: string, side: "client" 
   const fromOther = side === "client" ? { authorClientUserId: null } : { authorClientUserId: { not: null } };
   const [g, p] = await Promise.all([
     prisma.clientMessage.count({ where: { clientId, archivedAt: null, createdAt: { gt: since }, ...fromOther } }),
-    prisma.comment.count({ where: { kind: "MESSAGE", archivedAt: null, createdAt: { gt: since }, project: { clientId, status: { not: "DRAFT" } }, ...fromOther, ...(side === "client" ? { authorUserId: { not: null } } : {}) } }),
+    prisma.comment.count({ where: { kind: "MESSAGE", contextKind: PM_CONTEXT, archivedAt: null, createdAt: { gt: since }, project: { clientId, status: { not: "DRAFT" } }, ...fromOther, ...(side === "client" ? { authorUserId: { not: null } } : {}) } }),
   ]);
   return g + p;
 }
@@ -97,7 +103,7 @@ export async function sendPmMessage(m: { clientId: string; author: { userId: str
     const p = await prisma.project.findFirst({ where: { id: m.projectId, clientId: m.clientId }, select: { name: true } });
     if (!p) throw new Error("That project isn't this client's.");
     projectName = p.name;
-    await prisma.comment.create({ data: { projectId: m.projectId, authorUserId: staff ? m.author.userId : null, authorClientUserId: m.author.clientUserId, body, attachments: m.attachments?.length ? m.attachments : undefined } });
+    await prisma.comment.create({ data: { projectId: m.projectId, contextKind: PM_CONTEXT, authorUserId: staff ? m.author.userId : null, authorClientUserId: m.author.clientUserId, body, attachments: m.attachments?.length ? m.attachments : undefined } });
   } else {
     await prisma.clientMessage.create({ data: { clientId: m.clientId, authorUserId: m.author.userId, authorClientUserId: m.author.clientUserId, body, attachments: m.attachments?.length ? m.attachments : undefined } });
   }

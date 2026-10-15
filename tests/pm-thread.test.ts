@@ -40,6 +40,12 @@ describe("Message your PM", () => {
     expect(await prisma.notification.count({ where: { userId: pm.userId, clientId: fx.clientA.id } })).toBe(2);
   });
 
+  it("the rest of a project's Discussion (the team, the client's colleagues) stays in the project", async () => {
+    await prisma.comment.create({ data: { projectId, authorClientUserId: clientUser.id, body: "Could the end card be bigger?" } });
+    const t = await loadPmThread(fx.clientA.id, clientUser.userId);
+    expect(t.some((m) => m.body === "Could the end card be bigger?")).toBe(false);
+  });
+
   it("a message about another client's project is refused", async () => {
     const other = await prisma.project.create({ data: { clientId: fx.clientB.id, name: "Theirs", type: "CAMPAIGN", status: "IN_PRODUCTION" } });
     await expect(sendPmMessage({ clientId: fx.clientA.id, author: { userId: clientUser.userId, clientUserId: clientUser.id, name: clientUser.name }, body: "x", projectId: other.id })).rejects.toThrow();
