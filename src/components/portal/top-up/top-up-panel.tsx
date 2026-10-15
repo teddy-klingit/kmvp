@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useState, useTransition } from "react";
+import { useActionState, useEffect, useState, useSyncExternalStore, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { useSearchParams } from "next/navigation";
 import { X } from "lucide-react";
 import { askAdminTopUpAction, setAutoTopUpAction, topUpAction, topUpPanelAction, type TopUpPanel } from "@/lib/actions/top-up-actions";
@@ -16,15 +17,19 @@ const money = (n: number, currency: string) => new Intl.NumberFormat("en-GB", { 
 export function TopUpButton({ className, children }: { className?: string; children: React.ReactNode }) {
   const params = useSearchParams();
   const [open, setOpen] = useState(() => params?.get("topup") === "1");
+  // The panel goes on <body> (the button can sit inside a <p>), so it only renders once the page is in the browser.
+  const mounted = useSyncExternalStore(noop, () => true, () => false);
   return (
     <>
       <button type="button" onClick={() => setOpen(true)} className={className}>
         {children}
       </button>
-      {open && <Panel onClose={() => setOpen(false)} />}
+      {open && mounted && createPortal(<Panel onClose={() => setOpen(false)} />, document.body)}
     </>
   );
 }
+
+const noop = () => () => {};
 
 function Panel({ onClose }: { onClose: () => void }) {
   const [data, setData] = useState<TopUpPanel | null>(null);
@@ -131,7 +136,7 @@ function Panel({ onClose }: { onClose: () => void }) {
                   </button>
                 )}
               </span>
-              <p className="m-0 text-[12px] text-brand-ink-2">Only admins can top up. Members get an “Ask {data.adminName} to top up” button instead.</p>
+              {data.admin && <p className="m-0 text-[12px] text-brand-ink-2">Only admins can top up. Others on your team can ask you to.</p>}
             </div>
           </>
         )}
