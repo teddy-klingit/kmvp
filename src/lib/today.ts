@@ -1,65 +1,316 @@
 import { prisma } from "@/lib/prisma";
-import { loadOpsProjects, rankExceptions } from "@/lib/ops-exceptions";
+import { loadOpsProjects, rankExceptions, type OpsException, type OpsProject } from "@/lib/ops-exceptions";
 import { teamBalances } from "@/lib/team-ledger";
 import { REQUEST_KINDS, type RequestKind } from "@/lib/requests";
-import type { Scope } from "@/lib/staff-scope";
+import { getSetting } from "@/lib/platform-settings";
+import { jsonArray } from "@/lib/utils";
+import { myClientIds, type Scope } from "@/lib/staff-scope";
 
 /**
- * Today, the PM's home (Phase S, S7.1): one list across their clients (or all), sorted by urgency, one main action
- * each. On top of the project exceptions (client waiting, failed agent, staffing, quality check, estimate to send,
- * repeat change request, deadline at risk): estimates waiting for the PM's number, plan items that need Klingit's
- * help close to (or past) their brief-by date, new briefs, client requests to approve, low balances (under 20% left)
- * and contracts within 30 days of their notice deadline.
+ * Today, the Marketing PM's day (Phase T): one row = one decision. Every signal about one project and one kind of
+ * decision becomes one task (all quote and number lines on an estimate are one "Price 1 line and check 1" task), a
+ * deadline problem is the due tag of the project's task (a row of its own only when nothing else is open there),
+ * and duplicate briefs show inside the task. Sections: Do now (late or due today), This week, and Keep an eye on
+ * (projects running on their own, a balance that runs out before month end, a renewal or notice within 30 days).
+ *
+ * Admin jobs never land here (ad accounts nobody owns, migration, clients without a PM, invoices on other PMs'
+ * clients): an overdue invoice shows only on its own PM's Today. Ticked tasks stay done for the day (TodayDone).
  */
 
 const DAY = 86400000;
-export type TodayItem = { id: string; kind: string; kindLabel: string; short: string; tone: "danger" | "turn" | "neutral"; rank: number; title: string; detail: string; clientId: string; clientName: string; since: Date; action: { label: string; href: string } };
-
-const ago = (since: Date, now: Date) => {
-  const h = Math.max(0, Math.round((now.getTime() - since.getTime()) / 3600000));
-  return h < 24 ? `${h}h` : `${Math.round(h / 24)}d`;
+export type TaskKind = "ESTIMATE" | "MESSAGE" | "PLAN" | "STAFFING" | "QUALITY CHECK" | "REQUEST" | "DEADLINE" | "INVOICE" | "BRIEF" | "AGENT" | "CHANGES";
+export type Due = { tone: "late" | "soon" | "ok"; label: string; at: Date };
+export type TaskAction = { label: string; href: string };
+export type Task = {
+  key: string;
+  kind: TaskKind;
+  clientId: string;
+  clientName: string;
+  projectId: string | null;
+  subject: string;
+  sentence: string;
+  context: string;
+  due: Due;
+  section: "now" | "week";
+  minutes: number;
+  primary: TaskAction;
+  secondary?: TaskAction;
+  /** "This brief exists twice (…)": the other copies, merged when the estimate is sent. */
+  duplicates?: { id: string; name: string; createdAt: Date }[];
+  /** What the inline actions work on. */
+  ref: { estimateId?: string; requestId?: string; planItemId?: string; invoiceId?: string; creator?: string | null };
 };
+export type KeepAnEye = { title: string; line: string; note: string; href?: string };
 
-export async function loadToday(scope: Scope, now = new Date()) {
-  const inScope = scope.clientIds ? { clientId: { in: scope.clientIds } } : {};
-  const [projects, estimates, quotes, planItems, briefs, requests, contracts] = await Promise.all([
+const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+const shortDay = (d: Date) => new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short" }).format(d);
+const dayMonth = (d: Date) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(d);
+export const dayKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const first = (name: string | null | undefined) => (name ?? "").split(" ")[0] || "the client";
+const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? "" : "s"}`;
+
+function daysLate(at: Date, now: Date) {
+  return Math.max(1, Math.round((startOfDay(now).getTime() - startOfDay(at).getTime()) / DAY));
+}
+/** A date-based tag: late when past, soon today or tomorrow, otherwise the day. */
+export function dueOn(at: Date, now: Date, prefix = "Due"): Due {
+  const today = startOfDay(now);
+  const p = prefix ? `${prefix} ` : "";
+  if (at < today) return { tone: "late", label: `${daysLate(at, now)} day${daysLate(at, now) === 1 ? "" : "s"} late`, at };
+  if (at < new Date(today.getTime() + DAY)) return { tone: "soon", label: `${p}today`.replace(/^./, (c) => c.toUpperCase()), at };
+  if (at < new Date(today.getTime() + 2 * DAY)) return { tone: "soon", label: `${p}tomorrow`.replace(/^./, (c) => c.toUpperCase()), at };
+  return { tone: "ok", label: prefix ? `${prefix} ${dayMonth(at)}` : shortDay(at), at };
+}
+const isNow = (due: Due, now: Date) => due.tone === "late" || due.at < new Date(startOfDay(now).getTime() + DAY);
+
+export async function loadToday(scope: Scope, now = new Date(), viewer?: { id: string } | null) {
+  // Clients with no Marketing PM are an Admin job (To set up), not anyone's Today.
+  const withPm = await clientsWithPm(scope.clientIds);
+  const inScope = { clientId: { in: withPm } };
+  const [projects, minutes, planItems, briefs, requests, invoices] = await Promise.all([
     loadOpsProjects(inScope, now),
-    prisma.estimate.findMany({ where: { status: "DRAFT", project: { status: { notIn: ["ARCHIVED", "DRAFT"] }, ...inScope }, lineItems: { some: { needsConfirm: true, confirmedAt: null } } }, include: { project: { select: { id: true, name: true, clientId: true, client: { select: { name: true } } } }, lineItems: { where: { needsConfirm: true, confirmedAt: null }, select: { id: true } } } }),
-    prisma.estimate.findMany({ where: { status: "DRAFT", project: { status: { notIn: ["ARCHIVED", "DRAFT"] }, ...inScope } }, include: { project: { select: { id: true, name: true, clientId: true, client: { select: { name: true } } } } } }),
+    getSetting("todayMinutes"),
     prisma.clientCalendarItem.findMany({ where: { ...inScope, maker: "klingit_help", projectId: null, archivedAt: null, briefBy: { not: null, lte: new Date(now.getTime() + 7 * DAY) }, date: { gte: new Date(now.getTime() - 2 * DAY) } }, include: { client: { select: { name: true } } } }),
     prisma.project.findMany({ where: { ...inScope, status: "BRIEFING", createdAt: { gte: new Date(now.getTime() - 3 * DAY) } }, select: { id: true, name: true, clientId: true, createdAt: true, client: { select: { name: true } } } }),
     prisma.purchaseRequest.findMany({ where: { ...inScope, status: "pending" }, include: { client: { select: { name: true } } } }),
-    prisma.contract.findMany({ where: { ...inScope, status: { in: ["active", "paused"] } }, include: { client: { select: { name: true } } } }),
+    // Overdue invoices: only on the viewer's own clients, never other PMs' (an admin sees them in Admin).
+    viewer ? ownClients(viewer.id, withPm).then((ids) => prisma.invoice.findMany({ where: { status: "OVERDUE", clientId: { in: ids } }, include: { client: { select: { name: true } } } })) : Promise.resolve([]),
   ]);
-  const needsNumber = new Set(estimates.map((e) => e.project.id));
-  const items: TodayItem[] = rankExceptions(projects)
-    // Shown below as "needs your number", with the estimate lines (one item per estimate, not two).
-    .filter((e) => e.kind !== "out_of_scope" && !(e.kind === "estimate_send" && needsNumber.has(e.projectId)))
-    .map((e) => {
-      const p = projects.find((x) => x.project.id === e.projectId);
-      return { id: e.id, kind: e.kind, kindLabel: e.kindLabel, short: e.kindShort, tone: e.tone, rank: e.rank, title: e.title, detail: `${e.detail} · ${e.projectName}`, clientId: p?.project.clientId ?? "", clientName: e.clientName, since: e.since, action: e.action };
-    });
-  for (const est of estimates)
-    items.push({ id: `est-${est.id}`, kind: "estimate_number", kindLabel: "Needs your number", short: "EST", tone: "turn", rank: 1, title: `${est.lineItems.length} estimate line${est.lineItems.length === 1 ? " needs" : "s need"} your number`, detail: `${est.project.name}: estimate or quote items from the Price List`, clientId: est.project.clientId, clientName: est.project.client.name, since: est.createdAt, action: { label: "Price it", href: `/ops/projects/${est.project.id}?edit=estimate#estimate` } });
-  for (const est of quotes)
-    for (const n of (est.unresolvedNeeds as { description: string; resolution?: unknown }[] | null) ?? [])
-      if (!n.resolution)
-        items.push({ id: `quote-${est.id}-${n.description}`, kind: "pm_quote", kindLabel: "Needs PM quote", short: "QUOTE", tone: "turn", rank: 1, title: `Quote: ${n.description}`, detail: `${est.project.name}: not on the Price List`, clientId: est.project.clientId, clientName: est.project.client.name, since: est.createdAt, action: { label: "Quote it", href: `/ops/projects/${est.project.id}?edit=estimate#estimate` } });
-  for (const i of planItems) {
-    const late = i.briefBy! < now;
-    items.push({ id: `plan-${i.id}`, kind: "plan_brief", kindLabel: late ? "Brief-by passed" : "Brief due soon", short: "PLAN", tone: late ? "danger" : "turn", rank: late ? 0 : 2, title: i.title, detail: `Klingit's help needed · brief by ${new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short" }).format(i.briefBy!)}`, clientId: i.clientId, clientName: i.client.name, since: i.briefBy!, action: { label: late ? "Talk to the client" : "Nudge the client", href: `/ops/plan?item=${i.id}` } });
+  const drafts = await prisma.estimate.findMany({ where: { status: "DRAFT", projectId: { in: projects.map((p) => p.project.id) } }, include: { lineItems: true } });
+  const draftOf = (projectId: string) => drafts.find((d) => d.projectId === projectId) ?? null;
+  const owners = new Map((await prisma.clientUser.findMany({ where: { id: { in: projects.flatMap((p) => (p.project.createdByClientUserId ? [p.project.createdByClientUserId] : [])) } }, select: { id: true, user: { select: { name: true } } } })).map((c) => [c.id, c.user.name]));
+  const mins = (k: TaskKind) => minutes[k] ?? 5;
+  // The creator to ask: someone making the work, never the PM.
+  const creatorOf = (op: OpsProject) => op.project.team?.members.find((m) => ["ART_DIRECTOR", "COPYWRITER", "MOTION_DESIGNER"].includes(m.staffMember.title))?.staffMember.user.name ?? null;
+  const waited = (since: Date) => {
+    const d = Math.floor((now.getTime() - since.getTime()) / DAY);
+    return d >= 1 ? `Waiting ${d} day${d === 1 ? "" : "s"}` : `Waiting ${Math.max(1, Math.round((now.getTime() - since.getTime()) / 3600000))} h`;
+  };
+
+  // Duplicate briefs: the same client, the same project name, both still open. Tasks show on the oldest one.
+  const byName = new Map<string, OpsProject[]>();
+  for (const p of projects) {
+    const k = `${p.project.clientId}|${p.project.name.trim().toLowerCase()}`;
+    byName.set(k, [...(byName.get(k) ?? []), p]);
   }
-  for (const b of briefs) items.push({ id: `brief-${b.id}`, kind: "new_brief", kindLabel: "New brief", short: "NEW", tone: "turn", rank: 2, title: b.name, detail: "A new brief came in", clientId: b.clientId, clientName: b.client.name, since: b.createdAt, action: { label: "Open brief", href: `/ops/projects/${b.id}#brief` } });
-  for (const r of requests) items.push({ id: `req-${r.id}`, kind: "request", kindLabel: "Request", short: "REQ", tone: "turn", rank: 1, title: REQUEST_KINDS[r.kind as RequestKind]?.label ?? r.kind, detail: r.price != null ? `${r.price.toLocaleString("en-GB")} ${r.currency}` : "Needs a price", clientId: r.clientId, clientName: r.client.name, since: r.createdAt, action: { label: "Review", href: "/ops/requests" } });
-  for (const c of contracts) {
-    const days = Math.ceil((c.noticeDeadline.getTime() - now.getTime()) / DAY);
-    if (c.autoRenew && days >= 0 && days <= 30) items.push({ id: `notice-${c.id}`, kind: "notice", kindLabel: "Notice deadline", short: "RENEW", tone: "turn", rank: 3, title: `Renews unless cancelled in ${days} days`, detail: `Notice deadline ${new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(c.noticeDeadline)} · ${c.termMonths}-month term`, clientId: c.clientId, clientName: c.client.name, since: c.noticeDeadline, action: { label: "Open contract", href: `/ops/clients/${c.clientId}/contract` } });
-    const b = await teamBalances(c.clientId, now);
-    for (const pool of ["pm", "creative"] as const) {
-      const p = b?.[pool];
-      if (p && p.monthly > 0 && p.left < p.monthly * 0.2) items.push({ id: `low-${c.id}-${pool}`, kind: "low_balance", kindLabel: "Low balance", short: "LOW", tone: "neutral", rank: 4, title: `${pool === "pm" ? "PM" : "Creative"} credits low: ${Math.round(p.left)} of ${p.monthly} left`, detail: "Under 20% of the month: talk about an extra pack or the plan", clientId: c.clientId, clientName: c.client.name, since: now, action: { label: "Open balances", href: `/ops/clients/${c.clientId}/balances` } });
+  const keeper = new Map<string, string>();
+  for (const group of byName.values()) {
+    if (group.length < 2) continue;
+    const keep = [...group].sort((a, b) => a.project.createdAt.getTime() - b.project.createdAt.getTime())[0];
+    for (const p of group) keeper.set(p.project.id, keep.project.id);
+  }
+  const home = (projectId: string) => keeper.get(projectId) ?? projectId;
+  const projectById = new Map(projects.map((p) => [p.project.id, p]));
+
+  // ─── Project tasks: one per project and kind of decision ─────────────────
+  const byProject = new Map<string, OpsException[]>();
+  for (const e of rankExceptions(projects)) byProject.set(home(e.projectId), [...(byProject.get(home(e.projectId)) ?? []), e]);
+  const tasks: Task[] = [];
+  for (const [projectId, list] of byProject) {
+    const op = projectById.get(projectId)!;
+    const p = op.project;
+    const base = { clientId: p.clientId, clientName: p.client.name, projectId, subject: p.name };
+    const copies = [...keeper.entries()].filter(([id, k]) => k === projectId && id !== projectId).map(([id]) => projectById.get(id)!.project);
+    const dupes = copies.length ? copies.map((g) => ({ id: g.id, name: g.name, createdAt: g.createdAt })) : undefined;
+    const creator = creatorOf(op);
+    const deadline = list.find((e) => e.kind === "deadline_at_risk");
+    const deadlineDue = p.dueDate && p.dueDate < startOfDay(now) ? dueOn(p.dueDate, now) : null;
+    const of = (kinds: string[]) => list.filter((e) => kinds.includes(e.kind));
+    const made: Task[] = [];
+    const push = (t: Omit<Task, keyof typeof base | "section" | "minutes">) => {
+      // A deadline problem on the same project is this task's due tag, not a row of its own.
+      const due = deadlineDue && deadlineDue.at < t.due.at ? deadlineDue : t.due;
+      made.push({ ...base, ...t, due, section: isNow(due, now) ? "now" : "week", minutes: mins(t.kind) });
+    };
+
+    // Estimate: every quote line, number line and "ready to send" on this project's estimate(s), together.
+    const estimates = [projectId, ...copies.map((c) => c.id)].map(draftOf).filter((e): e is NonNullable<typeof e> => Boolean(e));
+    const quotes = estimates.flatMap((e) => jsonArray<{ description: string; resolution?: unknown }>(e.unresolvedNeeds).filter((n) => !n.resolution));
+    const numbers = estimates.flatMap((e) => e.lineItems.filter((l) => l.needsConfirm && !l.confirmedAt));
+    if (of(["out_of_scope", "estimate_send"]).length || quotes.length || numbers.length) {
+      const e = estimates[0];
+      const parts = [quotes.length ? `price ${plural(quotes.length, "line")}` : null, numbers.length ? `check ${numbers.length}` : null].filter(Boolean);
+      const single = numbers.length === 1 && !quotes.length ? numbers[0] : null;
+      push({
+        key: `ESTIMATE:${projectId}`,
+        kind: "ESTIMATE",
+        sentence: single ? `Confirm the ${single.deliverable.toLowerCase().replace(/ \(.*\)$/, "")} number` : parts.length ? `${parts.join(" and ").replace(/^./, (c) => c.toUpperCase())} before the estimate goes out` : `Check the estimate and send it to ${p.client.name}`,
+        context: single
+          ? `${single.deliverable}, ${Math.round((single.credits / Math.max(1, single.quantity)) * 100) / 100} credits × ${single.quantity} = ${single.credits}. Needs your number on the Price List.`
+          : `${p.client.name} is waiting for the estimate.${p.dueDate ? ` Due ${dayMonth(p.dueDate)}.` : ""}`,
+        due: p.dueDate ? dueOn(p.dueDate, now) : dueOn(new Date((e?.createdAt ?? now).getTime() + DAY), now),
+        primary: { label: single ? `Confirm ${single.credits}` : "Price it", href: `/ops/projects/${projectId}?edit=estimate#estimate` },
+        secondary: single ? { label: "Change", href: `/ops/projects/${projectId}?edit=estimate#estimate` } : undefined,
+        duplicates: dupes,
+        ref: { estimateId: e?.id },
+      });
+    }
+    for (const m of of(["client_waiting"]).slice(0, 1)) {
+      push({
+        key: `MESSAGE:${projectId}`,
+        kind: "MESSAGE",
+        sentence: `Reply to ${m.title.replace(/ is waiting for a reply$/, "")}`,
+        context: m.detail.replace(/ Unanswered for .*$/, ""),
+        due: { tone: "late", label: waited(m.since), at: m.since },
+        primary: { label: "Reply", href: m.action.href },
+        secondary: creator ? { label: `Ask ${creator}`, href: m.action.href } : undefined,
+        ref: { creator },
+      });
+    }
+    for (const s of of(["staffing"]).slice(0, 1)) {
+      const role = /art director|copywriter|motion designer/i.exec(s.detail)?.[0]?.toLowerCase() ?? "creator";
+      push({ key: `STAFFING:${projectId}`, kind: "STAFFING", sentence: `Pick ${/^[aeiou]/.test(role) ? "an" : "a"} ${role}`, context: s.detail, due: { tone: "soon", label: "Staffing", at: startOfDay(now) }, primary: { label: "Pick creators", href: s.action.href }, ref: {} });
+    }
+    const qc = of(["quality_check"]);
+    if (qc.length) {
+      const eta = op.state.keyFacts.firstDraftEta;
+      const owner = first(p.createdByClientUserId ? owners.get(p.createdByClientUserId) : null);
+      push({
+        key: `QUALITY CHECK:${projectId}`,
+        kind: "QUALITY CHECK",
+        sentence: qc[0].title.startsWith("Quality check before sending") ? `Check ${qc[0].title.replace("Quality check before sending ", "")} and send it to ${owner}` : qc[0].title,
+        context: qc.map((q) => q.detail).join(" "),
+        due: eta ? dueOn(eta, now, "") : { tone: "ok", label: "Waiting", at: qc[0].since },
+        primary: { label: "Review and send", href: `/ops/projects/${projectId}/qc` },
+        ref: {},
+      });
+    }
+    for (const a of of(["failed_agent"]).slice(0, 1)) push({ key: `AGENT:${projectId}`, kind: "AGENT", sentence: `Check why the ${a.title.replace(/ failed$/, "")} failed`, context: a.detail, due: { tone: "soon", label: "Failed", at: a.since }, primary: { label: "Open project", href: a.action.href }, ref: {} });
+    for (const c of of(["second_change_request"]).slice(0, 1)) push({ key: `CHANGES:${projectId}`, kind: "CHANGES", sentence: `Talk to ${p.client.name} about ${c.title.replace(/^Changes asked again on /, "")}`, context: c.detail, due: { tone: "ok", label: "Changes asked twice", at: c.since }, primary: { label: "Open asset", href: c.action.href }, ref: {} });
+    if (deadline && made.length === 0) {
+      push({
+        key: `DEADLINE:${projectId}`,
+        kind: "DEADLINE",
+        sentence: op.state.stage === "production" ? "Get the first draft back on track" : `Get ${p.name} back on track`,
+        context: `${creator ? `${creator} is producing it. ` : ""}${p.dueDate ? `It was due ${dayMonth(p.dueDate)}.` : deadline.detail}`,
+        due: p.dueDate ? dueOn(p.dueDate, now) : { tone: "soon", label: "At risk", at: deadline.since },
+        primary: { label: creator ? `Ask ${first(creator)} for an update` : "Open project", href: `/ops/projects/${projectId}` },
+        secondary: { label: "Move date", href: `/ops/projects/${projectId}` },
+        ref: { creator },
+      });
+    }
+    tasks.push(...made);
+  }
+
+  // ─── Not about one project's pipeline ────────────────────────────────────
+  const planners = new Map((await prisma.user.findMany({ where: { id: { in: planItems.flatMap((i) => (i.createdByUserId ? [i.createdByUserId] : [])) } }, select: { id: true, name: true } })).map((u) => [u.id, u.name]));
+  const tomorrowEnd = new Date(startOfDay(now).getTime() + 2 * DAY);
+  for (const i of planItems) {
+    const brief = i.briefBy!;
+    const late = brief < startOfDay(now);
+    const due: Due = late ? { tone: "late", label: `Brief-by passed ${dayMonth(brief)}`, at: brief } : { tone: brief < tomorrowEnd ? "soon" : "ok", label: `Brief by ${shortDay(brief)}`, at: brief };
+    const when = brief < new Date(startOfDay(now).getTime() + DAY) ? "today" : brief < tomorrowEnd ? "tomorrow" : `by ${shortDay(brief)}`;
+    const who = first(i.createdByUserId ? planners.get(i.createdByUserId) : null);
+    tasks.push({
+      key: `PLAN:${i.id}`,
+      kind: "PLAN",
+      clientId: i.clientId,
+      clientName: i.client.name,
+      projectId: null,
+      subject: i.title,
+      sentence: late ? `Talk to ${who}: the brief is late` : `Nudge ${who}: the brief is due ${when}`,
+      context: `Marked “Klingit’s help needed”. Live ${shortDay(i.date)}. No brief started yet. A reminder is drafted for you.`,
+      due,
+      // Nudging is due the day before the brief-by date.
+      section: brief < tomorrowEnd ? "now" : "week",
+      minutes: mins("PLAN"),
+      primary: { label: "Send nudge", href: `/ops/plan?item=${i.id}` },
+      secondary: { label: "Edit", href: `/ops/plan?item=${i.id}` },
+      ref: { planItemId: i.id },
+    });
+  }
+  for (const b of briefs) {
+    if (tasks.some((t) => t.projectId === home(b.id))) continue;
+    const due = dueOn(new Date(b.createdAt.getTime() + DAY), now);
+    tasks.push({ key: `BRIEF:${b.id}`, kind: "BRIEF", clientId: b.clientId, clientName: b.client.name, projectId: b.id, subject: b.name, sentence: "Read the new brief", context: "A new brief came in.", due, section: isNow(due, now) ? "now" : "week", minutes: mins("BRIEF"), primary: { label: "Open brief", href: `/ops/projects/${b.id}#brief` }, ref: {} });
+  }
+  for (const r of requests) {
+    const label = REQUEST_KINDS[r.kind as RequestKind]?.label ?? r.kind;
+    const payload = (r.payload ?? {}) as { packs?: number; note?: string };
+    tasks.push({
+      key: `REQUEST:${r.id}`,
+      kind: "REQUEST",
+      clientId: r.clientId,
+      clientName: r.client.name,
+      projectId: null,
+      subject: label,
+      sentence: r.kind === "creative_pack" ? `Approve ${(payload.packs ?? 1) * 10} extra creative credits` : `Decide: ${label.toLowerCase()}`,
+      context: [payload.note ? `“${payload.note}”` : null, r.price != null ? `${r.price.toLocaleString("en-GB")} ${r.currency} on the next invoice.` : "Needs a price."].filter(Boolean).join(" "),
+      due: { tone: "ok", label: `Asked ${dayMonth(r.createdAt)}`, at: r.createdAt },
+      section: now.getTime() - r.createdAt.getTime() > 3 * DAY ? "now" : "week",
+      minutes: mins("REQUEST"),
+      primary: { label: "Approve", href: "/ops/requests" },
+      secondary: { label: "Decline", href: "/ops/requests" },
+      ref: { requestId: r.id },
+    });
+  }
+  for (const inv of invoices) {
+    const due: Due = inv.dueAt ? { tone: "late", label: `${daysLate(inv.dueAt, now)} days overdue`, at: inv.dueAt } : { tone: "late", label: "Overdue", at: now };
+    tasks.push({ key: `INVOICE:${inv.id}`, kind: "INVOICE", clientId: inv.clientId, clientName: inv.client.name, projectId: null, subject: `Invoice ${inv.number}`, sentence: `Remind ${inv.client.name} about invoice ${inv.number}`, context: `${inv.amount.toLocaleString("en-GB")} ${inv.currency}, past its due date.`, due, section: "now", minutes: mins("INVOICE"), primary: { label: "Open invoice", href: `/ops/admin/billing/invoices/${inv.id}` }, ref: { invoiceId: inv.id } });
+  }
+
+  // Done today (ticked or acted): out of the list, into the bar.
+  const done = viewer ? await prisma.todayDone.findMany({ where: { staffId: viewer.id, day: dayKey(now) }, orderBy: { createdAt: "asc" } }) : [];
+  const doneKeys = new Set(done.map((d) => d.taskKey));
+  const open = tasks.filter((t) => !doneKeys.has(t.key));
+  open.sort((a, b) => (a.section === b.section ? 0 : a.section === "now" ? -1 : 1) || (a.due.tone === "late" ? 0 : 1) - (b.due.tone === "late" ? 0 : 1) || a.due.at.getTime() - b.due.at.getTime());
+
+  return { tasks: open, done, projects, keepAnEye: await keepAnEye(projects, withPm, now) };
+}
+
+async function clientsWithPm(ids: string[] | null) {
+  const clients = await prisma.client.findMany({
+    where: { status: { not: "OFFBOARDED" }, ...(ids ? { id: { in: ids } } : {}) },
+    select: { id: true, accountLeadId: true, contracts: { where: { status: { in: ["active", "paused", "ending", "scheduled"] }, contactStaffId: { not: null } }, select: { id: true } } },
+  });
+  return clients.filter((c) => c.accountLeadId || c.contracts.length).map((c) => c.id);
+}
+
+async function ownClients(staffId: string, among: string[]) {
+  const mine = new Set(await myClientIds(staffId));
+  return among.filter((id) => mine.has(id));
+}
+
+/** Not tasks yet: what runs on its own, a balance that won't last the month, a renewal or notice close by. */
+async function keepAnEye(projects: OpsProject[], clientIds: string[], now: Date): Promise<KeepAnEye[]> {
+  const out: KeepAnEye[] = [];
+  const running = projects.filter((p) => p.exceptions.length === 0);
+  const next = running
+    .map((p) => ({ p, at: p.state.keyFacts.firstDraftEta ?? p.project.dueDate }))
+    .filter((x): x is { p: OpsProject; at: Date } => Boolean(x.at && x.at >= startOfDay(now)))
+    .sort((a, b) => a.at.getTime() - b.at.getTime())[0];
+  out.push({ title: String(running.length), line: `project${running.length === 1 ? "" : "s"} running on their own`, note: next ? `All on track · next: ${next.p.project.name}, ${shortDay(next.at)}` : running.length ? "All on track" : "Nothing running on its own yet" });
+
+  // A balance that runs out before month end at this month's pace.
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const elapsed = Math.max(1, (now.getTime() - new Date(now.getFullYear(), now.getMonth(), 1).getTime()) / DAY);
+  const clients = await prisma.client.findMany({ where: { id: { in: clientIds } }, select: { id: true, name: true, renewalDate: true, contracts: { where: { status: { not: "ended" } }, select: { id: true } } } });
+  let soonest: { name: string; pool: string; at: Date; left: number; id: string } | null = null;
+  for (const c of clients) {
+    const b = await teamBalances(c.id, now);
+    if (!b) continue;
+    for (const pool of ["creative", "pm"] as const) {
+      const s = b[pool];
+      const pace = s.used / elapsed;
+      if (pace <= 0 || s.left <= 0) continue;
+      const at = new Date(now.getTime() + (s.left / pace) * DAY);
+      if (at < monthEnd && (!soonest || at < soonest.at)) soonest = { name: c.name, pool, at, left: s.left, id: c.id };
     }
   }
-  items.sort((a, b) => a.rank - b.rank || a.since.getTime() - b.since.getTime());
-  return { items: items.map((i) => ({ ...i, waiting: ago(i.since, now) })), projects };
+  out.push(
+    soonest
+      ? { title: soonest.name, line: `${soonest.pool === "pm" ? "PM" : "creative"} credits run out ~ ${dayMonth(soonest.at)}`, note: `${Math.round(soonest.left)} left · a pack suggestion is ready if they ask`, href: `/ops/clients/${soonest.id}/balances` }
+      : { title: "Balances", line: "every balance lasts the month", note: "At this month's pace" }
+  );
+
+  // Notice deadlines within 30 days (contracts), else old plans renewing around now.
+  const contracts = await prisma.contract.findMany({ where: { clientId: { in: clientIds }, status: { in: ["active", "paused"] }, autoRenew: true, noticeDeadline: { gte: now, lte: new Date(now.getTime() + 30 * DAY) } }, include: { client: { select: { name: true } } }, orderBy: { noticeDeadline: "asc" } });
+  // Old plans only: a client on a contract renews by its contract.
+  const old = clients.filter((c) => !c.contracts.length && c.renewalDate && Math.abs(c.renewalDate.getTime() - now.getTime()) <= 30 * DAY).sort((a, b) => a.renewalDate!.getTime() - b.renewalDate!.getTime());
+  if (contracts[0]) out.push({ title: contracts[0].client.name, line: `notice by ${dayMonth(contracts[0].noticeDeadline)}`, note: `Renews ${dayMonth(contracts[0].endDate)} unless cancelled`, href: `/ops/clients/${contracts[0].clientId}/contract` });
+  else if (old[0]) {
+    const passed = old[0].renewalDate! < now;
+    out.push({ title: old[0].name, line: passed ? `renews ${dayMonth(old[0].renewalDate!)} → notice passed` : `renews ${dayMonth(old[0].renewalDate!)}`, note: passed ? "Renewed automatically · say hello this month" : "On an old plan · see Admin → Migration", href: `/ops/clients/${old[0].id}/contract` });
+  } else out.push({ title: "Renewals", line: "none in the next 30 days", note: "Notice dates are on each contract" });
+  return out;
 }

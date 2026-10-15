@@ -15,8 +15,10 @@ async function main() {
   await page.goto(`${BASE}${path}`, { waitUntil: "networkidle" });
   const scroll = process.argv.find((a) => a.startsWith("--scroll="))?.slice(9);
   if (scroll) {
-    await page.getByText(scroll, { exact: true }).first().scrollIntoViewIfNeeded();
-    await page.getByText(scroll, { exact: true }).first().evaluate((el) => el.scrollIntoView({ block: "start" }));
+    // An exact match first; else the first element that contains the text (a heading with a count next to it).
+    const exact = page.getByText(scroll, { exact: true }).first();
+    const target = (await exact.count()) ? exact : page.getByText(scroll).first();
+    await target.evaluate((el) => el.scrollIntoView({ block: "start" }));
     await page.waitForTimeout(300);
   }
   await page.screenshot({ path: out, fullPage: process.argv.includes("--full") });

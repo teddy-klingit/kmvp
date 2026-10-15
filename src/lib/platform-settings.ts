@@ -30,6 +30,8 @@ export const SETTING_DEFAULTS = {
   creativePackSurcharge: 0.1 as number,
   /** An AI credit top-up. */
   aiTopUp: { credits: 500, priceEur: 49 } as { credits: number; priceEur: number },
+  /** Phase T: minutes a Today task takes, per kind (placeholders), for "about 1 h 20 min". */
+  todayMinutes: { MESSAGE: 5, ESTIMATE: 15, PLAN: 2, REQUEST: 2, STAFFING: 5, "QUALITY CHECK": 15, DEADLINE: 5, INVOICE: 5, BRIEF: 5, AGENT: 5, CHANGES: 5 } as Record<string, number>,
   /** Custom PM quotes only (never Price List items): hours × the task type's multiplier = credits. */
   customQuoteMultipliers: {
     "PM, global": 1,

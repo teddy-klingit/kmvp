@@ -52,11 +52,11 @@ describe("PM views are scoped to the PM's own clients by default", () => {
 
   it("Today shows a client's request only to that client's PM (or under All)", async () => {
     const mineA = await loadToday(await scopeFor(pmA));
-    expect(mineA.items.some((i) => i.kind === "request" && i.clientId === fx.clientB.id)).toBe(false);
+    expect(mineA.tasks.some((i) => i.kind === "REQUEST" && i.clientId === fx.clientB.id)).toBe(false);
     const mineB = await loadToday(await scopeFor(pmB));
-    expect(mineB.items.some((i) => i.kind === "request" && i.clientId === fx.clientB.id)).toBe(true);
+    expect(mineB.tasks.some((i) => i.kind === "REQUEST" && i.clientId === fx.clientB.id)).toBe(true);
     const all = await loadToday(await scopeFor(pmA, "all"));
-    expect(all.items.some((i) => i.kind === "request" && i.clientId === fx.clientB.id)).toBe(true);
+    expect(all.tasks.some((i) => i.kind === "REQUEST" && i.clientId === fx.clientB.id)).toBe(true);
   });
 
   it("the Clients list follows the same scope and flags what needs attention", async () => {

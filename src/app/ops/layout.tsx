@@ -11,7 +11,7 @@ export default async function OpsLayout({ children }: { children: React.ReactNod
   const viewer = await getOpsViewer();
   const tier = roleTierFor(viewer.title);
   // Today: my open tasks (Today's default view). Admin: open set-up jobs (Phase T).
-  const needsCount = tier === "CREATOR" ? 0 : (await loadToday(await scopeFor(viewer))).items.length;
+  const needsCount = tier === "CREATOR" ? 0 : (await loadToday(await scopeFor(viewer), new Date(), viewer)).tasks.length;
   const admin = hasAdmin(viewer);
   const adminCount = admin ? (await adminJobCounts()).jobs : 0;
 

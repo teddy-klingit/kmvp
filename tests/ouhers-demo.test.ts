@@ -163,8 +163,8 @@ describe("the ouhers demo seed", () => {
     expect(inv.map((i) => i.status)).toEqual(["PAID", "SENT"]);
     expect(await prisma.purchaseRequest.count({ where: { clientId: OUHERS_CLIENT_ID, kind: "creative_pack", status: "pending" } })).toBe(1);
     const today = await loadToday({ mine: false, clientIds: [OUHERS_CLIENT_ID] });
-    expect(today.items.filter((i) => i.kind === "estimate_number")).toHaveLength(1);
-    expect(today.items.some((i) => i.kind === "plan_brief")).toBe(true);
+    expect(today.tasks.filter((i) => i.kind === "ESTIMATE" && i.clientId === OUHERS_CLIENT_ID && /number/.test(i.sentence))).toHaveLength(1);
+    expect(today.tasks.some((i) => i.kind === "PLAN")).toBe(true);
     expect(await prisma.assetVersion.count({ where: { state: "QC_READY", asset: { clientId: OUHERS_CLIENT_ID } } })).toBeGreaterThan(0);
   });
 });

@@ -2587,3 +2587,22 @@ model PurchaseRequest {
   @@index([status, createdAt])
   @@index([clientId, status])
 }
+
+/// Phase T: a Today task a staff member finished (acted on it) or ticked off, per day. A ticked task stays done for
+/// the rest of that day and comes back the next day if it's still open.
+model TodayDone {
+  id        String   @id @default(cuid())
+  staffId   String
+  taskKey   String
+  /// YYYY-MM-DD in the staff member's day.
+  day       String
+  /// "acted" (its action was done) or "ticked".
+  how       String
+  /// The task's sentence when it was done, for "3 done today: …".
+  label     String
+  clientId  String?
+  createdAt DateTime @default(now())
+
+  @@unique([staffId, taskKey, day])
+  @@index([staffId, day])
+}
