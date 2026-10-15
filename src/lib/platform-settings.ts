@@ -65,6 +65,8 @@ export const SETTING_DEFAULTS = {
   topUpMaxEurPerMonth: 250 as number,
   autoTopUpRule: { below: 100, option: 0, maxPerMonth: 3 } as { below: number; option: number; maxPerMonth: number },
   topUpRollover: true as boolean,
+  /** Phase U: EUR → USD for "AI share of the plan price" on Admin → AI usage. */
+  eurUsdRate: 1.08 as number,
   promptCaching: true as boolean,
   batchScheduledReports: true as boolean,
   /** Phase T: minutes a Today task takes, per kind (placeholders), for "about 1 h 20 min". */

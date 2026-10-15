@@ -15,6 +15,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         tabsLabel="Admin"
         tabs={[
           { label: "To set up", href: "/ops/admin", badge: c.jobs || undefined },
+          { label: "AI usage", href: "/ops/admin/ai-usage" },
           { label: "Price List", href: "/ops/admin/price-list" },
           { label: "Billing", href: "/ops/admin/billing" },
           { label: "Migration", href: "/ops/admin/migration", badge: c.oldPlans || undefined },
