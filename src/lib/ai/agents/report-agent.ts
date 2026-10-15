@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { runAgentTask } from "@/lib/ai/run-agent";
 
-const ReportSchema = z.object({
+export const ReportSchema = z.object({
   takeaways: z
     .array(
       z.object({
@@ -19,7 +19,7 @@ const ReportSchema = z.object({
  * exactly which numbers belong to the period and which are "as of today" (live ad accounts read the last
  * 30 days), so it never presents a 30-day figure as the week's.
  */
-export async function synthesizeReportTakeaways(args: {
+export type ReportArgs = {
   clientId: string;
   clientName: string;
   kind: "WEEKLY" | "MONTHLY";
@@ -29,7 +29,10 @@ export async function synthesizeReportTakeaways(args: {
   paid: { platform: string; campaignName: string; ctr: number; spend: number; currency: string; clicks: number; impressions: number }[];
   assets: { name: string; project: string; format: string; ctr: number }[];
   signals: { type: string; title: string }[];
-}) {
+};
+
+/** The report's prompt: shared by the immediate run and the Batch API (Phase U). */
+export function reportPrompt(args: ReportArgs) {
   const system = `You are the Performance agent at Klingit, a creative agency, writing the ${args.kind === "WEEKLY" ? "weekly" : "monthly"} report a client reads first. Give at most 3 takeaways, most important first, each a plain-language title and one short line with the exact numbers. Use only the data given. Paid figures are the connected ad accounts' last 30 days as of today, not just this period: say "last 30 days" when you use them. Cite currencies by their code, never "$".`;
   const parts = [`Client: ${args.clientName}`, `Report: ${args.periodLabel}`, ""];
   parts.push(`POSTS PUBLISHED IN THE PERIOD: ${args.postsInPeriod.length}${args.sowMinimum ? ` (SOW minimum for the period: ${args.sowMinimum})` : " (no SOW minimum set)"}`);
@@ -51,12 +54,16 @@ export async function synthesizeReportTakeaways(args: {
     parts.push("");
   }
   parts.push("Write the takeaways now.");
+  return { system, prompt: parts.join("\n") };
+}
 
+export async function synthesizeReportTakeaways(args: ReportArgs) {
+  const { system, prompt } = reportPrompt(args);
   return runAgentTask({
     agentKey: "performance_agent",
     clientId: args.clientId,
     system,
-    prompt: parts.join("\n"),
+    prompt,
     schema: ReportSchema,
     summarize: (d) => `${args.periodLabel}: ${d.takeaways.length} takeaway(s)`,
   });

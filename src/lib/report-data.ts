@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { jsonArray } from "@/lib/utils";
 import { loadMeasuredAssets, loadPaidMedia } from "@/lib/insights-data";
-import { synthesizeReportTakeaways } from "@/lib/ai/agents/report-agent";
+import { synthesizeReportTakeaways, type ReportArgs } from "@/lib/ai/agents/report-agent";
 
 /**
  * Reports (Reports.dc.html): periods, the agent-written report for each closed period, past reports and
@@ -50,8 +50,8 @@ export function periodFor(kind: ReportKind, start: Date): Period {
   return kind === "WEEKLY" ? weekOf(start) : monthOf(start);
 }
 
-/** Writes (or rewrites) one period's report from the data known now. */
-export async function writeReport(clientId: string, period: Period): Promise<{ ok: true } | { ok: false; error: string }> {
+/** What a period's report is written from: the prompt's inputs, or why there's nothing to write yet. */
+export async function prepareReport(clientId: string, period: Period): Promise<{ ok: true; args: ReportArgs; topAssetIds: string[] } | { ok: false; error: string }> {
   const client = await prisma.client.findUniqueOrThrow({ where: { id: clientId }, select: { name: true } });
   const endExclusive = new Date(period.end.getTime() + DAY);
   const [posts, targets, paid, { measured }, signals] = await Promise.all([
@@ -64,26 +64,40 @@ export async function writeReport(clientId: string, period: Period): Promise<{ o
   const weekly = targets.reduce((s, t) => s + t.weeklyVolume, 0);
   const top = [...measured].sort((a, b) => b.ctr - a.ctr).slice(0, 3);
   if (posts.length === 0 && paid.campaigns.length === 0 && measured.length === 0) return { ok: false, error: "No data for this period yet." };
+  return {
+    ok: true,
+    topAssetIds: top.map((a) => a.id),
+    args: {
+      clientId,
+      clientName: client.name,
+      kind: period.kind,
+      periodLabel: `${period.label} · ${period.range}`,
+      postsInPeriod: posts.map((p) => ({ title: p.title, platform: p.platform, contentType: p.contentType, engagementRate: p.engagementRate, impressions: p.impressions })),
+      sowMinimum: weekly ? (period.kind === "WEEKLY" ? weekly : weekly * 4) : null,
+      paid: paid.campaigns,
+      assets: measured.map((a) => ({ name: a.title, project: a.project, format: a.format, ctr: a.ctr })),
+      signals: signals.map((s) => ({ type: s.type, title: s.title })),
+    },
+  };
+}
 
-  const result = await synthesizeReportTakeaways({
-    clientId,
-    clientName: client.name,
-    kind: period.kind,
-    periodLabel: `${period.label} · ${period.range}`,
-    postsInPeriod: posts.map((p) => ({ title: p.title, platform: p.platform, contentType: p.contentType, engagementRate: p.engagementRate, impressions: p.impressions })),
-    sowMinimum: weekly ? (period.kind === "WEEKLY" ? weekly : weekly * 4) : null,
-    paid: paid.campaigns,
-    assets: measured.map((a) => ({ name: a.title, project: a.project, format: a.format, ctr: a.ctr })),
-    signals: signals.map((s) => ({ type: s.type, title: s.title })),
-  });
-  if (!result.ok) return { ok: false, error: result.error };
-
-  const data = { label: period.label, periodEnd: period.end, takeaways: result.data.takeaways.slice(0, 3), topAssetIds: top.map((a) => a.id), generatedAt: new Date() };
+/** Saves a period's report (from an immediate run or a finished batch). */
+export async function saveReport(clientId: string, period: Period, takeaways: { title: string; detail: string }[], topAssetIds: string[]) {
+  const data = { label: period.label, periodEnd: period.end, takeaways: takeaways.slice(0, 3), topAssetIds, generatedAt: new Date() };
   await prisma.generatedReport.upsert({
     where: { clientId_kind_periodStart: { clientId, kind: period.kind, periodStart: period.start } },
     update: data,
     create: { clientId, kind: period.kind, periodStart: period.start, ...data },
   });
+}
+
+/** Writes (or rewrites) one period's report from the data known now. */
+export async function writeReport(clientId: string, period: Period): Promise<{ ok: true } | { ok: false; error: string }> {
+  const prep = await prepareReport(clientId, period);
+  if (!prep.ok) return prep;
+  const result = await synthesizeReportTakeaways(prep.args);
+  if (!result.ok) return { ok: false, error: result.error };
+  await saveReport(clientId, period, result.data.takeaways, prep.topAssetIds);
   return { ok: true };
 }
 

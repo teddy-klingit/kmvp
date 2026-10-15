@@ -8,6 +8,9 @@ import { sendPlanReminders } from "@/lib/plan";
 import { runWeeklyOpportunityScans } from "@/lib/opportunities";
 import { applyAllDueChanges } from "@/lib/contracts";
 import { ensureAllGrants } from "@/lib/team-ledger";
+import { getSetting } from "@/lib/platform-settings";
+import { collectReportBatches, submitReportBatch } from "@/lib/ai/batch";
+import type { Period } from "@/lib/report-data";
 import { generateDueInvoices, refreshOverdue } from "@/lib/invoicing";
 
 /**
@@ -19,6 +22,9 @@ import { generateDueInvoices, refreshOverdue } from "@/lib/invoicing";
 const RETRY_AFTER_MS = 30 * 60 * 1000;
 
 export async function runScheduledAgents(now = new Date()) {
+  const batchReports = await getSetting("batchScheduledReports");
+  const due: { clientId: string; period: Period }[] = [];
+  if (batchReports) await collectReportBatches().catch(() => 0);
   // Demo accounts are seeded and stay as seeded: no scheduled agent ever writes to them.
   const clients = await prisma.client.findMany({ where: { status: { in: ["ACTIVE", "ONBOARDING"] }, isDemo: false }, select: { id: true, name: true } });
   const done: string[] = [];
@@ -51,12 +57,21 @@ export async function runScheduledAgents(now = new Date()) {
         const period = lastClosed(kind, now);
         const exists = await prisma.generatedReport.findUnique({ where: { clientId_kind_periodStart: { clientId: c.id, kind, periodStart: period.start } }, select: { id: true } });
         if (exists) continue;
+        // Phase U: through the Batch API (half price) when that setting is on; collected on a later tick.
+        if (batchReports) {
+          due.push({ clientId: c.id, period });
+          continue;
+        }
         const r = await writeReport(c.id, period);
         done.push(`${c.name}: ${period.label} ${r.ok ? "written" : `skipped (${r.error})`}`);
       }
     } catch (err) {
       done.push(`${c.name}: failed (${err instanceof Error ? err.message : "unknown"})`);
     }
+  }
+  if (due.length) {
+    const sent = await submitReportBatch(due).catch(() => 0);
+    if (sent) done.push(`reports: ${sent} sent as one batch`);
   }
   return done;
 }
