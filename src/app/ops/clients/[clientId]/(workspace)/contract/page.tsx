@@ -4,7 +4,7 @@ import { SectionCard, CardBody, CardRows } from "@/components/ds/card";
 import { Button } from "@/components/ds/button";
 import { PlaceholderTag } from "@/components/ds/placeholder-tag";
 import { Field, fieldClass } from "@/components/ops/form-field";
-import { dayKey, liveContract } from "@/lib/contracts";
+import { dayKey, liveOrScheduledContract } from "@/lib/contracts";
 import { CURRENCIES, formatMoney, isCurrency, loadPricing, TERMS } from "@/lib/pricing";
 import { cancelAction, createContractAction, downgradeAction, endAction, pauseAction, resumeAction, setContactAction, upgradeAction } from "@/lib/actions/ops-contract-actions";
 
@@ -21,7 +21,7 @@ export default async function ContractPage({ params, searchParams }: { params: P
   const client = await prisma.client.findUnique({ where: { id: clientId }, select: { id: true, name: true } });
   if (!client) notFound();
   const [contract, pricing, staff, history] = await Promise.all([
-    liveContract(clientId),
+    liveOrScheduledContract(clientId),
     loadPricing(),
     prisma.staffMember.findMany({ where: { title: { in: ["ACCOUNT_LEAD", "PROJECT_MANAGER", "ADMIN"] } }, include: { user: { select: { name: true } } }, orderBy: { user: { name: "asc" } } }),
     prisma.contract.findMany({ where: { clientId, status: "ended" }, orderBy: { startDate: "desc" } }),

@@ -38,6 +38,8 @@ export default async function PlanSettingsPage() {
     marketingPm(viewer.clientId),
     prisma.purchaseRequest.findMany({ where: { clientId: viewer.clientId }, orderBy: { createdAt: "desc" }, take: 6 }),
   ]);
+  // Signed for a later start (a move from the old plans): shown on top; today's setup runs until then.
+  const upcoming = contract ? null : await prisma.contract.findFirst({ where: { clientId: viewer.clientId, status: "scheduled" }, orderBy: { startDate: "asc" } });
   const currency: Currency = contract && isCurrency(contract.currency) ? contract.currency : "EUR";
   const way = !contract?.teamPackKey ? 1 : (contract.creativeCreditsPerMonth ?? 0) > 0 ? 3 : 2;
   const per = await getSetting("creativeCreditsPerSlot");
@@ -71,6 +73,12 @@ export default async function PlanSettingsPage() {
   return (
     <div className="flex flex-col gap-6">
       <SettingsHeader eyebrow={`Way ${way} · ${WAY[way]}${admin ? "" : " · read-only"}`} title="Plan" />
+      {upcoming && (
+        <p className="m-0 rounded-[12px] bg-white px-6 py-4 text-[14px]">
+          Your new plan starts {day(upcoming.startDate)}: {pricing.plans.find((p) => p.key === upcoming.platformPlanKey)?.name ?? upcoming.platformPlanKey}
+          {upcoming.teamPackKey ? ` with ${pricing.packs.find((p) => p.key === upcoming.teamPackKey)?.name ?? upcoming.teamPackKey}` : ""}, {upcoming.termMonths} months. Until then your current plan stays as it is.
+        </p>
+      )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {balance("AI credits", ai.ownModel ? 0 : ai.left, ai.allowance, ai.ownModel ? "Your own AI model: your provider bills it" : "For skills you run · reset monthly, don't roll over", true)}

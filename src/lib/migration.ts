@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { planFor } from "@/lib/ai-credits";
-import { loadPricing, monthlyPrice, type Currency, isCurrency } from "@/lib/pricing";
+import { loadPricing, monthlyPrice, formatMoney, type Currency, isCurrency } from "@/lib/pricing";
+import { createContract } from "@/lib/contracts";
+import { notifyMany } from "@/lib/notifier";
 
 /**
  * Migration preview (Phase S, S8): for every real client not on a contract yet, today's setup and a proposed
@@ -28,11 +30,13 @@ export type MigrationRow = {
 
 const TOO_BIG = 1.25;
 
-export async function migrationPreview(now = new Date()): Promise<{ rows: MigrationRow[]; migrated: { id: string; name: string }[] }> {
+export type Migrated = { id: string; name: string; status: string; start: Date; emailDraft: string | null };
+
+export async function migrationPreview(now = new Date()): Promise<{ rows: MigrationRow[]; migrated: Migrated[] }> {
   const [clients, pricing] = await Promise.all([
     prisma.client.findMany({
       where: { isDemo: false, status: { not: "OFFBOARDED" } },
-      include: { accountLead: { include: { user: { select: { name: true } } } }, projects: { where: { status: { notIn: ["ARCHIVED", "DELIVERED", "DRAFT"] } }, select: { id: true } }, contracts: { select: { id: true } } },
+      include: { accountLead: { include: { user: { select: { name: true } } } }, projects: { where: { status: { notIn: ["ARCHIVED", "DELIVERED", "DRAFT"] } }, select: { id: true } }, contracts: { select: { id: true, status: true, startDate: true }, orderBy: { startDate: "desc" } } },
       orderBy: { name: "asc" },
     }),
     loadPricing(),
@@ -55,10 +59,12 @@ export async function migrationPreview(now = new Date()): Promise<{ rows: Migrat
   };
 
   const rows: MigrationRow[] = [];
-  const migrated: { id: string; name: string }[] = [];
+  const migrated: Migrated[] = [];
+  const drafts = await prisma.auditLog.findMany({ where: { area: "migration", clientId: { in: clients.map((c) => c.id) } }, orderBy: { createdAt: "desc" }, select: { clientId: true, after: true } });
   for (const c of clients) {
     if (c.contracts.length) {
-      migrated.push({ id: c.id, name: c.name });
+      const d = drafts.find((x) => x.clientId === c.id)?.after as { emailDraft?: string } | null;
+      migrated.push({ id: c.id, name: c.name, status: c.contracts[0].status, start: c.contracts[0].startDate, emailDraft: d?.emailDraft ?? null });
       continue;
     }
     const plan = await planFor(c.planTier);
@@ -89,4 +95,49 @@ export async function migrationPreview(now = new Date()): Promise<{ rows: Migrat
     });
   }
   return { rows, migrated };
+}
+
+const longDay = (d: Date) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "long", year: "numeric" }).format(d);
+
+/** The email the contact person sends the client about the move. A draft only: the app never sends it. */
+export function migrationEmailDraft(r: MigrationRow, p: Proposal, contactName: string) {
+  const money = (n: number) => formatMoney(n, r.proposed.currency);
+  const team = p.packName ? (p.team != null ? `${p.packName}: ${money(p.team)} a month` : `${p.packName}: team work priced per job`) : "no team pack";
+  return [
+    `Subject: Your Klingit plan from ${longDay(r.proposed.start)}`,
+    "",
+    "Hi,",
+    "",
+    `From ${longDay(r.proposed.start)} your Klingit plan moves to our new setup:`,
+    `- Platform: ${p.planName}, ${money(p.platform)} a month, ${p.aiCredits.toLocaleString("en-GB")} AI credits a month.`,
+    `- Team: ${team}.`,
+    `- ${r.proposed.termMonths} months, invoiced ${r.proposed.invoicing}, in ${r.proposed.currency}. Prices are locked for the term.`,
+    "",
+    "Marketing PM and creative credits are kept separately and roll over up to 150% of a month. Until the start date nothing changes.",
+    "You can see the details in Klingit under Settings → Plan.",
+    "",
+    "Best,",
+    contactName,
+  ].join("\n");
+}
+
+/**
+ * Moves one client to a contract (after a person decided): the proposal, with or without the override's credits.
+ * The contract starts on the proposed date (scheduled until then, so today's setup keeps running). Logged in the
+ * AuditLog with before, after and the email draft; the client's admins get an in-app notice.
+ */
+export async function applyMigration(clientId: string, opts: { useOverride: boolean }, actorUserId: string | null, now = new Date()) {
+  const { rows } = await migrationPreview(now);
+  const r = rows.find((x) => x.clientId === clientId);
+  if (!r) throw new Error("This client is already on a contract, or isn't a real client.");
+  const p = opts.useOverride || !r.withoutOverride ? r.proposed : r.withoutOverride;
+  if (p.packKey && !r.proposed.contact) throw new Error("Pick a Marketing PM for this client first: a team pack needs a contact person.");
+  const contract = await createContract({ clientId, platformPlanKey: p.planKey, teamPackKey: p.packKey, termMonths: r.proposed.termMonths, startDate: r.proposed.start, currency: r.proposed.currency, invoicing: r.proposed.invoicing, contactStaffId: p.packKey ? r.proposed.contact!.id : (r.proposed.contact?.id ?? null) }, actorUserId, now);
+  const emailDraft = migrationEmailDraft(r, p, r.proposed.contact?.name ?? "Klingit");
+  await prisma.auditLog.create({
+    data: { clientId, actorUserId, area: "migration", action: "moved to a contract", before: r.current as object, after: { contractId: contract.id, way: p.way, planKey: p.planKey, packKey: p.packKey, start: r.proposed.start, termMonths: r.proposed.termMonths, total: p.total, currency: r.proposed.currency, usedOverride: opts.useOverride && Boolean(r.withoutOverride), emailDraft } },
+  });
+  const admins = await prisma.clientUser.findMany({ where: { clientId, permission: "OWNER" }, select: { userId: true } });
+  await notifyMany(admins.map((a) => ({ userId: a.userId, clientId, type: "SYSTEM" as const, title: `Your new plan starts ${longDay(r.proposed.start)}`, body: `${p.planName}${p.packName ? ` with ${p.packName}` : ""}, ${r.proposed.termMonths} months. Until then nothing changes.`, actionUrl: "/settings/plan", actionLabel: "See your plan" })));
+  return { contract, emailDraft, proposal: p };
 }

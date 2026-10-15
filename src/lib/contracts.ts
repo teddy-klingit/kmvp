@@ -18,6 +18,8 @@ import { isCurrency, loadPricing, monthlyPrice, TERMS, type Currency } from "@/l
 
 const DAY = 86400000;
 export const LIVE_STATUSES = ["active", "paused", "ending"];
+/** A contract signed for a later start (e.g. a migration at the next renewal): the old setup runs until then. */
+export const SCHEDULED = "scheduled";
 export type Invoicing = "monthly" | "quarterly" | "upfront";
 
 export class ContractError extends Error {}
@@ -40,6 +42,13 @@ const termsOf = (c: Pick<Contract, keyof Terms>): Terms => ({ platformPlanKey: c
 
 async function audit(clientId: string, actorUserId: string | null, action: string, before: unknown, after: unknown) {
   await prisma.auditLog.create({ data: { clientId, actorUserId, area: "contract", action, before: (before ?? undefined) as Prisma.InputJsonValue, after: (after ?? undefined) as Prisma.InputJsonValue } });
+}
+
+/** The live contract, or else one that starts later (for staff pages that show what's signed). */
+export async function liveOrScheduledContract(clientId: string, now = new Date()) {
+  const live = await liveContract(clientId, now);
+  if (live) return live;
+  return prisma.contract.findFirst({ where: { clientId, status: SCHEDULED }, orderBy: { startDate: "asc" }, include: { contact: { include: { user: { select: { id: true, name: true, email: true } } } }, changes: { orderBy: { createdAt: "desc" } } } });
 }
 
 export async function liveContract(clientId: string, now = new Date()) {
@@ -89,10 +98,10 @@ export type NewContract = {
   priceOverride?: { platformPrice?: number; teamPrice?: number } | null;
 };
 
-export async function createContract(input: NewContract, actorUserId: string | null) {
+export async function createContract(input: NewContract, actorUserId: string | null, now = new Date()) {
   if (!TERMS.includes(input.termMonths as (typeof TERMS)[number])) throw new ContractError("The term is 3, 6, 12 or 18 months.");
   if (!isCurrency(input.currency)) throw new ContractError("Pick a currency.");
-  if (await prisma.contract.findFirst({ where: { clientId: input.clientId, status: { in: LIVE_STATUSES } }, select: { id: true } })) throw new ContractError("This client already has a contract. Amend or end it first.");
+  if (await prisma.contract.findFirst({ where: { clientId: input.clientId, status: { in: [...LIVE_STATUSES, SCHEDULED] } }, select: { id: true } })) throw new ContractError("This client already has a contract. Amend or end it first.");
   const invoicing = input.invoicing ?? defaultInvoicing(input.termMonths);
   const terms = await priceTerms({ platformPlanKey: input.platformPlanKey, teamPackKey: input.teamPackKey ?? null, custom: input.custom, termMonths: input.termMonths, invoicing, currency: input.currency });
   if (terms.teamPackKey && !input.contactStaffId) throw new ContractError("A team pack needs a contact person (the client's Marketing PM).");
@@ -101,7 +110,7 @@ export async function createContract(input: NewContract, actorUserId: string | n
   const startDate = startOfDay(input.startDate);
   const endDate = addMonths(startDate, input.termMonths);
   const contract = await prisma.contract.create({
-    data: { clientId: input.clientId, ...terms, termMonths: input.termMonths, startDate, endDate, invoicing, currency: input.currency, noticeDeadline: noticeDeadlineFor(endDate), contactStaffId: input.contactStaffId ?? null, createdByUserId: actorUserId, changes: { create: { kind: "created", effectiveFrom: startDate, after: { ...terms, termMonths: input.termMonths, invoicing, currency: input.currency } as Prisma.InputJsonValue, byUserId: actorUserId } } },
+    data: { clientId: input.clientId, ...terms, status: startDate > now ? SCHEDULED : "active", termMonths: input.termMonths, startDate, endDate, invoicing, currency: input.currency, noticeDeadline: noticeDeadlineFor(endDate), contactStaffId: input.contactStaffId ?? null, createdByUserId: actorUserId, changes: { create: { kind: "created", effectiveFrom: startDate, after: { ...terms, termMonths: input.termMonths, invoicing, currency: input.currency } as Prisma.InputJsonValue, byUserId: actorUserId } } },
   });
   if (input.contactStaffId) await prisma.client.update({ where: { id: input.clientId }, data: { accountLeadId: input.contactStaffId } });
   await audit(input.clientId, actorUserId, "contract created", null, { ...terms, termMonths: input.termMonths, startDate, endDate, invoicing, currency: input.currency, contactStaffId: input.contactStaffId ?? null });
@@ -232,8 +241,19 @@ export async function applyDueChanges(contractId: string, now = new Date()) {
   }
 }
 
+/** Scheduled contracts whose start date has come: they go live (and the old setup stops being read). */
+export async function startScheduledContracts(now = new Date()) {
+  const due = await prisma.contract.findMany({ where: { status: SCHEDULED, startDate: { lte: now } } });
+  for (const c of due) {
+    await prisma.contract.update({ where: { id: c.id }, data: { status: "active" } });
+    await audit(c.clientId, null, "contract started", { status: SCHEDULED }, { status: "active", startDate: c.startDate });
+  }
+  return due.length;
+}
+
 /** Every live contract, for the hourly scheduler. */
 export async function applyAllDueChanges(now = new Date()) {
+  await startScheduledContracts(now);
   const ids = await prisma.contract.findMany({ where: { status: { in: LIVE_STATUSES } }, select: { id: true } });
   for (const { id } of ids) await applyDueChanges(id, now);
   return ids.length;
