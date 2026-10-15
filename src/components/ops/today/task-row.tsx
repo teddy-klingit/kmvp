@@ -318,7 +318,10 @@ export function TaskRow({ task, inline, compact = false }: { task: Task; inline?
                 <span className="font-brand-mono text-[11px] uppercase tracking-[0.06em] text-brand-ink-2">{task.kind}</span>
               </span>
             )}
-            <span className="text-[16px] leading-[1.35] text-brand-ink">{task.sentence}</span>
+            <span className={cn("leading-[1.35] text-brand-ink", compact ? "text-[15px]" : "text-[16px]")}>
+              {task.sentence}
+              {compact && <span className="text-[13px] text-brand-ink-2"> · {task.subject}</span>}
+            </span>
             {!compact && context && <span className="text-[13px] leading-[1.5] text-brand-ink-2">{context}</span>}
           </div>
           <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">

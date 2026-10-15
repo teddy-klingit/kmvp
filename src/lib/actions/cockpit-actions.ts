@@ -347,3 +347,13 @@ export async function viewAsClientAction(formData: FormData) {
   if (!persona) return;
   await signIn("credentials", { email: persona.email, password: DEMO_PASSWORD, redirectTo: `/projects/${projectId}` });
 }
+
+/** Client page "Open as client" (Phase T): demo accounts only; signs in as the client's demo contact. */
+export async function viewClientAction(formData: FormData) {
+  await requireOpsRole(["ADMIN", "PM"]);
+  const client = await prisma.client.findUnique({ where: { id: String(formData.get("clientId") ?? "") }, include: { users: { include: { user: true } } } });
+  if (!client?.isDemo) return;
+  const persona = DEMO_PERSONAS.find((p) => client.users.some((u) => u.user.email === p.email));
+  if (!persona) return;
+  await signIn("credentials", { email: persona.email, password: DEMO_PASSWORD, redirectTo: "/" });
+}

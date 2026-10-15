@@ -1,57 +1,70 @@
-import { IntelligenceRail } from "@/components/ops/intelligence-rail";
+import { Plus } from "lucide-react";
 import { PageHeader } from "@/components/ds/page-header";
-import { getClientWorkspace } from "@/lib/data/ops-client-workspace";
+import { PillLink } from "@/components/ds/pill-link";
 import { requireOpsPage } from "@/lib/authz";
-import { PLAN_TIER_LABEL } from "@/lib/labels";
-import { roleTierFor } from "@/lib/role-tier";
+import { prisma } from "@/lib/prisma";
 import { OUHERS_CLIENT_ID } from "@/lib/demo/ouhers";
 import { ResetDemoButton } from "@/components/ops/reset-demo-button";
-
-const STATUS: Record<string, string> = { ACTIVE: "Active", ONBOARDING: "Onboarding", PAUSED: "Paused", OFFBOARDED: "Offboarded" };
+import { ClientTabs } from "@/components/ops/client/client-tabs";
+import { clientHeader } from "@/lib/client-header";
+import { viewClientAction } from "@/lib/actions/cockpit-actions";
 
 /**
- * One client's workspace (ops): one header with a single segmented control for every view, and the intelligence rail
- * on the right on wide screens. Phase S: Overview · Contract · Balances · Projects · Plan · Billing · Activity first.
+ * One client (Phase T, design PMClient): the header read from the contract, then 5 tabs (Overview · Projects ·
+ * Plan · Contract & billing · Brand). Every older view lives under one of them.
  */
 export default async function ClientWorkspaceLayout({ children, params }: { children: React.ReactNode; params: Promise<{ clientId: string }> }) {
-  // Client detail (Phase S, S7.3) holds contracts, balances and billing: admins and PMs only.
+  // Client detail holds contracts, balances and billing: admins and PMs only.
   const viewer = await requireOpsPage(["ADMIN", "PM"]);
   const { clientId } = await params;
-  const workspace = await getClientWorkspace(clientId);
-  const { client } = workspace;
+  const h = await clientHeader(clientId, viewer.id);
   const base = `/ops/clients/${clientId}`;
+  const [projects, plan] = await Promise.all([
+    prisma.project.count({ where: { clientId, status: { notIn: ["ARCHIVED", "DELIVERED", "DRAFT"] } } }),
+    prisma.clientCalendarItem.count({ where: { clientId, archivedAt: null, date: { gte: new Date() } } }),
+  ]);
+  const line = [
+    h.contact ? `${h.contact.name}${h.contact.admin ? " (admin)" : ""}` : null,
+    `${h.people} ${h.people === 1 ? "person" : "people"}`,
+    h.markets.length ? `markets ${h.markets.join(", ")}` : null,
+    h.pm ? (h.pm.isViewer ? "you are their Marketing PM" : `Marketing PM: ${h.pm.name}`) : "no Marketing PM yet",
+  ].filter(Boolean);
 
   return (
-    <div className="flex h-full">
-      <div className="min-w-0 flex-1 overflow-y-auto px-4 pb-12 pt-5 min-[900px]:pb-14 min-[900px]:pl-4 min-[900px]:pr-10 min-[900px]:pt-10">
-        <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-6">
+    <div className="h-full overflow-y-auto px-4 pb-12 pt-5 min-[900px]:pb-14 min-[900px]:pl-4 min-[900px]:pr-10 min-[900px]:pt-10">
+      <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-6">
+        <div className="flex flex-col gap-2">
           <PageHeader
             back={{ href: "/ops/clients", label: "Clients" }}
-            eyebrow={[PLAN_TIER_LABEL[client.planTier] ?? client.planTier, STATUS[client.status] ?? client.status, client.isDemo ? "Demo account" : null].filter(Boolean).join(" · ")}
-            actions={client.id === OUHERS_CLIENT_ID && roleTierFor(viewer.title) !== "CREATOR" ? <ResetDemoButton clientId={client.id} /> : undefined}
-            title={client.name}
-            tabsLabel="Client workspace"
-            tabs={[
-              { label: "Overview", href: `${base}/dashboard` },
-              { label: "Contract", href: `${base}/contract` },
-              { label: "Balances", href: `${base}/balances` },
-              { label: "Projects", href: `${base}/projects` },
-              { label: "Plan", href: `${base}/plan` },
-              { label: "Billing", href: `${base}/billing` },
-              { label: "Activity", href: `${base}/activity` },
-              { label: "Brand OS", href: `${base}/brand-os` },
-              { label: "Brand assets", href: `${base}/brand-assets` },
-              { label: "Opportunities", href: `${base}/opportunities` },
-              { label: "Content plan", href: `${base}/content-plan` },
-              { label: "Custom apps", href: `${base}/custom-apps` },
-              { label: "Admin", href: `${base}/admin` },
-            ]}
+            eyebrow={h.eyebrow}
+            title={h.client.name}
+            actions={
+              <>
+                {h.contact && h.messageHref && (
+                  <PillLink href={h.messageHref} variant="secondary">
+                    Message {h.contact.first}
+                  </PillLink>
+                )}
+                {h.client.isDemo && (
+                  <form action={viewClientAction}>
+                    <input type="hidden" name="clientId" value={clientId} />
+                    <button type="submit" className="inline-flex h-10 items-center rounded-full border border-[#CFC8B8] bg-white px-4 font-brand-mono text-[12px] hover:border-brand-ink">
+                      Open as client
+                    </button>
+                  </form>
+                )}
+                <PillLink href={`/ops/projects/new?clientId=${clientId}`} variant="primary">
+                  <Plus className="size-3.5" strokeWidth={1.75} />
+                  New project
+                </PillLink>
+                {clientId === OUHERS_CLIENT_ID && <ResetDemoButton clientId={clientId} />}
+              </>
+            }
           />
-          {children}
+          <span className="text-[14px] text-brand-ink-2">{line.join(" · ")}</span>
         </div>
-      </div>
-      <div className="hidden min-[1200px]:flex">
-        <IntelligenceRail {...workspace} />
+        <ClientTabs base={base} counts={{ projects, plan }} />
+        {children}
       </div>
     </div>
   );

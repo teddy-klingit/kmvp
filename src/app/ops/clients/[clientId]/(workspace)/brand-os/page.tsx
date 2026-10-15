@@ -8,6 +8,8 @@ import { jsonArray } from "@/lib/utils";
 import { typefaces } from "@/lib/brand-typography";
 import { updateBrandOSAction } from "@/lib/actions/ops-brand-os-actions";
 import { RulesView } from "@/components/portal/rules/rules-view";
+import { IntelligenceRail } from "@/components/ops/intelligence-rail";
+import { getClientWorkspace } from "@/lib/data/ops-client-workspace";
 
 export default async function BrandOSEditorPage({ params }: { params: Promise<{ clientId: string }> }) {
   const { clientId } = await params;
@@ -17,8 +19,14 @@ export default async function BrandOSEditorPage({ params }: { params: Promise<{ 
   const b = client.brandOS;
   const colors = jsonArray<string>(b?.approvedColors);
 
+  const workspace = await getClientWorkspace(clientId);
+
   return (
     <div className="flex flex-col gap-6">
+      {/* Phase T: the brand intelligence that used to sit in the client page's right rail. */}
+      <div className="overflow-hidden rounded-[12px] bg-white [&>aside]:w-full [&>aside]:border-l-0">
+        <IntelligenceRail {...workspace} />
+      </div>
       {/* Brand OS → Rules, as the client sees it; Klingit's edits show as "· Klingit" and tell the account lead. */}
       <RulesView clientId={clientId} mode="staff" />
     <form action={updateBrandOSAction} className="flex flex-col gap-6">

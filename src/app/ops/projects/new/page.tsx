@@ -7,7 +7,8 @@ import { Field, fieldClass } from "@/components/ops/form-field";
 import { createOpsProjectAction } from "@/lib/actions/ops-new-project-actions";
 import { PROJECT_TYPE_LABEL } from "@/lib/labels";
 
-export default async function NewOpsProjectPage() {
+export default async function NewOpsProjectPage({ searchParams }: { searchParams: Promise<{ clientId?: string }> }) {
+  const { clientId } = await searchParams;
   const clients = await prisma.client.findMany({ where: { status: "ACTIVE" }, orderBy: { name: "asc" } });
 
   return (
@@ -21,7 +22,7 @@ export default async function NewOpsProjectPage() {
         <CardBody>
           <form action={createOpsProjectAction} className="flex flex-col gap-5">
             <Field label="Client" htmlFor="clientId">
-              <select id="clientId" name="clientId" required className={fieldClass}>
+              <select id="clientId" name="clientId" required className={fieldClass} defaultValue={clientId ?? ""}>
                 {clients.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
