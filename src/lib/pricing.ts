@@ -80,6 +80,11 @@ export function creativePackPrice(p: Pricing, packKey: string | null | undefined
   return { credits: p.creativePackSize, price: roundFor(currency, base * (1 + p.creativePackSurcharge) * p.creativePackSize) };
 }
 
+/** One top-up option (Phase U: 1,000 / 3,000 / 10,000 credits) in the client's currency. */
+export function topUpOptionPrice(p: Pricing, o: { credits: number; priceEur: number }, currency: Currency) {
+  return { credits: o.credits, price: roundFor(currency, convertEur(o.priceEur, currency, p.perEur, p.fxMarkup)) };
+}
+
 export function aiTopUpPrice(p: Pricing, currency: Currency) {
   return { credits: p.aiTopUp.credits, price: roundFor(currency, convertEur(p.aiTopUp.priceEur, currency, p.perEur, p.fxMarkup)) };
 }

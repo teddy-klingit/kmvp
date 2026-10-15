@@ -16,6 +16,7 @@ import { loadLatestBatch } from "@/lib/skill-run";
 import { jsonArray } from "@/lib/utils";
 import { WORK_TZ } from "@/lib/working-hours";
 import { estimateCredits } from "@/lib/ai-cost";
+import { TopUpButton } from "@/components/portal/top-up/top-up-panel";
 import { cn } from "@/lib/utils";
 
 const LABEL: Record<string, { text: string; tint: string }> = { self_service: { text: "Self-service", tint: "bg-brand-lime-pale" }, klingit_run: { text: "Run by Klingit", tint: "bg-brand-lavender-pale" }, custom: { text: "Custom", tint: "bg-[#F7E6F7]" } };
@@ -94,10 +95,9 @@ export default async function SkillPage({ params, searchParams }: { params: Prom
             <div className="flex flex-wrap items-center gap-3 rounded-[12px] bg-brand-peach-pale px-4 py-3">
               <span aria-hidden className="size-2 shrink-0 rounded-full bg-brand-orange" />
               <span className="min-w-0 flex-1 text-[14px]">{gate.error}</span>
-              {gate.topUp && isClientAdmin(viewer) && (
-                <PillLink href="/settings/usage#top-up" variant="primary" size="sm">
-                  Top up
-                </PillLink>
+              {gate.topUp && (
+                // Phase U: the top-up panel right here; members get "Ask {admin} to top up" inside it.
+                <TopUpButton className="inline-flex h-9 items-center rounded-full bg-brand-orange px-4 font-brand-mono text-[12px] text-white">Top up</TopUpButton>
               )}
             </div>
           ) : (

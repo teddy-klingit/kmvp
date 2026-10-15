@@ -1,9 +1,10 @@
 import type { Prisma } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
 import { notifyMany } from "@/lib/notifier";
-import { aiTopUpPrice, creativePackPrice, isCurrency, loadPricing, monthlyPrice, type Currency } from "@/lib/pricing";
+import { aiTopUpPrice, topUpOptionPrice, creativePackPrice, isCurrency, loadPricing, monthlyPrice, type Currency } from "@/lib/pricing";
 import { ContractError, liveContract, pauseContract, scheduleDowngrade, scheduleUpgrade } from "@/lib/contracts";
 import { poolBalance } from "@/lib/team-ledger";
+import { getSetting } from "@/lib/platform-settings";
 
 /**
  * Client purchases and changes are requests (Phase S step 6): the client sees the price and the rule in one line,
@@ -36,6 +37,13 @@ export async function quoteRequest(clientId: string, kind: RequestKind, payload:
       return { price: one.price * packs, currency, credits: one.credits * packs, per: "once" as const };
     }
     case "ai_topup": {
+      // Phase U: one of the top-up options (payload.option), or n of the smallest (payload.count, older callers).
+      if (payload.option != null) {
+        const options = await getSetting("aiTopUpOptions");
+        const o = options[Math.max(0, Math.min(options.length - 1, Number(payload.option)))];
+        const one = topUpOptionPrice(p, o, currency);
+        return { price: one.price, currency, credits: one.credits, per: "once" as const };
+      }
       const n = Math.max(1, Math.round(Number(payload.count ?? 1)));
       const one = aiTopUpPrice(p, currency);
       return { price: one.price * n, currency, credits: one.credits * n, per: "once" as const };
@@ -56,9 +64,19 @@ export async function quoteRequest(clientId: string, kind: RequestKind, payload:
 
 export async function createRequest(clientId: string, userId: string | null, kind: RequestKind, payload: Record<string, unknown>, now = new Date()) {
   const q = await quoteRequest(clientId, kind, payload);
+  // Phase U: AI top-ups are capped per client per month (staff setting, in EUR).
+  if (kind === "ai_topup" && q.price != null) {
+    const capEur = await getSetting("topUpMaxEurPerMonth");
+    const rates = (await loadPricing()).perEur;
+    const cap = Math.round(capEur * (q.currency === "EUR" ? 1 : (rates[q.currency] ?? 1)));
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const spent = await prisma.purchaseRequest.aggregate({ where: { clientId, kind: "ai_topup", status: { in: ["approved", "pending"] }, createdAt: { gte: monthStart } }, _sum: { price: true } });
+    if ((spent._sum.price ?? 0) + q.price > cap) throw new RequestError(`That's over this month's top-up limit (${cap} ${q.currency}). Your Marketing PM can raise it.`);
+  }
   const req = await prisma.purchaseRequest.create({ data: { clientId, kind, payload: { ...payload, credits: q.credits, per: q.per } as Prisma.InputJsonValue, price: q.price, currency: q.currency, requestedByUserId: userId, createdAt: now } });
   await prisma.auditLog.create({ data: { clientId, actorUserId: userId, area: "request", action: `requested ${REQUEST_KINDS[kind].label}`, after: { price: q.price, currency: q.currency, payload } as Prisma.InputJsonValue } });
-  // AI top-ups under the client's auto-approve price don't wait for staff.
+  // AI top-ups are added right away (Phase U default), or under the client's auto-approve price; otherwise staff decide.
+  if (kind === "ai_topup" && (await getSetting("topUpApproval")) === "instant") return decideRequest(req.id, null, true, payload.auto ? "Automatic top-up" : "Added right away", now);
   if (kind === "ai_topup" && q.price != null) {
     const profile = await prisma.billingProfile.findUnique({ where: { clientId }, select: { aiTopUpAutoApproveUpTo: true } });
     if (profile?.aiTopUpAutoApproveUpTo != null && q.price <= profile.aiTopUpAutoApproveUpTo) return decideRequest(req.id, null, true, "Auto-approved (under the client's limit)", now);

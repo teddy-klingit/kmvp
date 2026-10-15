@@ -2563,6 +2563,10 @@ model BillingProfile {
   vatRate                Float    @default(0.25)
   /// AI credit top-ups up to this price are approved without staff (null: always ask).
   aiTopUpAutoApproveUpTo Float?
+  /// Phase U: add AI credits automatically when low (the top-up rules' amount, at most N a month).
+  autoTopUp              Boolean  @default(false)
+  /// Phase U: at 100% of AI credits: null = the staff default ("pause"), or "pause" / "bill" for this client.
+  aiOverage              String?
   updatedAt              DateTime @updatedAt
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)

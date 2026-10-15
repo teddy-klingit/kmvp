@@ -331,6 +331,19 @@ async function keepAnEye(projects: OpsProject[], clientIds: string[], now: Date)
       : { title: "Balances", line: "every balance lasts the month", note: "At this month's pace" }
   );
 
+  // Phase U: AI top-ups this month on these clients (instant ones too), so the PM knows who's running hot.
+  const topUps = await prisma.purchaseRequest.findMany({ where: { clientId: { in: clientIds }, kind: "ai_topup", status: "approved", createdAt: { gte: new Date(now.getFullYear(), now.getMonth(), 1) } }, include: { client: { select: { name: true } } }, orderBy: { createdAt: "desc" } });
+  if (topUps.length) {
+    const byClient = new Map<string, { n: number; credits: number; price: number; currency: string; auto: number; id: string }>();
+    for (const t of topUps) {
+      const c = byClient.get(t.client.name) ?? { n: 0, credits: 0, price: 0, currency: t.currency, auto: 0, id: t.clientId };
+      const p = t.payload as { credits?: number; auto?: boolean };
+      byClient.set(t.client.name, { ...c, n: c.n + 1, credits: c.credits + (p.credits ?? 0), price: c.price + (t.price ?? 0), auto: c.auto + (p.auto ? 1 : 0) });
+    }
+    const [name, t] = [...byClient.entries()].sort((a, b) => b[1].credits - a[1].credits)[0];
+    out.push({ title: name, line: `${t.n} AI top-up${t.n === 1 ? "" : "s"} this month · ${t.credits.toLocaleString("en-GB")} credits`, note: `${t.price.toLocaleString("en-GB")} ${t.currency} on the next invoice${t.auto ? ` · ${t.auto} automatic` : ""}${byClient.size > 1 ? ` · +${byClient.size - 1} more client${byClient.size > 2 ? "s" : ""}` : ""}`, href: `/ops/clients/${t.id}/billing` });
+  }
+
   // Notice deadlines within 30 days (contracts), else old plans renewing around now.
   const contracts = await prisma.contract.findMany({ where: { clientId: { in: clientIds }, status: { in: ["active", "paused"] }, autoRenew: true, noticeDeadline: { gte: now, lte: new Date(now.getTime() + 30 * DAY) } }, include: { client: { select: { name: true } } }, orderBy: { noticeDeadline: "asc" } });
   // Old plans only: a client on a contract renews by its contract.

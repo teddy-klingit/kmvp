@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { notifyMany } from "@/lib/notifier";
 import { decryptSecret } from "@/lib/secrets";
 import { aiPrices, costUsd, creditsForBudget, creditsForCost } from "@/lib/ai-cost";
+import { billOverage, maybeAutoTopUp, overageMode } from "@/lib/top-ups";
 import { getSetting } from "@/lib/platform-settings";
 
 /**
@@ -100,7 +101,8 @@ export async function aiCreditStatus(clientId: string, now = new Date()) {
   const { plan, start, end, key } = await ensurePeriod(clientId, now);
   const [period, bundles, bundleUse, provider] = await Promise.all([
     prisma.aiCreditLedger.findMany({ where: { clientId, billedTo: "klingit", billable: true, createdAt: { gte: start, lt: end }, kind: { in: ["ALLOWANCE", "ADJUSTMENT", "USAGE"] } }, select: { kind: true, amount: true, fundedBy: true } }),
-    prisma.aiCreditLedger.findMany({ where: { clientId, kind: "BUNDLE" }, select: { amount: true } }),
+    // Top-ups roll over (Phase U setting): all of them count, or only this month's when rollover is off.
+    getSetting("topUpRollover").then((roll) => prisma.aiCreditLedger.findMany({ where: { clientId, kind: "BUNDLE", ...(roll ? {} : { createdAt: { gte: start } }) }, select: { amount: true } })),
     prisma.aiCreditLedger.findMany({ where: { clientId, kind: "USAGE", fundedBy: "bundle", billedTo: "klingit", billable: true }, select: { amount: true } }),
     prisma.aiCreditLedger.aggregate({ where: { clientId, billedTo: "client_provider", createdAt: { gte: start, lt: end } }, _sum: { tokensIn: true, tokensOut: true } }),
   ]);
@@ -141,8 +143,11 @@ export async function aiGate(clientId: string, sourceType: "skill" | "assistant"
   }
   // Assistants never use AI credits (Phase S): nothing to warn about.
   if (sourceType === "assistant") return { ok: true, warning: null };
-  if (s.left > 0) return { ok: true, warning: s.allowance > 0 && s.left < s.allowance * 0.2 ? `${Math.floor(s.left)} AI credits left this month.` : null };
-  return { ok: false, error: "You've used this month's AI credits. Top up to keep running skills, or wait for the reset.", topUp: true };
+  const warnAt = await getSetting("aiWarnAt");
+  if (s.left > 0) return { ok: true, warning: s.allowance > 0 && s.used >= s.allowance * warnAt ? `${Math.floor(s.left)} AI credits left this month.` : null };
+  // Phase U: at 100% skills pause (the default) with a top-up, or keep running and the overage is billed.
+  if ((await overageMode(clientId)) === "bill") return { ok: true, warning: "You're over this month's AI credits: the extra is billed at the top-up rate." };
+  return { ok: false, error: "You've used this month's AI credits. Top up to keep your skills running, or wait for the reset.", topUp: true };
 }
 
 /**
@@ -217,14 +222,17 @@ export async function chargeAi(c: AiCharge, now = new Date()) {
   // One row per funding source, so "used from allowance" and "used from bundles" always add up to the total.
   // The cost goes on the first row, so a sum of costUsd is the real cost exactly once.
   if (fromAllowance > 0 || rest === 0) await prisma.aiCreditLedger.create({ data: { ...base, amount: -fromAllowance, fundedBy: "allowance", tokensIn: c.tokensIn, tokensOut: c.tokensOut, costUsd: cost } });
+  // Over the allowance and the top-ups ("keep running, bill overage"): the overage line on the next invoice.
+  if (rest > 0 && before.bundleLeft <= 0 && (await overageMode(c.clientId)) === "bill") await billOverage(c.clientId, rest);
   if (rest > 0) await prisma.aiCreditLedger.create({ data: { ...base, amount: -rest, fundedBy: before.bundleLeft > 0 ? "bundle" : "over", tokensIn: fromAllowance > 0 ? 0 : c.tokensIn, tokensOut: fromAllowance > 0 ? 0 : c.tokensOut, costUsd: fromAllowance > 0 ? 0 : cost } });
   await thresholdAlerts(c.clientId, before.allowance, before.allowance - before.allowanceLeft, before.allowance - before.allowanceLeft + credits, before.periodKey);
+  await maybeAutoTopUp(c.clientId, before.left - credits, now);
   return { credits, costUsd: cost, billedTo: "klingit" as const };
 }
 
 async function thresholdAlerts(clientId: string, allowance: number, usedBefore: number, usedAfter: number, periodKey: string) {
   if (allowance <= 0) return;
-  for (const pct of [80, 100]) {
+  for (const pct of [Math.round((await getSetting("aiWarnAt")) * 100), 100]) {
     const line = (pct / 100) * allowance;
     if (usedBefore < line && usedAfter >= line) {
       const admins = await prisma.clientUser.findMany({ where: { clientId, permission: "OWNER" }, select: { userId: true } });
@@ -233,8 +241,8 @@ async function thresholdAlerts(clientId: string, allowance: number, usedBefore: 
           userId: a.userId,
           clientId,
           type: "SYSTEM" as const,
-          title: pct === 100 ? "You've used this month's AI credits" : "80% of this month's AI credits used",
-          body: pct === 100 ? `Skills pause until you top up or the allowance resets (${periodKey}).` : `${Math.round(allowance - usedAfter)} AI credits left this month.`,
+          title: pct === 100 ? "You've used this month's AI credits" : `${pct}% of this month's AI credits used`,
+          body: pct === 100 ? `Skills pause until you top up or the allowance resets (${periodKey}).` : `${Math.round(allowance - usedAfter)} AI credits left this month. Top up in a click so skills keep running.`,
           actionUrl: "/settings/usage",
           actionLabel: "See usage",
         }))

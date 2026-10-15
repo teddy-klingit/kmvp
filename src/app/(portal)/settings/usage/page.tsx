@@ -13,7 +13,7 @@ import { ColumnChart } from "@/components/insights/charts";
 import { AiCreditMeter } from "@/components/portal/skills/ai-credit-meter";
 import { AiPerDay } from "@/components/portal/usage/ai-per-day";
 import { Breakdown } from "@/components/portal/usage/breakdown";
-import { TopUp } from "@/components/portal/usage/top-up";
+import { TopUpButton } from "@/components/portal/top-up/top-up-panel";
 import { AddSlotDialog } from "@/components/portal/add-slot-dialog";
 import { cn } from "@/lib/utils";
 import { quoteRequest } from "@/lib/requests";
@@ -327,11 +327,11 @@ export default async function UsagePage() {
 
           <section id="top-up" aria-label="Top up AI credits" className="scroll-mt-6 overflow-hidden rounded-[12px] bg-white">
             <h2 className="m-0 border-b border-brand-line px-6 py-5 text-[18px] font-normal">Top up AI credits</h2>
-            <TopUp
-              admin
-              bundles={bundles}
-              pending={pendingTopUp ? `${n(Number((pendingTopUp.payload as { credits?: number }).credits ?? 0))} AI credits requested ${formatDay(pendingTopUp.createdAt)}: waiting for Klingit to approve.` : null}
-            />
+            <div className="flex flex-col gap-3 px-6 py-5">
+              <p className="m-0 text-[14px] leading-[1.5] text-brand-ink-2">1,000 credits and up, added right away and on your next invoice. Top-ups don&apos;t expire at the end of the month; they&apos;re used after your monthly credits.</p>
+              {pendingTopUp && <p className="m-0 text-[14px]">{`${n(Number((pendingTopUp.payload as { credits?: number }).credits ?? 0))} AI credits requested ${formatDay(pendingTopUp.createdAt)}: waiting for Klingit to approve.`}</p>}
+              <TopUpButton className="self-start inline-flex h-10 items-center rounded-full bg-brand-ink px-4 font-brand-mono text-[12px] text-white">Top up AI credits</TopUpButton>
+            </div>
           </section>
 
           <SectionCard id="billing" title="Billing" action={invoices.length ? <span className="font-brand-mono text-[12px] uppercase text-brand-ink">{invoices.length} recent</span> : undefined}>

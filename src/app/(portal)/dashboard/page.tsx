@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Image as ImageIcon, Plus } from "lucide-react";
+import { AlertTriangle, ArrowRight, Image as ImageIcon, Plus } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
 import { projectVisibilityWhere } from "@/lib/project-visibility";
@@ -25,6 +25,8 @@ import { VideoThumb } from "@/components/review/video-thumb";
 import { cn } from "@/lib/utils";
 import { planTurns } from "@/lib/plan";
 import { MessagePmButton } from "@/components/pm-panel/pm-panel-provider";
+import { TopUpButton } from "@/components/portal/top-up/top-up-panel";
+import { getSetting } from "@/lib/platform-settings";
 
 /** "Needs you" shows at most this many rows; the rest are behind "See all". */
 const TURN_ROWS = 5;
@@ -206,7 +208,7 @@ export default async function DashboardPage() {
               </div>
             </section>
           )}
-          <Credits pools={pools} team={usage.team} ai={usage.ai} runOut={usage.ai.reachedDay && usage.ai.runsOutBeforeReset ? new Date(Date.UTC(usage.period.start.getUTCFullYear(), usage.period.start.getUTCMonth(), usage.ai.reachedDay)) : null} reset={usage.period.nextReset} />
+          <Credits pools={pools} team={usage.team} ai={usage.ai} runOut={usage.ai.reachedDay && usage.ai.runsOutBeforeReset ? new Date(Date.UTC(usage.period.start.getUTCFullYear(), usage.period.start.getUTCMonth(), usage.ai.reachedDay)) : null} reset={usage.period.nextReset} warnAt={await getSetting("aiWarnAt")} />
 
           {fresh.count > 0 && (
             <section aria-label="New opportunities" className={card}>
@@ -303,12 +305,14 @@ type UsageData = Awaited<ReturnType<typeof loadUsage>>;
  */
 type Pools = NonNullable<Awaited<ReturnType<typeof teamBalances>>>;
 
-function Credits({ team, ai, runOut, reset, pools }: { team: CreditSummary & { usedThisMonth: number }; ai: UsageData["ai"]; runOut: Date | null; reset: Date; pools: Pools | null }) {
+function Credits({ team, ai, runOut, pools, warnAt }: { team: CreditSummary & { usedThisMonth: number }; ai: UsageData["ai"]; runOut: Date | null; reset: Date; pools: Pools | null; warnAt: number }) {
   const month = team.month.slice(0, 3);
   const total = team.available;
   const pct = (v: number) => (total ? `${Math.min(100, (v / total) * 100)}%` : "0%");
   // The month's AI credits: the allowance plus any bundle credits still to use (= used + left).
   const aiTotal = ai.used + ai.left;
+  const usedPct = ai.allowance > 0 ? Math.round((ai.used / ai.allowance) * 100) : 0;
+  const warn = !ai.ownModel && ai.allowance > 0 && ai.used >= ai.allowance * warnAt;
   const day = (d: Date) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "UTC" }).format(d);
   return (
     <section aria-label="Credits" className={card}>
@@ -387,17 +391,23 @@ function Credits({ team, ai, runOut, reset, pools }: { team: CreditSummary & { u
                 )}
               </div>
               {aiTotal > 0 && <AiCreditMeter used={ai.used} allowance={aiTotal} />}
-              <span className="text-[12px] leading-[1.5] text-brand-ink-2">Skills you run · {n(ai.used)} used · assistants are included</span>
+              {warn ? (
+                // Phase U: from the warn level (80%) on, how far along and when it runs out at this pace.
+                <span className="text-[12px] leading-[1.5] text-brand-orange-text">
+                  {usedPct}% used{runOut ? ` · at this pace you run out ${new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }).format(runOut)}` : ""}
+                </span>
+              ) : (
+                <span className="text-[12px] leading-[1.5] text-brand-ink-2">Skills you run · {n(ai.used)} used · assistants are included</span>
+              )}
             </>
           )}
         </div>
 
-        {runOut && !ai.ownModel && (
-          <p className="m-0 flex items-start gap-2 rounded-[10px] bg-brand-peach-pale px-4 py-3 text-[13px] leading-[1.5]">
-            <span aria-hidden className="mt-1.5 size-2 shrink-0 rounded-full bg-brand-orange" />
-            <span>
-              At this pace AI credits run out around <b className="font-semibold">{day(runOut)}</b>. Plan resets {day(reset)}.
-            </span>
+        {warn && (
+          <p className="m-0 flex items-center gap-3 rounded-[10px] bg-brand-peach-pale px-4 py-3 text-[13px] leading-[1.5]">
+            <AlertTriangle className="size-4 shrink-0 text-brand-orange-text" strokeWidth={1.75} />
+            <span className="flex-1">{ai.left <= 0 ? "Skills are paused: top up to keep them running" : "Top up now so skills keep running"}</span>
+            <TopUpButton className="inline-flex h-9 items-center rounded-full bg-brand-orange px-4 font-brand-mono text-[12px] text-white">Top up</TopUpButton>
           </p>
         )}
         <span className="flex gap-4">

@@ -52,6 +52,19 @@ export const SETTING_DEFAULTS = {
     simpleSkills: ["instagram_caption_agent", "brand_compliance", "tone_checker", "resize_agent", "caption_writer", "email_subject_agent"],
     opusSkills: [] as string[],
   } as { default: string; simple: string; opus: string; simpleSkills: string[]; opusSkills: string[] },
+  /** Phase U top-ups (placeholders): the options, the warning, what happens at 100%, approval, the monthly cap,
+   *  automatic top-ups and whether top-up credits roll over. */
+  aiTopUpOptions: [
+    { credits: 1000, priceEur: 25 },
+    { credits: 3000, priceEur: 65 },
+    { credits: 10000, priceEur: 190 },
+  ] as { credits: number; priceEur: number }[],
+  aiWarnAt: 0.8 as number,
+  aiAt100: "pause" as "pause" | "bill",
+  topUpApproval: "instant" as "instant" | "staff",
+  topUpMaxEurPerMonth: 250 as number,
+  autoTopUpRule: { below: 100, option: 0, maxPerMonth: 3 } as { below: number; option: number; maxPerMonth: number },
+  topUpRollover: true as boolean,
   promptCaching: true as boolean,
   batchScheduledReports: true as boolean,
   /** Phase T: minutes a Today task takes, per kind (placeholders), for "about 1 h 20 min". */
