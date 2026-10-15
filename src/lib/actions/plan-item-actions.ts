@@ -42,11 +42,14 @@ export async function addPlanItemAction(_prev: AddPlanState, formData: FormData)
   if (projectId && !(await prisma.project.findFirst({ where: { id: projectId, clientId: viewer.clientId }, select: { id: true } }))) return { error: "Pick one of your projects." };
   const opportunityId = String(formData.get("opportunityId") ?? "") || null;
   if (opportunityId && !(await prisma.opportunity.findFirst({ where: { id: opportunityId, clientId: viewer.clientId }, select: { id: true } }))) return { error: "That opportunity isn't yours." };
+  const route = String(formData.get("route") ?? "") || null;
+  // Phase T: one plan item per opportunity route, whichever way it's added ("Brief Klingit" uses the same key), so
+  // adding it again from the plan reuses the first item (and its brief) instead of making a duplicate.
   const { item } = await addPlanItem(
     viewer.clientId,
     viewer.userId,
-    { title, date, endDate: dateAt(formData.get("endDate")), channels: formData.getAll("channels").map(String), formats: formData.getAll("formats").map(String), maker, notes: String(formData.get("notes") ?? ""), projectId, opportunityId, route: String(formData.get("route") ?? "") || null },
-    requestKey
+    { title, date, endDate: dateAt(formData.get("endDate")), channels: formData.getAll("channels").map(String), formats: formData.getAll("formats").map(String), maker, notes: String(formData.get("notes") ?? ""), projectId, opportunityId, route },
+    opportunityId ? `opp-${opportunityId}-${route ?? "A"}` : requestKey
   );
   if (opportunityId) await markRoute(viewer.clientId, opportunityId, item.route, "added", { planItemId: item.id });
   refresh();

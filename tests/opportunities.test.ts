@@ -132,5 +132,9 @@ describe("Add to plan from an opportunity", () => {
     const after = await prisma.opportunity.findUniqueOrThrow({ where: { id: o.id }, include: { routes: true } });
     expect(after.status).toBe("added");
     expect(after.routes[0]).toMatchObject({ status: "added", planItemId: items[0].id });
+    // Phase T: adding the same route again later (a new dialog, so a new request key) reuses the first item.
+    f.set("requestKey", "opp-add-2");
+    await addPlanItemAction({}, f);
+    expect(await prisma.clientCalendarItem.count({ where: { clientId: fx.clientA.id, opportunityId: o.id } })).toBe(1);
   });
 });
