@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { notify, notifyMany } from "@/lib/notifier";
+import { notifyMany } from "@/lib/notifier";
 import { marketingPm } from "@/lib/contact-person";
 import { jsonArray } from "@/lib/utils";
 
@@ -110,8 +110,10 @@ export async function sendPmMessage(m: { clientId: string; author: { userId: str
   await markPmRead(m.clientId, m.author.userId);
   const preview = `${body.slice(0, 160)}${body.length > 160 ? "…" : ""}`;
   if (!staff) {
+    // No Marketing PM yet: Klingit's admins get it (the client sits in Admin → To set up until one is assigned).
     const pm = await marketingPm(m.clientId);
-    if (pm) await notify({ userId: pm.userId, clientId: m.clientId, type: "SYSTEM", title: `${m.author.name.split(" ")[0]}${projectName ? ` about ${projectName}` : ""}`, body: preview, actionUrl: `/ops/clients/${m.clientId}/dashboard?message=1`, actionLabel: "Reply" });
+    const to = pm ? [pm.userId] : (await prisma.staffMember.findMany({ where: { title: "ADMIN", user: { status: "ACTIVE" } }, select: { userId: true } })).map((a) => a.userId);
+    await notifyMany(to.map((userId) => ({ userId, clientId: m.clientId, type: "SYSTEM" as const, title: `${m.author.name.split(" ")[0]}${projectName ? ` about ${projectName}` : ""}`, body: preview, actionUrl: `/ops/clients/${m.clientId}/dashboard?message=1`, actionLabel: "Reply" })));
   } else {
     const owners = await prisma.clientUser.findMany({ where: { clientId: m.clientId, permission: "OWNER" }, select: { userId: true } });
     const lastAuthor = await prisma.clientMessage.findFirst({ where: { clientId: m.clientId, authorClientUserId: { not: null } }, orderBy: { createdAt: "desc" }, select: { authorClientUserId: true } });

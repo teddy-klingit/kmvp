@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { PillLink } from "@/components/ds/pill-link";
-import { clientsWithoutPm } from "@/lib/admin-jobs";
+import { clientsWithoutPm, suggestPm } from "@/lib/admin-jobs";
 import { unassignedLiveAdAccounts } from "@/lib/integrations/live-ads-owner";
 import { priceListGaps } from "@/lib/price-list-gaps";
 import { loadToday } from "@/lib/today";
@@ -32,7 +32,7 @@ function Job({ kind, title, detail, children }: { kind: string; title: string; d
  */
 export default async function AdminSetupPage({ searchParams }: { searchParams: Promise<{ ok?: string; error?: string; quotes?: string }> }) {
   const q = await searchParams;
-  const [noPm, ads, overdue, oldPlans, gaps, pms, clients] = await Promise.all([
+  const [noPm, ads, overdue, oldPlans, gaps, pms, clients, suggested] = await Promise.all([
     clientsWithoutPm(),
     unassignedLiveAdAccounts(),
     prisma.invoice.findMany({ where: { status: "OVERDUE", client: { isDemo: false } }, include: { client: { select: { name: true, accountLead: { select: { user: { select: { name: true } } } }, contracts: { where: { status: { in: ["active", "paused", "ending"] } }, select: { contact: { select: { user: { select: { name: true } } } } } } } } } }),
@@ -40,7 +40,9 @@ export default async function AdminSetupPage({ searchParams }: { searchParams: P
     priceListGaps(),
     prisma.staffMember.findMany({ where: { title: { in: ["ACCOUNT_LEAD", "PROJECT_MANAGER"] }, user: { status: "ACTIVE" } }, include: { user: { select: { name: true } } }, orderBy: { user: { name: "asc" } } }),
     prisma.client.findMany({ where: { isDemo: false, status: { not: "OFFBOARDED" } }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    suggestPm(),
   ]);
+  const suggestion = suggested ? ` Suggested: ${suggested.name}, who has the most free capacity (${suggested.clients} client${suggested.clients === 1 ? "" : "s"} now).` : "";
   // What's on nobody's Today because the client has no PM, by kind.
   const orphaned = await Promise.all(noPm.map(async (c) => ({ c, tasks: (await loadToday({ mine: false, clientIds: [c.id] }, new Date(), null, { ignorePm: true })).tasks })));
   const count = noPm.length + (ads.length ? 1 : 0) + overdue.length + (gaps.repeated.length ? 1 : 0) + (oldPlans.length ? 1 : 0);
@@ -61,7 +63,7 @@ export default async function AdminSetupPage({ searchParams }: { searchParams: P
               for (const t of tasks) by.set(t.kind, (by.get(t.kind) ?? 0) + 1);
               const parts = [...by.entries()].sort((a, b) => b[1] - a[1]).map(([k, n]) => `${n} ${KIND_WORD[k]?.[n === 1 ? 0 : 1] ?? k.toLowerCase()}`);
               return (
-                <Job key={c.id} kind="Contact person" title={`${c.name} has no Marketing PM`} detail={tasks.length ? `${tasks.length} open task${tasks.length === 1 ? "" : "s"} for this client ${tasks.length === 1 ? "is" : "are"} on nobody's Today: ${parts.join(", ")}.` : "Nothing open right now, but new work won't reach anyone's Today."}>
+                <Job key={c.id} kind="Contact person" title={`${c.name} has no Marketing PM`} detail={tasks.length ? `${tasks.length} open task${tasks.length === 1 ? "" : "s"} for this client ${tasks.length === 1 ? "is" : "are"} on nobody's Today: ${parts.join(", ")}.${suggestion}` : `Nothing open right now, but new work won't reach anyone's Today.${suggestion}`}>
                   <form action={assignPmAction} className="flex flex-wrap items-center gap-2">
                     <input type="hidden" name="clientId" value={c.id} />
                     <select name="staffId" required defaultValue="" aria-label={`Marketing PM for ${c.name}`} className={select}>
@@ -71,6 +73,7 @@ export default async function AdminSetupPage({ searchParams }: { searchParams: P
                       {pms.map((p) => (
                         <option key={p.id} value={p.id}>
                           {p.user.name}
+                          {p.id === suggested?.id ? " (suggested)" : ""}
                         </option>
                       ))}
                     </select>

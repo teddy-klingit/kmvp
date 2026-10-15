@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { createSecurityFixtures } from "./fixtures";
 import { loadPmThread, markPmRead, pmUnread, replyTime, sendPmMessage, type ThreadMessage } from "@/lib/pm-thread";
 import { loadToday } from "@/lib/today";
+import { marketingPm } from "@/lib/contact-person";
+import { suggestPm } from "@/lib/admin-jobs";
 
 type Fx = Awaited<ReturnType<typeof createSecurityFixtures>>;
 let fx: Fx;
@@ -74,5 +76,19 @@ describe("Message your PM", () => {
     const pairs = (n: number) => Array.from({ length: n }, (_, i) => [m(i * 10, false), m(i * 10 + 2, true)]).flat();
     expect(replyTime(pairs(4), new Date(Date.UTC(2026, 9, 5)))).toBeNull();
     expect(replyTime(pairs(5), new Date(Date.UTC(2026, 9, 5)))).toBe("within 2 hours");
+  });
+});
+
+describe("a client without a Marketing PM", () => {
+  it("their message reaches Klingit's admins, and an admin is pointed at the PM with the most free capacity", async () => {
+    expect(await marketingPm(fx.clientB.id)).toBeNull();
+    const cu = await prisma.clientUser.findFirstOrThrow({ where: { userId: fx.userB.id }, include: { user: true } });
+    await sendPmMessage({ clientId: fx.clientB.id, author: { userId: cu.userId, clientUserId: cu.id, name: cu.user.name }, body: "Who do we talk to?" });
+    expect(await prisma.notification.count({ where: { userId: fx.adminUser.id, clientId: fx.clientB.id } })).toBe(1);
+    expect(await prisma.notification.count({ where: { userId: pm.userId, clientId: fx.clientB.id } })).toBe(0);
+    // Tess already has client A, so a PM with no clients (if any) or Tess is suggested, never someone busier.
+    const s = await suggestPm();
+    expect(s).not.toBeNull();
+    expect(s!.clients).toBeLessThanOrEqual(1);
   });
 });

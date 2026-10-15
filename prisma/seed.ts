@@ -169,7 +169,7 @@ async function main() {
     });
   }
 
-  const teddy = await upsertStaff("teddy@klingit.com", "Teddy W.", "ACCOUNT_LEAD", ["Account strategy", "Client comms"], ["Klarna", "fintech"], 4.8);
+  const teddy = await upsertStaff("teddy@klingit.com", "Teddy W.", "ACCOUNT_LEAD", ["Account strategy", "Client comms"], ["ouhers", "beauty", "Nordlys", "retail & fashion"], 4.8);
   const sara = await upsertStaff("sara.n@klingit.com", "Sara N.", "ART_DIRECTOR", ["Art direction", "Social formats"], ["Klarna", "fintech", "fashion"], 4.9);
   const marcus = await upsertStaff("marcus@klingit.com", "Marcus L.", "COPYWRITER", ["Copywriting", "EN/SE localization"], ["Klarna", "retail"], 4.3);
   const priya = await upsertStaff("priya@klingit.com", "Priya K.", "MOTION_DESIGNER", ["Motion design", "Video editing"], ["retail", "fashion"], 4.6);
@@ -193,7 +193,8 @@ async function main() {
       monthlyCreditAllowance: 120,
       creditBalance: 113,
       healthScore: 88,
-      accountLeadId: teddy.id,
+      // No Marketing PM yet (quick fixes): Teddy W. has ouhers and Nordlys; an admin assigns Klarna's PM.
+      accountLeadId: null,
       renewalDate: days(120),
       onboardingCompletedAt: days(-200),
   };

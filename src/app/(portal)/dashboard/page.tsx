@@ -196,18 +196,17 @@ export default async function DashboardPage() {
         </div>
 
         <aside className="flex min-w-0 flex-col gap-6 min-[1000px]:col-span-4">
-          {pm && (
-            <section aria-label="Your Marketing PM" className={card}>
-              <div className="flex items-center gap-3 px-6 py-4">
-                <Avatar name={pm.name} size={40} />
-                <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="text-[12px] text-brand-ink-2">Your Marketing PM</span>
-                  <span className="truncate text-[16px]">{pm.name}</span>
-                </span>
-                <MessagePmButton className={monoLink}>MESSAGE</MessagePmButton>
-              </div>
-            </section>
-          )}
+          {/* No Marketing PM yet: a neutral card; messages still reach Klingit, who connect the client with their PM. */}
+          <section aria-label={pm ? "Your Marketing PM" : "Your Klingit team"} className={card}>
+            <div className="flex items-center gap-3 px-6 py-4">
+              <Avatar name={pm?.name ?? "Klingit"} size={40} />
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="text-[12px] text-brand-ink-2">{pm ? "Your Marketing PM" : "Your Klingit team"}</span>
+                <span className="truncate text-[16px]">{pm?.name ?? "Klingit"}</span>
+              </span>
+              <MessagePmButton className={monoLink}>MESSAGE</MessagePmButton>
+            </div>
+          </section>
           <Credits pools={pools} team={usage.team} ai={usage.ai} runOut={usage.ai.reachedDay && usage.ai.runsOutBeforeReset ? new Date(Date.UTC(usage.period.start.getUTCFullYear(), usage.period.start.getUTCMonth(), usage.ai.reachedDay)) : null} reset={usage.period.nextReset} warnAt={await getSetting("aiWarnAt")} />
 
           {fresh.count > 0 && (

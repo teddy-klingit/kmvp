@@ -27,3 +27,17 @@ export async function clientsWithoutPm() {
   });
   return clients.filter((c) => c.contracts.length === 0).map(({ id, name }) => ({ id, name }));
 }
+
+/**
+ * The Marketing PM with the most free capacity: fewest clients for their weekly hours (a client counts for the
+ * contact person on its contract, else its account lead). A suggestion only; an admin assigns.
+ */
+export async function suggestPm() {
+  const [pms, clients] = await Promise.all([
+    prisma.staffMember.findMany({ where: { title: { in: ["ACCOUNT_LEAD", "PROJECT_MANAGER"] }, user: { status: "ACTIVE" } }, select: { id: true, capacityHoursPerWeek: true, user: { select: { name: true } } } }),
+    prisma.client.findMany({ where: { status: { not: "OFFBOARDED" } }, select: { accountLeadId: true, contracts: { where: { status: { in: ["active", "paused", "ending", "scheduled"] } }, select: { contactStaffId: true }, take: 1 } } }),
+  ]);
+  const load = (id: string) => clients.filter((c) => (c.contracts[0]?.contactStaffId ?? c.accountLeadId) === id).length;
+  const ranked = pms.map((p) => ({ id: p.id, name: p.user.name, clients: load(p.id), per: load(p.id) / Math.max(1, p.capacityHoursPerWeek) })).sort((a, b) => a.per - b.per || a.name.localeCompare(b.name));
+  return ranked[0] ?? null;
+}
