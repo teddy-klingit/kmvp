@@ -33,7 +33,8 @@ export type ClientRow = {
   attention: string[];
 };
 
-export async function loadClientRows(scope: Scope, now = new Date()): Promise<ClientRow[]> {
+/** `money`: the overdue-invoice flag; Admin only. A Marketing PM's list never shows invoices or payment status. */
+export async function loadClientRows(scope: Scope, now = new Date(), opts: { money?: boolean } = {}): Promise<ClientRow[]> {
   const clients = await prisma.client.findMany({
     where: { status: { not: "OFFBOARDED" }, ...(scope.clientIds ? { id: { in: scope.clientIds } } : {}) },
     include: { accountLead: { include: { user: { select: { name: true } } } }, projects: { where: { status: { notIn: ["ARCHIVED", "DELIVERED", "DRAFT"] } }, select: { id: true } } },
@@ -43,7 +44,7 @@ export async function loadClientRows(scope: Scope, now = new Date()): Promise<Cl
     prisma.contract.findMany({ where: { clientId: { in: clients.map((c) => c.id) }, status: { in: ["active", "paused", "ending"] } }, include: { contact: { include: { user: { select: { name: true } } } } } }),
     prisma.platformPlan.findMany(),
     prisma.teamPack.findMany(),
-    prisma.invoice.groupBy({ by: ["clientId"], where: { status: "OVERDUE" }, _count: true }),
+    opts.money ? prisma.invoice.groupBy({ by: ["clientId"], where: { status: "OVERDUE" }, _count: true }) : Promise.resolve([] as { clientId: string; _count: number }[]),
     prisma.purchaseRequest.groupBy({ by: ["clientId"], where: { status: "pending" }, _count: true }),
   ]);
   const rows: ClientRow[] = [];

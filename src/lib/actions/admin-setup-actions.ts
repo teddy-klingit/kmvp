@@ -6,7 +6,7 @@ import { requireOpsRole } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { setContact } from "@/lib/contracts";
 import { setLiveAdsInternal, setLiveAdsOwner, type LiveAdProvider } from "@/lib/integrations/live-ads-owner";
-import { notify } from "@/lib/notifier";
+import { notifyMany } from "@/lib/notifier";
 
 /** Admin → To set up (Phase T): each job's inline action. Admins only; every change is logged. */
 
@@ -40,17 +40,20 @@ export async function adAccountAction(formData: FormData) {
   back(r.error ? { error: r.error } : { ok: formData.get("do") === "internal" ? "Marked as Klingit internal." : "Assigned." });
 }
 
-/** "Remind {PM}" about an overdue invoice on their client: in-app, and logged. */
-export async function remindPmAction(formData: FormData) {
+/**
+ * "Send reminder" about an overdue invoice: to the client's admins (in-app, and by email where their settings say
+ * so), linking to their invoices. Logged. Invoices are Admin's: a Marketing PM is never asked to chase one.
+ */
+export async function sendInvoiceReminderAction(formData: FormData) {
   const viewer = await requireOpsRole(["ADMIN"]);
-  const inv = await prisma.invoice.findUnique({ where: { id: String(formData.get("invoiceId") ?? "") }, include: { client: { select: { id: true, name: true, accountLead: { select: { userId: true, user: { select: { name: true } } } } } } } });
+  const inv = await prisma.invoice.findUnique({ where: { id: String(formData.get("invoiceId") ?? "") }, include: { client: { select: { id: true, name: true } } } });
   if (!inv) return back({ error: "No such invoice." });
-  const contract = await prisma.contract.findFirst({ where: { clientId: inv.clientId, status: { in: ["active", "paused", "ending"] } }, include: { contact: { select: { userId: true, user: { select: { name: true } } } } } });
-  const pm = contract?.contact ?? inv.client.accountLead;
-  if (!pm) return back({ error: `${inv.client.name} has no Marketing PM to remind.` });
-  await notify({ userId: pm.userId, type: "SYSTEM", title: `${inv.client.name}: invoice ${inv.number} is overdue`, body: `${inv.amount.toLocaleString("en-GB")} ${inv.currency}. Can you check in with them?`, actionUrl: `/ops/admin/billing/invoices/${inv.id}`, actionLabel: "Open invoice" });
-  await prisma.auditLog.create({ data: { clientId: inv.clientId, actorUserId: viewer.userId, area: "billing", action: `Reminded ${pm.user.name} about overdue invoice ${inv.number}` } });
-  back({ ok: `Reminded ${pm.user.name.split(" ")[0]}.` });
+  const admins = await prisma.clientUser.findMany({ where: { clientId: inv.clientId, permission: "OWNER" }, select: { userId: true } });
+  if (!admins.length) return back({ error: `${inv.client.name} has no admin to remind.` });
+  const due = inv.dueAt ? new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(inv.dueAt) : null;
+  await notifyMany(admins.map((a) => ({ userId: a.userId, clientId: inv.clientId, type: "SYSTEM" as const, title: `Invoice ${inv.number} is overdue`, body: `${inv.amount.toLocaleString("en-GB")} ${inv.currency}${due ? `, due ${due}` : ""}. If it's already paid, you can ignore this.`, actionUrl: "/settings/usage", actionLabel: "See invoices" })));
+  await prisma.auditLog.create({ data: { clientId: inv.clientId, actorUserId: viewer.userId, area: "billing", action: `Sent a reminder about overdue invoice ${inv.number} to ${admins.length} client admin${admins.length === 1 ? "" : "s"}` } });
+  back({ ok: `Reminder sent to ${inv.client.name}.` });
 }
 
 /** "Add N items": drafts on the Price List with the credits left blank for an admin to set. */

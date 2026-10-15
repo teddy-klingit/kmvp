@@ -16,15 +16,19 @@ export const CLIENT_TABS = [
   { label: "Brand", path: "brand-os", sub: [{ label: "Brand OS", path: "brand-os" }, { label: "Brand assets", path: "brand-assets" }] },
 ];
 
-export function ClientTabs({ base, counts }: { base: string; counts: { projects: number; plan: number } }) {
+/** Views only Admin opens: invoices and payments (Billing) and the client's set-up (Setup). */
+export const ADMIN_ONLY_VIEWS = ["billing", "admin"];
+
+export function ClientTabs({ base, counts, admin }: { base: string; counts: { projects: number; plan: number }; admin: boolean }) {
   const pathname = usePathname() ?? "";
+  const tabs = CLIENT_TABS.map((t) => (admin ? t : { ...t, label: t.label === "Contract & billing" ? "Contract" : t.label, sub: t.sub.filter((s) => !ADMIN_ONLY_VIEWS.includes(s.path)) }));
   const seg = pathname.slice(base.length + 1).split("/")[0] || "dashboard";
-  const current = CLIENT_TABS.find((t) => t.path === seg || t.sub.some((s) => s.path === seg)) ?? CLIENT_TABS[0];
+  const current = tabs.find((t) => t.path === seg || t.sub.some((s) => s.path === seg)) ?? tabs[0];
   return (
     <div className="flex flex-col gap-3">
       <SegmentedNav
         label="Client"
-        items={CLIENT_TABS.map((t) => ({
+        items={tabs.map((t) => ({
           label: t.label === "Projects" && counts.projects ? `Projects ${counts.projects}` : t.label === "Planner" && counts.plan ? `Planner ${counts.plan}` : t.label,
           href: `${base}/${t.path}`,
           active: t === current,

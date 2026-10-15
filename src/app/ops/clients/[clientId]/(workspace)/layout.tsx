@@ -7,6 +7,7 @@ import { OUHERS_CLIENT_ID } from "@/lib/demo/ouhers";
 import { ResetDemoButton } from "@/components/ops/reset-demo-button";
 import { ClientTabs } from "@/components/ops/client/client-tabs";
 import { clientHeader } from "@/lib/client-header";
+import { hasAdmin } from "@/lib/role-tier";
 import { viewClientAction } from "@/lib/actions/cockpit-actions";
 import { MessagePmButton, PmPanelProvider } from "@/components/pm-panel/pm-panel-provider";
 
@@ -66,7 +67,7 @@ export default async function ClientWorkspaceLayout({ children, params }: { chil
           />
           <span className="text-[14px] text-brand-ink-2">{line.join(" · ")}</span>
         </div>
-        <ClientTabs base={base} counts={{ projects, plan }} />
+        <ClientTabs admin={hasAdmin(viewer)} base={base} counts={{ projects, plan }} />
         {children}
       </div>
     </div>

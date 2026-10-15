@@ -1,4 +1,6 @@
 import { notFound } from "next/navigation";
+import { requireOpsPage } from "@/lib/authz";
+import { hasAdmin } from "@/lib/role-tier";
 import { prisma } from "@/lib/prisma";
 import { SectionCard, CardBody, CardRows } from "@/components/ds/card";
 import { Button } from "@/components/ds/button";
@@ -14,12 +16,14 @@ const KIND: Record<string, string> = { created: "Signed", upgrade: "Upgrade", "u
 /**
  * Client workspace → Contract (Phase S step 4): the live contract with its locked prices, term, notice deadline and
  * contact person; amend it (upgrade, downgrade, pause, cancel, end) and see every change. Creating one locks today's
- * list prices for the chosen term and currency.
+ * list prices for the chosen term and currency. Admins only; a Marketing PM gets the same contract without prices.
  */
 export default async function ContractPage({ params, searchParams }: { params: Promise<{ clientId: string }>; searchParams: Promise<{ ok?: string; error?: string }> }) {
   const [{ clientId }, q] = await Promise.all([params, searchParams]);
   const client = await prisma.client.findUnique({ where: { id: clientId }, select: { id: true, name: true } });
   if (!client) notFound();
+  // A Marketing PM sees the pack, balances, term, notice and renewal; never prices or invoices (Admin's).
+  if (!hasAdmin(await requireOpsPage(["ADMIN", "PM"]))) return <PmContract clientId={clientId} />;
   const [contract, pricing, staff, history] = await Promise.all([
     liveOrScheduledContract(clientId),
     loadPricing(),
@@ -264,5 +268,44 @@ export default async function ContractPage({ params, searchParams }: { params: P
         </p>
       )}
     </>
+  );
+}
+
+/** The contract as a Marketing PM sees it: what was bought and for how long, no prices, no invoicing. */
+async function PmContract({ clientId }: { clientId: string }) {
+  const [contract, pricing] = await Promise.all([liveOrScheduledContract(clientId), loadPricing()]);
+  if (!contract) {
+    return (
+      <SectionCard title="Contract">
+        <CardBody>
+          <p className="m-0 text-[14px] text-brand-ink-2">No contract yet: the client is on an old plan. Admin moves them to a contract.</p>
+        </CardBody>
+      </SectionCard>
+    );
+  }
+  const plan = pricing.plans.find((p) => p.key === contract.platformPlanKey)?.name ?? contract.platformPlanKey;
+  const pack = contract.teamPackKey ? (pricing.packs.find((p) => p.key === contract.teamPackKey)?.name ?? contract.teamPackKey) : "Platform only";
+  return (
+    <SectionCard title="Contract" meta={<span className="font-brand-mono text-[12px] uppercase text-brand-ink-2">{contract.status}</span>}>
+      <CardBody>
+        <dl className="m-0 grid grid-cols-1 gap-x-8 gap-y-3 text-[14px] sm:grid-cols-3">
+          {[
+            ["Platform", plan],
+            ["Team", pack],
+            ["Credits a month", `PM ${contract.pmCreditsPerMonth} · creative ${contract.creativeCreditsPerMonth}`],
+            ["Term", `${contract.termMonths} months · ${day(contract.startDate)} – ${day(contract.endDate)}`],
+            ["Notice deadline", `${day(contract.noticeDeadline)}${contract.autoRenew ? " · renews automatically" : " · won't renew"}`],
+            ["Contact person", contract.contact?.user.name ?? "None"],
+            ["Paused", contract.pausedFrom ? `since ${day(contract.pausedFrom)}` : contract.pausedDays ? `${contract.pausedDays} days in total` : "No"],
+          ].map(([k, v]) => (
+            <div key={k} className="flex flex-col gap-0.5">
+              <dt className="text-[12px] text-brand-ink-2">{k}</dt>
+              <dd className="m-0">{v}</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="m-0 mt-3 text-[12px] text-brand-ink-2">Prices, invoices and changes to the contract are handled in Admin.</p>
+      </CardBody>
+    </SectionCard>
   );
 }

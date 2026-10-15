@@ -5,7 +5,7 @@ import { clientsWithoutPm } from "@/lib/admin-jobs";
 import { unassignedLiveAdAccounts } from "@/lib/integrations/live-ads-owner";
 import { priceListGaps } from "@/lib/price-list-gaps";
 import { loadToday } from "@/lib/today";
-import { addDraftItemsAction, adAccountAction, assignPmAction, remindPmAction } from "@/lib/actions/admin-setup-actions";
+import { addDraftItemsAction, adAccountAction, assignPmAction, sendInvoiceReminderAction } from "@/lib/actions/admin-setup-actions";
 import { PLAN_TIER_LABEL } from "@/lib/labels";
 import { cn } from "@/lib/utils";
 
@@ -108,17 +108,14 @@ export default async function AdminSetupPage({ searchParams }: { searchParams: P
               </Job>
             )}
             {overdue.map((inv) => {
-              const pm = inv.client.contracts[0]?.contact?.user.name ?? inv.client.accountLead?.user.name ?? null;
               return (
-                <Job key={inv.id} kind="Billing" title={`${inv.client.name} has an overdue invoice`} detail={`${inv.number} · ${inv.amount.toLocaleString("en-GB")} ${inv.currency}, past its due date.${pm ? ` ${pm} is their contact.` : " They have no Marketing PM."}`}>
-                  {pm && (
-                    <form action={remindPmAction}>
-                      <input type="hidden" name="invoiceId" value={inv.id} />
-                      <button type="submit" className={pill(false)}>
-                        Remind {pm.split(" ")[0]}
-                      </button>
-                    </form>
-                  )}
+                <Job key={inv.id} kind="Billing" title={`${inv.client.name} has an overdue invoice`} detail={`${inv.number} · ${inv.amount.toLocaleString("en-GB")} ${inv.currency}, past its due date. The reminder goes to the client's admins.`}>
+                  <form action={sendInvoiceReminderAction}>
+                    <input type="hidden" name="invoiceId" value={inv.id} />
+                    <button type="submit" className={pill(false)}>
+                      Send reminder
+                    </button>
+                  </form>
                   <PillLink href={`/ops/admin/billing/invoices/${inv.id}`} variant="primary">
                     Open invoice
                   </PillLink>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { requireOpsPage } from "@/lib/authz";
+import { hasAdmin } from "@/lib/role-tier";
 import { OpsPage } from "@/components/ops/ops-page";
 import { PageHeader } from "@/components/ds/page-header";
 import { FilterChips } from "@/components/ds/filter-chips";
@@ -37,7 +38,8 @@ export default async function ClientsDirectoryPage({ searchParams }: { searchPar
   const viewer = await requireOpsPage(["ADMIN", "PM"]);
   const q = await searchParams;
   const scope = await scopeFor(viewer, q.scope);
-  const all = await loadClientRows(scope);
+  const money = hasAdmin(viewer);
+  const all = await loadClientRows(scope, new Date(), { money });
   const rows = filterClientRows(all, { contact: q.contact, way: q.way, plan: q.plan, attention: q.attention === "1" });
   const href = (patch: Record<string, string | null>) => {
     const s = new URLSearchParams(Object.entries({ scope: q.scope ?? null, contact: q.contact ?? null, way: q.way ?? null, plan: q.plan ?? null, attention: q.attention ?? null, ...patch }).filter((e): e is [string, string] => Boolean(e[1])));
@@ -85,7 +87,7 @@ export default async function ClientsDirectoryPage({ searchParams }: { searchPar
             <table className="w-full min-w-[1040px] border-collapse text-[14px]">
               <thead>
                 <tr className="text-left text-[12px] text-brand-ink-2">
-                  {["Client", "Way", "Plan · pack", "Balances", "Contact person", "Active", "Notice · renews", ""].map((h) => (
+                  {["Client", "Way", "Plan · pack", "Balances", "Contact person", "Active", "Notice · renews", ...(money ? ["Invoices"] : [])].map((h) => (
                     <th key={h} className="px-3 py-2.5 font-medium first:pl-6 last:pr-6">
                       {h}
                     </th>
@@ -119,7 +121,7 @@ export default async function ClientsDirectoryPage({ searchParams }: { searchPar
                       {r.noticeDeadline ? `Notice ${day(r.noticeDeadline)}` : "—"}
                       {r.endDate && <span className="block text-brand-ink-2">Renews {day(r.endDate)}</span>}
                     </td>
-                    <td className="py-3 pl-3 pr-6 text-[12px]">{r.overdueInvoices > 0 ? <span className="text-brand-orange-text">Invoice overdue</span> : <span className="text-brand-ink-2">Invoices OK</span>}</td>
+                    {money && <td className="py-3 pl-3 pr-6 text-[12px]">{r.overdueInvoices > 0 ? <span className="text-brand-orange-text">Invoice overdue</span> : <span className="text-brand-ink-2">Invoices OK</span>}</td>}
                   </tr>
                 ))}
               </tbody>

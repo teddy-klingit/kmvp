@@ -19,7 +19,9 @@ const dayMonth = (d: Date) => new Intl.DateTimeFormat("en-GB", { day: "numeric",
 export type Meter = { label: string; left: number; of: number; note: string; tone: "ink" | "blue" | "purple"; warn?: boolean };
 export type NextEvent = { at: Date; what: string; subject: string; waitsFor: string; soon: boolean };
 
-export async function clientOverview(clientId: string, projects: OpsProject[], now = new Date()) {
+/** `money`: invoices, payment status and prices; Admin only. A Marketing PM's view never has them. */
+export async function clientOverview(clientId: string, projects: OpsProject[], now = new Date(), opts: { money?: boolean } = {}) {
+  const money = Boolean(opts.money);
   const [client, contract, b, ai, pendingPacks, sentEstimates, planItems, overdueInvoices, lastPaid, skillRuns, owner, pmSetting] = await Promise.all([
     prisma.client.findUniqueOrThrow({ where: { id: clientId }, include: { brandOS: true } }),
     prisma.contract.findFirst({ where: { clientId, status: { in: ["active", "paused", "ending", "scheduled"] } }, orderBy: { startDate: "asc" } }),
@@ -28,8 +30,8 @@ export async function clientOverview(clientId: string, projects: OpsProject[], n
     prisma.purchaseRequest.findMany({ where: { clientId, status: "pending", kind: "creative_pack" }, select: { payload: true } }),
     prisma.estimate.findMany({ where: { status: "SENT", project: { clientId, status: { notIn: ["ARCHIVED", "DRAFT"] } } }, select: { pmCredits: true } }),
     prisma.clientCalendarItem.findMany({ where: { clientId, archivedAt: null, maker: "klingit_help", projectId: null, briefBy: { gte: startOfDay(now) } }, orderBy: { briefBy: "asc" }, take: 6 }),
-    prisma.invoice.count({ where: { clientId, status: "OVERDUE" } }),
-    prisma.invoice.findFirst({ where: { clientId, status: "PAID" }, orderBy: { paidAt: "desc" }, select: { paidAt: true } }),
+    money ? prisma.invoice.count({ where: { clientId, status: "OVERDUE" } }) : 0,
+    money ? prisma.invoice.findFirst({ where: { clientId, status: "PAID" }, orderBy: { paidAt: "desc" }, select: { paidAt: true } }) : null,
     prisma.aiCreditLedger.count({ where: { clientId, kind: "USAGE", sourceType: "skill", createdAt: { gte: new Date(now.getFullYear(), now.getMonth(), 1) } } }),
     prisma.clientUser.findFirst({ where: { clientId, permission: "OWNER" }, include: { user: { select: { name: true } } } }),
     getSetting("teamRolloverCap"),
@@ -97,18 +99,20 @@ export async function clientOverview(clientId: string, projects: OpsProject[], n
   const word = overdue >= 2 || overdueInvoices > 0 || warnings.length >= 4 ? "At risk" : warnings.length === 3 ? "Needs attention" : "Good";
 
   // ─── Contract ────────────────────────────────────────────────────────────
-  let contractCard: { perMonth: string; term: string; notice: string; nextInvoice: string } | null = null;
+  let contractCard: { perMonth: string | null; pack: string | null; term: string; notice: string; renews: string | null; nextInvoice: string | null } | null = null;
   if (contract) {
-    const money = (n: number) => new Intl.NumberFormat("en-GB", { style: "currency", currency: contract.currency, maximumFractionDigits: 0 }).format(n);
+    const fmt = (n: number) => new Intl.NumberFormat("en-GB", { style: "currency", currency: contract.currency, maximumFractionDigits: 0 }).format(n);
     const periods = invoicePeriods(contract);
     const nextP = periods.find((p) => p.start > now);
     const q = (d: Date) => (contract.invoicing === "quarterly" ? ` · Q${Math.floor(d.getMonth() / 3) + 1}` : "");
     const last = new Date(contract.endDate.getTime() - DAY);
     contractCard = {
-      perMonth: `${money(contract.platformPrice + contract.teamPrice)} (${money(contract.platformPrice)} + ${money(contract.teamPrice)})`,
+      perMonth: money ? `${fmt(contract.platformPrice + contract.teamPrice)} (${fmt(contract.platformPrice)} + ${fmt(contract.teamPrice)})` : null,
+      pack: money ? null : contract.teamPackKey ? `PM ${contract.pmCreditsPerMonth} · creative ${contract.creativeCreditsPerMonth} a month` : "Platform only",
+      renews: money ? null : contract.autoRenew ? `Yes, for ${contract.termMonths} months` : "No",
       term: `${new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(contract.startDate)} – ${new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(last)}`,
       notice: new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(contract.noticeDeadline),
-      nextInvoice: nextP ? `${dayMonth(nextP.start)}${q(nextP.start)}` : "End of term",
+      nextInvoice: money ? (nextP ? `${dayMonth(nextP.start)}${q(nextP.start)}` : "End of term") : null,
     };
   }
 

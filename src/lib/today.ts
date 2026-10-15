@@ -4,7 +4,7 @@ import { teamBalances } from "@/lib/team-ledger";
 import { REQUEST_KINDS, type RequestKind } from "@/lib/requests";
 import { getSetting } from "@/lib/platform-settings";
 import { jsonArray } from "@/lib/utils";
-import { myClientIds, type Scope } from "@/lib/staff-scope";
+import type { Scope } from "@/lib/staff-scope";
 
 /**
  * Today, the Marketing PM's day (Phase T): one row = one decision. Every signal about one project and one kind of
@@ -13,8 +13,8 @@ import { myClientIds, type Scope } from "@/lib/staff-scope";
  * and duplicate briefs show inside the task. Sections: Do now (late or due today), This week, and Keep an eye on
  * (projects running on their own, a balance that runs out before month end, a renewal or notice within 30 days).
  *
- * Admin jobs never land here (ad accounts nobody owns, migration, clients without a PM, invoices on other PMs'
- * clients): an overdue invoice shows only on its own PM's Today. Ticked tasks stay done for the day (TodayDone).
+ * Admin jobs never land here (ad accounts nobody owns, migration, clients without a PM), and neither does money:
+ * invoices and prices are Admin's (Admin → Billing, To set up). Ticked tasks stay done for the day (TodayDone).
  */
 
 const DAY = 86400000;
@@ -67,14 +67,12 @@ export async function loadToday(scope: Scope, now = new Date(), viewer?: { id: s
   // Clients with no Marketing PM are an Admin job (To set up), not anyone's Today. Admin counts their tasks (ignorePm).
   const withPm = opts.ignorePm && scope.clientIds ? scope.clientIds : await clientsWithPm(scope.clientIds);
   const inScope = { clientId: { in: withPm } };
-  const [projects, minutes, planItems, briefs, requests, invoices] = await Promise.all([
+  const [projects, minutes, planItems, briefs, requests] = await Promise.all([
     loadOpsProjects(inScope, now),
     getSetting("todayMinutes"),
     prisma.clientCalendarItem.findMany({ where: { ...inScope, maker: "klingit_help", projectId: null, archivedAt: null, briefBy: { not: null, lte: new Date(now.getTime() + 7 * DAY) }, date: { gte: new Date(now.getTime() - 2 * DAY) } }, include: { client: { select: { name: true } } } }),
     prisma.project.findMany({ where: { ...inScope, status: "BRIEFING", createdAt: { gte: new Date(now.getTime() - 3 * DAY) } }, select: { id: true, name: true, clientId: true, createdAt: true, client: { select: { name: true } } } }),
     prisma.purchaseRequest.findMany({ where: { ...inScope, status: "pending" }, include: { client: { select: { name: true } } } }),
-    // Overdue invoices: only on the viewer's own clients, never other PMs' (an admin sees them in Admin).
-    viewer ? ownClients(viewer.id, withPm).then((ids) => prisma.invoice.findMany({ where: { status: "OVERDUE", clientId: { in: ids } }, include: { client: { select: { name: true } } } })) : Promise.resolve([]),
   ]);
   const drafts = await prisma.estimate.findMany({ where: { status: "DRAFT", projectId: { in: projects.map((p) => p.project.id) } }, include: { lineItems: true } });
   const draftOf = (projectId: string) => drafts.find((d) => d.projectId === projectId) ?? null;
@@ -235,7 +233,8 @@ export async function loadToday(scope: Scope, now = new Date(), viewer?: { id: s
       projectId: null,
       subject: label,
       sentence: r.kind === "creative_pack" ? `Approve ${(payload.packs ?? 1) * 10} extra creative credits` : `Decide: ${label.toLowerCase()}`,
-      context: [payload.note ? `“${payload.note}”` : null, r.price != null ? `${r.price.toLocaleString("en-GB")} ${r.currency} on the next invoice.` : "Needs a price."].filter(Boolean).join(" "),
+      // Never money on a PM's day: the credit change shows in the row (Creative balance goes 31 → 41).
+      context: payload.note ? `“${payload.note}”` : r.kind === "creative_pack" ? "Extra creative credits for this month." : "Asked by the client.",
       due: { tone: "ok", label: `Asked ${dayMonth(r.createdAt)}`, at: r.createdAt },
       section: now.getTime() - r.createdAt.getTime() > 3 * DAY ? "now" : "week",
       minutes: mins("REQUEST"),
@@ -243,10 +242,6 @@ export async function loadToday(scope: Scope, now = new Date(), viewer?: { id: s
       secondary: { label: "Decline", href: "/ops/requests" },
       ref: { requestId: r.id },
     });
-  }
-  for (const inv of invoices) {
-    const due: Due = inv.dueAt ? { tone: "late", label: `${daysLate(inv.dueAt, now)} days overdue`, at: inv.dueAt } : { tone: "late", label: "Overdue", at: now };
-    tasks.push({ key: `INVOICE:${inv.id}`, kind: "INVOICE", clientId: inv.clientId, clientName: inv.client.name, projectId: null, subject: `Invoice ${inv.number}`, sentence: `Remind ${inv.client.name} about invoice ${inv.number}`, context: `${inv.amount.toLocaleString("en-GB")} ${inv.currency}, past its due date.`, due, section: "now", minutes: mins("INVOICE"), primary: { label: "Open invoice", href: `/ops/admin/billing/invoices/${inv.id}` }, ref: { invoiceId: inv.id } });
   }
 
   // The client's general thread with their PM (Phase U): a client message with no staff reply after it.
@@ -294,11 +289,6 @@ async function clientsWithPm(ids: string[] | null) {
   return clients.filter((c) => c.accountLeadId || c.contracts.length).map((c) => c.id);
 }
 
-async function ownClients(staffId: string, among: string[]) {
-  const mine = new Set(await myClientIds(staffId));
-  return among.filter((id) => mine.has(id));
-}
-
 /** Not tasks yet: what runs on its own, a balance that won't last the month, a renewal or notice close by. */
 async function keepAnEye(projects: OpsProject[], clientIds: string[], now: Date): Promise<KeepAnEye[]> {
   const out: KeepAnEye[] = [];
@@ -334,14 +324,14 @@ async function keepAnEye(projects: OpsProject[], clientIds: string[], now: Date)
   // Phase U: AI top-ups this month on these clients (instant ones too), so the PM knows who's running hot.
   const topUps = await prisma.purchaseRequest.findMany({ where: { clientId: { in: clientIds }, kind: "ai_topup", status: "approved", createdAt: { gte: new Date(now.getFullYear(), now.getMonth(), 1) } }, include: { client: { select: { name: true } } }, orderBy: { createdAt: "desc" } });
   if (topUps.length) {
-    const byClient = new Map<string, { n: number; credits: number; price: number; currency: string; auto: number; id: string }>();
+    const byClient = new Map<string, { n: number; credits: number; auto: number; id: string }>();
     for (const t of topUps) {
-      const c = byClient.get(t.client.name) ?? { n: 0, credits: 0, price: 0, currency: t.currency, auto: 0, id: t.clientId };
+      const c = byClient.get(t.client.name) ?? { n: 0, credits: 0, auto: 0, id: t.clientId };
       const p = t.payload as { credits?: number; auto?: boolean };
-      byClient.set(t.client.name, { ...c, n: c.n + 1, credits: c.credits + (p.credits ?? 0), price: c.price + (t.price ?? 0), auto: c.auto + (p.auto ? 1 : 0) });
+      byClient.set(t.client.name, { ...c, n: c.n + 1, credits: c.credits + (p.credits ?? 0), auto: c.auto + (p.auto ? 1 : 0) });
     }
     const [name, t] = [...byClient.entries()].sort((a, b) => b[1].credits - a[1].credits)[0];
-    out.push({ title: name, line: `${t.n} AI top-up${t.n === 1 ? "" : "s"} this month · ${t.credits.toLocaleString("en-GB")} credits`, note: `${t.price.toLocaleString("en-GB")} ${t.currency} on the next invoice${t.auto ? ` · ${t.auto} automatic` : ""}${byClient.size > 1 ? ` · +${byClient.size - 1} more client${byClient.size > 2 ? "s" : ""}` : ""}`, href: `/ops/clients/${t.id}/billing` });
+    out.push({ title: name, line: `${t.n} AI top-up${t.n === 1 ? "" : "s"} this month · ${t.credits.toLocaleString("en-GB")} credits`, note: `${t.auto ? `${t.auto} automatic` : "Added by the client"}${byClient.size > 1 ? ` · +${byClient.size - 1} more client${byClient.size > 2 ? "s" : ""}` : ""}`, href: `/ops/clients/${t.id}/billing` });
   }
 
   // Notice deadlines within 30 days (contracts), else old plans renewing around now.

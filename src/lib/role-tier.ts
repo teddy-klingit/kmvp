@@ -30,9 +30,10 @@ export const ROLE_TIER_LABEL: Record<RoleTier, string> = {
 };
 
 /**
- * Admin access (Phase T): the ADMIN title, or a staff member given Admin on top of their role (a Marketing PM who
- * also runs set-up). Their day-to-day view still follows their title (a PM's Today defaults to their own clients).
+ * Admin access: the ADMIN title only. Roles are separate (quick fixes, 2026-10-15): a Marketing PM sees a PM's day
+ * and never money; Admin (set-up, prices, billing, invoices) is its own user, reached with Switch view. The old
+ * isAdmin flag is no longer read.
  */
-export function hasAdmin(s: { title: InternalRole; isAdmin?: boolean | null }) {
-  return roleTierFor(s.title) === "ADMIN" || Boolean(s.isAdmin);
+export function hasAdmin(s: { title: InternalRole }) {
+  return roleTierFor(s.title) === "ADMIN";
 }

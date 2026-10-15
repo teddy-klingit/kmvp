@@ -20,7 +20,7 @@ const back = (clientId: string, msg?: { ok?: string; error?: string }, tab = "co
 };
 
 async function run(formData: FormData, fn: (viewer: Awaited<ReturnType<typeof requireOpsRole>>, clientId: string, contractId: string) => Promise<string>) {
-  const viewer = await requireOpsRole(["ADMIN", "PM"]);
+  const viewer = await requireOpsRole(["ADMIN"]);
   const clientId = String(formData.get("clientId") ?? "");
   const contractId = String(formData.get("contractId") ?? "");
   let ok: string;

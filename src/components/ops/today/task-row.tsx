@@ -293,7 +293,7 @@ export function TaskRow({ task, inline, compact = false }: { task: Task; inline?
     inline?.kind === "STAFFING" && inline.candidates.length
       ? `No one passed the auto-staff bar. Best fits: ${inline.candidates.map((c) => `${c.name} ${c.score}${c.note.includes("booked") ? ` (${c.note})` : ""}`).join(" · ")}.`
       : inline?.kind === "REQUEST" && inline.balance
-        ? `${task.context} Balance goes ${inline.balance.before} → ${inline.balance.after}.`
+        ? `${task.context} Creative balance goes ${inline.balance.before} → ${inline.balance.after}.`
         : task.context;
 
   return (

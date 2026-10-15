@@ -4,6 +4,7 @@ import { getOpsViewer } from "@/lib/current-viewer";
 import { loadToday } from "@/lib/today";
 import { loadInline } from "@/lib/today-inline";
 import { clientOverview } from "@/lib/client-overview";
+import { hasAdmin } from "@/lib/role-tier";
 import { internalStagePill } from "@/lib/ops-cockpit";
 import { TaskRow } from "@/components/ops/today/task-row";
 import { cn } from "@/lib/utils";
@@ -37,7 +38,7 @@ export default async function ClientOverviewPage({ params }: { params: Promise<{
   const viewer = await getOpsViewer();
   const now = new Date();
   const today = await loadToday({ mine: false, clientIds: [clientId] }, now, viewer);
-  const [inline, o] = await Promise.all([loadInline(today.tasks), clientOverview(clientId, today.projects, now)]);
+  const [inline, o] = await Promise.all([loadInline(today.tasks), clientOverview(clientId, today.projects, now, { money: Boolean(viewer && hasAdmin(viewer)) })]);
   const attention = today.projects.filter((p) => p.exceptions.length > 0);
   const quiet = today.projects.filter((p) => p.exceptions.length === 0);
   const shown = [...attention, ...quiet].slice(0, Math.max(5, attention.length));
@@ -148,15 +149,19 @@ export default async function ClientOverviewPage({ params }: { params: Promise<{
           </div>
         </Card>
 
-        <Card title="Contract" link={{ label: "Contract & billing", href: `${base}/contract` }}>
+        <Card title="Contract" link={{ label: o.contract?.perMonth ? "Contract & billing" : "Contract", href: `${base}/contract` }}>
           {o.contract ? (
             <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 px-6 py-5 text-[13px]">
               {[
                 ["Per month", o.contract.perMonth],
+                ["Pack", o.contract.pack],
                 ["Term", o.contract.term],
                 ["Notice by", o.contract.notice],
+                ["Renews", o.contract.renews],
                 ["Next invoice", o.contract.nextInvoice],
-              ].map(([k, v]) => (
+              ]
+                .filter((r): r is [string, string] => Boolean(r[1]))
+                .map(([k, v]) => (
                 <div key={k} className="contents">
                   <dt className="text-brand-ink-2">{k}</dt>
                   <dd className="m-0 text-right tabular-nums">{v}</dd>

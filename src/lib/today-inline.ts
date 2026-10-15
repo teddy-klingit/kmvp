@@ -10,7 +10,7 @@ import type { Task } from "@/lib/today";
 
 /**
  * What each Today row needs to act in place (Phase T): the estimate's lines for the inline editor, the top two
- * creators for staffing, the drafted nudge, the request's price and new balance, the creator to ask.
+ * creators for staffing, the drafted nudge, the request's new balance (never a price), the creator to ask.
  */
 
 export type EstimateRowStatus = "Price List" | "Check" | "Quote" | "Merged" | "PM credits";
@@ -29,7 +29,7 @@ export type InlineData =
   | { kind: "ESTIMATE"; projectId: string; clientName: string; rows: EstimateRow[]; creativeLeft: number | null; pmPercent: number; pmMin: number; splitNote: string }
   | { kind: "MESSAGE"; projectId: string; creator: { name: string; userId: string } | null }
   | { kind: "PLAN"; itemId: string; draft: string }
-  | { kind: "REQUEST"; requestId: string; price: string | null; balance: { before: number; after: number } | null }
+  | { kind: "REQUEST"; requestId: string; balance: { before: number; after: number } | null }
   | { kind: "STAFFING"; projectId: string; role: string; candidates: { staffMemberId: string; name: string; score: number; note: string }[] }
   | { kind: "DEADLINE"; projectId: string; creator: { name: string; userId: string } | null; dueDate: string | null };
 
@@ -75,7 +75,7 @@ export async function loadInline(tasks: Task[]): Promise<Record<string, InlineDa
       if (!r) continue;
       const credits = r.kind === "creative_pack" ? (((r.payload ?? {}) as { packs?: number }).packs ?? 1) * 10 : 0;
       const b = credits ? await teamBalances(r.clientId) : null;
-      out[t.key] = { kind: "REQUEST", requestId: r.id, price: r.price != null ? `${r.price.toLocaleString("en-GB")} ${r.currency}` : null, balance: b ? { before: Math.round(b.creative.left), after: Math.round(b.creative.left + credits) } : null };
+      out[t.key] = { kind: "REQUEST", requestId: r.id, balance: b ? { before: Math.round(b.creative.left), after: Math.round(b.creative.left + credits) } : null };
     } else if (t.kind === "STAFFING" && t.projectId) {
       const project = await prisma.project.findUnique({ where: { id: t.projectId }, select: { type: true, clientId: true } });
       if (!project) continue;

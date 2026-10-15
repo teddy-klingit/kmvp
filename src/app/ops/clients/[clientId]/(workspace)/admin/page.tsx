@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { requireOpsPage } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { SectionCard, CardRows, CardNote } from "@/components/ds/card";
 import { StatRows, type Stat } from "@/components/ds/stats";
@@ -30,6 +31,8 @@ const INVOICE: Record<string, { label: string; tone: PillTone }> = {
 const count = (n: number) => <span className="font-brand-mono text-[12px] text-brand-ink-2">{n}</span>;
 
 export default async function ClientAdminPage({ params }: { params: Promise<{ clientId: string }> }) {
+  // Invoices, payments and contract prices are Admin's; a Marketing PM never reaches this page.
+  await requireOpsPage(["ADMIN"]);
   const { clientId } = await params;
   const client = await prisma.client.findUnique({
     where: { id: clientId },

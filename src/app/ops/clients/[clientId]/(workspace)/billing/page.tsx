@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { requireOpsPage } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { SectionCard, CardRows, CardNote } from "@/components/ds/card";
 import { Button } from "@/components/ds/button";
@@ -15,6 +16,8 @@ const day = (d: Date) => new Intl.DateTimeFormat("en-GB", { day: "numeric", mont
  * billing details, and the staff settings: payment terms, VAT, and AI top-ups auto-approved up to a price.
  */
 export default async function ClientBillingPage({ params }: { params: Promise<{ clientId: string }> }) {
+  // Invoices, payments and contract prices are Admin's; a Marketing PM never reaches this page.
+  await requireOpsPage(["ADMIN"]);
   const { clientId } = await params;
   const client = await prisma.client.findUnique({ where: { id: clientId }, select: { id: true } });
   if (!client) notFound();

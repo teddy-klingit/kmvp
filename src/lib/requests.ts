@@ -82,7 +82,7 @@ export async function createRequest(clientId: string, userId: string | null, kin
     if (profile?.aiTopUpAutoApproveUpTo != null && q.price <= profile.aiTopUpAutoApproveUpTo) return decideRequest(req.id, null, true, "Auto-approved (under the client's limit)", now);
   }
   const lead = await prisma.client.findUnique({ where: { id: clientId }, select: { name: true, accountLead: { select: { userId: true } } } });
-  if (lead?.accountLead) await notifyMany([{ userId: lead.accountLead.userId, clientId, type: "APPROVAL_NEEDED" as const, title: `${lead.name}: ${REQUEST_KINDS[kind].label.toLowerCase()} to approve`, body: q.price != null ? `${q.price} ${q.currency}${q.per === "month" ? " a month" : ""}` : "Needs a price", actionUrl: "/ops/requests", actionLabel: "Open requests" }]);
+  if (lead?.accountLead) await notifyMany([{ userId: lead.accountLead.userId, clientId, type: "APPROVAL_NEEDED" as const, title: `${lead.name}: ${REQUEST_KINDS[kind].label.toLowerCase()} to approve`, body: q.credits ? `${q.credits.toLocaleString("en-GB")} credits` : "Open it to decide", actionUrl: "/ops/requests", actionLabel: "Open requests" }]);
   return req;
 }
 
