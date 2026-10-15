@@ -1,7 +1,8 @@
+import { SETTINGS_CHIPS } from "@/components/ops/price-list-tabs";
+import { AdminSection } from "@/components/ops/admin/admin-section";
 import { prisma } from "@/lib/prisma";
 import { requireOpsPage } from "@/lib/authz";
-import { roleTierFor } from "@/lib/role-tier";
-import { OpsPage } from "@/components/ops/ops-page";
+import { hasAdmin } from "@/lib/role-tier";
 import { PageHeader } from "@/components/ds/page-header";
 import { Card, SectionCard, CardRows, CardNote } from "@/components/ds/card";
 import { Button } from "@/components/ds/button";
@@ -19,7 +20,7 @@ const field = "h-9 rounded-[8px] border border-brand-outline bg-white px-3 text-
  */
 export default async function PlansPage() {
   const viewer = await requireOpsPage(["ADMIN", "PM"]);
-  const admin = roleTierFor(viewer.title) === "ADMIN";
+  const admin = hasAdmin(viewer);
   const [plans, bundles, requests, counts] = await Promise.all([
     prisma.plan.findMany({ orderBy: { sortOrder: "asc" } }),
     prisma.aiCreditBundle.findMany({ orderBy: { size: "asc" } }),
@@ -29,8 +30,8 @@ export default async function PlansPage() {
   const clientsOn = (tier: string) => counts.find((c) => c.planTier === tier)?._count ?? 0;
 
   return (
-    <OpsPage>
-      <PageHeader eyebrow={`${plans.length} plans · ${requests.length} top-up${requests.length === 1 ? "" : "s"} waiting`} title="Plans & AI credits" />
+    <div className="flex flex-col gap-6">
+      <AdminSection note={`Old plans & AI credits · ${plans.length} plans · ${requests.length} top-up${requests.length === 1 ? "" : "s"} waiting`} chips={SETTINGS_CHIPS} current="/ops/admin/settings/plans" />
       <Card tone="muted" className="flex flex-wrap items-center gap-3 px-6 py-4 text-[13px] leading-[1.5] text-brand-ink-2">
         <PlaceholderTag />
         <span className="min-w-0 flex-1">Plan prices, AI allowances, bundle sizes and prices and the token rate are placeholders until pricing is decided. Clients see them marked the same way.</span>
@@ -145,6 +146,6 @@ export default async function PlansPage() {
           <li>Set in one place: src/lib/ai-credits.ts.</li>
         </ul>
       </SectionCard>
-    </OpsPage>
+    </div>
   );
 }

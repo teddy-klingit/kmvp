@@ -1,7 +1,7 @@
+import { AdminSection } from "@/components/ops/admin/admin-section";
 import { prisma } from "@/lib/prisma";
 import { requireOpsPage } from "@/lib/authz";
-import { roleTierFor } from "@/lib/role-tier";
-import { OpsPage } from "@/components/ops/ops-page";
+import { hasAdmin } from "@/lib/role-tier";
 import { PageHeader } from "@/components/ds/page-header";
 import { Card, SectionCard, CardRows } from "@/components/ds/card";
 import { Button } from "@/components/ds/button";
@@ -21,7 +21,7 @@ const pct = (f: number) => Math.round(f * 10000) / 100;
  */
 export default async function CurrenciesPage() {
   const viewer = await requireOpsPage(["ADMIN", "PM"]);
-  const admin = roleTierFor(viewer.title) === "ADMIN";
+  const admin = hasAdmin(viewer);
   const p = await loadPricing();
   const [rates, s] = await Promise.all([
     prisma.fxRate.findMany({ orderBy: { currency: "asc" } }),
@@ -33,8 +33,8 @@ export default async function CurrenciesPage() {
   const example = (term: number, upfront = false) => monthlyPrice(p, { planKey: "enterprise", packKey: "pmc20_40", term, upfront, currency: "EUR" }).total;
 
   return (
-    <OpsPage>
-      <PageHeader eyebrow="Rates, terms and the rules behind every price" title="Price List" tabsLabel="Price List sections" tabs={PRICE_LIST_TABS} />
+    <div className="flex flex-col gap-6">
+      <AdminSection note="Rates, terms and the rules behind every price" chips={PRICE_LIST_TABS} current="/ops/admin/price-list/currencies" />
       <Card tone="muted" className="flex flex-wrap items-center gap-3 px-6 py-4 text-[13px] leading-[1.5] text-brand-ink-2">
         <PlaceholderTag />
         <span className="min-w-0 flex-1">Every value here is a placeholder until pricing is decided. Changes apply to new prices and contracts at once; signed contracts keep their price.</span>
@@ -118,7 +118,7 @@ export default async function CurrenciesPage() {
           </div>
         )}
       </form>
-    </OpsPage>
+    </div>
   );
 }
 

@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
   const appUrl = process.env.APP_URL ?? req.nextUrl.origin;
   const code = req.nextUrl.searchParams.get("code");
   const errorParam = req.nextUrl.searchParams.get("error");
-  const settingsUrl = new URL("/ops/settings", appUrl);
+  const settingsUrl = new URL("/ops/admin/settings", appUrl);
 
   if (errorParam || !code) {
     settingsUrl.searchParams.set("google", "error");

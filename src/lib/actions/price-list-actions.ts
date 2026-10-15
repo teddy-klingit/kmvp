@@ -21,7 +21,7 @@ const num = (v: FormDataEntryValue | null) => {
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "").slice(0, 60);
 
 function refresh() {
-  revalidatePath("/ops/price-list", "layout");
+  revalidatePath("/ops/admin/price-list", "layout");
 }
 
 export async function savePriceListItemAction(formData: FormData) {

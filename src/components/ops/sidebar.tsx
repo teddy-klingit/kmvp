@@ -1,6 +1,6 @@
 "use client";
 
-import { Home, Users, Building2, Tag, Bell, Inbox, CalendarDays, Receipt, Settings } from "lucide-react";
+import { Home, Users, Building2, Bell, CalendarDays, Settings } from "lucide-react";
 import { PersonaSwitcher } from "@/components/shared/persona-switcher";
 import { AppNav, RailHint, type NavItem } from "@/components/shared/app-nav";
 import type { RoleTier } from "@/lib/role-tier";
@@ -10,18 +10,14 @@ type TieredItem = NavItem & { tiers: RoleTier[] };
 const MAIN: TieredItem[] = [
   { label: "Today", href: "/ops", icon: Home, tiers: ["ADMIN", "PM", "CREATOR"] },
   { label: "Clients", href: "/ops/clients", icon: Building2, tiers: ["ADMIN", "PM"] },
-  { label: "Requests", href: "/ops/requests", icon: Inbox, tiers: ["ADMIN", "PM"] },
   { label: "Plan", href: "/ops/plan", icon: CalendarDays, tiers: ["ADMIN", "PM"] },
-  { label: "Price List", href: "/ops/price-list", icon: Tag, tiers: ["ADMIN", "PM"] },
-  { label: "Billing", href: "/ops/billing", icon: Receipt, tiers: ["ADMIN"] },
   { label: "Team", href: "/ops/team", icon: Users, tiers: ["ADMIN", "PM"] },
-  { label: "Settings", href: "/ops/settings", icon: Settings, tiers: ["ADMIN"] },
 ];
 
 /**
- * Ops nav (Phase S): Today (count badge) · Clients · Requests (pending badge) · Plan · Price List · Billing · Team ·
- * Settings. Projects are reached from Today, each client's Projects tab and Clients → All projects; Skills & AI,
- * Analytics, the old Plans page and the Archive are linked from Settings and Clients.
+ * Ops nav (Phase T): Today (my open tasks) · Clients · Plan · Team, then under the divider Admin (admins only, with
+ * open set-up jobs) and Notifications. Requests live in Today; Price List, Billing, Migration and Plans & settings
+ * are Admin tabs. Projects are reached from Today, each client's Projects tab and Clients → All projects.
  */
 export function OpsSidebar({
   userId,
@@ -30,7 +26,8 @@ export function OpsSidebar({
   userEmail,
   tier,
   needsCount = 0,
-  requestsCount = 0,
+  admin = false,
+  adminCount = 0,
 }: {
   userId: string;
   userName: string;
@@ -39,19 +36,21 @@ export function OpsSidebar({
   tier: RoleTier;
   /** Today's items (Admin/PM, in their default view), shown as a badge on the home item. */
   needsCount?: number;
-  /** Client requests waiting for a decision. */
-  requestsCount?: number;
+  /** Can open Admin (the title, or Admin given on top of a PM role). */
+  admin?: boolean;
+  /** Open set-up jobs, shown on Admin. */
+  adminCount?: number;
 }) {
   const pick = (items: TieredItem[]) =>
     items
       .filter((i) => i.tiers.includes(tier))
-      .map(({ label, href, icon }): NavItem => (href === "/ops" ? { label: tier === "CREATOR" ? "Home" : label, href, icon, badge: tier === "CREATOR" ? 0 : needsCount } : href === "/ops/requests" ? { label, href, icon, badge: requestsCount } : { label, href, icon }));
+      .map(({ label, href, icon }): NavItem => (href === "/ops" ? { label: tier === "CREATOR" ? "Home" : label, href, icon, badge: tier === "CREATOR" ? 0 : needsCount } : { label, href, icon }));
   return (
     <AppNav
       homeHref="/ops"
       tag="OPS"
       sections={[{ items: pick(MAIN) }]}
-      bottom={[{ label: "Notifications", href: "/ops/notifications", icon: Bell }]}
+      bottom={[...(admin ? [{ label: "Admin", href: "/ops/admin", icon: Settings, badge: adminCount }] : []), { label: "Notifications", href: "/ops/notifications", icon: Bell }]}
       extra={<PersonaSwitcher currentEmail={userEmail} />}
       extraRail={
         <RailHint label="Switch view">

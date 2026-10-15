@@ -16,7 +16,7 @@ export async function applyMigrationAction(formData: FormData) {
   } catch (e) {
     msg = `error=${encodeURIComponent(e instanceof Error ? e.message : "Couldn't apply it.")}`;
   }
-  revalidatePath("/ops/migration");
+  revalidatePath("/ops/admin/migration");
   revalidatePath(`/ops/clients/${clientId}`, "layout");
-  redirect(`/ops/migration?${msg}`);
+  redirect(`/ops/admin/migration?${msg}`);
 }

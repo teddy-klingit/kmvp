@@ -66,3 +66,18 @@ describe("PM views are scoped to the PM's own clients by default", () => {
     expect(rows[0].attention).toContain("1 request waiting");
   });
 });
+
+describe("Admin access (Phase T)", () => {
+  it("comes from the ADMIN title or the isAdmin flag; a PM without it can't open Admin", async () => {
+    const { hasAdmin } = await import("@/lib/role-tier");
+    expect(hasAdmin({ title: "ADMIN" })).toBe(true);
+    expect(hasAdmin({ title: "ACCOUNT_LEAD", isAdmin: true })).toBe(true);
+    expect(hasAdmin({ title: "ACCOUNT_LEAD", isAdmin: false })).toBe(false);
+    expect(hasAdmin({ title: "ART_DIRECTOR" })).toBe(false);
+  });
+
+  it("a PM who is also an admin still defaults to their own clients", async () => {
+    await prisma.staffMember.update({ where: { id: pmA.id }, data: { isAdmin: true } });
+    expect((await scopeFor({ ...pmA, title: "ACCOUNT_LEAD" })).mine).toBe(true);
+  });
+});

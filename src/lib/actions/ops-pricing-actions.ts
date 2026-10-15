@@ -24,7 +24,7 @@ async function audit(actorUserId: string, action: string, before: unknown, after
 }
 
 function refresh() {
-  revalidatePath("/ops/price-list", "layout");
+  revalidatePath("/ops/admin/price-list", "layout");
 }
 
 export async function savePlatformPlanAction(formData: FormData) {
@@ -124,5 +124,5 @@ export async function savePricingSettingsAction(formData: FormData) {
   if (topUpCredits != null && topUpEur != null && topUpCredits > 0 && topUpEur >= 0) await setSetting("aiTopUp", { credits: Math.round(topUpCredits), priceEur: topUpEur }, viewer.userId);
   if (formData.has("aiRolloverSet")) await setSetting("aiRollover", formData.get("aiRollover") === "on", viewer.userId);
   refresh();
-  revalidatePath("/ops/settings");
+  revalidatePath("/ops/admin/settings");
 }

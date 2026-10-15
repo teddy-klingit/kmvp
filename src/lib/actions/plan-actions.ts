@@ -12,7 +12,7 @@ const TIERS: PlanTier[] = ["BASIC", "STARTER", "GROWTH", "SCALE", "ENTERPRISE"];
 const num = (v: FormDataEntryValue | null) => (v === null || String(v).trim() === "" ? null : Number(v));
 
 function revalidatePlans() {
-  revalidatePath("/ops/plans");
+  revalidatePath("/ops/admin/settings/plans");
   revalidatePath("/settings/usage");
   revalidatePath("/projects");
 }

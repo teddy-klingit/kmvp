@@ -1,8 +1,9 @@
+import { SETTINGS_CHIPS } from "@/components/ops/price-list-tabs";
+import { AdminSection } from "@/components/ops/admin/admin-section";
 import Link from "next/link";
 import { requireOpsPage } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { listLiveAdAccounts } from "@/lib/integrations/live-ads-owner";
-import { OpsPage } from "@/components/ops/ops-page";
 import { PageHeader } from "@/components/ds/page-header";
 import { Card, SectionCard, CardRows, CardNote } from "@/components/ds/card";
 import { StatusPill } from "@/components/ds/status-pill";
@@ -72,8 +73,8 @@ export default async function WorkspaceSettingsPage({
   const adConnected = [metaConfigured, Boolean(linkedInConnection), Boolean(googleAdsConnection), bigQueryConfigured].filter(Boolean).length;
 
   return (
-    <OpsPage>
-      <PageHeader eyebrow={`${adConnected} of 4 ad sources connected`} title="Workspace settings" />
+    <div className="flex flex-col gap-6">
+      <AdminSection note={`Workspace settings · ${adConnected} of 4 ad sources connected`} chips={SETTINGS_CHIPS} current="/ops/admin/settings" />
 
       {linkedin === "connected" && <Notice ok>LinkedIn connected successfully.</Notice>}
       {linkedin === "error" && <Notice ok={false}>Couldn&apos;t connect LinkedIn. The authorization was cancelled or failed.</Notice>}
@@ -88,8 +89,8 @@ export default async function WorkspaceSettingsPage({
           <Link href="/ops/projects">All projects</Link>
           <Link href="/ops/archive">Archive</Link>
           <Link href="/ops/inbox">Inbox</Link>
-          <Link href="/ops/plans">Old plans &amp; AI bundles (until clients are migrated)</Link>
-          <Link href="/ops/migration">Migration</Link>
+          <Link href="/ops/admin/settings/plans">Old plans &amp; AI bundles (until clients are migrated)</Link>
+          <Link href="/ops/admin/migration">Migration</Link>
         </div>
       </SectionCard>
 
@@ -152,7 +153,7 @@ export default async function WorkspaceSettingsPage({
       <SectionCard title="Plans · active slots">
         <CardNote>
           Plans (active slots, AI and team credits, prices) and AI-credit bundles moved to{" "}
-          <Link href="/ops/plans" className="text-brand-ink underline underline-offset-2">
+          <Link href="/ops/admin/settings/plans" className="text-brand-ink underline underline-offset-2">
             Plans &amp; AI credits
           </Link>
           .
@@ -259,7 +260,7 @@ export default async function WorkspaceSettingsPage({
           ))}
         </CardRows>
       </SectionCard>
-    </OpsPage>
+    </div>
   );
 }
 

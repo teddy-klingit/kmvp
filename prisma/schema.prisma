@@ -935,6 +935,8 @@ model StaffMember {
   brandFitTags         Json? // string[] e.g. ["Klarna", "fintech"]
   capacityHoursPerWeek Int          @default(40)
   performanceRating    Float        @default(4.5) // 0-5, from past project reviews
+  /// Phase T: can open Admin (set-up, prices, billing, migration). Separate from the title, so a PM can be an admin.
+  isAdmin              Boolean      @default(false)
   createdAt            DateTime     @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

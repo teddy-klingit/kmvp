@@ -1,12 +1,12 @@
+import { AdminSection } from "@/components/ops/admin/admin-section";
 import Link from "next/link";
 import { requireOpsPage } from "@/lib/authz";
 import { migrationPreview, type MigrationRow, type Proposal } from "@/lib/migration";
-import { OpsPage } from "@/components/ops/ops-page";
 import { PageHeader } from "@/components/ds/page-header";
 import { SectionCard, CardNote } from "@/components/ds/card";
 import { StatusPill } from "@/components/ds/status-pill";
 import { formatMoney } from "@/lib/pricing";
-import { roleTierFor } from "@/lib/role-tier";
+import { hasAdmin } from "@/lib/role-tier";
 import { Button } from "@/components/ds/button";
 import { applyMigrationAction } from "@/lib/actions/ops-migration-actions";
 
@@ -33,12 +33,12 @@ function priceOf(p: Proposal, currency: MigrationRow["proposed"]["currency"]) {
  */
 export default async function MigrationPage({ searchParams }: { searchParams: Promise<{ ok?: string; error?: string }> }) {
   const viewer = await requireOpsPage(["ADMIN", "PM"]);
-  const admin = roleTierFor(viewer.title) === "ADMIN";
+  const admin = hasAdmin(viewer);
   const q = await searchParams;
   const { rows, migrated } = await migrationPreview();
   return (
-    <OpsPage>
-      <PageHeader eyebrow={`${rows.length} client${rows.length === 1 ? "" : "s"} to decide · ${migrated.length} on a contract`} title="Migration preview" />
+    <div className="flex flex-col gap-6">
+      <AdminSection note={`Migration preview · ${rows.length} client${rows.length === 1 ? "" : "s"} to decide · ${migrated.length} on a contract`} />
       <CardNote className="px-0 py-0">
         Nothing here is applied. Each client moves to a contract only after a decision on its row, one at a time, with an in-app notice and an email draft. Clients not migrated keep today&apos;s setup. Prices are placeholders from the Price List.
       </CardNote>
@@ -137,6 +137,6 @@ export default async function MigrationPage({ searchParams }: { searchParams: Pr
           </ul>
         </SectionCard>
       )}
-    </OpsPage>
+    </div>
   );
 }

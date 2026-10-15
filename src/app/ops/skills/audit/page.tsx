@@ -7,7 +7,7 @@ import { SectionCard, CardNote } from "@/components/ds/card";
 import { DataTable } from "@/components/ds/data-table";
 import { StatusPill } from "@/components/ds/status-pill";
 import { pillClass } from "@/components/ds/button";
-import { roleTierFor } from "@/lib/role-tier";
+import { hasAdmin } from "@/lib/role-tier";
 import { formatDate } from "@/lib/utils";
 import { overrideAgentRunAction } from "@/lib/actions/ops-agent-actions";
 import Link from "next/link";
@@ -40,7 +40,7 @@ export default async function AgentAuditLogPage({ searchParams }: { searchParams
   };
   return (
     <OpsPage>
-      <AgentsHeader admin={roleTierFor(viewer.title) === "ADMIN"} eyebrow={projectId ? `Decision log · ${project?.name ?? "one project"}` : `Decision log · last ${runs.length} runs`} />
+      <AgentsHeader admin={hasAdmin(viewer)} eyebrow={projectId ? `Decision log · ${project?.name ?? "one project"}` : `Decision log · last ${runs.length} runs`} />
       <div className="flex flex-wrap items-center gap-3">
         <FilterChips
           label="Filter runs"

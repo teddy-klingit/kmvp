@@ -1,7 +1,7 @@
+import { AdminSection } from "@/components/ops/admin/admin-section";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireOpsPage } from "@/lib/authz";
-import { OpsPage } from "@/components/ops/ops-page";
 import { PageHeader } from "@/components/ds/page-header";
 import { FilterChips } from "@/components/ds/filter-chips";
 import { Card, SectionCard } from "@/components/ds/card";
@@ -39,12 +39,12 @@ export default async function PriceListPage({ searchParams }: { searchParams: Pr
   const visible = items.filter((i) => (!q.category || (i.category ?? "Other") === q.category) && (!status || i.status === status));
   const href = (patch: Record<string, string | null>) => {
     const s = new URLSearchParams(Object.entries({ category: q.category ?? null, status: q.status ?? null, ...patch }).filter((e): e is [string, string] => Boolean(e[1])));
-    return `/ops/price-list${s.size ? `?${s}` : ""}`;
+    return `/ops/admin/price-list${s.size ? `?${s}` : ""}`;
   };
 
   return (
-    <OpsPage>
-      <PageHeader eyebrow={`${items.length} items · ${categories.length} categories · 1 credit ≈ 1 hour`} title="Price List" tabsLabel="Price List sections" tabs={PRICE_LIST_TABS} />
+    <div className="flex flex-col gap-6">
+      <AdminSection note={`${items.length} items · ${categories.length} categories · 1 credit ≈ 1 hour`} chips={PRICE_LIST_TABS} current="/ops/admin/price-list" />
       <FilterChips label="Category" items={[{ label: "All", href: href({ category: null }), active: !q.category }, ...categories.map((c) => ({ label: c, href: href({ category: c }), active: q.category === c, count: items.filter((i) => (i.category ?? "Other") === c).length }))]} />
       <FilterChips label="Status" items={[{ label: "Any status", href: href({ status: null }), active: !status }, ...(Object.keys(STATUS) as Status[]).map((s) => ({ label: STATUS[s].label, href: href({ status: s }), active: status === s, count: items.filter((i) => i.status === s).length }))]} />
       <Card tone="muted" className="flex flex-wrap items-center gap-3 px-6 py-4 text-[13px] leading-[1.5] text-brand-ink-2">
@@ -195,9 +195,9 @@ export default async function PriceListPage({ searchParams }: { searchParams: Pr
         </form>
       </SectionCard>
       <p className="m-0 text-[12px] text-brand-ink-2">
-        Plans, packs, currencies and the custom-quote multipliers are on the other tabs. Source: <code>data/pricing/klingit-price-list-credits-2026.csv</code>. <Link href="/ops/price-list/currencies">Currencies & terms</Link>
+        Plans, packs, currencies and the custom-quote multipliers are on the other tabs. Source: <code>data/pricing/klingit-price-list-credits-2026.csv</code>. <Link href="/ops/admin/price-list/currencies">Currencies & terms</Link>
       </p>
-    </OpsPage>
+    </div>
   );
 }
 

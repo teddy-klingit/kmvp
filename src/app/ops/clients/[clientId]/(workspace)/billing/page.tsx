@@ -33,7 +33,7 @@ export default async function ClientBillingPage({ params }: { params: Promise<{ 
           <CardRows>
             {invoices.map((i) => (
               <li key={i.id} className={`flex flex-wrap items-baseline gap-x-4 px-6 py-3 text-[14px] ${i.status === "OVERDUE" ? "bg-brand-peach-pale" : ""}`}>
-                <Link href={`/ops/billing/invoices/${i.id}`} className="w-32 text-brand-ink">
+                <Link href={`/ops/admin/billing/invoices/${i.id}`} className="w-32 text-brand-ink">
                   {i.number}
                 </Link>
                 <span className="flex-1 text-brand-ink-2">{i.periodStart ? `${day(i.periodStart)} →` : ""}</span>

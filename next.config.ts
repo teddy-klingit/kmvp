@@ -7,6 +7,14 @@ const nextConfig: NextConfig = {
   // actionUrls keep working. Old /insights with performance filters lands on Performance with the same query.
   async redirects() {
     return [
+      // Phase T: Price List, Billing, Migration and Plans & settings live under Admin. Old links keep working.
+      { source: "/ops/price-list", destination: "/ops/admin/price-list", permanent: false },
+      { source: "/ops/price-list/:rest*", destination: "/ops/admin/price-list/:rest*", permanent: false },
+      { source: "/ops/billing", destination: "/ops/admin/billing", permanent: false },
+      { source: "/ops/billing/:rest*", destination: "/ops/admin/billing/:rest*", permanent: false },
+      { source: "/ops/migration", destination: "/ops/admin/migration", permanent: false },
+      { source: "/ops/settings", destination: "/ops/admin/settings", permanent: false },
+      { source: "/ops/plans", destination: "/ops/admin/settings/plans", permanent: false },
       { source: "/insights", has: [{ type: "query", key: "platform" }], destination: "/insights/performance", permanent: true },
       { source: "/insights", has: [{ type: "query", key: "tier" }], destination: "/insights/performance", permanent: true },
       { source: "/insights", has: [{ type: "query", key: "range" }], destination: "/insights/performance", permanent: true },

@@ -13,19 +13,19 @@ export async function createDueInvoicesAction() {
   await requireOpsRole(["ADMIN"]);
   await generateDueInvoices();
   await refreshOverdue();
-  revalidatePath("/ops/billing");
+  revalidatePath("/ops/admin/billing");
 }
 
 export async function sendInvoiceAction(formData: FormData) {
   const viewer = await requireOpsRole(["ADMIN"]);
   await sendInvoice(String(formData.get("invoiceId") ?? ""), viewer.userId);
-  revalidatePath("/ops/billing");
+  revalidatePath("/ops/admin/billing");
 }
 
 export async function markInvoicePaidAction(formData: FormData) {
   const viewer = await requireOpsRole(["ADMIN"]);
   await markInvoicePaid(String(formData.get("invoiceId") ?? ""), viewer.userId);
-  revalidatePath("/ops/billing");
+  revalidatePath("/ops/admin/billing");
 }
 
 /** Ops → Requests: approve or decline, with a note the client sees. */
@@ -39,7 +39,7 @@ export async function decideRequestAction(formData: FormData) {
     throw e;
   }
   revalidatePath("/ops/requests");
-  revalidatePath("/ops/billing");
+  revalidatePath("/ops/admin/billing");
 }
 
 /** Staff billing settings for one client: payment terms, VAT rate, AI top-up auto-approval. Admins; logged. */

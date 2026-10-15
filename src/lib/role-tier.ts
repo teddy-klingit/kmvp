@@ -28,3 +28,11 @@ export const ROLE_TIER_LABEL: Record<RoleTier, string> = {
   PM: "Project Manager",
   CREATOR: "Creator",
 };
+
+/**
+ * Admin access (Phase T): the ADMIN title, or a staff member given Admin on top of their role (a Marketing PM who
+ * also runs set-up). Their day-to-day view still follows their title (a PM's Today defaults to their own clients).
+ */
+export function hasAdmin(s: { title: InternalRole; isAdmin?: boolean | null }) {
+  return roleTierFor(s.title) === "ADMIN" || Boolean(s.isAdmin);
+}

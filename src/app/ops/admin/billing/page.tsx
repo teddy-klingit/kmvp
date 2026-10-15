@@ -1,7 +1,7 @@
+import { AdminSection } from "@/components/ops/admin/admin-section";
 import Link from "next/link";
 import { requireOpsPage } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
-import { OpsPage } from "@/components/ops/ops-page";
 import { PageHeader } from "@/components/ds/page-header";
 import { FilterChips } from "@/components/ds/filter-chips";
 import { SectionCard, CardRows, CardNote } from "@/components/ds/card";
@@ -34,10 +34,9 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
   const ym = `${thisMonth.getFullYear()}-${String(thisMonth.getMonth() + 1).padStart(2, "0")}`;
 
   return (
-    <OpsPage>
-      <PageHeader
-        eyebrow={`${count("DRAFT")} drafts · ${count("OVERDUE")} overdue · by invoice, never card`}
-        title="Billing"
+    <div className="flex flex-col gap-6">
+      <AdminSection
+        note={`${count("DRAFT")} drafts · ${count("OVERDUE")} overdue · by invoice, never card`}
         actions={
           <form action={createDueInvoicesAction}>
             <Button type="submit" variant="primary" size="sm">
@@ -78,7 +77,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
         )}
       </SectionCard>
 
-      <FilterChips label="Invoice status" items={[{ label: "All", href: "/ops/billing", active: !status }, ...STATUSES.map((s) => ({ label: s.charAt(0) + s.slice(1).toLowerCase(), href: `/ops/billing?status=${s}`, active: status === s, count: count(s) }))]} />
+      <FilterChips label="Invoice status" items={[{ label: "All", href: "/ops/admin/billing", active: !status }, ...STATUSES.map((s) => ({ label: s.charAt(0) + s.slice(1).toLowerCase(), href: `/ops/admin/billing?status=${s}`, active: status === s, count: count(s) }))]} />
       <SectionCard title="Invoices">
         {shown.length === 0 ? (
           <CardNote>No invoices{status ? ` with status ${status.toLowerCase()}` : ""}. “Create due invoices” writes drafts from the contracts.</CardNote>
@@ -98,7 +97,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
                 {shown.map((i) => (
                   <tr key={i.id} className={cn("border-t border-brand-line", i.status === "OVERDUE" && "bg-brand-peach-pale")}>
                     <td className="py-3 pl-6 pr-3">
-                      <Link href={`/ops/billing/invoices/${i.id}`} className="text-brand-ink">
+                      <Link href={`/ops/admin/billing/invoices/${i.id}`} className="text-brand-ink">
                         {i.number}
                       </Link>
                     </td>
@@ -149,6 +148,6 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
           <span className="basis-full">One row per invoice issued in the period: org and VAT numbers, net, VAT, total, status. An accounting integration would plug in where invoices are sent and paid (src/lib/invoicing.ts).</span>
         </form>
       </SectionCard>
-    </OpsPage>
+    </div>
   );
 }

@@ -1,6 +1,6 @@
+import { AdminSection } from "@/components/ops/admin/admin-section";
 import { requireOpsPage } from "@/lib/authz";
-import { roleTierFor } from "@/lib/role-tier";
-import { OpsPage } from "@/components/ops/ops-page";
+import { hasAdmin } from "@/lib/role-tier";
 import { PageHeader } from "@/components/ds/page-header";
 import { Card, SectionCard, CardRows } from "@/components/ds/card";
 import { Button } from "@/components/ds/button";
@@ -19,12 +19,12 @@ const OTHER = CURRENCIES.filter((c) => c !== "EUR");
  */
 export default async function PlansAndPacksPage() {
   const viewer = await requireOpsPage(["ADMIN", "PM"]);
-  const admin = roleTierFor(viewer.title) === "ADMIN";
+  const admin = hasAdmin(viewer);
   const p = await loadPricing();
 
   return (
-    <OpsPage>
-      <PageHeader eyebrow="EUR is the base · contracts lock prices at signing" title="Price List" tabsLabel="Price List sections" tabs={PRICE_LIST_TABS} />
+    <div className="flex flex-col gap-6">
+      <AdminSection note="EUR is the base · contracts lock prices at signing" chips={PRICE_LIST_TABS} current="/ops/admin/price-list/plans" />
       <Card tone="muted" className="flex flex-wrap items-center gap-3 px-6 py-4 text-[13px] leading-[1.5] text-brand-ink-2">
         <PlaceholderTag />
         <span className="min-w-0 flex-1">All prices are placeholders. Other currencies follow the FX rule (EUR × rate × {1 + p.fxMarkup}, rounded to 5) unless you set an amount. Clear an amount and Set to go back to the rule.</span>
@@ -108,7 +108,7 @@ export default async function PlansAndPacksPage() {
           })}
         </CardRows>
       </SectionCard>
-    </OpsPage>
+    </div>
   );
 }
 

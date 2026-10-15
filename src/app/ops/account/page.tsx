@@ -8,18 +8,18 @@ import { Avatar } from "@/components/ds/avatar";
 import { TwoFactorCard } from "@/components/shared/two-factor-card";
 import { getOpsViewer } from "@/lib/current-viewer";
 import { INTERNAL_ROLE_LABEL } from "@/lib/labels";
-import { roleTierFor } from "@/lib/role-tier";
+import { hasAdmin } from "@/lib/role-tier";
 
 /** Agency pages that left the main nav in Phase J. Admin only, like before. */
 const AGENCY_LINKS = [
-  { label: "Billing", href: "/ops/billing", note: "Invoices and plans across clients" },
+  { label: "Billing", href: "/ops/admin/billing", note: "Invoices and plans across clients" },
   { label: "Analytics", href: "/ops/analytics", note: "Delivery, margins and client health" },
-  { label: "Settings", href: "/ops/settings", note: "Integrations and agency defaults" },
+  { label: "Settings", href: "/ops/admin/settings", note: "Integrations and agency defaults" },
 ];
 
 export default async function OpsAccountPage() {
   const viewer = await getOpsViewer();
-  const admin = roleTierFor(viewer.title) === "ADMIN";
+  const admin = hasAdmin(viewer);
 
   return (
     <OpsPage>

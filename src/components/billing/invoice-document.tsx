@@ -10,7 +10,7 @@ type OldLine = { description?: string; label?: string; amount?: number; quantity
 /**
  * One invoice, laid out to print or save as PDF (Phase S): who it's to (billing details), the period, the lines
  * (quantity × unit price), net, VAT and total, the due date. Reverse charge is stated when there's no VAT.
- * Used by the client (Usage → Billing) and by staff (/ops/billing).
+ * Used by the client (Usage → Billing) and by staff (/ops/admin/billing).
  */
 export function InvoiceDocument({ invoice, clientName, profile }: { invoice: Invoice; clientName: string; profile: BillingProfile | null }) {
   const lines = jsonArray<InvoiceLine & OldLine>(invoice.lineItems);
