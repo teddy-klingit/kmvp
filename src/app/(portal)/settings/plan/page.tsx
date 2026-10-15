@@ -18,6 +18,8 @@ import { quoteRequest, REQUEST_KINDS, type RequestKind } from "@/lib/requests";
 import { getSetting } from "@/lib/platform-settings";
 import { jsonArray } from "@/lib/utils";
 import { MessagePmButton } from "@/components/pm-panel/pm-panel-provider";
+import { TopUpButton } from "@/components/portal/top-up/top-up-panel";
+import { topUpOptions } from "@/lib/top-ups";
 
 const day = (d: Date) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(d);
 const WAY = { 1: "Platform only", 2: "Platform + Marketing PM", 3: "Platform + Marketing PM + creative team" } as const;
@@ -54,7 +56,7 @@ export default async function PlanSettingsPage() {
       }
   const [packQuotes, topUps, slot] = await Promise.all([
     Promise.all([1, 2, 3].map((packs) => quoteRequest(viewer.clientId, "creative_pack", { packs }).then((q) => ({ label: `${q.credits} creative credits`, payload: { packs }, price: money(q.price ?? 0, q.currency) })))),
-    Promise.all([1, 2, 4].map((count) => quoteRequest(viewer.clientId, "ai_topup", { count }).then((q) => ({ label: `${q.credits.toLocaleString("en-GB")} AI credits`, payload: { count }, price: money(q.price ?? 0, q.currency) })))),
+    topUpOptions(viewer.clientId, 0),
     contract?.teamPrice ? quoteRequest(viewer.clientId, "extra_slot", {}).then((q) => ({ label: "One more project at once", payload: {}, price: `${money(q.price ?? 0, q.currency)} a month` })) : null,
   ]);
   const slots = contract ? await slotsForContract(contract) : null;
@@ -147,7 +149,12 @@ export default async function PlanSettingsPage() {
           <RequestForm kind="creative_pack" title="Buy creative credits" rule={REQUEST_KINDS.creative_pack.rule} options={packQuotes} admin={admin} cta="Ask for credits" />
         </SectionCard>
         <SectionCard title="AI credits">
-          <RequestForm kind="ai_topup" title="Top up AI credits" rule={REQUEST_KINDS.ai_topup.rule} options={topUps} admin={admin} cta="Ask for a top-up" />
+          <div className="flex flex-col gap-3 px-6 py-5 text-[14px]">
+            <span className="text-brand-ink-2">
+              {topUps.map((o) => `${o.credits.toLocaleString("en-GB")} for ${money(o.price, o.currency)}`).join(" · ")}. Added right away, on your next invoice.
+            </span>
+            <TopUpButton className="self-start h-10 rounded-full bg-brand-ink px-4 font-brand-mono text-[12px] text-white">{admin ? "Top up" : "Ask to top up"}</TopUpButton>
+          </div>
         </SectionCard>
         {slot && (
           <SectionCard title="Projects at once">

@@ -54,9 +54,10 @@ export function PlanBuilder({ plans, packs, prices, current, currency, admin, to
                   <span className="text-[20px] tabular-nums">
                     {fmt(prices[`${p.key}|none|${term}`]?.platform ?? 0)} <span className="text-[12px] text-brand-ink-2">/ month</span>
                   </span>
-                  <span className="rounded-[8px] bg-brand-page px-2.5 py-1.5 text-[12px]">{p.ownModel ? "Your own AI (Claude via MCP or your key)" : `${p.aiCredits.toLocaleString("en-GB")} AI credits a month`}</span>
+                  {p.tagline && <span className="text-[13px] text-brand-ink-2">{p.tagline}</span>}
+                  <span className="rounded-[8px] bg-brand-page px-2.5 py-1.5 text-[12px]">{p.ownModel ? "Your own AI (Claude via MCP or your key)" : `${p.aiCredits.toLocaleString("en-GB")} AI credits a month + top-ups`}</span>
                   <ul className="m-0 flex list-none flex-col gap-1 p-0 text-[12px] text-brand-ink-2">
-                    {p.features.slice(0, 4).map((f) => (
+                    {p.features.map((f) => (
                       <li key={f}>· {f}</li>
                     ))}
                   </ul>
@@ -64,6 +65,7 @@ export function PlanBuilder({ plans, packs, prices, current, currency, admin, to
               );
             })}
           </div>
+          <span className="text-[12px] text-brand-ink-2">On any plan you can connect your own Claude account or API key: skills you run on it don&apos;t use AI credits.</span>
         </div>
 
         <div className="flex flex-col gap-3">
