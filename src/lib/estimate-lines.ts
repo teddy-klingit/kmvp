@@ -36,7 +36,7 @@ export type PricedLine = {
 
 export const PM_LINE_NAME = "Marketing PM: briefing, coordination and feedback";
 /** Offered to the Estimate agent and in "Add from the price list": live, client-visible, per-project items. */
-export const offerable = (i: Pick<PriceListItem, "archivedAt" | "status" | "visibleToClients" | "monthly">) => !i.archivedAt && i.visibleToClients && !i.monthly && i.status !== "legacy";
+export const offerable = (i: Pick<PriceListItem, "archivedAt" | "status" | "visibleToClients" | "monthly">) => !i.archivedAt && i.visibleToClients && !i.monthly && i.status !== "legacy" && i.status !== "draft";
 
 const half = (n: number) => Math.round(n * 2) / 2;
 
@@ -62,7 +62,7 @@ export function priceLines(lines: LineInput[], items: Pick<PriceListItem, "id" |
       return { deliverable: l.deliverable, detail: l.detail, quantity: l.quantity, priceListItemId: null, isCustom: true, customReason: l.reason, credits, hours: credits, balance: l.balance, needsConfirm: false, confirmed: true, taskType: l.taskType ?? null, order };
     }
     const item = byId.get(l.priceListItemId);
-    if (!item || item.archivedAt || item.status === "legacy") throw new Error("That item isn't on the price list any more.");
+    if (!item || item.archivedAt || item.status === "legacy" || item.status === "draft") throw new Error("That item isn't on the price list (yet, or any more).");
     const name = item.displayName ?? item.deliverableType;
     const listCredits = item.creditCost != null ? item.creditCost * l.quantity : null;
     if (item.status === "fixed" && listCredits != null) {

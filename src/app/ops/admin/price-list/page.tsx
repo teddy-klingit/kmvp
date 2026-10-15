@@ -16,6 +16,7 @@ const STATUS = {
   estimate: { label: "Estimate", note: "the PM confirms the number" },
   quote: { label: "Quote", note: "the PM quotes it" },
   legacy: { label: "Legacy", note: "staff reference only, hidden from clients" },
+  draft: { label: "Draft", note: "added from Price List gaps: set credits and a status before it's used" },
 } as const;
 type Status = keyof typeof STATUS;
 const field = "h-8 rounded-[8px] border border-brand-outline bg-white px-2 text-[13px] outline-none focus:border-brand-ink";

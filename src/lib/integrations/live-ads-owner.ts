@@ -46,11 +46,13 @@ export type LiveAdAccount = {
   ownerId: string | null;
   ownerName: string | null;
   connectedAt: Date | null;
+  /** Klingit's own account (Phase T): never offered to a client, never on a to-do list. */
+  internal: boolean;
 };
 
 /** Every live connection with its owner: the ops "Unassigned ad account" rows and the client admin card. */
 export async function listLiveAdAccounts(): Promise<LiveAdAccount[]> {
-  const rows = await prisma.integrationConnection.findMany({ where: { provider: { in: LIVE_AD_PROVIDERS.map((p) => p.provider) } }, select: { provider: true, clientId: true, accessToken: true, connectedAt: true } });
+  const rows = await prisma.integrationConnection.findMany({ where: { provider: { in: LIVE_AD_PROVIDERS.map((p) => p.provider) } }, select: { provider: true, clientId: true, accessToken: true, connectedAt: true, internal: true } });
   const owners = new Map((await prisma.client.findMany({ where: { id: { in: rows.flatMap((r) => (r.clientId ? [r.clientId] : [])) } }, select: { id: true, name: true } })).map((c) => [c.id, c.name]));
   return LIVE_AD_PROVIDERS.map(({ provider, platform }) => {
     const row = rows.find((r) => r.provider === provider);
@@ -62,13 +64,14 @@ export async function listLiveAdAccounts(): Promise<LiveAdAccount[]> {
       ownerId: row?.clientId ?? null,
       ownerName: row?.clientId ? (owners.get(row.clientId) ?? null) : null,
       connectedAt: provider === "meta" ? null : (row?.connectedAt ?? null),
+      internal: row?.internal ?? false,
     };
   });
 }
 
 /** Connected accounts nobody owns: they feed no client until staff assign them. */
 export async function unassignedLiveAdAccounts() {
-  return (await listLiveAdAccounts()).filter((a) => a.configured && !a.ownerId);
+  return (await listLiveAdAccounts()).filter((a) => a.configured && !a.ownerId && !a.internal);
 }
 
 /**
@@ -99,6 +102,18 @@ export async function setLiveAdsOwner(provider: LiveAdProvider, clientId: string
         after: { provider, ownerId: clientId, ownerName: client?.name ?? null },
       },
     }),
+  ]);
+  return { error: null };
+}
+
+/** Admin → To set up: mark an account as Klingit's own (or undo it), logged like an assignment. */
+export async function setLiveAdsInternal(provider: LiveAdProvider, internal: boolean, actorUserId: string): Promise<{ error: string | null }> {
+  const account = (await listLiveAdAccounts()).find((a) => a.provider === provider);
+  if (!account?.configured) return { error: "That ad account isn't connected." };
+  if (internal && account.ownerId) return { error: `It belongs to ${account.ownerName ?? "a client"}. Unassign it there first.` };
+  await prisma.$transaction([
+    provider === "meta" ? prisma.integrationConnection.upsert({ where: { provider }, update: { internal }, create: { provider, accessToken: "", internal } }) : prisma.integrationConnection.update({ where: { provider }, data: { internal } }),
+    prisma.auditLog.create({ data: { clientId: null, actorUserId, area: "ad-accounts", action: `${internal ? "Marked" : "Unmarked"} ${account.platform}${account.accountId ? ` ${account.accountId}` : ""} as Klingit internal`, before: { provider, internal: account.internal }, after: { provider, internal } } }),
   ]);
   return { error: null };
 }

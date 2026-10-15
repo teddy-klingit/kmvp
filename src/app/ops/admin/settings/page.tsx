@@ -162,7 +162,7 @@ export default async function WorkspaceSettingsPage({
 
       <SectionCard title="Ad platform connections">
         <p className="m-0 border-b border-brand-line px-6 py-4 text-[14px] text-brand-ink-2">
-          {owners.map((a) => `${a.platform}: ${a.ownerName ?? "no owner, feeds no client"}`).join(" · ") || "No live ad accounts connected."} Owners are set on each client&apos;s admin page under Connections.
+          {owners.map((a) => `${a.platform}: ${a.internal ? "Klingit internal" : (a.ownerName ?? "no owner, feeds no client")}`).join(" · ") || "No live ad accounts connected."} Owners are set on each client&apos;s admin page under Connections.
         </p>
         <CardRows>
           <ConnectionRow name="Meta Ads" detail="Powers live campaign performance in client Insights.">

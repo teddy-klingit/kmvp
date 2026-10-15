@@ -24,12 +24,13 @@ export function duration(min: number) {
   return `about ${h} h${m ? ` ${m} min` : ""}`;
 }
 
-export async function TodayHome({ viewer, scope, client }: { viewer: StaffMember & { user: User }; scope: Scope; client?: string }) {
+export async function TodayHome({ viewer, scope, client, kind, children }: { viewer: StaffMember & { user: User }; scope: Scope; client?: string; kind?: string; children?: React.ReactNode }) {
   const now = new Date();
   const today = await loadToday(scope, now, viewer);
   const clientIds = [...new Set(today.tasks.map((t) => t.clientId))];
   const scopeClients = await prisma.client.findMany({ where: { id: { in: scope.clientIds ?? clientIds } }, select: { id: true, name: true }, orderBy: { name: "asc" } });
-  const tasks = client ? today.tasks.filter((t) => t.clientId === client) : today.tasks;
+  // ?client= narrows to one client; a kind (e.g. /ops/requests) narrows to one kind of decision.
+  const tasks = today.tasks.filter((t) => (!client || t.clientId === client) && (!kind || t.kind === kind));
   const inline = await loadInline(tasks);
   const now_ = tasks.filter((t) => t.section === "now");
   const week = tasks.filter((t) => t.section === "week");
@@ -42,7 +43,7 @@ export async function TodayHome({ viewer, scope, client }: { viewer: StaffMember
     q.set("scope", s);
     const c = p.client === undefined ? client : p.client;
     if (c) q.set("client", c);
-    return `/ops?${q}`;
+    return `${kind ? "/ops/requests" : "/ops"}?${q}`;
   };
   const chip = (active: boolean) => cn("inline-flex h-9 items-center rounded-full border px-3.5 text-[13px] no-underline", active ? "border-brand-ink bg-brand-ink text-white" : "border-[#DCD6C8] bg-white text-brand-ink hover:border-brand-ink");
   const date = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long" }).format(now).replace(",", "");
@@ -56,7 +57,7 @@ export async function TodayHome({ viewer, scope, client }: { viewer: StaffMember
               {date} · {scope.mine ? `your clients: ${scopeClients.map((c) => c.name).join(", ") || "none yet"}` : "all PMs' clients"}
             </span>
             <h1 className="m-0 text-[30px] font-light leading-[1.15] tracking-[0.01em] min-[700px]:text-[36px]">
-              {greeting(now)}, {viewer.user.name.split(" ")[0]}
+              {kind === "REQUEST" ? "Requests" : `${greeting(now)}, ${viewer.user.name.split(" ")[0]}`}
             </h1>
             <span className="text-[15px] text-brand-ink-2">
               {tasks.length === 0 ? "Nothing to do right now." : `${tasks.length} thing${tasks.length === 1 ? "" : "s"} to do, ${duration(minutes)}. ${now_.length} of them today.`}
@@ -117,6 +118,8 @@ export async function TodayHome({ viewer, scope, client }: { viewer: StaffMember
             )}
           </section>
         ))}
+
+        {children}
 
         <section aria-label="Keep an eye on" className="flex flex-col gap-4 rounded-[12px] bg-white px-5 py-5 sm:px-6">
           <h2 className="m-0 flex items-baseline gap-2 text-[18px] font-normal">

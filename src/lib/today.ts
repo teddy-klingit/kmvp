@@ -63,9 +63,9 @@ export function dueOn(at: Date, now: Date, prefix = "Due"): Due {
 }
 const isNow = (due: Due, now: Date) => due.tone === "late" || due.at < new Date(startOfDay(now).getTime() + DAY);
 
-export async function loadToday(scope: Scope, now = new Date(), viewer?: { id: string } | null) {
-  // Clients with no Marketing PM are an Admin job (To set up), not anyone's Today.
-  const withPm = await clientsWithPm(scope.clientIds);
+export async function loadToday(scope: Scope, now = new Date(), viewer?: { id: string } | null, opts: { ignorePm?: boolean } = {}) {
+  // Clients with no Marketing PM are an Admin job (To set up), not anyone's Today. Admin counts their tasks (ignorePm).
+  const withPm = opts.ignorePm && scope.clientIds ? scope.clientIds : await clientsWithPm(scope.clientIds);
   const inScope = { clientId: { in: withPm } };
   const [projects, minutes, planItems, briefs, requests, invoices] = await Promise.all([
     loadOpsProjects(inScope, now),

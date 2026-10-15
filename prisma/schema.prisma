@@ -1989,6 +1989,8 @@ model IntegrationConnection {
   id           String    @id @default(cuid())
   provider     String    @unique // "linkedin"
   clientId     String?
+  /// Phase T: Klingit's own account ("Mark internal" in Admin): feeds no client and leaves every list.
+  internal     Boolean   @default(false)
   accessToken  String
   refreshToken String?
   expiresAt    DateTime?

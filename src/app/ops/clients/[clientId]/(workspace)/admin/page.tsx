@@ -42,7 +42,7 @@ export default async function ClientAdminPage({ params }: { params: Promise<{ cl
   if (!client) notFound();
   const [ai, team] = await Promise.all([aiCreditStatus(clientId), teamAllowance(clientId)]);
   const ledger = await prisma.aiCreditLedger.findMany({ where: { clientId }, orderBy: { createdAt: "desc" }, take: 8 });
-  const [adAccounts, adLog] = await Promise.all([listLiveAdAccounts(), prisma.auditLog.findMany({ where: { area: "ad-accounts", clientId }, orderBy: { createdAt: "desc" }, take: 5 })]);
+  const [adAccounts, adLog] = await Promise.all([listLiveAdAccounts().then((xs) => xs.filter((a) => !a.internal)), prisma.auditLog.findMany({ where: { area: "ad-accounts", clientId }, orderBy: { createdAt: "desc" }, take: 5 })]);
   const actors = new Map((await prisma.user.findMany({ where: { id: { in: adLog.flatMap((l) => (l.actorUserId ? [l.actorUserId] : [])) } }, select: { id: true, name: true } })).map((u) => [u.id, u.name]));
 
   const credits: Stat[] = [

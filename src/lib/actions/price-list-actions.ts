@@ -11,7 +11,7 @@ import { requireOpsRole } from "@/lib/authz";
  * Every change goes to the AuditLog.
  */
 
-const STATUSES = ["fixed", "estimate", "quote", "legacy"] as const;
+const STATUSES = ["fixed", "estimate", "quote", "legacy", "draft"] as const;
 const num = (v: FormDataEntryValue | null) => {
   const s = String(v ?? "").trim().replace(",", ".");
   if (s === "") return null;
@@ -39,7 +39,7 @@ export async function savePriceListItemAction(formData: FormData) {
     status,
     leadTimeDays: lead === undefined ? before.leadTimeDays : lead == null ? null : Math.round(lead),
     // Legacy items are staff reference only: never visible to clients.
-    visibleToClients: status === "legacy" ? false : formData.get("visibleToClients") === "on",
+    visibleToClients: status === "legacy" || status === "draft" ? false : formData.get("visibleToClients") === "on",
     notes: String(formData.get("notes") ?? "").trim() || null,
   };
   const priced = data.creditCost !== before.creditCost || data.unit !== before.unit || data.balance !== before.balance || data.status !== before.status;
@@ -68,7 +68,7 @@ export async function addPriceListItemAction(formData: FormData) {
     balance: formData.get("balance") === "pm" ? "pm" : "creative",
     status,
     monthly: formData.get("monthly") === "on",
-    visibleToClients: status !== "legacy",
+    visibleToClients: status !== "legacy" && status !== "draft",
     notes: String(formData.get("notes") ?? "").trim() || null,
     sourceKey: key,
     sortOrder: (await prisma.priceListItem.count()) + 1,
