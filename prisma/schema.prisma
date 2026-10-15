@@ -222,6 +222,9 @@ model SkillOutput {
   storageKey      String?
   mimeType        String?
   createdByUserId String?
+  /// Phase U: Output library category; null = mapped from the format.
+  category        String?
+  downloadCount   Int      @default(0)
   createdAt       DateTime @default(now())
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
@@ -329,6 +332,7 @@ model Client {
   communityManagementSnapshots CommunityManagementSnapshot[]
   internalMessages             ClientInternalMessage[]
   pmMessages                   ClientMessage[]
+  outputFacts                  OutputFact[]
   audienceSnapshots            AudienceSnapshot[]
   connectedChannels            ConnectedChannel[]
   sentMessageLogs              SentMessageLog[]
@@ -1377,6 +1381,11 @@ model Asset {
   /// Views (video / social), when that's the asset's main number rather than CTR.
   performanceViews   Int?
   tags               Json?
+  /// Phase U: Output library category (Social, Ads, Presentations…); null = mapped from format and project type.
+  category           String?
+  downloadCount      Int         @default(0)
+  /// A preview image (first slide or page) for work the browser can't show, e.g. a PPTX.
+  previewKey         String?
   createdAt          DateTime    @default(now())
 
   project  Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -2639,4 +2648,25 @@ model PmThreadRead {
   lastReadAt DateTime
 
   @@unique([userId, clientId])
+}
+
+/// Phase U: how a piece did when there's no channel data ("Printed: 2,000", "Shared with 3 retailers"), added by the
+/// client or their PM (or counted, e.g. downloads). Shown in the Output library and in Insights.
+model OutputFact {
+  id              String   @id @default(cuid())
+  clientId        String
+  assetId         String?
+  skillOutputId   String?
+  label           String
+  value           Float?
+  note            String?
+  /// "client" | "staff" | "auto"
+  source          String   @default("client")
+  createdByUserId String?
+  createdAt       DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, createdAt])
+  @@index([assetId])
 }

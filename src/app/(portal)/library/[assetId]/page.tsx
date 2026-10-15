@@ -8,7 +8,10 @@ import { formatDay } from "@/lib/project-state";
 import { SectionCard, CardBody, CardRows } from "@/components/ds/card";
 import { PillLink } from "@/components/ds/pill-link";
 import { MiniBars } from "@/components/insights/charts";
-import { cn } from "@/lib/utils";
+import { cn, jsonArray } from "@/lib/utils";
+import { AddHowItDid } from "@/components/portal/library/output-library";
+import { categoryFor, isCategory } from "@/lib/output-categories";
+import { clientVisibleVersion } from "@/lib/qc/visibility";
 
 const pct = (n: number) => `${n.toFixed(2).replace(/0$/, "")}%`;
 
@@ -23,6 +26,15 @@ export default async function LibraryAssetPage({ params, searchParams }: { param
   const a = await loadAssetDetail(assetId, viewer.clientId);
   const more = a ? await prisma.agent.findFirst({ where: { key: /carousel|slide/i.test(a.format) ? "carousel_builder" : "ad_gen", availability: "self_service" }, select: { id: true } }) : null;
   if (!a) notFound();
+  // Phase U: category, how it was used, who made it, the Brand OS check and every version the client was sent.
+  const [row, facts, versions, team] = await Promise.all([
+    prisma.asset.findUniqueOrThrow({ where: { id: assetId }, select: { category: true, format: true, type: true, platform: true, name: true, downloadCount: true, project: { select: { type: true } } } }),
+    prisma.outputFact.findMany({ where: { assetId }, orderBy: { createdAt: "asc" } }),
+    prisma.assetVersion.findMany({ where: { assetId, ...clientVisibleVersion }, orderBy: { number: "desc" }, select: { id: true, number: true, sentAt: true, checks: true } }),
+    prisma.team.findUnique({ where: { projectId: a.project.id }, select: { members: { select: { roleOnProject: true, staffMember: { select: { user: { select: { name: true } } } } } } } }),
+  ]);
+  const category = isCategory(row.category) ? row.category : categoryFor({ format: row.format, type: row.type, channel: row.platform, projectType: row.project.type, title: row.name });
+  const latestChecks = jsonArray<{ passed: boolean }>(versions[0]?.checks);
   const p = a.performance;
   const vsAvg = p?.clientAvg ? Math.round(((p.ctr - p.clientAvg) / p.clientAvg) * 100) : null;
   const inReview = a.project.status === "AWAITING_REVIEW";
@@ -58,14 +70,15 @@ export default async function LibraryAssetPage({ params, searchParams }: { param
           <div className="flex flex-col gap-1">
             <h1 className="m-0 text-[28px] font-normal leading-tight">{a.title}</h1>
             <span className="text-[15px] text-brand-ink-2">
-              {[a.format, a.size, a.video?.durationSeconds ? `${Math.round(a.video.durationSeconds)} s` : null].filter(Boolean).join(" · ")} ·{" "}
+              {[category, a.format, a.size, a.video?.durationSeconds ? `${Math.round(a.video.durationSeconds)} s` : null].filter(Boolean).join(" · ")} ·{" "}
               <Link href={`/projects/${a.project.id}`} className="text-brand-ink-2 underline underline-offset-2">
                 {a.project.name}
               </Link>
             </span>
           </div>
 
-          <SectionCard title="Performance" meta={p ? <span className="text-[13px] text-brand-mute">from your ad accounts</span> : undefined}>
+          {p ? (
+          <SectionCard title="Performance" meta={<span className="text-[13px] text-brand-mute">from your ad accounts</span>}>
             {p ? (
               <CardBody className="flex flex-col gap-5">
                 <div className="flex flex-wrap items-end gap-x-4 gap-y-2">
@@ -105,12 +118,29 @@ export default async function LibraryAssetPage({ params, searchParams }: { param
                   </div>
                 )}
               </CardBody>
-            ) : (
-              <CardBody>
-                <p className="m-0 text-[14px] text-brand-ink-2">No performance data yet. The click-through rate shows here once this has run in a connected ad account.</p>
-              </CardBody>
-            )}
+            ) : null}
           </SectionCard>
+          ) : (
+            // No channel data: how it was used (never an empty metric), with "+ Add how it did".
+            <SectionCard title="How it was used">
+              <CardBody className="flex flex-col gap-3">
+                {facts.length === 0 && row.downloadCount === 0 && <p className="m-0 text-[14px] text-brand-ink-2">Nothing yet. Printed it, sent it, used it in a deck? Add it, and it shows here and in Insights.</p>}
+                {(facts.length > 0 || row.downloadCount > 0) && (
+                  <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
+                    {facts.map((f) => (
+                      <li key={f.id} className="rounded-[6px] bg-brand-page px-2 py-1 text-[13px]">
+                        {f.value != null ? `${f.label}: ${f.value.toLocaleString("en-GB")}` : `${f.label} ${f.note ?? ""}`.trim()}
+                        {f.value != null && f.note ? ` · ${f.note}` : ""}
+                      </li>
+                    ))}
+                    {row.downloadCount > 0 && <li className="rounded-[6px] bg-brand-page px-2 py-1 text-[13px]">Downloaded {row.downloadCount}×</li>}
+                  </ul>
+                )}
+                <AddHowItDid itemKey={`a_${assetId}`} />
+              </CardBody>
+            </SectionCard>
+          )}
+
 
           <SectionCard title="How it was made">
             <CardRows>
@@ -118,6 +148,9 @@ export default async function LibraryAssetPage({ params, searchParams }: { param
                 {a.version}
                 {a.sentAt ? ` · sent ${formatDay(a.sentAt)}` : ""}
               </Row>
+              {team && team.members.length > 0 && <Row label="Made by">{team.members.map((m) => m.staffMember.user.name).join(", ")}</Row>}
+              {latestChecks.length > 0 && <Row label="Brand OS check">{`${latestChecks.filter((c) => c.passed).length} of ${latestChecks.length} passed`}</Row>}
+              {versions.length > 1 && <Row label="Versions">{versions.map((v) => `v${v.number}${v.sentAt ? ` ${formatDay(v.sentAt)}` : ""}`).join(" · ")}</Row>}
               <Row label="Rounds of changes">{a.changeRounds}</Row>
               <Row label="Comments">{a.comments}</Row>
               {a.checks > 0 && (

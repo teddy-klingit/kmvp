@@ -28,12 +28,14 @@ export async function GET(req: Request) {
       }
       const f = await assetFile(asset);
       files.push({ name: f.filename, data: f.data });
+      await prisma.asset.update({ where: { id: asset.id }, data: { downloadCount: { increment: 1 } } });
     } else if (key.startsWith("s_")) {
       const o = await prisma.skillOutput.findFirst({ where: { id, clientId: member.clientId } });
       if (!o) continue;
       const file = o.storageKey ? await readUpload(o.storageKey) : null;
       if (file) files.push({ name: `${o.title.slice(0, 60)}.${extensionFor(o.mimeType)}`, data: new Uint8Array(file) });
       if (o.text) files.push({ name: `${o.title.slice(0, 60)}.txt`, data: new TextEncoder().encode(o.text) });
+      await prisma.skillOutput.update({ where: { id: o.id }, data: { downloadCount: { increment: 1 } } });
     }
   }
   if (files.length === 0) return new Response("Nothing to download", { status: 404 });

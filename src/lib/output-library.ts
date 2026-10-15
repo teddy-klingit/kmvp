@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { assetTitle } from "@/lib/asset-display";
 import { clientVisibleAsset, clientVisibleVersion } from "@/lib/qc/visibility";
+import { categoryFor, isCategory, type Category } from "@/lib/output-categories";
 
 /**
  * The Output library (nav v3, 07): produced work only. Files Klingit delivered (approved or delivered assets of the
@@ -11,6 +12,7 @@ import { clientVisibleAsset, clientVisibleVersion } from "@/lib/qc/visibility";
  * average". A group needs at least 4 measured outputs; no data, no badge. "New": made in the last 7 days.
  */
 
+export type Info = { kind: "performed" | "used" | "review" | "add"; text: string };
 export type LibraryItem = {
   key: string; // "a_<assetId>" | "s_<skillOutputId>"
   kind: "asset" | "skill";
@@ -26,9 +28,15 @@ export type LibraryItem = {
   thumb: { image: string | null; video: { src: string; poster: string | null } | null; text: string | null; color: string };
   metric: { label: string; value: number; kind: "ctr" | "views" } | null;
   badge: "Top performer" | "Below average" | "New" | "Made with a skill" | null;
+  /** Phase U */
+  category: Category;
+  meta: string;
+  tags: string[];
+  info: Info;
+  madeByClient?: boolean;
 };
 
-export type LibraryFilters = { q?: string; project?: string; format?: string; channel?: string; days?: number | null; made?: "klingit" | "skills" | null; sort?: "best" | "newest" };
+export type LibraryFilters = { q?: string; project?: string; format?: string; channel?: string; days?: number | null; made?: "klingit" | "skills" | "client" | null; sort?: "best" | "newest"; category?: Category | null };
 
 const DAY = 86400000;
 const fmtViews = (n: number) => (n >= 1000 ? `${Math.round(n / 100) / 10}K`.replace(".0K", "K") : String(n));
@@ -58,73 +66,126 @@ function badgeFor(items: LibraryItem[], now: Date) {
   }
 }
 
+type Fact = { label: string; value: number | null; note: string | null };
+const factText = (f: Fact) => (f.value != null ? `${f.label}: ${f.value.toLocaleString("en-GB")}` : f.note ? `${f.label} ${f.note}`.trim() : f.label);
+const dm = (d: Date) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(d);
+
+/**
+ * The line under a piece (Phase U): how it performed (only work that ran on a connected channel), else how it was
+ * used (facts we have or someone added), else "+ Add how it did". Never an empty metric or a zero.
+ */
+function infoFor(metrics: { ctr: number | null; views: number | null; hookRate?: number | null; savesVsAvg?: number | null; topPct?: number | null }, facts: Fact[], downloads: number): Info {
+  const perf = [
+    metrics.ctr != null && metrics.ctr > 0 ? `CTR ${metrics.ctr}%${metrics.topPct ? ` · top ${metrics.topPct}%` : ""}` : null,
+    metrics.savesVsAvg ? `Saves ${metrics.savesVsAvg}× your average` : null,
+    metrics.hookRate ? `Hook rate ${metrics.hookRate}%` : null,
+    !metrics.ctr && metrics.views ? `${fmtViews(metrics.views)} views` : null,
+  ].filter(Boolean) as string[];
+  if (perf.length) return { kind: "performed", text: perf.slice(0, 2).join(" · ") };
+  const used = [...facts.map(factText), downloads > 0 ? `Downloaded ${downloads}×` : null].filter(Boolean) as string[];
+  if (used.length) return { kind: "used", text: used.slice(0, 2).join(" · ") };
+  return { kind: "add", text: "+ Add how it did" };
+}
+
 export async function loadOutputLibrary(clientId: string, filters: LibraryFilters = {}, now = new Date()) {
-  const [assets, outputs, sources] = await Promise.all([
+  const [assets, outputs, sources, facts, clientUsers] = await Promise.all([
     prisma.asset.findMany({
       where: { clientId, ...clientVisibleAsset, status: { in: ["APPROVED", "DELIVERED"] } },
-      include: { project: { select: { id: true, name: true } }, versions: { where: clientVisibleVersion, orderBy: { number: "desc" }, take: 1, select: { posterKey: true, sentAt: true } } },
+      include: { project: { select: { id: true, name: true, type: true } }, versions: { where: clientVisibleVersion, orderBy: { number: "desc" }, take: 1, select: { posterKey: true, sentAt: true } } },
       orderBy: { createdAt: "desc" },
     }),
     prisma.skillOutput.findMany({ where: { clientId }, orderBy: { createdAt: "desc" } }),
     prisma.adDailyMetric.groupBy({ by: ["platform"], where: { clientId }, _max: { date: true } }),
+    prisma.outputFact.findMany({ where: { clientId }, orderBy: { createdAt: "asc" } }),
+    prisma.clientUser.findMany({ where: { clientId }, select: { userId: true } }),
   ]);
   const skills = new Map((await prisma.agent.findMany({ where: { id: { in: outputs.map((o) => o.agentId).filter((x): x is string => Boolean(x)) } }, select: { id: true, name: true } })).map((a) => [a.id, a.name]));
+  const clientUserIds = new Set(clientUsers.map((c) => c.userId));
+  const factsFor = (k: { assetId?: string; skillOutputId?: string }) => facts.filter((f) => (k.assetId ? f.assetId === k.assetId : f.skillOutputId === k.skillOutputId));
+
+  // CTR standing within its own format: "top 10%" for the best of a group of at least 4 measured pieces.
+  const byFormat = new Map<string, number[]>();
+  for (const a of assets) if (a.performanceCtr) byFormat.set(family(a.format, a.type), [...(byFormat.get(family(a.format, a.type)) ?? []), a.performanceCtr]);
+  const topPct = (format: string, ctr: number | null) => {
+    const g = byFormat.get(format);
+    if (!ctr || !g || g.length < 4) return null;
+    const share = g.filter((x) => x > ctr).length / g.length;
+    return share < 0.1 ? 10 : share < 0.25 ? 25 : null;
+  };
 
   const all: LibraryItem[] = [
     ...assets.map((a): LibraryItem => {
-      const copy = (a.tags as { copy?: Record<string, string> } | null)?.copy;
-      const image = a.storageKey && a.mimeType?.startsWith("image/") ? `/api/assets/${a.id}/download?inline=1` : null;
+      const tags = (a.tags ?? {}) as { copy?: Record<string, string>; meta?: string; keywords?: string[]; metrics?: { hookRate?: number; savesVsAvg?: number } };
+      const copy = tags.copy;
+      const image = a.previewKey ? `/api/assets/${a.id}/download?part=preview` : a.storageKey && a.mimeType?.startsWith("image/") ? `/api/assets/${a.id}/download?inline=1` : null;
+      const fam = family(a.format, a.type);
+      const category = isCategory(a.category) ? a.category : categoryFor({ format: a.format, type: a.type, channel: a.platform, projectType: a.project.type, title: a.name });
+      const date = a.versions[0]?.sentAt ?? a.createdAt;
       return {
         key: `a_${a.id}`,
         kind: "asset",
         id: a.id,
         title: assetTitle(a.name, a.format),
-        format: family(a.format, a.type),
+        format: fam,
         channel: a.platform,
         source: a.project.name,
         sourceId: a.project.id,
         madeBy: "klingit",
-        date: a.versions[0]?.sentAt ?? a.createdAt,
+        madeByClient: Boolean(a.uploadedByUserId && clientUserIds.has(a.uploadedByUserId)),
+        date,
         href: `/library/${a.id}`,
         thumb: {
           image,
           video: a.type === "VIDEO" && a.storageKey ? { src: `/api/assets/${a.id}/download?inline=1`, poster: a.versions[0]?.posterKey ? `/api/assets/${a.id}/download?part=poster` : null } : null,
-          text: copy ? Object.values(copy)[0] ?? null : null,
+          text: copy ? (Object.values(copy)[0] ?? null) : null,
           color: a.thumbnailColor,
         },
         metric: a.performanceCtr != null ? { label: `${a.performanceCtr}% CTR`, value: a.performanceCtr, kind: "ctr" } : a.performanceViews != null ? { label: `${fmtViews(a.performanceViews)} views`, value: a.performanceViews, kind: "views" } : null,
         badge: null,
+        category,
+        meta: tags.meta ?? [category === "Ads" || category === "Social" ? (a.platform ?? fam) : category === "Video & motion" ? `Video · ${fam.replace(/^Video\s*/, "") || fam}` : fam, a.project.name, dm(date)].filter(Boolean).join(" · "),
+        tags: tags.keywords ?? [],
+        info: infoFor({ ctr: a.performanceCtr, views: a.performanceViews, hookRate: tags.metrics?.hookRate, savesVsAvg: tags.metrics?.savesVsAvg, topPct: topPct(fam, a.performanceCtr) }, factsFor({ assetId: a.id }), a.downloadCount),
       };
     }),
-    ...outputs.map((o): LibraryItem => ({
-      key: `s_${o.id}`,
-      kind: "skill",
-      id: o.id,
-      title: o.title,
-      format: o.format ?? "Output",
-      channel: o.channel,
-      source: `Skill: ${(o.agentId && skills.get(o.agentId)) ?? "skill"}`,
-      sourceId: o.agentId,
-      madeBy: "skill",
-      date: o.createdAt,
-      href: `/library/output/${o.id}`,
-      thumb: { image: o.storageKey && o.mimeType?.startsWith("image/") ? `/api/skill-outputs/${o.id}/file` : null, video: null, text: o.text, color: "var(--avatar-5)" },
-      metric: null,
-      badge: null,
-    })),
+    ...outputs.map((o): LibraryItem => {
+      const category = isCategory(o.category) ? o.category : categoryFor({ format: o.format, channel: o.channel, title: o.title, type: o.mimeType?.startsWith("image/") ? "IMAGE" : "COPY" });
+      return {
+        key: `s_${o.id}`,
+        kind: "skill",
+        id: o.id,
+        title: o.title,
+        format: o.format ?? "Output",
+        channel: o.channel,
+        source: `Skill: ${(o.agentId && skills.get(o.agentId)) ?? "skill"}`,
+        sourceId: o.agentId,
+        madeBy: "skill",
+        date: o.createdAt,
+        href: `/library/output/${o.id}`,
+        thumb: { image: o.storageKey && o.mimeType?.startsWith("image/") ? `/api/skill-outputs/${o.id}/file` : null, video: null, text: o.text, color: "var(--avatar-5)" },
+        metric: null,
+        badge: null,
+        category,
+        meta: [o.format, o.channel, `Skill: ${(o.agentId && skills.get(o.agentId)) ?? "skill"}`, dm(o.createdAt)].filter(Boolean).join(" · "),
+        tags: [],
+        info: infoFor({ ctr: null, views: null }, factsFor({ skillOutputId: o.id }), o.downloadCount),
+      };
+    }),
   ];
   badgeFor(all, now);
 
   // Filters and sort.
   const term = filters.q?.trim().toLowerCase();
-  const days = filters.days === undefined ? 90 : filters.days;
-  const shown = all
-    .filter((i) => !term || `${i.title} ${i.source} ${i.format} ${i.channel ?? ""}`.toLowerCase().includes(term))
+  const days = filters.days ?? null;
+  const base = all
+    .filter((i) => !term || `${i.title} ${i.source} ${i.format} ${i.channel ?? ""} ${i.category} ${i.meta} ${i.tags.join(" ")}`.toLowerCase().includes(term))
     .filter((i) => !filters.project || i.source === filters.project)
     .filter((i) => !filters.format || i.format === filters.format)
     .filter((i) => !filters.channel || i.channel === filters.channel)
     .filter((i) => !days || now.getTime() - i.date.getTime() <= days * DAY)
-    .filter((i) => !filters.made || (filters.made === "skills" ? i.madeBy === "skill" : i.madeBy === "klingit"))
+    .filter((i) => !filters.made || (filters.made === "skills" ? i.madeBy === "skill" : filters.made === "client" ? i.madeByClient : i.madeBy === "klingit" && !i.madeByClient));
+  const shown = base
+    .filter((i) => !filters.category || i.category === filters.category)
     .sort((a, b) =>
       filters.sort === "newest"
         ? b.date.getTime() - a.date.getTime()
@@ -134,8 +195,13 @@ export async function loadOutputLibrary(clientId: string, filters: LibraryFilter
 
   const uniq = (xs: (string | null)[]) => [...new Set(xs.filter((x): x is string => Boolean(x)))].sort();
   const lastUpdate = sources.reduce<string | null>((m, s) => (s._max.date && (!m || s._max.date > m) ? s._max.date : m), null);
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   return {
     items: shown,
+    /** Counts per category under the other filters (the chips). */
+    categoryCounts: Object.fromEntries(base.reduce((m, i) => m.set(i.category, (m.get(i.category) ?? 0) + 1), new Map<string, number>())) as Record<string, number>,
+    newThisMonth: base.filter((i) => i.date >= monthStart).sort((a, b) => b.date.getTime() - a.date.getTime()),
+    total: base.length,
     facets: { projects: uniq(all.map((i) => i.source)), formats: uniq(all.map((i) => i.format)), channels: uniq(all.map((i) => i.channel)) },
     summary: { total: shown.length, byKlingit: shown.filter((i) => i.madeBy === "klingit").length, bySkills: shown.filter((i) => i.madeBy === "skill").length },
     dataSources: { platforms: sources.map((s) => s.platform), lastUpdate },

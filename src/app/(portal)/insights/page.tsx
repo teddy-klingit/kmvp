@@ -41,6 +41,9 @@ export default async function InsightsOverviewPage({ searchParams }: { searchPar
     prisma.marketIntelligenceBrief.findUnique({ where: { clientId } }),
     adDataStatus(clientId),
   ]);
+  // Phase U: how work without channel data did, as the client and their PM added it in the Output library.
+  const facts = await prisma.outputFact.findMany({ where: { clientId }, orderBy: { createdAt: "desc" }, take: 6 });
+  const factAssets = new Map((await prisma.asset.findMany({ where: { id: { in: facts.flatMap((f) => (f.assetId ? [f.assetId] : [])) } }, select: { id: true, name: true } })).map((a) => [a.id, a.name]));
   // No ad account: one clear empty state instead of blank charts (live-ads-owner.ts).
   const noAds = adStatus === "none";
 
@@ -154,6 +157,21 @@ export default async function InsightsOverviewPage({ searchParams }: { searchPar
         }
         side={
           <>
+            {facts.length > 0 && (
+              <ChartCard flush title="How your work did" meta={<Link href="/library" className={monoLink}>LIBRARY</Link>}>
+                <ul className="m-0 list-none p-0">
+                  {facts.map((f) => (
+                    <li key={f.id} className="flex flex-col gap-0.5 border-t border-brand-line px-6 py-3 first:border-t-0">
+                      <span className="text-[14px]">{f.value != null ? `${f.label}: ${f.value.toLocaleString("en-GB")}` : `${f.label} ${f.note ?? ""}`.trim()}</span>
+                      <span className="text-[12px] text-brand-ink-2">
+                        {f.assetId ? (factAssets.get(f.assetId) ?? "A piece") : "A skill output"}
+                        {f.value != null && f.note ? ` · ${f.note}` : ""} · added by {f.source === "staff" ? "Klingit" : "your team"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </ChartCard>
+            )}
             <ChartCard flush title="Data sources" meta={<span className="font-brand-mono text-[12px] text-brand-ink">{connectedCount} OF {sources.length}</span>}>
               <ul className="m-0 list-none p-0">
                 {sources.map((s) => (
