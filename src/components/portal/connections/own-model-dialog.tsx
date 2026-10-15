@@ -6,7 +6,7 @@ import { pillClass } from "@/components/ds/button";
 import { connectOwnModelAction, type ConnectionState } from "@/lib/actions/connection-actions";
 import { cn } from "@/lib/utils";
 
-/** Connections → Your own AI model: paste an API key. Used only on Basic; your provider bills the tokens. */
+/** Connections → Your own AI model: paste an API key. Works on every plan (Phase U); your provider bills the tokens. */
 export function OwnModelDialog({ app, name, basic }: { app: string; name: string; basic: boolean }) {
   const [state, action, pending] = useActionState<ConnectionState, FormData>(connectOwnModelAction, {});
   return (

@@ -11,7 +11,7 @@ import { aiCreditStatus } from "@/lib/ai-credits";
 /**
  * Phase S demo (S9): ouhers on a contract, as the pricing page's example.
  *   Way 3: Enterprise + PM + creative 20 + 40, 12 months from the 1st of last month, invoiced quarterly, EUR,
- *   contact person Teddy W. Balances this month: PM 14 of 20, creative 31, AI 640 of 1,000.
+ *   contact person Teddy W. Balances this month: PM 14 of 20, creative 31, AI 240 of 3,000 (Phase U).
  *
  * Creative 31 is: 40 this month + 20 carried from September − 15 for Meta Ads − 14 used. Meta Ads (15 a month, a
  * fixed Price List service) replaces the brief's SEO at 30, which is too much for a 40-credit pack; September used

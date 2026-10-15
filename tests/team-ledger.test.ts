@@ -107,10 +107,10 @@ describe("team credit ledgers: PM and creative, never pooled", () => {
 
   it("AI credits come from the contract's platform plan and don't roll over", async () => {
     const s = await aiCreditStatus(fx.clientA.id, d("2026-10-10"));
-    expect([s.plan.name, s.allowance]).toEqual(["Enterprise", 1000]);
+    expect([s.plan.name, s.allowance]).toEqual(["Enterprise", 3000]);
     const basicLike = await aiCreditStatus(fx.clientB.id, d("2026-10-10"));
-    expect([basicLike.plan.name, basicLike.allowance]).toEqual(["Pro", 300]);
+    expect([basicLike.plan.name, basicLike.allowance]).toEqual(["Pro", 1000]);
     const nov = await aiCreditStatus(fx.clientA.id, d("2026-11-10"));
-    expect(nov.allowance).toBe(1000); // a fresh month, nothing carried
+    expect(nov.allowance).toBe(3000); // a fresh month, nothing carried
   });
 });

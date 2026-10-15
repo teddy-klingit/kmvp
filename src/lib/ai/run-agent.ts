@@ -1,7 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import type { z } from "zod";
-import { anthropic, AGENT_MODEL } from "@/lib/ai/client";
+import { anthropic } from "@/lib/ai/client";
+import { aiPrices, costUsd, modelFor } from "@/lib/ai-cost";
+import { getSetting } from "@/lib/platform-settings";
 import { prisma } from "@/lib/prisma";
 import { currentAiCharge, type AiChargeContext } from "@/lib/ai-context";
 import { aiCreditStatus, chargeAi, ownModelConnection, assistantFairUse } from "@/lib/ai-credits";
@@ -61,7 +63,7 @@ export async function runAgentTask<T>({
   const charge: AiChargeContext | null =
     currentAiCharge() ??
     (requestedByUserId && clientId && agent.kind === "SKILL" ? { clientId, userId: requestedByUserId, sourceType: "skill", sourceKey: agent.key, sourceName: agent.name, projectId } : null);
-  // On Basic the client's own model runs it, with their key; their provider bills the tokens.
+  // The client's own Claude (any plan, Phase U) runs it, with their key; their provider bills the tokens.
   let client = anthropic;
   // The client's key, if this run uses it: masked out of anything the run stores or returns.
   let ownKey: string | null = null;
@@ -73,7 +75,7 @@ export async function runAgentTask<T>({
     const status = await aiCreditStatus(charge.clientId);
     if (status.ownModel) {
       const own = await ownModelConnection(charge.clientId);
-      if (!own) return { ok: false, error: "You're on Basic: connect your own AI model in Settings → Connections first." };
+      if (!own) return { ok: false, error: "Connect your own Claude in Settings → Connections first." };
       if (own.provider !== "claude" || !own.apiKey) return { ok: false, error: "Your connected model can't run this yet. Connect a Claude API key in Settings → Connections." };
       ownKey = own.apiKey;
       client = new Anthropic({ apiKey: own.apiKey });
@@ -81,12 +83,16 @@ export async function runAgentTask<T>({
   }
 
   const startedAt = Date.now();
+  // Phase U cost control: the skill's model (Haiku for simple skills, Opus only where set, else Sonnet), and the
+  // system prompt (where the Brand OS goes) cached, so repeat runs for a client read it at a tenth of the price.
+  const model = await modelFor(agent.key);
+  const cache = await getSetting("promptCaching");
 
   try {
     const response = await client.messages.parse({
-      model: AGENT_MODEL,
+      model,
       max_tokens: webSearch ? 8192 : 4096,
-      system,
+      system: cache ? [{ type: "text" as const, text: system, cache_control: { type: "ephemeral" as const } }] : system,
       messages: [
         {
           role: "user",
@@ -111,8 +117,12 @@ export async function runAgentTask<T>({
     const data = response.parsed_output;
     // Real token use from the response: always on the run; charged to the client only when they triggered it.
     const usage = response.usage as { input_tokens: number; output_tokens: number; cache_read_input_tokens?: number | null; cache_creation_input_tokens?: number | null; server_tool_use?: { web_search_requests?: number } | null };
-    const tokensIn = usage.input_tokens + (usage.cache_read_input_tokens ?? 0) + (usage.cache_creation_input_tokens ?? 0);
+    const cacheRead = usage.cache_read_input_tokens ?? 0;
+    const cacheWrite = usage.cache_creation_input_tokens ?? 0;
+    const tokensIn = usage.input_tokens + cacheRead + cacheWrite;
     const tokensOut = usage.output_tokens;
+    const webSearches = usage.server_tool_use?.web_search_requests ?? 0;
+    const cost = costUsd({ model, tokensIn: usage.input_tokens, tokensOut, cacheRead, cacheWrite, webSearches }, await aiPrices());
 
     const run = await prisma.agentRun.create({
       data: {
@@ -127,11 +137,12 @@ export async function runAgentTask<T>({
         durationMs: Date.now() - startedAt,
         tokensIn,
         tokensOut,
-        model: AGENT_MODEL,
+        model,
+        costUsd: cost,
       },
     });
     if (charge) {
-      const charged = await chargeAi({ ...charge, tokensIn, tokensOut, model: AGENT_MODEL, webSearches: usage.server_tool_use?.web_search_requests ?? 0, agentRunId: run.id });
+      const charged = await chargeAi({ ...charge, tokensIn: usage.input_tokens, tokensOut, cacheRead, cacheWrite, model, webSearches, agentRunId: run.id });
       await prisma.agentRun.update({ where: { id: run.id }, data: { aiCredits: charged.credits } });
     }
 

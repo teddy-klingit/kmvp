@@ -15,6 +15,7 @@ import { brandProducts, formFor } from "@/lib/skill-forms";
 import { loadLatestBatch } from "@/lib/skill-run";
 import { jsonArray } from "@/lib/utils";
 import { WORK_TZ } from "@/lib/working-hours";
+import { estimateCredits } from "@/lib/ai-cost";
 import { cn } from "@/lib/utils";
 
 const LABEL: Record<string, { text: string; tint: string }> = { self_service: { text: "Self-service", tint: "bg-brand-lime-pale" }, klingit_run: { text: "Run by Klingit", tint: "bg-brand-lavender-pale" }, custom: { text: "Custom", tint: "bg-[#F7E6F7]" } };
@@ -106,7 +107,7 @@ export default async function SkillPage({ params, searchParams }: { params: Prom
               products={products}
               starts={starts}
               projects={projects}
-              aiPerRun={agent.aiCreditsPerRun}
+              aiPerRun={(await estimateCredits([agent])).get(agent.id) ?? agent.aiCreditsPerRun}
               left={left}
               initial={{ format: q.format ?? batch?.settings.format ?? null, channel: q.channel ?? batch?.settings.channel ?? null, product: q.product ?? batch?.settings.product ?? null, say: q.say ?? batch?.settings.say ?? "", versions: Number(q.versions ?? batch?.settings.versions ?? 3), startFrom }}
             />

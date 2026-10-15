@@ -152,29 +152,35 @@ enum AiLedgerKind {
 /// AI credits: LLM use by skills the client runs and built-in assistants. Never Klingit's own production AI.
 /// Usage rows are written from real token counts (src/lib/ai-credits.ts). amount is signed (usage negative).
 model AiCreditLedger {
-  id          String       @id @default(cuid())
-  clientId    String
-  userId      String?
-  kind        AiLedgerKind
-  amount      Float
+  id               String       @id @default(cuid())
+  clientId         String
+  userId           String?
+  kind             AiLedgerKind
+  amount           Float
   /// usage: drawn from the monthly allowance or from bundles (bundles are used after the allowance, never expire)
-  fundedBy    String?
-  sourceType  String? // "skill" | "assistant"
-  sourceKey   String? // Agent.key or assistant key
-  sourceName  String? // "Ad gen", "Ask your data"
-  projectId   String?
-  format      String?
-  tokensIn    Int          @default(0)
-  tokensOut   Int          @default(0)
-  model       String?
+  fundedBy         String?
+  sourceType       String? // "skill" | "assistant"
+  sourceKey        String? // Agent.key or assistant key
+  sourceName       String? // "Ad gen", "Ask your data"
+  projectId        String?
+  format           String?
+  tokensIn         Int          @default(0)
+  tokensOut        Int          @default(0)
+  model            String?
   /// "klingit" = counts against the client's AI credits; "client_provider" = Basic plan, their provider bills it
-  billedTo    String       @default("klingit")
+  billedTo         String       @default("klingit")
   /// false: logged for cost only, never counted against the client (assistants, Phase S).
-  billable    Boolean      @default(true)
-  agentRunId  String?
-  note        String?
-  createdById String?
-  createdAt   DateTime     @default(now())
+  billable         Boolean      @default(true)
+  /// Phase U: the real AI cost in USD (model, tokens, cache, images); costEstimated = worked out later from tokens.
+  costUsd          Float?
+  costEstimated    Boolean      @default(false)
+  cacheReadTokens  Int          @default(0)
+  cacheWriteTokens Int          @default(0)
+  images           Int          @default(0)
+  agentRunId       String?
+  note             String?
+  createdById      String?
+  createdAt        DateTime     @default(now())
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
@@ -1649,6 +1655,8 @@ model AgentRun {
   tokensOut          Int?
   model              String?
   aiCredits          Float?
+  /// Phase U: the run's real AI cost in USD.
+  costUsd            Float?
   createdAt          DateTime       @default(now())
 
   agent            Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
@@ -2403,6 +2411,8 @@ model PlatformPlan {
   name              String
   priceEur          Float
   aiCreditsPerMonth Int
+  /// Phase U: the plan's AI budget per month in USD; the credits follow (budget ÷ the $ per credit setting).
+  aiBudgetUsd       Float?
   /// Basic: the client's own AI (Claude via MCP or their key); their provider bills it.
   ownModel          Boolean  @default(false)
   /// One-line pitch and the feature bullets shown on the plan card.
@@ -2669,4 +2679,16 @@ model OutputFact {
 
   @@index([clientId, createdAt])
   @@index([assetId])
+}
+
+/// Phase U: work sent through Anthropic's Batch API (scheduled reports): submitted, then collected by the scheduler.
+model AiBatchJob {
+  id          String    @id @default(cuid())
+  batchId     String    @unique
+  kind        String
+  payload     Json
+  status      String    @default("submitted")
+  error       String?
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
 }

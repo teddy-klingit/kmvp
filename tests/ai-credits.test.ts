@@ -53,12 +53,14 @@ describe("AI credits", () => {
   it("uses the allowance first, then bundles, and every row adds up to the charge", async () => {
     await prisma.aiCreditLedger.create({ data: { clientId: fx.clientA.id, kind: "BUNDLE", amount: 250, createdAt: NOW } });
     await prisma.aiCreditLedger.create({ data: { clientId: fx.clientA.id, kind: "USAGE", amount: -498, fundedBy: "allowance", sourceType: "skill", sourceKey: "ad_gen", sourceName: "Ad gen", createdAt: NOW } });
-    const r = await charge(fx.clientA.id, 2000, 400); // 4 credits: 2 from the allowance, 2 from the bundle
-    expect(r.credits).toBe(4);
+    // Phase U: real cost on Opus 5 is (2,000 × $15 + 400 × $75) / 1M = $0.06 → 6 credits: 2 from the allowance, 4 from the bundle.
+    const r = await charge(fx.clientA.id, 2000, 400);
+    expect([r.credits, (r as { costUsd?: number }).costUsd]).toEqual([6, 0.06]);
     const s = await aiCreditStatus(fx.clientA.id, NOW);
-    expect([s.allowanceLeft, s.bundleLeft, s.left, s.used]).toEqual([0, 248, 248, 502]);
+    expect([s.allowanceLeft, s.bundleLeft, s.left, s.used]).toEqual([0, 246, 246, 504]);
     const rows = await prisma.aiCreditLedger.findMany({ where: { clientId: fx.clientA.id, kind: "USAGE", agentRunId: null, sourceKey: "ad_gen", amount: { gt: -100 } } });
-    expect(rows.reduce((a, x) => a + x.amount, 0)).toBe(-4);
+    expect(rows.reduce((a, x) => a + x.amount, 0)).toBe(-6);
+    expect(rows.reduce((a, x) => a + (x.costUsd ?? 0), 0)).toBeCloseTo(0.06); // the cost is counted once
     expect(rows.map((x) => x.fundedBy).sort()).toEqual(["allowance", "bundle"]);
   });
 
@@ -83,7 +85,7 @@ describe("AI credits", () => {
     const s = await aiCreditStatus(fx.clientB.id, NOW);
     expect([s.used, s.providerTokens]).toEqual([0, 4000]);
     const gate = await aiGate(fx.clientB.id, "skill", NOW);
-    expect(!gate.ok && gate.error).toMatch(/connect your own AI model/);
+    expect(!gate.ok && gate.error).toMatch(/connect your own Claude/i);
   });
 
   it("charges only client-triggered runs, from the response's real token counts", async () => {
@@ -101,12 +103,13 @@ describe("AI credits", () => {
     const charged = await prisma.agentRun.findUniqueOrThrow({ where: { id: asked.ok ? asked.runId : "" } });
     expect(charged.aiCredits).toBe(0);
     const row = await prisma.aiCreditLedger.findFirstOrThrow({ where: { agentRunId: charged.id } });
-    expect([row.sourceName, row.tokensIn, row.tokensOut, row.amount, row.billable]).toEqual(["Ask your data", 2000, 400, -4, false]);
+    // Routed to Sonnet (the default): (2,000 × $3 + 400 × $15) / 1M = $0.012 → 2 credits' worth, logged, not billed.
+    expect([row.sourceName, row.tokensIn, row.tokensOut, row.amount, row.billable, row.model, row.costUsd]).toEqual(["Ask your data", 2000, 400, -2, false, "claude-sonnet-5-5", 0.012]);
     // A client-triggered skill run is charged.
     const before2 = (await aiCreditStatus(fx.clientA.id)).used;
     const ran = await withAiCharge({ clientId: fx.clientA.id, sourceType: "skill", sourceKey: "ad_gen", sourceName: "Ad gen" }, () => runAgentTask({ agentKey: "test_internal", clientId: fx.clientA.id, system: "s", prompt: "p", schema }));
-    expect((await prisma.agentRun.findUniqueOrThrow({ where: { id: ran.ok ? ran.runId : "" } })).aiCredits).toBe(4);
-    expect((await aiCreditStatus(fx.clientA.id)).used).toBe(before2 + 4);
+    expect((await prisma.agentRun.findUniqueOrThrow({ where: { id: ran.ok ? ran.runId : "" } })).aiCredits).toBe(2);
+    expect((await aiCreditStatus(fx.clientA.id)).used).toBe(before2 + 2);
   });
 });
 
@@ -134,3 +137,32 @@ describe("team credits", () => {
     expect(rows.reduce((a, r) => a + r.amount, 0)).toBe(-13);
   });
 });
+
+describe("AI credits are a dollar budget (Phase U)", () => {
+  it("credits = real cost ÷ $0.01, rounded up, at least 1; cache reads and batch are cheaper", async () => {
+    const { costUsd, creditsForCost, aiPrices } = await import("@/lib/ai-cost");
+    const p = await aiPrices();
+    expect(creditsForCost(costUsd({ model: "claude-haiku-5-5", tokensIn: 100, tokensOut: 20 }, p), 0.01)).toBe(1); // $0.0002 → 1
+    expect(creditsForCost(0.0501, 0.01)).toBe(6);
+    expect(creditsForCost(0.05, 0.01)).toBe(5);
+    const full = costUsd({ model: "claude-sonnet-5-5", tokensIn: 10000, tokensOut: 0 }, p);
+    const cached = costUsd({ model: "claude-sonnet-5-5", tokensIn: 0, cacheRead: 10000, tokensOut: 0 }, p);
+    expect(cached).toBeCloseTo(full * 0.1);
+    expect(costUsd({ model: "claude-sonnet-5-5", tokensIn: 10000, tokensOut: 0, batch: true }, p)).toBeCloseTo(full / 2);
+  });
+
+  it("a plan's credits follow its budget: $3 / $10 / $30 → 300 / 1,000 / 3,000", async () => {
+    const { creditsForBudget } = await import("@/lib/ai-cost");
+    expect(await Promise.all([3, 10, 30].map((b) => creditsForBudget({ aiBudgetUsd: b, aiCreditsPerMonth: 0 })))).toEqual([300, 1000, 3000]);
+  });
+
+  it("a skill on the client's own Claude uses 0 Klingit credits, on any plan, and shows as own AI", async () => {
+    await prisma.brandConnection.create({ data: { clientId: fx.clientA.id, app: "claude", status: "CONNECTED", meta: {} } });
+    const r = await charge(fx.clientA.id, 2000, 400);
+    expect(r.credits).toBe(0);
+    const row = await prisma.aiCreditLedger.findFirstOrThrow({ where: { clientId: fx.clientA.id, fundedBy: "own_ai" } });
+    expect([row.billedTo, row.costUsd]).toEqual(["client_provider", 0]);
+    await prisma.brandConnection.deleteMany({ where: { clientId: fx.clientA.id, app: "claude" } });
+  });
+});
+

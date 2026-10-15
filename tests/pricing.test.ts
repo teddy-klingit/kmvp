@@ -7,12 +7,13 @@ afterAll(async () => {
 });
 
 describe("Phase S prices (placeholders, all from the database)", () => {
-  it("seeds Basic €9 / Pro €99 / Enterprise €249 and the six packs plus Per request, all needing Enterprise", async () => {
+  it("seeds Basic €25 / Pro €99 / Enterprise €249 and the six packs plus Per request, all needing Enterprise", async () => {
     const p = await loadPricing();
     expect(p.plans.map((x) => [x.key, x.priceEur, x.aiCreditsPerMonth, x.ownModel])).toEqual([
-      ["basic", 9, 0, true],
-      ["pro", 99, 300, false],
-      ["enterprise", 249, 1000, false],
+      // Phase U: AI budgets $3 / $10 / $30 → 300 / 1,000 / 3,000 credits; own Claude works on every plan.
+      ["basic", 25, 300, false],
+      ["pro", 99, 1000, false],
+      ["enterprise", 249, 3000, false],
     ]);
     expect(p.packs.map((x) => [x.key, x.pmCredits, x.creativeCredits, x.priceEur])).toEqual([
       ["pm10", 10, 0, 995],
@@ -64,6 +65,6 @@ describe("Phase S prices (placeholders, all from the database)", () => {
     const p = await loadPricing();
     expect(creativePackPrice(p, "pmc20_40", "EUR")).toEqual({ credits: 10, price: Math.round((4600 / 60) * 1.1 * 10) });
     expect(creativePackPrice(p, null, "EUR")).toEqual({ credits: 10, price: Math.round((995 / 10) * 1.1 * 10) });
-    expect(aiTopUpPrice(p, "EUR")).toEqual({ credits: 500, price: 49 });
+    expect(aiTopUpPrice(p, "EUR")).toEqual({ credits: 1000, price: 25 });
   });
 });

@@ -77,7 +77,7 @@ describe("invoicing: by invoice, from the contract's schedule", () => {
     await prisma.billingProfile.update({ where: { clientId: fx.clientB.id }, data: { aiTopUpAutoApproveUpTo: 1000 } });
     const r = await createRequest(fx.clientB.id, fx.userB.id, "ai_topup", { count: 1 });
     expect(r.status).toBe("approved");
-    expect(await prisma.aiCreditLedger.count({ where: { clientId: fx.clientB.id, kind: "BUNDLE", amount: 500 } })).toBe(1);
+    expect(await prisma.aiCreditLedger.count({ where: { clientId: fx.clientB.id, kind: "BUNDLE", amount: 1000 } })).toBe(1);
     expect(r.currency).toBe("NOK");
   });
 

@@ -28,8 +28,32 @@ export const SETTING_DEFAULTS = {
   /** Extra creative credits come in packs of this size, at the pack's per-credit price plus this surcharge. */
   creativePackSize: 10 as number,
   creativePackSurcharge: 0.1 as number,
-  /** An AI credit top-up. */
-  aiTopUp: { credits: 500, priceEur: 49 } as { credits: number; priceEur: number },
+  /** An AI credit top-up (the smallest option; Phase U: 1,000 for €25). */
+  aiTopUp: { credits: 1000, priceEur: 25 } as { credits: number; priceEur: number },
+  /** Phase U: 1 AI credit = this much real AI cost in USD ($0.01, so $10 of AI = 1,000 credits). */
+  usdPerCredit: 0.01 as number,
+  /** Phase U: real prices (placeholders): USD per million tokens in / out per model; cache reads and writes as a
+   *  share of the input price; per web search, per generated image; and the Batch API discount. */
+  aiPrices: {
+    models: { "claude-opus-5-5": { in: 5, out: 25 }, "claude-opus-5": { in: 15, out: 75 }, "claude-sonnet-5-5": { in: 3, out: 15 }, "claude-haiku-5-5": { in: 1, out: 5 } } as Record<string, { in: number; out: number }>,
+    fallback: { in: 3, out: 15 },
+    cacheRead: 0.1,
+    cacheWrite: 1.25,
+    webSearch: 0.01,
+    image: 0.04,
+    batchDiscount: 0.5,
+  } as { models: Record<string, { in: number; out: number }>; fallback: { in: number; out: number }; cacheRead: number; cacheWrite: number; webSearch: number; image: number; batchDiscount: number },
+  /** Phase U: cost control. Simple skills (captions, checks, resizes) on Haiku, the rest on Sonnet, Opus only where a
+   *  skill is set to it; the Brand OS (system prompt) is cached; scheduled reports go through the Batch API. */
+  aiRouting: {
+    default: "claude-sonnet-5-5",
+    simple: "claude-haiku-5-5",
+    opus: "claude-opus-5-5",
+    simpleSkills: ["instagram_caption_agent", "brand_compliance", "tone_checker", "resize_agent", "caption_writer", "email_subject_agent"],
+    opusSkills: [] as string[],
+  } as { default: string; simple: string; opus: string; simpleSkills: string[]; opusSkills: string[] },
+  promptCaching: true as boolean,
+  batchScheduledReports: true as boolean,
   /** Phase T: minutes a Today task takes, per kind (placeholders), for "about 1 h 20 min". */
   todayMinutes: { MESSAGE: 5, ESTIMATE: 15, PLAN: 2, REQUEST: 2, STAFFING: 5, "QUALITY CHECK": 15, DEADLINE: 5, INVOICE: 5, BRIEF: 5, AGENT: 5, CHANGES: 5 } as Record<string, number>,
   /** Custom PM quotes only (never Price List items): hours × the task type's multiplier = credits. */

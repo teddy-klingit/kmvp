@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { agentBuildOf, type AgentBuild } from "@/lib/agent-build";
 import { monthPeriod } from "@/lib/ai-credits";
+import { estimateCredits } from "@/lib/ai-cost";
 import { jsonArray } from "@/lib/utils";
 
 /**
@@ -69,6 +70,8 @@ export async function listSkills(clientId: string, now = new Date()): Promise<Sk
     prisma.skillOutput.findMany({ where: { clientId }, orderBy: { createdAt: "desc" }, take: 200, select: { id: true, agentId: true, title: true, text: true, storageKey: true, mimeType: true } }),
   ]);
   const TINTS = ["#E4ECEE", "#F6CDB8", "#F6E7B8", "#F7E6F7", "#FBF6F0"];
+  // Phase U: "about N credits" from the skill's last 30 runs.
+  const estimates = await estimateCredits(agents);
   return agents
     .filter((a) => a.clientId || a.status !== "DISABLED")
     .map((a) => {
@@ -83,7 +86,7 @@ export async function listSkills(clientId: string, now = new Date()): Promise<Sk
         live: a.status === "LIVE",
         availability: (a.clientId ? "custom" : (a.availability ?? "self_service")) as SkillAvailability,
         goal: (a.goal ?? "write_copy") as SkillGoal,
-        aiPerRun: a.aiCreditsPerRun,
+        aiPerRun: estimates.get(a.id) ?? a.aiCreditsPerRun,
         teamCredits: a.teamCreditsEstimate,
         examples: [
           ...outputs.filter((o) => o.agentId === a.id).slice(0, 3).map((o, i): SkillExample => ({ title: o.title, image: o.storageKey && o.mimeType?.startsWith("image/") ? `/api/skill-outputs/${o.id}/file` : null, text: o.text, color: TINTS[i % TINTS.length] })),

@@ -121,7 +121,7 @@ export default async function UsagePage() {
             <span className="text-[12px] text-brand-mute">LLM use by skills and assistants</span>
           </span>
           {ai.ownModel ? (
-            <p className="m-0 text-[15px] leading-[1.5]">On Basic your own AI model runs your skills and assistants, and your provider bills the tokens: {n(ai.providerTokens)} tokens this month.</p>
+            <p className="m-0 text-[15px] leading-[1.5]">Your skills run on your own Claude, so they use 0 Klingit AI credits and your provider bills the tokens: {n(ai.providerTokens)} tokens this month.</p>
           ) : (
             <>
               <span className="flex items-baseline gap-2">

@@ -148,9 +148,9 @@ const SOURCES: Source[] = [
 ];
 /** AI credits used per day this month (the shape of the Usage chart), and the totals of the two months before. */
 const THIS_MONTH_DAYS = [62, 95, 70, 38, 33, 118, 140, 96, 128, 106, 84, 91, 77, 99, 88];
-const EARLIER_MONTHS = [640, 880];
-/** Phase S: this month's billable AI use, so Enterprise shows 640 of 1,000 left (the pricing page's example). */
-export const AI_USED_THIS_MONTH = 360;
+const EARLIER_MONTHS = [640, 2310];
+/** Phase U: this month's billable AI use: Enterprise 2,760 of 3,000 (92%), so the 80% warning shows. */
+export const AI_USED_THIS_MONTH = 2760;
 
 export async function seedPhaseQ(ctx: {
   clientId: string;

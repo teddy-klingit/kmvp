@@ -34,7 +34,7 @@ export async function requestAdAccountAction(formData: FormData) {
 }
 
 /**
- * Your own AI model (used on Basic): the API key, encrypted (secrets.ts) for the client's own skills and
+ * Your own AI model (any plan, Phase U): the API key, encrypted (secrets.ts) for the client's own skills and
  * assistants to run on. Admins only. The page only ever gets the last 4 characters and the date it was added; the
  * AuditLog says who added, replaced or removed which provider's key, never the key.
  */

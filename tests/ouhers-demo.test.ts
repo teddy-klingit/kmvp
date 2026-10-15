@@ -158,7 +158,7 @@ describe("the ouhers demo seed", () => {
     expect([b.pm.left, b.pm.monthly, b.creative.left, b.creative.monthly]).toEqual([14, 20, 31, 40]);
     expect([b.creative.carried, b.creative.services, b.creative.used]).toEqual([20, 15, 14]);
     const ai = await aiCreditStatus(OUHERS_CLIENT_ID);
-    expect([ai.left, ai.allowance]).toEqual([640, 1000]);
+    expect([ai.left, ai.allowance]).toEqual([240, 3000]);
     const inv = await prisma.invoice.findMany({ where: { clientId: OUHERS_CLIENT_ID, contractId: c.id }, orderBy: { periodStart: "asc" } });
     expect(inv.map((i) => i.status)).toEqual(["PAID", "SENT"]);
     expect(await prisma.purchaseRequest.count({ where: { clientId: OUHERS_CLIENT_ID, kind: "creative_pack", status: "pending" } })).toBe(1);

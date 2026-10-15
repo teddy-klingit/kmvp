@@ -2,6 +2,7 @@ import type { PlanTier } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
 import { notifyMany } from "@/lib/notifier";
 import { decryptSecret } from "@/lib/secrets";
+import { aiPrices, costUsd, creditsForBudget, creditsForCost } from "@/lib/ai-cost";
 import { getSetting } from "@/lib/platform-settings";
 
 /**
@@ -83,7 +84,8 @@ export async function ensurePeriod(clientId: string, now = new Date()) {
   const contract = await prisma.contract.findFirst({ where: { clientId, status: { in: ["active", "paused", "ending"] } }, orderBy: { startDate: "desc" } });
   const platform = contract ? await prisma.platformPlan.findUnique({ where: { key: contract.platformPlanKey } }) : null;
   const legacy = await planFor(row.tier);
-  const plan = platform ? { ...legacy, name: platform.name, monthlyAiCredits: platform.aiCreditsPerMonth, ownModel: platform.ownModel } : legacy;
+  // Phase U: the credits follow from the plan's USD budget ($3 / $10 / $30 → 300 / 1,000 / 3,000 at $0.01).
+  const plan = platform ? { ...legacy, name: platform.name, monthlyAiCredits: await creditsForBudget(platform), ownModel: platform.ownModel } : legacy;
   const has = await prisma.aiCreditLedger.findFirst({ where: { clientId, kind: "ALLOWANCE", createdAt: { gte: p.start, lt: p.end } }, select: { id: true } });
   if (!has && plan.monthlyAiCredits > 0) {
     await prisma.aiCreditLedger.create({ data: { clientId, kind: "ALLOWANCE", amount: plan.monthlyAiCredits, note: `${plan.name} plan · ${p.key}`, createdAt: p.start } });
@@ -119,7 +121,8 @@ export async function aiCreditStatus(clientId: string, now = new Date()) {
     allowanceLeft: round(allowanceLeft),
     bundleLeft: round(bundleLeft),
     left: round(allowanceLeft + bundleLeft),
-    ownModel: plan.ownModel,
+    // Phase U: own Claude works on every plan; skills on it use 0 Klingit credits.
+    ownModel: plan.ownModel || (await usesOwnClaude(clientId)),
     providerTokens: (provider._sum.tokensIn ?? 0) + (provider._sum.tokensOut ?? 0),
   };
 }
@@ -134,7 +137,7 @@ export async function aiGate(clientId: string, sourceType: "skill" | "assistant"
   const s = await aiCreditStatus(clientId, now);
   if (s.ownModel) {
     const own = await ownModelConnection(clientId);
-    return own ? { ok: true, warning: null } : { ok: false, error: "You're on Basic: connect your own AI model in Settings → Connections first.", topUp: false };
+    return own ? { ok: true, warning: null } : { ok: false, error: "Connect your own Claude in Settings → Connections first.", topUp: false };
   }
   // Assistants never use AI credits (Phase S): nothing to warn about.
   if (sourceType === "assistant") return { ok: true, warning: null };
@@ -146,6 +149,11 @@ export async function aiGate(clientId: string, sourceType: "skill" | "assistant"
  * On Basic: the client's own model connection (Settings → Connections → Your own AI model), if any, with its key
  * decrypted for this one call. Only run-agent uses the key, and only for a run charged to this same client.
  */
+/** The client connected their own Claude (MCP or API key): their skills run on it (Phase U: on any plan). */
+export async function usesOwnClaude(clientId: string) {
+  return Boolean(await prisma.brandConnection.findFirst({ where: { clientId, app: "claude", status: "CONNECTED" }, select: { id: true } }));
+}
+
 export async function ownModelConnection(clientId: string) {
   const conn = await prisma.brandConnection.findFirst({ where: { clientId, app: { in: ["claude", "openai"] }, status: "CONNECTED" } });
   if (!conn) return null;
@@ -177,6 +185,9 @@ export type AiCharge = {
   model?: string | null;
   webSearches?: number;
   images?: number;
+  /** Phase U: input tokens read from / written to the prompt cache (tokensIn is the uncached rest). */
+  cacheRead?: number;
+  cacheWrite?: number;
   agentRunId?: string | null;
 };
 
@@ -186,26 +197,29 @@ export type AiCharge = {
  * nothing. Tells the client's admins once each at 80% and 100% of the allowance. Returns the credits charged.
  */
 export async function chargeAi(c: AiCharge, now = new Date()) {
-  // The token → credit rate is one staff setting (PlatformSetting aiTokensPerCredit; TOKENS_PER_AI_CREDIT is its default).
-  const credits = creditsForTokens(c, await getSetting("aiTokensPerCredit"));
+  // Phase U: credits = real cost ÷ $ per credit, rounded up, at least 1. The real cost is stored on every row.
+  const [prices, usdPerCredit] = await Promise.all([aiPrices(), getSetting("usdPerCredit")]);
+  const cost = costUsd({ model: c.model, tokensIn: c.tokensIn, tokensOut: c.tokensOut, cacheRead: c.cacheRead, cacheWrite: c.cacheWrite, webSearches: c.webSearches, images: c.images }, prices);
+  const credits = creditsForCost(cost, usdPerCredit);
   const before = await aiCreditStatus(c.clientId, now);
-  const base = { clientId: c.clientId, userId: c.userId ?? null, kind: "USAGE" as const, sourceType: c.sourceType, sourceKey: c.sourceKey, sourceName: c.sourceName, projectId: c.projectId ?? null, format: c.format ?? null, model: c.model ?? null, agentRunId: c.agentRunId ?? null, createdAt: now };
+  const base = { clientId: c.clientId, userId: c.userId ?? null, kind: "USAGE" as const, sourceType: c.sourceType, sourceKey: c.sourceKey, sourceName: c.sourceName, projectId: c.projectId ?? null, format: c.format ?? null, model: c.model ?? null, agentRunId: c.agentRunId ?? null, createdAt: now, cacheReadTokens: c.cacheRead ?? 0, cacheWriteTokens: c.cacheWrite ?? 0, images: c.images ?? 0 };
   // Assistants: the cost is logged so Klingit can see it, never counted against the client.
   if (c.sourceType === "assistant") {
-    await prisma.aiCreditLedger.create({ data: { ...base, amount: -credits, tokensIn: c.tokensIn, tokensOut: c.tokensOut, billable: false, billedTo: before.ownModel ? "client_provider" : "klingit", note: "Assistant · included, not billed" } });
+    await prisma.aiCreditLedger.create({ data: { ...base, amount: -credits, tokensIn: c.tokensIn, tokensOut: c.tokensOut, billable: false, costUsd: before.ownModel ? 0 : cost, billedTo: before.ownModel ? "client_provider" : "klingit", note: "Assistant · free for clients" } });
     return { credits: 0, billedTo: before.ownModel ? ("client_provider" as const) : ("klingit" as const) };
   }
   if (before.ownModel) {
-    await prisma.aiCreditLedger.create({ data: { ...base, amount: -credits, tokensIn: c.tokensIn, tokensOut: c.tokensOut, billedTo: "client_provider", note: "Billed by your provider" } });
+    await prisma.aiCreditLedger.create({ data: { ...base, amount: -credits, tokensIn: c.tokensIn, tokensOut: c.tokensOut, costUsd: 0, billedTo: "client_provider", fundedBy: "own_ai", note: "Own AI · your Claude, 0 Klingit credits" } });
     return { credits: 0, billedTo: "client_provider" as const };
   }
   const fromAllowance = Math.min(credits, before.allowanceLeft);
   const rest = Math.round((credits - fromAllowance) * 100) / 100;
   // One row per funding source, so "used from allowance" and "used from bundles" always add up to the total.
-  if (fromAllowance > 0 || rest === 0) await prisma.aiCreditLedger.create({ data: { ...base, amount: -fromAllowance, fundedBy: "allowance", tokensIn: c.tokensIn, tokensOut: c.tokensOut } });
-  if (rest > 0) await prisma.aiCreditLedger.create({ data: { ...base, amount: -rest, fundedBy: before.bundleLeft > 0 ? "bundle" : "over", tokensIn: fromAllowance > 0 ? 0 : c.tokensIn, tokensOut: fromAllowance > 0 ? 0 : c.tokensOut } });
+  // The cost goes on the first row, so a sum of costUsd is the real cost exactly once.
+  if (fromAllowance > 0 || rest === 0) await prisma.aiCreditLedger.create({ data: { ...base, amount: -fromAllowance, fundedBy: "allowance", tokensIn: c.tokensIn, tokensOut: c.tokensOut, costUsd: cost } });
+  if (rest > 0) await prisma.aiCreditLedger.create({ data: { ...base, amount: -rest, fundedBy: before.bundleLeft > 0 ? "bundle" : "over", tokensIn: fromAllowance > 0 ? 0 : c.tokensIn, tokensOut: fromAllowance > 0 ? 0 : c.tokensOut, costUsd: fromAllowance > 0 ? 0 : cost } });
   await thresholdAlerts(c.clientId, before.allowance, before.allowance - before.allowanceLeft, before.allowance - before.allowanceLeft + credits, before.periodKey);
-  return { credits, billedTo: "klingit" as const };
+  return { credits, costUsd: cost, billedTo: "klingit" as const };
 }
 
 async function thresholdAlerts(clientId: string, allowance: number, usedBefore: number, usedAfter: number, periodKey: string) {
