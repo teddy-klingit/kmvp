@@ -4,6 +4,8 @@ import { onLabel } from "@/lib/context-label";
 import type { PortalViewer } from "@/lib/brief-intake";
 import { listInternalMessages, countUnreadInternal } from "@/lib/internal-messages";
 import { INTERNAL_ROLE_LABEL } from "@/lib/labels";
+import { jsonArray } from "@/lib/utils";
+import { attachmentHref, type Attachment } from "@/lib/pm-thread";
 
 export type ChatMessage = {
   id: string;
@@ -17,6 +19,8 @@ export type ChatMessage = {
   mine: boolean;
   fromKlingit: boolean;
   context?: { label: string; href: string };
+  /** Files sent with the message (Phase U: from the PM message panel, "about" this project). */
+  attachments?: { name: string; href: string }[];
   /** Staff notes render as a pale-yellow note, never a chat bubble. */
   tone?: "note";
 };
@@ -89,6 +93,7 @@ export async function loadProjectConversation(
       mine: c.authorClientUserId === viewer.id,
       fromKlingit: !c.authorClientUserId,
       ...(contextLabel ? { context: { label: contextLabel, href: contextHref(projectId, contextKind, contextRef) } } : {}),
+      attachments: jsonArray<Attachment>(c.attachments).map((a) => ({ name: a.name, href: attachmentHref(viewer.clientId, a) })),
     };
   });
 

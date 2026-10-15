@@ -8,6 +8,7 @@ import type { EstimateRow, InlineData } from "@/lib/today-inline";
 import { tickTaskAction, todayAskCreatorAction, todayAssignAction, todayEstimateAction, todayMoveDateAction, todayNudgeAction, todayReplyAction, todayRequestAction, type TodayState } from "@/lib/actions/today-actions";
 import { cn } from "@/lib/utils";
 import { clientPill } from "@/components/ops/client-pill";
+import { MessagePmButton } from "@/components/pm-panel/pm-panel-provider";
 
 /**
  * One Today row (Phase T): client, project, kind, the verb sentence, one line of context, the due tag, one primary
@@ -214,6 +215,12 @@ export function TaskRow({ task, inline, compact = false }: { task: Task; inline?
         {a.label}
       </Link>
     );
+    if (task.ref.panelClientId)
+      return (
+        <MessagePmButton clientId={task.ref.panelClientId} dot={false} className={pill(true)}>
+          Reply
+        </MessagePmButton>
+      );
     if (!inline) return <>{task.secondary && link(task.secondary, false)}{link(task.primary)}</>;
     switch (inline.kind) {
       case "ESTIMATE": {

@@ -425,6 +425,11 @@ function MessageList({ messages }: { messages: ChatMessage[] }) {
                   </Link>
                 )}
                 <div>{m.body}</div>
+                {m.attachments?.map((f) => (
+                  <a key={f.href} href={f.href} target="_blank" rel="noreferrer" className={cn("mt-1 block text-[12px] underline underline-offset-2", m.mine ? "text-white/80" : "text-ds-text-2")}>
+                    📎 {f.name}
+                  </a>
+                ))}
               </div>
             </div>
           </div>

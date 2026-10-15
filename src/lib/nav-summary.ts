@@ -24,7 +24,7 @@ export const loadNavSummary = cache(async (viewer: { id: string; clientId: strin
     team: { left: team.free, allowance: team.allowance },
     // Phase S: on a contract, the PM and creative balances separately (never pooled), and the Marketing PM.
     pools: balances ? { pm: { left: balances.pm.left, monthly: balances.pm.monthly }, creative: { left: balances.creative.left, monthly: balances.creative.monthly } } : null,
-    marketingPm: pm ? { name: pm.name, messageHref: pm.messageHref } : null,
+    marketingPm: pm ? { name: pm.name } : null,
     // Rounded like every other screen (Home, Skills, Usage), so the numbers match.
     ai: { left: Math.round(ai.left), allowance: ai.allowance, ownModel: ai.ownModel },
   };

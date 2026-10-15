@@ -38,7 +38,7 @@ export type Task = {
   /** "This brief exists twice (…)": the other copies, merged when the estimate is sent. */
   duplicates?: { id: string; name: string; createdAt: Date }[];
   /** What the inline actions work on. */
-  ref: { estimateId?: string; requestId?: string; planItemId?: string; invoiceId?: string; creator?: string | null };
+  ref: { estimateId?: string; requestId?: string; planItemId?: string; invoiceId?: string; creator?: string | null; panelClientId?: string };
 };
 export type KeepAnEye = { title: string; line: string; note: string; href?: string };
 
@@ -247,6 +247,34 @@ export async function loadToday(scope: Scope, now = new Date(), viewer?: { id: s
   for (const inv of invoices) {
     const due: Due = inv.dueAt ? { tone: "late", label: `${daysLate(inv.dueAt, now)} days overdue`, at: inv.dueAt } : { tone: "late", label: "Overdue", at: now };
     tasks.push({ key: `INVOICE:${inv.id}`, kind: "INVOICE", clientId: inv.clientId, clientName: inv.client.name, projectId: null, subject: `Invoice ${inv.number}`, sentence: `Remind ${inv.client.name} about invoice ${inv.number}`, context: `${inv.amount.toLocaleString("en-GB")} ${inv.currency}, past its due date.`, due, section: "now", minutes: mins("INVOICE"), primary: { label: "Open invoice", href: `/ops/admin/billing/invoices/${inv.id}` }, ref: { invoiceId: inv.id } });
+  }
+
+  // The client's general thread with their PM (Phase U): a client message with no staff reply after it.
+  const general = await prisma.clientMessage.findMany({ where: { ...inScope, archivedAt: null }, orderBy: { createdAt: "asc" }, include: { client: { select: { name: true } } } });
+  for (const clientId of [...new Set(general.map((g) => g.clientId))]) {
+    const msgs = general.filter((g) => g.clientId === clientId);
+    const lastStaff = [...msgs].reverse().find((g) => !g.authorClientUserId);
+    const waiting = msgs.filter((g) => g.authorClientUserId && (!lastStaff || g.createdAt > lastStaff.createdAt));
+    if (!waiting.length) continue;
+    const first = waiting[0];
+    const who = (await prisma.clientUser.findUnique({ where: { id: first.authorClientUserId! }, include: { user: { select: { name: true } } } }))?.user.name ?? "the client";
+    const quote = waiting[waiting.length - 1].body;
+    const hours = (now.getTime() - first.createdAt.getTime()) / 3600000;
+    tasks.push({
+      key: `MESSAGE:general:${clientId}`,
+      kind: "MESSAGE",
+      clientId,
+      clientName: first.client.name,
+      projectId: null,
+      subject: "General",
+      sentence: `Reply to ${who}`,
+      context: `“${quote.length > 110 ? `${quote.slice(0, 107)}…` : quote}”`,
+      due: { tone: hours > 4 ? "late" : "soon", label: hours >= 24 ? `Waiting ${Math.floor(hours / 24)} day${hours >= 48 ? "s" : ""}` : `Waiting ${Math.max(1, Math.round(hours))} h`, at: first.createdAt },
+      section: "now",
+      minutes: mins("MESSAGE"),
+      primary: { label: "Reply", href: `/ops/clients/${clientId}/dashboard?message=1` },
+      ref: { panelClientId: clientId },
+    });
   }
 
   // Done today (ticked or acted): out of the list, into the bar.

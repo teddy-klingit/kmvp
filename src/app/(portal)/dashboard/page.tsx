@@ -24,6 +24,7 @@ import { SkillIcon } from "@/components/portal/skills/skill-icon";
 import { VideoThumb } from "@/components/review/video-thumb";
 import { cn } from "@/lib/utils";
 import { planTurns } from "@/lib/plan";
+import { MessagePmButton } from "@/components/pm-panel/pm-panel-provider";
 
 /** "Needs you" shows at most this many rows; the rest are behind "See all". */
 const TURN_ROWS = 5;
@@ -201,9 +202,7 @@ export default async function DashboardPage() {
                   <span className="text-[12px] text-brand-ink-2">Your Marketing PM</span>
                   <span className="truncate text-[16px]">{pm.name}</span>
                 </span>
-                <Link href={pm.messageHref} className={monoLink}>
-                  MESSAGE
-                </Link>
+                <MessagePmButton className={monoLink}>MESSAGE</MessagePmButton>
               </div>
             </section>
           )}

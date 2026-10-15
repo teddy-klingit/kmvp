@@ -9,6 +9,7 @@ import { TwoFactorCard } from "@/components/shared/two-factor-card";
 import { getOpsViewer } from "@/lib/current-viewer";
 import { INTERNAL_ROLE_LABEL } from "@/lib/labels";
 import { hasAdmin } from "@/lib/role-tier";
+import { saveBookingUrlAction } from "@/lib/actions/pm-message-actions";
 
 /** Agency pages that left the main nav in Phase J. Admin only, like before. */
 const AGENCY_LINKS = [
@@ -35,6 +36,17 @@ export default async function OpsAccountPage() {
                   <span className="text-[14px] text-brand-ink-2">{viewer.user.email}</span>
                 </div>
               </div>
+            </SectionCard>
+            <SectionCard title="Book a call">
+              <form action={saveBookingUrlAction} className="flex flex-wrap items-end gap-3 px-6 py-5">
+                <label className="flex min-w-[240px] flex-1 flex-col gap-1 text-[13px] text-brand-ink-2">
+                  Your booking link (Calendly, Google Calendar…). Your clients see “Book a call” in their message panel.
+                  <input name="bookingUrl" type="url" defaultValue={viewer.bookingUrl ?? ""} placeholder="https://" className="h-10 rounded-[10px] border border-[#CFC8B8] bg-white px-3 text-[14px] text-brand-ink outline-none focus:border-brand-ink" />
+                </label>
+                <button type="submit" className="inline-flex h-10 items-center rounded-full bg-brand-ink px-4 font-brand-mono text-[12px] text-white">
+                  Save
+                </button>
+              </form>
             </SectionCard>
             <TwoFactorCard enabled={viewer.user.twoFactorEnabled} path="/ops/account" />
           </>

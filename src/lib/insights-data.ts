@@ -210,7 +210,7 @@ export function takeawayHref(t: Pick<Takeaway, "headline" | "why" | "action">) {
 /** Connecting a source is done by the client's Klingit team: Connect opens that chat. */
 export async function connectHref(clientId: string) {
   const p = await prisma.project.findFirst({ where: { clientId, status: { notIn: ["ARCHIVED", "DRAFT"] } }, orderBy: { updatedAt: "desc" }, select: { id: true } });
-  return p ? `/projects/${p.id}?channel=klingit` : "/help";
+  return p ? "/dashboard?message=1" : "/help"; // Phase U: the PM message panel, never a project
 }
 
 export type SourceState = "live" | "sample" | "demo" | "connect";

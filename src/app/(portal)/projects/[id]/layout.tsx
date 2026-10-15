@@ -18,6 +18,7 @@ import { postCommentAction } from "@/lib/actions/project-actions";
 import { markChannelReadAction, postInternalMessageAction } from "@/lib/actions/conversation-actions";
 import { clientVisibleAsset } from "@/lib/qc/visibility";
 import { marketingPm } from "@/lib/contact-person";
+import { MessagePmButton } from "@/components/pm-panel/pm-panel-provider";
 
 export default async function ProjectLayout({
   children,
@@ -66,12 +67,12 @@ export default async function ProjectLayout({
                 All projects
               </Link>
               {pm && (
-                // Phase S: the client's Marketing PM on every project, with Message (this project's Klingit thread).
+                // The client's Marketing PM on every project; Message opens the PM panel about this project (Phase U).
                 <span className="flex items-center gap-2 text-[13px] text-ds-text-2">
                   Your Marketing PM <b className="font-semibold text-ds-text">{pm.name}</b>
-                  <Link href={`/projects/${id}?channel=klingit`} scroll={false} className="text-ds-text underline underline-offset-2">
+                  <MessagePmButton projectId={id} className="text-ds-text underline underline-offset-2">
                     Message
-                  </Link>
+                  </MessagePmButton>
                 </span>
               )}
             </div>

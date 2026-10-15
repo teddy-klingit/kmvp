@@ -4,6 +4,7 @@ import { getOpsViewer } from "@/lib/current-viewer";
 import { INTERNAL_ROLE_LABEL } from "@/lib/labels";
 import { hasAdmin, roleTierFor } from "@/lib/role-tier";
 import { adminJobCounts } from "@/lib/admin-jobs";
+import { PmPanelProvider } from "@/components/pm-panel/pm-panel-provider";
 import { loadToday } from "@/lib/today";
 import { scopeFor } from "@/lib/staff-scope";
 
@@ -16,6 +17,7 @@ export default async function OpsLayout({ children }: { children: React.ReactNod
   const adminCount = admin ? (await adminJobCounts()).jobs : 0;
 
   return (
+    <PmPanelProvider side="staff">
     <div className="flex h-screen w-full flex-col bg-brand-page min-[900px]:flex-row">
       <OpsSidebar
         userId={viewer.userId}
@@ -31,5 +33,6 @@ export default async function OpsLayout({ children }: { children: React.ReactNod
         <PageTransition>{children}</PageTransition>
       </main>
     </div>
+    </PmPanelProvider>
   );
 }

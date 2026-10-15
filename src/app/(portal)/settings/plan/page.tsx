@@ -17,6 +17,7 @@ import { money } from "@/lib/invoicing";
 import { quoteRequest, REQUEST_KINDS, type RequestKind } from "@/lib/requests";
 import { getSetting } from "@/lib/platform-settings";
 import { jsonArray } from "@/lib/utils";
+import { MessagePmButton } from "@/components/pm-panel/pm-panel-provider";
 
 const day = (d: Date) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" }).format(d);
 const WAY = { 1: "Platform only", 2: "Platform + Marketing PM", 3: "Platform + Marketing PM + creative team" } as const;
@@ -119,9 +120,7 @@ export default async function PlanSettingsPage() {
                   <span className="text-[13px] text-brand-ink-2">Plans, briefs and the work with you</span>
                 </span>
               </span>
-              <Link href={pm.messageHref} className="self-start text-[14px] text-brand-ink underline underline-offset-4">
-                Message {pm.name.split(" ")[0]}
-              </Link>
+              <MessagePmButton className="self-start text-[14px] text-brand-ink underline underline-offset-4">Message {pm.name.split(" ")[0]}</MessagePmButton>
             </div>
           ) : (
             <p className="m-0 px-6 py-5 text-[14px] text-brand-ink-2">A Marketing PM comes with any team pack.</p>

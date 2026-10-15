@@ -10,13 +10,12 @@ import { myClientIds } from "@/lib/staff-scope";
 const MARKET_CODE: Record<string, string> = { sweden: "SE", norway: "NO", denmark: "DK", finland: "FI", "united kingdom": "UK", uk: "UK", germany: "DE", "united states": "US", us: "US", global: "Global" };
 
 export async function clientHeader(clientId: string, viewerStaffId: string) {
-  const [client, contract, users, briefs, mine, projects] = await Promise.all([
+  const [client, contract, users, briefs, mine] = await Promise.all([
     prisma.client.findUniqueOrThrow({ where: { id: clientId }, select: { id: true, name: true, planTier: true, status: true, isDemo: true, accountLead: { select: { id: true, user: { select: { name: true } } } } } }),
     prisma.contract.findFirst({ where: { clientId, status: { in: ["active", "paused", "ending", "scheduled"] } }, orderBy: { startDate: "asc" }, include: { contact: { select: { id: true, user: { select: { name: true } } } } } }),
     prisma.clientUser.findMany({ where: { clientId }, include: { user: { select: { name: true } } }, orderBy: { createdAt: "asc" } }),
     prisma.brief.findMany({ where: { project: { clientId } }, select: { sections: true } }),
     myClientIds(viewerStaffId),
-    prisma.project.findMany({ where: { clientId, status: { notIn: ["ARCHIVED", "DELIVERED", "DRAFT"] } }, select: { id: true }, orderBy: { updatedAt: "desc" } }),
   ]);
   const [plan, pack] = contract ? await Promise.all([prisma.platformPlan.findUnique({ where: { key: contract.platformPlanKey } }), contract.teamPackKey ? prisma.teamPack.findUnique({ where: { key: contract.teamPackKey } }) : null]) : [null, null];
   const eyebrow = contract
@@ -35,6 +34,5 @@ export async function clientHeader(clientId: string, viewerStaffId: string) {
     people: users.length,
     markets: [...markets],
     pm: pm ? { id: pm.id, name: pm.user.name, isViewer: mine.includes(clientId) && pm.id === viewerStaffId } : null,
-    messageHref: projects[0] ? `/ops/projects/${projects[0].id}?feed=client` : null,
   };
 }

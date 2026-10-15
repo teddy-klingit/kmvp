@@ -8,6 +8,7 @@ import { ResetDemoButton } from "@/components/ops/reset-demo-button";
 import { ClientTabs } from "@/components/ops/client/client-tabs";
 import { clientHeader } from "@/lib/client-header";
 import { viewClientAction } from "@/lib/actions/cockpit-actions";
+import { MessagePmButton, PmPanelProvider } from "@/components/pm-panel/pm-panel-provider";
 
 /**
  * One client (Phase T, design PMClient): the header read from the contract, then 5 tabs (Overview · Projects ·
@@ -30,7 +31,9 @@ export default async function ClientWorkspaceLayout({ children, params }: { chil
     h.pm ? (h.pm.isViewer ? "you are their Marketing PM" : `Marketing PM: ${h.pm.name}`) : "no Marketing PM yet",
   ].filter(Boolean);
 
+  // This client's messages open from anywhere on its page (and on arrival from a notification, ?message=1).
   return (
+    <PmPanelProvider side="staff" defaultClientId={clientId}>
     <div className="h-full overflow-y-auto px-4 pb-12 pt-5 min-[900px]:pb-14 min-[900px]:pl-4 min-[900px]:pr-10 min-[900px]:pt-10">
       <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-6">
         <div className="flex flex-col gap-2">
@@ -40,10 +43,10 @@ export default async function ClientWorkspaceLayout({ children, params }: { chil
             title={h.client.name}
             actions={
               <>
-                {h.contact && h.messageHref && (
-                  <PillLink href={h.messageHref} variant="secondary">
+                {h.contact && (
+                  <MessagePmButton clientId={clientId} className="inline-flex h-10 items-center rounded-full border border-[#CFC8B8] bg-white px-4 font-brand-mono text-[12px] hover:border-brand-ink">
                     Message {h.contact.first}
-                  </PillLink>
+                  </MessagePmButton>
                 )}
                 {h.client.isDemo && (
                   <form action={viewClientAction}>
@@ -67,5 +70,6 @@ export default async function ClientWorkspaceLayout({ children, params }: { chil
         {children}
       </div>
     </div>
+    </PmPanelProvider>
   );
 }

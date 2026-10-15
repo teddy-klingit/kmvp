@@ -418,5 +418,5 @@ export function projectRow({ project, state }: Item, typeLabel: (t: string) => s
 /** Where "talk to your account lead" goes: the Klingit channel on the client's latest live project (Help if they have none yet). */
 export async function klingitChatHref(clientId: string) {
   const p = await prisma.project.findFirst({ where: { clientId, status: { notIn: ["ARCHIVED", "DRAFT"] } }, orderBy: { updatedAt: "desc" }, select: { id: true } });
-  return p ? `/projects/${p.id}?channel=klingit` : "/help";
+  return p ? "/dashboard?message=1" : "/help"; // Phase U: the PM message panel, never a project
 }

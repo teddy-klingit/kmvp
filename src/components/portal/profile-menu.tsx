@@ -18,6 +18,7 @@ import { signOutAction } from "@/lib/actions/auth-actions";
 import { switchPersonaAction } from "@/lib/actions/persona-actions";
 import { DEMO_PERSONAS } from "@/lib/demo-personas";
 import type { NavSummary } from "@/lib/nav-summary";
+import { usePmPanel } from "@/components/pm-panel/pm-panel-provider";
 import { cn } from "@/lib/utils";
 
 const n = (v: number) => v.toLocaleString("en-GB");
@@ -36,6 +37,7 @@ const personaForm = (key: string) => {
  * closes on click, before it can submit, so clicking did nothing.
  */
 export function ProfileMenu({ name, email, clientName, role, admin, summary, onNavigate }: { name: string; email: string; clientName: string; role: string; admin: boolean; summary: NavSummary; onNavigate?: () => void }) {
+  const { open: openPm } = usePmPanel();
   const [pending, start] = useTransition();
   const items = [
     { label: "Plan", href: "/settings/plan", icon: Gauge },
@@ -85,15 +87,21 @@ export function ProfileMenu({ name, email, clientName, role, admin, summary, onN
           </Link>
         </DropdownMenuItem>
         {summary.marketingPm && (
-          <DropdownMenuItem asChild className="mb-1 rounded-[12px] p-0 focus:bg-transparent">
-            <Link href={summary.marketingPm.messageHref} onClick={onNavigate} className="flex items-center gap-2.5 rounded-[12px] px-3 py-2 no-underline hover:bg-[#F2EDE3]">
+          <DropdownMenuItem
+            onSelect={() => {
+              onNavigate?.();
+              openPm();
+            }}
+            className="mb-1 cursor-pointer rounded-[12px] p-0 focus:bg-transparent"
+          >
+            <span className="flex w-full items-center gap-2.5 rounded-[12px] px-3 py-2 hover:bg-[#F2EDE3]">
               <Avatar name={summary.marketingPm.name} size={28} />
               <span className="flex min-w-0 flex-1 flex-col">
                 <span className="text-[12px] text-brand-ink-2">Your Marketing PM</span>
                 <span className="truncate text-[13px] font-semibold text-brand-ink">{summary.marketingPm.name}</span>
               </span>
               <span className="text-[12px] text-brand-ink underline underline-offset-2">Message</span>
-            </Link>
+            </span>
           </DropdownMenuItem>
         )}
         <DropdownMenuSeparator className="my-2 bg-brand-line" />
