@@ -5,13 +5,13 @@ import { SegmentedNav } from "@/components/ds/segmented-control";
 import { FilterChips } from "@/components/ds/filter-chips";
 
 /**
- * The client page's 5 tabs (Phase T): Overview · Projects · Plan · Contract & billing · Brand. Every older view
+ * The client page's 5 tabs (Phase T): Overview · Projects · Planner · Contract & billing · Brand. Every older view
  * lives under one of them as a chip, so nothing is lost and old links still land on the right tab.
  */
 export const CLIENT_TABS = [
   { label: "Overview", path: "dashboard", sub: [] as { label: string; path: string }[] },
   { label: "Projects", path: "projects", sub: [{ label: "Projects", path: "projects" }, { label: "Files", path: "project-files" }, { label: "Delivery", path: "delivery" }, { label: "Activity", path: "activity" }] },
-  { label: "Plan", path: "plan", sub: [{ label: "Plan", path: "plan" }, { label: "Content plan", path: "content-plan" }, { label: "Opportunities", path: "opportunities" }] },
+  { label: "Planner", path: "planner", sub: [{ label: "Planner", path: "planner" }, { label: "Content plan", path: "content-plan" }, { label: "Opportunities", path: "opportunities" }] },
   { label: "Contract & billing", path: "contract", sub: [{ label: "Contract", path: "contract" }, { label: "Balances", path: "balances" }, { label: "Billing", path: "billing" }, { label: "Setup", path: "admin" }, { label: "Custom apps", path: "custom-apps" }] },
   { label: "Brand", path: "brand-os", sub: [{ label: "Brand OS", path: "brand-os" }, { label: "Brand assets", path: "brand-assets" }] },
 ];
@@ -25,7 +25,7 @@ export function ClientTabs({ base, counts }: { base: string; counts: { projects:
       <SegmentedNav
         label="Client"
         items={CLIENT_TABS.map((t) => ({
-          label: t.label === "Projects" && counts.projects ? `Projects ${counts.projects}` : t.label === "Plan" && counts.plan ? `Plan ${counts.plan}` : t.label,
+          label: t.label === "Projects" && counts.projects ? `Projects ${counts.projects}` : t.label === "Planner" && counts.plan ? `Planner ${counts.plan}` : t.label,
           href: `${base}/${t.path}`,
           active: t === current,
         }))}

@@ -80,7 +80,7 @@ export default async function OpsPlanPage({ searchParams }: { searchParams: Prom
 
   const href = (p: Record<string, string | null>) => {
     const s = new URLSearchParams(Object.entries({ scope: scope.mine ? "mine" : "all", show: everything ? "all" : null, view: q.view ?? null, ...p }).filter((e): e is [string, string] => Boolean(e[1])));
-    return `/ops/plan?${s}`;
+    return `/ops/planner?${s}`;
   };
   const chip = (on: boolean) => cn("inline-flex h-9 items-center rounded-full border px-3.5 text-[13px] no-underline", on ? "border-brand-ink bg-brand-ink text-white" : "border-[#DCD6C8] bg-white text-brand-ink hover:border-brand-ink");
   const nudge = q.item ? all.find((i) => i.id === q.item) : null;
@@ -90,7 +90,7 @@ export default async function OpsPlanPage({ searchParams }: { searchParams: Prom
     <OpsPage>
       <PageHeader
         eyebrow={`What ${scope.mine ? "your" : "all"} clients need Klingit for · next ${WEEKS} weeks`}
-        title="Plan"
+        title="Planner"
         actions={
           <PillLink href={href({ view: q.view === "calendar" ? null : "calendar" })} variant="secondary">
             {q.view === "calendar" ? "List view" : "Calendar view"}
@@ -124,7 +124,7 @@ export default async function OpsPlanPage({ searchParams }: { searchParams: Prom
               <Button type="submit" variant="primary" size="sm">
                 Send reminder
               </Button>
-              <Link href="/ops/plan" className="self-center text-[13px]">
+              <Link href="/ops/planner" className="self-center text-[13px]">
                 Cancel
               </Link>
             </span>
@@ -155,7 +155,7 @@ export default async function OpsPlanPage({ searchParams }: { searchParams: Prom
             today={now.toISOString()}
             moments={[]}
             gaps={[]}
-            entries={items.map((i) => ({ id: i.id, itemId: null, title: `${i.client.name} · ${i.title}`, date: i.date.toISOString(), endDate: i.endDate?.toISOString() ?? null, maker: i.maker as "client" | "klingit_help" | "klingit_project", briefBy: i.briefBy?.toISOString() ?? null, href: i.project ? `/ops/projects/${i.project.id}` : `/ops/clients/${i.clientId}/plan`, draggable: false, late: Boolean(i.briefBy && i.briefBy < now && !i.project) }))}
+            entries={items.map((i) => ({ id: i.id, itemId: null, title: `${i.client.name} · ${i.title}`, date: i.date.toISOString(), endDate: i.endDate?.toISOString() ?? null, maker: i.maker as "client" | "klingit_help" | "klingit_project", briefBy: i.briefBy?.toISOString() ?? null, href: i.project ? `/ops/projects/${i.project.id}` : `/ops/clients/${i.clientId}/planner`, draggable: false, late: Boolean(i.briefBy && i.briefBy < now && !i.project) }))}
           />
         </section>
       ) : (
@@ -205,8 +205,8 @@ export default async function OpsPlanPage({ searchParams }: { searchParams: Prom
                               Open project
                             </PillLink>
                           ) : (
-                            <PillLink href={`/ops/clients/${i.clientId}/plan`} variant="secondary">
-                              Open plan
+                            <PillLink href={`/ops/clients/${i.clientId}/planner`} variant="secondary">
+                              Open Planner
                             </PillLink>
                           )}
                         </span>

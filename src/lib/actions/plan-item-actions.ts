@@ -20,8 +20,8 @@ const dateAt = (v: FormDataEntryValue | null) => {
 };
 
 function refresh() {
-  revalidatePath("/plan", "layout");
-  revalidatePath("/plan/opportunities", "layout");
+  revalidatePath("/planner", "layout");
+  revalidatePath("/planner/opportunities", "layout");
   revalidatePath("/dashboard");
 }
 

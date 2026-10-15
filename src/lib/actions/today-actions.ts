@@ -112,7 +112,7 @@ export async function todayNudgeAction(_prev: TodayState, formData: FormData): P
   const viewer = await requireOpsRole(["ADMIN", "PM"]);
   const item = await sendNudge(viewer.userId, String(formData.get("itemId") ?? ""), String(formData.get("text") ?? ""));
   if (!item) return { error: "Write the nudge first." };
-  revalidatePath("/ops/plan");
+  revalidatePath("/ops/planner");
   await done(viewer.id, formData);
   return { ok: "Nudge sent." };
 }

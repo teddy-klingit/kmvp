@@ -14,7 +14,7 @@ import { getGoogleAdsAccountInsights } from "@/lib/integrations/google-ads";
 import { buildPlatformCampaigns } from "@/lib/performance";
 import { answerMarketIntelligenceQuestion } from "@/lib/ai/agents/market-intelligence-agent";
 
-const MARKET_INTEL_PATHS = ["/insights", "/insights/market", "/insights/market/competitors", "/insights/market/trends", "/plan/opportunities"];
+const MARKET_INTEL_PATHS = ["/insights", "/insights/market", "/insights/market/competitors", "/insights/market/trends", "/planner/opportunities"];
 
 function revalidateAllTabs() {
   MARKET_INTEL_PATHS.forEach((p) => revalidatePath(p));

@@ -240,10 +240,10 @@ export async function planTurns(clientId: string, now = new Date()) {
     kind: "brief" as const,
     title: late ? `Late: brief ${item.title}` : `Brief: ${item.title}`,
     due: { label: late ? "Overdue" : daysLeft === 0 ? "Due today" : `By ${fmt(item.briefBy!)}`, tone: (late || daysLeft === 0 ? "danger" : "neutral") as "danger" | "neutral" },
-    context: `Plan · live ${fmt(item.date)} · Klingit helps`,
+    context: `Planner · live ${fmt(item.date)} · Klingit helps`,
     projectName: item.title,
     detail: "Klingit needs the brief",
-    href: `/plan?item=${item.id}`,
+    href: `/planner?item=${item.id}`,
     cta: "Start brief",
     dueAt: item.briefBy,
   }));
@@ -282,7 +282,7 @@ export async function sendPlanReminders(now = new Date(), clientIds?: string[]) 
     if (!threshold || reminded[threshold]) continue;
     const to = i.createdByUserId ? [i.createdByUserId] : (await prisma.clientUser.findMany({ where: { clientId: i.clientId, permission: "OWNER" }, select: { userId: true } })).map((u) => u.userId);
     for (const userId of to) {
-      await notify({ userId, clientId: i.clientId, type: "APPROVAL_NEEDED", title: threshold === "0" ? `Brief due today: ${i.title}` : `Brief by ${fmtDay(i.briefBy!)}: ${i.title}`, body: `Klingit needs the brief for “${i.title}” (live ${fmtDay(i.date)}) by ${fmtDay(i.briefBy!)}.`, actionUrl: `/plan?item=${i.id}`, actionLabel: "Start brief" });
+      await notify({ userId, clientId: i.clientId, type: "APPROVAL_NEEDED", title: threshold === "0" ? `Brief due today: ${i.title}` : `Brief by ${fmtDay(i.briefBy!)}: ${i.title}`, body: `Klingit needs the brief for “${i.title}” (live ${fmtDay(i.date)}) by ${fmtDay(i.briefBy!)}.`, actionUrl: `/planner?item=${i.id}`, actionLabel: "Start brief" });
       sent++;
     }
     await prisma.clientCalendarItem.update({ where: { id: i.id }, data: { reminded: { ...reminded, [threshold]: now.toISOString() } as Prisma.InputJsonValue } });

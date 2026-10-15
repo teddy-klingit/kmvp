@@ -59,7 +59,7 @@ export default async function ClientOverviewPage({ params }: { params: Promise<{
           )}
         </Card>
 
-        <Card title="What's next" link={{ label: "Open plan", href: `${base}/plan` }}>
+        <Card title="What's next" link={{ label: "Open Planner", href: `${base}/planner` }}>
           {o.next.length === 0 ? (
             <p className="m-0 px-6 py-5 text-[14px] text-brand-ink-2">Nothing dated coming up.</p>
           ) : (

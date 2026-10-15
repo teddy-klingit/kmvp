@@ -17,7 +17,7 @@ export async function saveLeadTimeAction(formData: FormData) {
   if (id) await prisma.planLeadTime.update({ where: { id }, data });
   else await prisma.planLeadTime.create({ data: { ...data, sortOrder: await prisma.planLeadTime.count() } });
   revalidatePath("/ops/admin/settings");
-  revalidatePath("/plan", "layout");
+  revalidatePath("/planner", "layout");
 }
 
 export async function saveKeyMomentAction(formData: FormData) {
@@ -28,7 +28,7 @@ export async function saveKeyMomentAction(formData: FormData) {
   if (!name || !/^\d{4}-\d{2}-\d{2}$/.test(day) || !markets.length) return;
   await prisma.keyMoment.create({ data: { name, date: new Date(`${day}T12:00:00Z`), markets, kind: formData.get("kind") === "shopping" ? "shopping" : "holiday" } });
   revalidatePath("/ops/admin/settings");
-  revalidatePath("/plan", "layout");
+  revalidatePath("/planner", "layout");
 }
 
 /** Key moments are reference data Klingit maintains (not client data): removing one deletes it. */
@@ -36,6 +36,6 @@ export async function removeKeyMomentAction(formData: FormData) {
   await requireOpsRole(["ADMIN", "PM"]);
   await prisma.keyMoment.deleteMany({ where: { id: String(formData.get("id") ?? "") } });
   revalidatePath("/ops/admin/settings");
-  revalidatePath("/plan", "layout");
+  revalidatePath("/planner", "layout");
 }
 

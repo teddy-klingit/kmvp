@@ -39,7 +39,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
 
   return (
     <div className="flex flex-col gap-6">
-      <Link href="/plan/opportunities" className="-mt-2 inline-flex items-center gap-1 self-start text-[13px] text-brand-ink-2 no-underline hover:text-brand-ink">
+      <Link href="/planner/opportunities" className="-mt-2 inline-flex items-center gap-1 self-start text-[13px] text-brand-ink-2 no-underline hover:text-brand-ink">
         <ChevronLeft className="size-3.5" /> Opportunities
       </Link>
 
@@ -85,7 +85,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
                 return (
                   <li key={r.id} className={cn("grid grid-cols-1 gap-4 border-b border-brand-line px-6 py-5 min-[760px]:grid-cols-[minmax(0,1fr)_230px]", on && "border-l-[3px] border-l-brand-ink bg-[#FBF9F4] pl-[21px]")}>
                     <div className="flex min-w-0 gap-3">
-                      <Link href={`/plan/opportunities/${o.id}?route=${r.letter}#add`} scroll={false} aria-label={`Pick route ${r.letter}`} aria-current={on ? "true" : undefined} className={cn("mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border", on ? "border-brand-ink" : "border-brand-outline")}>
+                      <Link href={`/planner/opportunities/${o.id}?route=${r.letter}#add`} scroll={false} aria-label={`Pick route ${r.letter}`} aria-current={on ? "true" : undefined} className={cn("mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border", on ? "border-brand-ink" : "border-brand-outline")}>
                         {on && <span className="size-2.5 rounded-full bg-brand-ink" />}
                       </Link>
                       <div className="flex min-w-0 flex-col gap-2">

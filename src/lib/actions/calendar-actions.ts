@@ -10,5 +10,5 @@ export async function deleteClientCalendarItemAction(formData: FormData) {
   const id = String(formData.get("id") ?? "");
 
   await prisma.clientCalendarItem.updateMany({ where: { id, clientId: viewer.clientId }, data: { archivedAt: new Date() } });
-  revalidatePath("/plan");
+  revalidatePath("/planner");
 }

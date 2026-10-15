@@ -10,12 +10,12 @@ type TieredItem = NavItem & { tiers: RoleTier[] };
 const MAIN: TieredItem[] = [
   { label: "Today", href: "/ops", icon: Home, tiers: ["ADMIN", "PM", "CREATOR"] },
   { label: "Clients", href: "/ops/clients", icon: Building2, tiers: ["ADMIN", "PM"] },
-  { label: "Plan", href: "/ops/plan", icon: CalendarDays, tiers: ["ADMIN", "PM"] },
+  { label: "Planner", href: "/ops/planner", icon: CalendarDays, tiers: ["ADMIN", "PM"] },
   { label: "Team", href: "/ops/team", icon: Users, tiers: ["ADMIN", "PM"] },
 ];
 
 /**
- * Ops nav (Phase T): Today (my open tasks) · Clients · Plan · Team, then under the divider Admin (admins only, with
+ * Ops nav (Phase T): Today (my open tasks) · Clients · Planner · Team, then under the divider Admin (admins only, with
  * open set-up jobs) and Notifications. Requests live in Today; Price List, Billing, Migration and Plans & settings
  * are Admin tabs. Projects are reached from Today, each client's Projects tab and Clients → All projects.
  */

@@ -60,7 +60,7 @@ async function seedMessages(ctx: Ctx) {
   const today = (minutesAgo: number) => new Date(now.getTime() - minutesAgo * MIN);
   const SCRIPT: { at: Date; from: "teddy" | "maja"; about?: string; body: string }[] = [
     { at: day(2, 8, 58), from: "maja", body: "Morning Teddy! Is the updated Q4 plan ready?" },
-    { at: day(2, 9, 12), from: "teddy", body: "Morning! Yes, it's in Plan with the three new opportunities. Want to go through it on Thursday?" },
+    { at: day(2, 9, 12), from: "teddy", body: "Morning! Yes, it's in the Planner with the three new opportunities. Want to go through it on Thursday?" },
     { at: day(2, 9, 40), from: "maja", body: "Yes please. Can we also talk about the Stockholm pop-up in March? Nothing briefed yet, just an idea." },
     { at: day(2, 9, 44), from: "teddy", body: "Love it. I'll bring two options for how we could do it, and what it would cost in credits." },
     { at: day(1, 16, 20), from: "teddy", about: "p12-brand-film", body: "The brand film cut-downs are ready. Two notes from the team inside the project." },

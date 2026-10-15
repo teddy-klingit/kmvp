@@ -11,7 +11,7 @@ import { legacyTabRedirect, type LegacyTab, type ProjectStage } from "@/lib/proj
 
 import ProjectsPage from "@/app/(portal)/projects/page";
 import DashboardPage from "@/app/(portal)/dashboard/page";
-import PlanPage from "@/app/(portal)/plan/page";
+import PlanPage from "@/app/(portal)/planner/page";
 import NotificationsPage from "@/app/(portal)/notifications/page";
 import ProjectLayout from "@/app/(portal)/projects/[id]/layout";
 import OverviewPage from "@/app/(portal)/projects/[id]/page";

@@ -13,6 +13,6 @@ export async function sendNudgeAction(formData: FormData) {
   const viewer = await requireOpsRole(["ADMIN", "PM"]);
   const item = await sendNudge(viewer.userId, String(formData.get("itemId") ?? ""), String(formData.get("text") ?? ""));
   if (!item) return;
-  revalidatePath("/ops/plan");
-  redirect(`/ops/plan?sent=${item.id}`);
+  revalidatePath("/ops/planner");
+  redirect(`/ops/planner?sent=${item.id}`);
 }

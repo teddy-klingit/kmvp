@@ -24,7 +24,7 @@ export const BUILT_IN_ASSISTANTS = [
 export const RECOMMENDED_SKILLS = [
   { name: "Ingredient explainer", reason: "Based on your range", summary: "Turns an INCI list into short, honest product copy in your voice." },
   { name: "UGC brief skill", reason: "New workflow", summary: "Creator briefs with your do's and don'ts and disclosure rules." },
-  { name: "Seasonal content planner", reason: "Plan", summary: "A month of post ideas from your plan and what performed." },
+  { name: "Seasonal content planner", reason: "Planner", summary: "A month of post ideas from your plan and what performed." },
 ] as const;
 
 export type SkillAvailability = "self_service" | "klingit_run" | "custom";

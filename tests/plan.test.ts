@@ -97,7 +97,7 @@ describe("reminders and Start brief", () => {
     expect(await sendPlanReminders(seven, [fx.clientA.id])).toBe(0); // once
     const notes = await prisma.notification.findMany({ where: { clientId: fx.clientA.id, title: { contains: "Reminder test" } } });
     expect(notes).toHaveLength(1);
-    expect(notes[0].actionUrl).toBe(`/plan?item=${item.id}`);
+    expect(notes[0].actionUrl).toBe(`/planner?item=${item.id}`);
     expect((await needsBrief(fx.clientA.id, 21, seven)).some((n) => n.item.id === item.id)).toBe(true);
   });
 

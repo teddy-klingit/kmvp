@@ -27,11 +27,11 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">
-        <Link href="/plan/opportunities" aria-current={!source ? "page" : undefined} className={chip(!source)}>
+        <Link href="/planner/opportunities" aria-current={!source ? "page" : undefined} className={chip(!source)}>
           All · {counts.all}
         </Link>
         {(Object.keys(SOURCES) as Source[]).map((s) => (
-          <Link key={s} href={`/plan/opportunities?source=${s}`} aria-current={source === s ? "page" : undefined} className={chip(source === s)}>
+          <Link key={s} href={`/planner/opportunities?source=${s}`} aria-current={source === s ? "page" : undefined} className={chip(source === s)}>
             {FILTER_LABEL[s]}
             {counts[s] > 0 && source !== s ? <span className="ml-1.5 text-brand-ink-2">{counts[s]}</span> : null}
           </Link>
@@ -61,7 +61,7 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
                     )}
                   </span>
                   <h2 id={`opp-${o.id}`} className="m-0 text-[20px] font-normal">
-                    <Link href={`/plan/opportunities/${o.id}`} className="text-brand-ink no-underline hover:underline">
+                    <Link href={`/planner/opportunities/${o.id}`} className="text-brand-ink no-underline hover:underline">
                       {o.title}
                     </Link>
                   </h2>
@@ -79,16 +79,16 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
                     {o.isDemo && <span>demo data</span>}
                   </p>
                   <div className="flex flex-wrap items-center gap-2 pt-1">
-                    <Link href={`/plan/opportunities/${o.id}`} className={pillClass(added ? "secondary" : "primary", "sm")}>
+                    <Link href={`/planner/opportunities/${o.id}`} className={pillClass(added ? "secondary" : "primary", "sm")}>
                       View routes
                     </Link>
                     {added && inPlan ? (
-                      <Link href={`/plan?item=${inPlan}`} className={pillClass("secondary", "sm")}>
+                      <Link href={`/planner?item=${inPlan}`} className={pillClass("secondary", "sm")}>
                         Open in plan
                       </Link>
                     ) : (
                       <>
-                        <Link href={`/plan?add=1&opportunity=${o.id}`} className={pillClass("secondary", "sm")}>
+                        <Link href={`/planner?add=1&opportunity=${o.id}`} className={pillClass("secondary", "sm")}>
                           Add to plan
                         </Link>
                         <form action={briefRouteAction}>

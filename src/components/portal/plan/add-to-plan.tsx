@@ -27,7 +27,7 @@ export function AddToPlan({ leadTimes, projects, prefill }: { leadTimes: LeadTim
   const close = () => {
     const q = new URLSearchParams(params?.toString());
     ["add", "opportunity", "route"].forEach((k) => q.delete(k));
-    router.replace(`/plan${q.size ? `?${q}` : ""}`, { scroll: false });
+    router.replace(`/planner${q.size ? `?${q}` : ""}`, { scroll: false });
   };
   if (!open) return null;
   return <Dialog leadTimes={leadTimes} projects={projects} prefill={prefill} onClose={close} />;

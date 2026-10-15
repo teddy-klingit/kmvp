@@ -19,10 +19,10 @@ const nextConfig: NextConfig = {
       { source: "/insights", has: [{ type: "query", key: "tier" }], destination: "/insights/performance", permanent: true },
       { source: "/insights", has: [{ type: "query", key: "range" }], destination: "/insights/performance", permanent: true },
       { source: "/insights/market-intelligence/seo", destination: "/insights/seo", permanent: true },
-      { source: "/insights/market-intelligence/ideas", destination: "/plan/opportunities", permanent: true },
+      { source: "/insights/market-intelligence/ideas", destination: "/planner/opportunities", permanent: true },
       { source: "/insights/market-intelligence/:view(competitors|trends)", destination: "/insights/market/:view", permanent: true },
-      { source: "/insights/market/ideas", destination: "/plan/opportunities", permanent: true },
-      { source: "/projects/inspiration", destination: "/plan/opportunities", permanent: true },
+      { source: "/insights/market/ideas", destination: "/planner/opportunities", permanent: true },
+      { source: "/projects/inspiration", destination: "/planner/opportunities", permanent: true },
       { source: "/insights/market-intelligence", destination: "/insights/market", permanent: true },
       { source: "/insights/community", destination: "/insights/audience#community", permanent: true },
       { source: "/insights/website", destination: "/insights/audience#website", permanent: true },
@@ -33,9 +33,14 @@ const nextConfig: NextConfig = {
       // notification actionUrls keep working.
       { source: "/assets/agents-templates/brand-os", destination: "/assets/rules", permanent: true },
       { source: "/assets/agents-templates/templates/:rest*", destination: "/assets/visual-identity#layouts", permanent: true },
+      // Quick fixes: Plan is called Planner (Settings → Plan, the pricing plan, keeps its name).
+      { source: "/plan", destination: "/planner", permanent: true },
+      { source: "/plan/:rest*", destination: "/planner/:rest*", permanent: true },
+      { source: "/ops/plan", destination: "/ops/planner", permanent: true },
+      { source: "/ops/clients/:clientId/plan", destination: "/ops/clients/:clientId/planner", permanent: true },
       // Phase R: Plan replaces Calendar.
-      { source: "/calendar", destination: "/plan", permanent: true },
-      { source: "/calendar/:rest*", destination: "/plan", permanent: true },
+      { source: "/calendar", destination: "/planner", permanent: true },
+      { source: "/calendar/:rest*", destination: "/planner", permanent: true },
       // Phase R: templates are layouts in Visual identity and "Start from" in a skill run.
       { source: "/skills/templates", destination: "/skills", permanent: true },
       { source: "/skills/templates/:rest*", destination: "/skills", permanent: true },

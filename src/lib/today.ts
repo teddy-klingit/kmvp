@@ -214,8 +214,8 @@ export async function loadToday(scope: Scope, now = new Date(), viewer?: { id: s
       // Nudging is due the day before the brief-by date.
       section: brief < tomorrowEnd ? "now" : "week",
       minutes: mins("PLAN"),
-      primary: { label: "Send nudge", href: `/ops/plan?item=${i.id}` },
-      secondary: { label: "Edit", href: `/ops/plan?item=${i.id}` },
+      primary: { label: "Send nudge", href: `/ops/planner?item=${i.id}` },
+      secondary: { label: "Edit", href: `/ops/planner?item=${i.id}` },
       ref: { planItemId: i.id },
     });
   }

@@ -15,7 +15,7 @@ const date = (v: FormDataEntryValue | null) => (/^\d{4}-\d{2}-\d{2}$/.test(Strin
 
 function refresh(clientId: string) {
   revalidatePath(`/ops/clients/${clientId}/opportunities`);
-  revalidatePath("/plan", "layout");
+  revalidatePath("/planner", "layout");
   revalidatePath("/dashboard");
 }
 

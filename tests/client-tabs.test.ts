@@ -4,8 +4,8 @@ import path from "node:path";
 import { CLIENT_TABS } from "@/components/ops/client/client-tabs";
 
 describe("client page: 5 tabs, nothing lost", () => {
-  it("has exactly Overview · Projects · Plan · Contract & billing · Brand", () => {
-    expect(CLIENT_TABS.map((t) => t.label)).toEqual(["Overview", "Projects", "Plan", "Contract & billing", "Brand"]);
+  it("has exactly Overview · Projects · Planner · Contract & billing · Brand", () => {
+    expect(CLIENT_TABS.map((t) => t.label)).toEqual(["Overview", "Projects", "Planner", "Contract & billing", "Brand"]);
   });
 
   it("every older client view is reachable under one of the tabs", () => {

@@ -148,10 +148,22 @@ describe("insights redirects", () => {
     expect(to("/insights/market-intelligence")).toBe("/insights/market");
     expect(to("/insights/market-intelligence/:view(competitors|trends)")).toBe("/insights/market/:view");
     // Ideas are Plan → Opportunities now (Phase R).
-    expect(to("/insights/market-intelligence/ideas")).toBe("/plan/opportunities");
-    expect(to("/insights/market/ideas")).toBe("/plan/opportunities");
+    expect(to("/insights/market-intelligence/ideas")).toBe("/planner/opportunities");
+    expect(to("/insights/market/ideas")).toBe("/planner/opportunities");
     expect(to("/insights/market-intelligence/seo")).toBe("/insights/seo");
     expect(to("/insights/community")).toBe("/insights/audience#community");
     expect(to("/insights/website")).toBe("/insights/audience#website");
+  });
+
+  it("Plan is called Planner: the old /plan URLs (client, staff, a client page tab) redirect", async () => {
+    const rules = (await nextConfig.redirects!()) as { source: string; destination: string }[];
+    const to = (source: string) => rules.find((r) => r.source === source)?.destination;
+    expect(to("/plan")).toBe("/planner");
+    expect(to("/plan/:rest*")).toBe("/planner/:rest*");
+    expect(to("/ops/plan")).toBe("/ops/planner");
+    expect(to("/ops/clients/:clientId/plan")).toBe("/ops/clients/:clientId/planner");
+    expect(to("/calendar")).toBe("/planner");
+    // Settings → Plan is the pricing plan and keeps its name.
+    expect(to("/settings/plan")).toBeUndefined();
   });
 });

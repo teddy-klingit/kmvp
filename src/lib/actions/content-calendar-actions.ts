@@ -24,7 +24,7 @@ export async function setContentPlanTargetAction(formData: FormData) {
   });
 
   revalidatePath(`/ops/clients/${clientId}/content-plan`);
-  revalidatePath("/plan");
+  revalidatePath("/planner");
 }
 
 export async function logBusinessOutcomeAction(formData: FormData) {
@@ -42,7 +42,7 @@ export async function logBusinessOutcomeAction(formData: FormData) {
   });
 
   revalidatePath(`/ops/clients/${clientId}/content-plan`);
-  revalidatePath("/plan");
+  revalidatePath("/planner");
 }
 
 export async function createContentPostAction(formData: FormData) {
@@ -76,5 +76,5 @@ export async function createContentPostAction(formData: FormData) {
   });
 
   revalidatePath(`/ops/clients/${clientId}/content-plan`);
-  revalidatePath("/plan");
+  revalidatePath("/planner");
 }

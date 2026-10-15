@@ -75,7 +75,7 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
       if (v) s.set(k, v);
       else s.delete(k);
     }
-    return `/plan${s.size ? `?${s}` : ""}`;
+    return `/planner${s.size ? `?${s}` : ""}`;
   };
   const visible = plan.entries.filter((e) => (show === "all" ? true : show === "moments" ? false : e.maker === (show as Maker)));
   const grid: GridEntry[] = visible.map((e) => ({ id: e.id, itemId: e.itemId, title: e.title, date: e.date.toISOString(), endDate: e.endDate?.toISOString() ?? null, maker: e.maker, briefBy: e.maker === "klingit_help" && !e.href && e.briefBy ? e.briefBy.toISOString() : null, href: e.itemId ? keep({ item: e.itemId }) : (e.href ?? "#"), draggable: e.draggable, late: Boolean(e.briefBy && daysUntil(e.briefBy, now) <= 0) }));

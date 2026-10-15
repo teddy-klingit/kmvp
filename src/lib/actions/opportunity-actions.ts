@@ -12,8 +12,8 @@ import { jsonArray } from "@/lib/utils";
 /** Plan → Opportunities (Phase R step 4). Every action is scoped to the signed-in client. */
 
 function refresh(id?: string) {
-  revalidatePath("/plan", "layout");
-  if (id) revalidatePath(`/plan/opportunities/${id}`);
+  revalidatePath("/planner", "layout");
+  if (id) revalidatePath(`/planner/opportunities/${id}`);
   revalidatePath("/dashboard");
 }
 
@@ -23,7 +23,7 @@ export async function dismissOpportunityAction(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   await dismissOpportunity(viewer.clientId, viewer.userId, id, String(formData.get("reason") ?? ""));
   refresh(id);
-  if (formData.get("back") === "1") redirect("/plan/opportunities?dismissed=1");
+  if (formData.get("back") === "1") redirect("/planner/opportunities?dismissed=1");
 }
 
 export type AskState = { error?: string; ok?: string };

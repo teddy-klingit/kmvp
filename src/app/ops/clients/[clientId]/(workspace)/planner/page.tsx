@@ -23,7 +23,7 @@ export default async function ClientPlanPage({ params }: { params: Promise<{ cli
   ]);
   return (
     <>
-      <SectionCard title="Plan" meta={<span className="text-[12px] text-brand-ink-2">Next 10 weeks</span>}>
+      <SectionCard title="Planner" meta={<span className="text-[12px] text-brand-ink-2">Next 10 weeks</span>}>
         {items.length === 0 ? (
           <CardNote>Nothing planned.</CardNote>
         ) : (
