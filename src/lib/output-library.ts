@@ -102,8 +102,11 @@ const moneyShort = (n: number, currency: string) => {
  * Phase V: what the data layer knows per piece of work (rows whose utm_content named it): ad delivery, and the
  * orders, deals and revenue credited to it ("shared": the average of first and last touch).
  */
-export async function outputNumbers(clientId: string, outputIds?: string[]) {
-  const rows = await prisma.metricDaily.groupBy({ by: ["outputId", "metric", "model", "currency"], where: { clientId, outputId: outputIds ? { in: outputIds } : { not: null } }, _sum: { value: true } });
+export const OUTPUT_NUMBERS_DAYS = 90;
+export async function outputNumbers(clientId: string, outputIds?: string[], now = new Date()) {
+  // The last 90 days, like Insights → Revenue's "Work that brought revenue".
+  const since = new Date(now.getTime() - (OUTPUT_NUMBERS_DAYS - 1) * 86400000).toISOString().slice(0, 10);
+  const rows = await prisma.metricDaily.groupBy({ by: ["outputId", "metric", "model", "currency"], where: { clientId, outputId: outputIds ? { in: outputIds } : { not: null }, date: { gte: since } }, _sum: { value: true } });
   const out = new Map<string, OutputRevenue>();
   for (const r of rows) {
     if (!r.outputId) continue;
@@ -132,7 +135,7 @@ export async function loadOutputLibrary(clientId: string, filters: LibraryFilter
     prisma.metricDaily.groupBy({ by: ["source"], where: { clientId, source: { in: [...AD_SOURCES] } }, _max: { date: true } }),
     prisma.outputFact.findMany({ where: { clientId }, orderBy: { createdAt: "asc" } }),
     prisma.clientUser.findMany({ where: { clientId }, select: { userId: true } }),
-    outputNumbers(clientId),
+    outputNumbers(clientId, undefined, now),
   ]);
   // A piece's CTR from the data layer when the ad platform delivered enough of it; else what was stored on it.
   const layerCtr = (id: string, stored: number | null) => {

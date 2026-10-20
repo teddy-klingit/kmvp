@@ -23,7 +23,7 @@ export async function clientDataContext(clientId: string, now = new Date()): Pro
     loadRevenue(clientId, { days: DAYS, now }),
     adCampaigns(clientId, 30, now),
     prisma.clientCalendarItem.findMany({ where: { clientId, archivedAt: null, date: { gte: now, lte: new Date(now.getTime() + 60 * 86400000) } }, orderBy: { date: "asc" }, take: 12, select: { title: true, date: true, formats: true } }),
-    outputNumbers(clientId),
+    outputNumbers(clientId, undefined, now),
     prisma.asset.findMany({ where: { clientId, performanceCtr: { not: null }, sentVersion: { not: null } }, select: { name: true, format: true, performanceCtr: true }, orderBy: { performanceCtr: "desc" }, take: 5 }),
     getSetting("confidenceMinimums"),
     getSetting("sourcesAgreeWithin"),

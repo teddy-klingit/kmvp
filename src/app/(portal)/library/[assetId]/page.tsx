@@ -5,6 +5,8 @@ import { Check, Download } from "lucide-react";
 import { getPortalViewer } from "@/lib/current-viewer";
 import { isClientAdmin } from "@/lib/client-roles";
 import { taggedLinkForAsset } from "@/lib/utm";
+import { outputNumbers } from "@/lib/output-library";
+import { Chips } from "@/components/insights/source-chip";
 import { TaggedLink } from "@/components/portal/library/tagged-link";
 import { loadAssetDetail } from "@/lib/asset-detail";
 import { formatDay } from "@/lib/project-state";
@@ -29,6 +31,7 @@ export default async function LibraryAssetPage({ params, searchParams }: { param
   const a = await loadAssetDetail(assetId, viewer.clientId);
   // Phase V: the link to use for it, with UTMs (not for a web page, which is the destination itself).
   const tagged = a ? await taggedLinkForAsset(a.id, viewer.clientId) : null;
+  const sold = a ? ((await outputNumbers(viewer.clientId, [a.id])).get(a.id) ?? null) : null;
   const more = a ? await prisma.agent.findFirst({ where: { key: /carousel|slide/i.test(a.format) ? "carousel_builder" : "ad_gen", availability: "self_service" }, select: { id: true } }) : null;
   if (!a) notFound();
   // Phase U: category, how it was used, who made it, the Brand OS check and every version the client was sent.
@@ -146,6 +149,22 @@ export default async function LibraryAssetPage({ params, searchParams }: { param
             </SectionCard>
           )}
 
+
+          {sold && sold.revenue > 0 && (
+            <SectionCard title="What it sold" meta={<Link href="/insights/revenue" className="font-brand-mono text-[12px] uppercase text-brand-ink underline underline-offset-4">Revenue</Link>}>
+              <CardBody className="flex flex-col gap-2">
+                <span className="text-[28px] font-light tabular-nums">
+                  {sold.currency === "EUR" ? "€" : ""}
+                  {sold.revenue >= 10000 ? `${(sold.revenue / 1000).toFixed(1).replace(/\.0$/, "")}k` : Math.round(sold.revenue).toLocaleString("en-GB")}
+                  {sold.currency !== "EUR" ? ` ${sold.currency}` : ""}
+                </span>
+                <span className="text-[14px] text-brand-ink-2">
+                  {[sold.orders ? `${Math.round(sold.orders).toLocaleString("en-GB")} orders` : null, sold.won ? `${Math.round(sold.won)} deals won` : null].filter(Boolean).join(" · ")}, in the last 90 days, linked through its UTM tag (shared credit)
+                </span>
+                <Chips sources={[...(sold.orders ? ["Shopify"] : []), ...(sold.won ? ["HubSpot"] : []), "Output library"]} />
+              </CardBody>
+            </SectionCard>
+          )}
 
           <SectionCard title="How it was made">
             <CardRows>
