@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { requireOpsPage } from "@/lib/authz";
+import { setDemoHubSpotStateAction } from "@/lib/actions/ops-client-admin-actions";
 import { prisma } from "@/lib/prisma";
 import { SectionCard, CardRows, CardNote } from "@/components/ds/card";
 import { StatRows, type Stat } from "@/components/ds/stats";
@@ -45,6 +46,7 @@ export default async function ClientAdminPage({ params }: { params: Promise<{ cl
   if (!client) notFound();
   const [ai, team] = await Promise.all([aiCreditStatus(clientId), teamAllowance(clientId)]);
   const ledger = await prisma.aiCreditLedger.findMany({ where: { clientId }, orderBy: { createdAt: "desc" }, take: 8 });
+  const hubspot = await prisma.dataSource.findUnique({ where: { clientId_source: { clientId, source: "HubSpot" } }, select: { status: true, isDemo: true } });
   const [adAccounts, adLog] = await Promise.all([listLiveAdAccounts().then((xs) => xs.filter((a) => !a.internal)), prisma.auditLog.findMany({ where: { area: "ad-accounts", clientId }, orderBy: { createdAt: "desc" }, take: 5 })]);
   const actors = new Map((await prisma.user.findMany({ where: { id: { in: adLog.flatMap((l) => (l.actorUserId ? [l.actorUserId] : [])) } }, select: { id: true, name: true } })).map((u) => [u.id, u.name]));
 
@@ -139,6 +141,18 @@ export default async function ClientAdminPage({ params }: { params: Promise<{ cl
           )}
         </SectionCard>
       </div>
+
+      {client.isDemo && hubspot?.isDemo && (
+        <SectionCard title="Demo states" meta={<span className="font-brand-mono text-[12px] text-brand-ink-2">STAFF ONLY</span>}>
+          <form action={setDemoHubSpotStateAction} className="flex flex-wrap items-center gap-3 px-6 py-4 text-[14px]">
+            <input type="hidden" name="clientId" value={client.id} />
+            <span className="flex-1">HubSpot on Settings → Connections is {hubspot.status === "setting_up" ? "setting up (step 2, map stages)" : "connected"}.</span>
+            <Button type="submit" name="state" value={hubspot.status === "setting_up" ? "connected" : "setting_up"} size="sm" variant="secondary">
+              {hubspot.status === "setting_up" ? "Show it as connected" : "Show it as setting up"}
+            </Button>
+          </form>
+        </SectionCard>
+      )}
 
       <SectionCard title="Connections" meta={<span className="font-brand-mono text-[12px] text-brand-ink-2">OWNS THESE AD ACCOUNTS</span>}>
         <CardNote>

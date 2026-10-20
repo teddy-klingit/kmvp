@@ -91,3 +91,17 @@ export async function adCampaigns(clientId: string, days = 30, now = new Date())
     return { platform: c.platform, accountName: c.accountName, currency: c.currency, campaignId: c.campaignId, campaignName: c.campaignName, impressions: c.impressions, clicks: c.clicks, ctr: c.impressions ? Math.round((c.clicks / c.impressions) * 10000) / 100 : 0, spend, conversions, costPerConversion: conversions ? Math.round(spend / conversions) : null };
   });
 }
+
+/**
+ * Phase V: a disconnected source's synced numbers are deleted once its 30 days are up (every client, demo too).
+ * Logged per source; the DataSource row stays, so the client can see it was disconnected and when.
+ */
+export async function purgeDisconnectedSources(now = new Date()) {
+  const due = await prisma.dataSource.findMany({ where: { status: "disconnected", purgeAfter: { not: null, lte: now } } });
+  for (const ds of due) {
+    const { count } = await prisma.metricDaily.deleteMany({ where: { clientId: ds.clientId, source: ds.source } });
+    await prisma.dataSource.update({ where: { id: ds.id }, data: { purgeAfter: null, lastError: `Synced data deleted ${now.toISOString().slice(0, 10)}` } });
+    await prisma.auditLog.create({ data: { clientId: ds.clientId, area: "connections", action: `Deleted ${count} synced numbers from ${ds.source}, 30 days after it was disconnected` } });
+  }
+  return due.length;
+}

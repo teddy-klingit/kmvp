@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { refreshMarketSources } from "@/lib/integrations/market-refresh";
+import { purgeDisconnectedSources } from "@/lib/metrics";
 import { generatePerformanceBrief } from "@/lib/insights-brief";
 import { loadTakeaways } from "@/lib/insights-data";
 import { lastClosed, writeReport } from "@/lib/report-data";
@@ -32,6 +33,9 @@ export async function runScheduledAgents(now = new Date()) {
   // Plan reminders: 7 and 2 days before a brief-by date, and on the day (each once).
   const reminded = await sendPlanReminders(now, clients.map((c) => c.id)).catch(() => 0);
   if (reminded) done.push(`plan reminders: ${reminded}`);
+  // Disconnected sources: their synced numbers are deleted 30 days after (Phase V).
+  const purged = await purgeDisconnectedSources(now).catch(() => 0);
+  if (purged) done.push(`purged ${purged} disconnected source${purged === 1 ? "" : "s"}`);
   // Contracts: scheduled upgrades and downgrades, upgrade ends, renewals (every client, demo included).
   await applyAllDueChanges(now).catch(() => 0);
   // Team credits: the month's PM and creative grants, rollover expiry and fixed services (idempotent).

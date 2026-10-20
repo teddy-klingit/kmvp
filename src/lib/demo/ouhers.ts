@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import type { AssetStatus, AssetVersionState, ClientPermission, InternalRole, PipelineStageName, Prisma, ProjectStatus, ProjectType, StageStatus } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
 import { recordSync, writeAdDays } from "@/lib/metrics";
+import { seedPhaseVSources } from "@/lib/demo/ouhers-phase-v";
 import { removeUploadsUnder, writeUploadAt } from "@/lib/uploads";
 import { PIPELINE_STAGE_ORDER } from "@/lib/labels";
 import { DEMO_PASSWORD } from "@/lib/demo-personas";
@@ -822,6 +823,9 @@ export async function seedOuhers(opts: { dir?: string; shift?: boolean; log?: (s
 
   // Phase U: messages with Teddy, the Output library in every category (AI costs are on the Phase Q ledger).
   await seedPhaseU({ clientId: OUHERS_CLIENT_ID, now, teddyUserId: teddy?.userId ?? null, member: (id) => clientUserIds.get(id)!, projectId, say });
+
+  // Phase V: the sales sources (Shopify, HubSpot, Klaviyo), connected as demo sources.
+  await seedPhaseVSources({ clientId: OUHERS_CLIENT_ID, now, login: "maja@ouhers.com" });
 
   // ─── Computed vs expected ───────────────────────────────────────────────
   const health = await loadBrandHealth(OUHERS_CLIENT_ID);

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { setDemoHubSpotState } from "@/lib/demo/ouhers-phase-v";
 import { syncDailyAdMetrics } from "@/lib/integrations/ad-daily";
 import { prisma } from "@/lib/prisma";
 import { activateQueued } from "@/lib/active-slots";
@@ -95,4 +96,17 @@ export async function setTeamCreditsOverrideAction(formData: FormData) {
   ]);
   revalidatePath(`/ops/clients/${clientId}/admin`);
   revalidatePath("/", "layout");
+}
+
+/** Phase V demo: show HubSpot as connected or half-way through its set-up (demo clients only, staff admins). */
+export async function setDemoHubSpotStateAction(formData: FormData) {
+  const viewer = await requireOpsRole(["ADMIN"]);
+  const clientId = String(formData.get("clientId") ?? "");
+  const state = formData.get("state") === "setting_up" ? "setting_up" : "connected";
+  const client = await prisma.client.findUnique({ where: { id: clientId }, select: { isDemo: true } });
+  if (!client?.isDemo) return;
+  if (await setDemoHubSpotState(clientId, state)) await prisma.auditLog.create({ data: { clientId, actorUserId: viewer.userId, area: "connections", action: `Demo state: HubSpot shown as ${state === "setting_up" ? "setting up" : "connected"}` } });
+  revalidatePath(`/ops/clients/${clientId}/admin`);
+  revalidatePath("/settings/connections");
+  revalidatePath("/insights", "layout");
 }
