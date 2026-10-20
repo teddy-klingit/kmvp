@@ -14,6 +14,7 @@ vi.mock("@/lib/integrations/meta-ads", async (orig) => ({
 import { prisma } from "@/lib/prisma";
 import { adDays } from "@/lib/metrics";
 import { loadRevenue } from "@/lib/revenue";
+import { budgetShiftOpportunity } from "@/lib/combined";
 import { teamBalances } from "@/lib/team-ledger";
 import { aiCreditStatus } from "@/lib/ai-credits";
 import { loadToday } from "@/lib/today";
@@ -217,12 +218,32 @@ describe("the ouhers demo seed", () => {
     expect(Math.round(r.tables.channel.reduce((a, c) => a + (c.spend ?? 0), 0))).toBe(89000);
     expect(r.tables.channel.find((c) => c.name === "Retail fairs")!.return!).toBeLessThan(1);
     expect(r.tables.channel.find((c) => c.name === "Unattributed")).toMatchObject({ orders: 190 });
-    expect(r.work.map((w) => Math.round(w.revenue))).toEqual([71000, 58000, 39000, 9000]);
+    expect(r.work.map((w) => Math.round(w.revenue))).toEqual([71920, 71000, 33750, 26000]);
     expect(r.blind.map((b) => b.text).join(" ")).toMatch(/TikTok: token expired/);
     for (const model of ["first", "last"] as const) {
       const m = await loadRevenue(OUHERS_CLIENT_ID, { days: 90, model });
       expect(Math.round(m.tiles.revenue.value)).toBe(412000);
       expect(m.tables.channel.find((c) => c.name === "Meta")!.revenue).not.toBeCloseTo(r.tables.channel.find((c) => c.name === "Meta")!.revenue, 0);
     }
+  });
+
+  it("Phase V: the combined opportunity's maths is computed from the data and matches the design (€2,000 → about €4.8k)", async () => {
+    const r = await budgetShiftOpportunity(OUHERS_CLIENT_ID);
+    if (!r || "notEnough" in r) throw new Error("no opportunity");
+    const c = r.combined;
+    expect(c.headline).toBe("Move €2,000 of Black Friday budget to Story ads, then catch buyers with the welcome email");
+    expect(c.maths.map((m) => m.text)).toEqual([
+      "€2,000 ÷ €17 per order = 118 orders × €62 = €7.3k, plus 41% repeat orders × €45 = €2.2k. Total ≈ €9.5k.",
+      "€2,000 ÷ €19 per order = 105 orders × €45 = €4.7k.",
+      "about €4.8k more over 60 days.",
+    ]);
+    expect(c.effect.text).toBe("≈ +€4–5k revenue over 60 days");
+    expect(c.evidence.map((e) => e.text).slice(0, 3)).toEqual(["€62 average order from Meta Stories vs €45 from Feed (+38%)", "41% of Story buyers order again within 60 days if they get the welcome flow, 17% if not", "3 Feed ads and 1 email planned for 27 Nov, no Stories"]);
+    expect(c.evidence.every((e) => e.sources.length > 0 && e.size)).toBe(true);
+    expect(c.checks.every((x) => x.ok)).toBe(true);
+    expect(c.blind).toEqual(["Can't see in-store sales, so the real effect may be higher"]);
+    expect(r.confidence).toBe("high");
+    const stored = await prisma.opportunity.findFirstOrThrow({ where: { clientId: OUHERS_CLIENT_ID, origin: "combined" } });
+    expect(stored.confidence).toBe("high");
   });
 });

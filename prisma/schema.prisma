@@ -2439,6 +2439,11 @@ model Opportunity {
   skillKey          String?
   /// Where the chart that produced it lives in Insights, so Insights can link back.
   insightHref       String?
+  /// Phase V: an opportunity built from several sources, every number computed in code: expected effect, cost,
+  /// decide-by, evidence (sources + data size), "How we got the number", data checks and actions.
+  combined          Json?
+  /// Phase V: "high" | "medium" | "low", from rules (enough data, sources agree, holds across credit models).
+  confidence        String?
   /// new | added | briefed | live | dismissed
   status            String    @default("new")
   dismissReason     String?

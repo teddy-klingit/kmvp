@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { CONFIDENCE_LABEL, type Combined, type Confidence } from "@/lib/combined";
+import { Chips } from "@/components/insights/source-chip";
 import { Check } from "lucide-react";
 import { getPortalViewer } from "@/lib/current-viewer";
 import { prisma } from "@/lib/prisma";
@@ -49,6 +51,46 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
               const added = o.status === "added" || o.status === "briefed" || o.status === "live";
               const cost = costRange(o.routes);
               const inPlan = planItem.get(o.id);
+              // Phase V: built from several sources: its effect, cost and decide-by, with the rule-based confidence.
+              const combined = o.combined as unknown as Combined | null;
+              if (combined)
+                return (
+                  <article key={o.id} aria-labelledby={`opp-${o.id}`} className="flex flex-col gap-3 rounded-[12px] bg-white px-6 py-5">
+                    <span className="flex flex-wrap items-center gap-3">
+                      <span className="flex-1">
+                        <Chips sources={combined.sources} />
+                      </span>
+                      {o.confidence && <span className="rounded-full bg-[#E4F2B3] px-2.5 py-0.5 text-[12px] text-[#5E6B2A]">{CONFIDENCE_LABEL[o.confidence as Confidence]}</span>}
+                      {added && (
+                        <span className="inline-flex items-center gap-1 text-[13px]">
+                          <Check className="size-3.5" strokeWidth={2} /> Added to plan
+                        </span>
+                      )}
+                    </span>
+                    <h2 id={`opp-${o.id}`} className="m-0 text-[20px] font-normal">
+                      <Link href={`/planner/opportunities/${o.id}`} className="text-brand-ink no-underline hover:underline">
+                        {o.title}
+                      </Link>
+                    </h2>
+                    <p className="m-0 max-w-[70ch] text-[14px] leading-[1.55]">{o.summary}</p>
+                    <p className="m-0 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-brand-ink-2">
+                      <span className="text-brand-ink">{combined.effect.text}</span>
+                      <span>{combined.cost.text}</span>
+                      <span>{combined.dataSize}</span>
+                      {o.isDemo && <span>demo data</span>}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      <Link href={`/planner/opportunities/${o.id}`} className={pillClass(added ? "secondary" : "primary", "sm")}>
+                        See why
+                      </Link>
+                      {added && inPlan && (
+                        <Link href={`/planner?item=${inPlan}`} className={pillClass("secondary", "sm")}>
+                          Open in plan
+                        </Link>
+                      )}
+                    </div>
+                  </article>
+                );
               return (
                 <article key={o.id} aria-labelledby={`opp-${o.id}`} className="flex flex-col gap-3 rounded-[12px] bg-white px-6 py-5">
                   <span className="flex flex-wrap items-center gap-3">

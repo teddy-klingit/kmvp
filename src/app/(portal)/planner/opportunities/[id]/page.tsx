@@ -12,6 +12,8 @@ import { briefRouteAction, dismissOpportunityAction } from "@/lib/actions/opport
 import { ReviewedFlag, SourcePills } from "@/components/portal/plan/opportunity-bits";
 import { AnotherRoute } from "@/components/portal/plan/ask-for-more";
 import { OpportunityAdd } from "@/components/portal/plan/opportunity-add";
+import { CombinedOpportunity } from "@/components/portal/plan/combined-opportunity";
+import { marketingPm } from "@/lib/contact-person";
 
 const NUMBER = ["No", "One", "Two", "Three", "Four", "Five"];
 const wday = (d: Date) => new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short" }).format(d);
@@ -27,6 +29,11 @@ export default async function OpportunityPage({ params, searchParams }: { params
   const viewer = await getPortalViewer();
   const o = await loadOpportunity(viewer.clientId, id);
   if (!o) notFound();
+  // Phase V: built from several sources, every number computed in code (design OpportunityCombined).
+  if (o.combined) {
+    const pm = await marketingPm(viewer.clientId);
+    return <CombinedOpportunity o={o} clientName={viewer.client.name} pmFirst={pm?.name.split(" ")[0] ?? null} />;
+  }
   const picked = o.routes.find((r) => r.letter === q.route) ?? o.routes.find((r) => r.status !== "new" && r.status !== "dismissed") ?? o.routes[0] ?? null;
   const [leadTimes, skill, briefBy] = await Promise.all([
     loadLeadTimes(),

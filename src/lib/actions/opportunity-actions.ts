@@ -8,6 +8,7 @@ import { addPlanItem } from "@/lib/plan";
 import { startBriefForItem } from "@/lib/plan-brief";
 import { addAnotherRoute, dismissOpportunity, loadOpportunity, markRoute, runOpportunityScan } from "@/lib/opportunities";
 import { jsonArray } from "@/lib/utils";
+import { prisma } from "@/lib/prisma";
 
 /** Plan → Opportunities (Phase R step 4). Every action is scoped to the signed-in client. */
 
@@ -70,3 +71,23 @@ export async function briefRouteAction(formData: FormData) {
   if (projectId) redirect(`/brief/${projectId}`);
 }
 
+
+/**
+ * Phase V: "Add to {plan item}" on an opportunity built from several sources: the plan item gets the formats the
+ * opportunity is about (e.g. Stories) and is linked to it; the opportunity moves to "added". The client's own only.
+ */
+export async function addCombinedToPlanAction(formData: FormData) {
+  const viewer = await getPortalViewer();
+  const id = String(formData.get("id") ?? "");
+  const o = await prisma.opportunity.findFirst({ where: { id, clientId: viewer.clientId }, select: { id: true, title: true, combined: true } });
+  const add = (o?.combined as { actions?: { addToPlan?: { planItemId: string; formats: string[] } | null } } | null)?.actions?.addToPlan;
+  if (!o || !add) return;
+  const item = await prisma.clientCalendarItem.findFirst({ where: { id: add.planItemId, clientId: viewer.clientId, archivedAt: null } });
+  if (!item) return;
+  const formats = [...new Set([...jsonArray<string>(item.formats), ...add.formats])];
+  await prisma.clientCalendarItem.update({ where: { id: item.id }, data: { formats, opportunityId: o.id } });
+  await prisma.opportunity.update({ where: { id: o.id }, data: { status: "added" } });
+  await prisma.auditLog.create({ data: { clientId: viewer.clientId, actorUserId: viewer.userId, area: "plan", action: `Added ${add.formats.join(", ")} to “${item.title}” from the opportunity “${o.title}”` } });
+  refresh(id);
+  redirect(`/planner?item=${item.id}`);
+}

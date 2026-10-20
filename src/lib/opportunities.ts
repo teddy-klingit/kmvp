@@ -1,6 +1,8 @@
 import { z } from "zod";
 import type { Opportunity, OpportunityRoute, Prisma } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
+import { marketingPm } from "@/lib/contact-person";
+import { notify } from "@/lib/notifier";
 import { jsonArray } from "@/lib/utils";
 import { runAgentTask } from "@/lib/ai/run-agent";
 import { buildBrandContext } from "@/lib/ai/brand-context";
@@ -30,7 +32,9 @@ export const SOURCES = {
 export type Source = keyof typeof SOURCES;
 export const isSource = (s: unknown): s is Source => typeof s === "string" && s in SOURCES;
 
-export const DISMISS_REASONS = ["Not our audience", "Wrong timing", "Off-brand", "Already planned"] as const;
+export const DISMISS_REASONS = ["Not our audience", "Wrong timing", "Off-brand", "Already planned", "Budget is fixed", "Don't trust the data"] as const;
+/** Phase V: the reasons offered on an opportunity built from several sources (OpportunityCombined). */
+export const COMBINED_DISMISS_REASONS = ["Budget is fixed", "Wrong timing", "Don't trust the data"] as const;
 export type DismissReason = (typeof DISMISS_REASONS)[number];
 
 export type Evidence = { value: string; text: string; source: string; kind: "moment" | "data" | "market"; ref?: string | null; demo?: boolean };
@@ -142,6 +146,14 @@ export async function dismissOpportunity(clientId: string, userId: string | null
   const r = (DISMISS_REASONS as readonly string[]).includes(reason) ? reason : "Not for us";
   const res = await prisma.opportunity.updateMany({ where: { id, clientId }, data: { status: "dismissed", dismissReason: r, dismissedAt: new Date(), dismissedByUserId: userId } });
   if (res.count) await prisma.opportunityRoute.updateMany({ where: { opportunityId: id, status: "new" }, data: { status: "dismissed" } });
+  // Phase V: "Don't trust the data" is logged and goes to the Marketing PM, who can check the numbers with the client.
+  if (res.count && r === "Don't trust the data") {
+    const o = await prisma.opportunity.findUnique({ where: { id }, select: { title: true } });
+    await prisma.auditLog.create({ data: { clientId, actorUserId: userId, area: "opportunities", action: `Doesn't trust the data behind “${o?.title ?? id}”` } });
+    const pm = await marketingPm(clientId);
+    const who = userId ? (await prisma.user.findUnique({ where: { id: userId }, select: { name: true } }))?.name : null;
+    if (pm) await notify({ userId: pm.userId, clientId, type: "SYSTEM", title: `${who?.split(" ")[0] ?? "The client"} doesn't trust the data behind an opportunity`, body: `“${o?.title ?? "An opportunity"}” was set aside: “Don't trust the data”. Worth a look at its sources together.`, actionUrl: `/ops/clients/${clientId}/opportunities`, actionLabel: "Open opportunities" });
+  }
   return res.count > 0;
 }
 
@@ -421,6 +433,9 @@ export async function runWeeklyOpportunityScans(clientIds: string[], now = new D
     if (recent) continue;
     const r = await runOpportunityScan(clientId, { origin: "weekly", now }).catch((e: unknown) => ({ created: 0, error: e instanceof Error ? e.message : "failed" }));
     done.push(`${clientId}: ${r.error ?? `${r.created} new`}`);
+    // Phase V: the opportunity built from several sources, computed in code (nothing below the minimums).
+    const c = await import("@/lib/combined").then((m) => m.upsertCombinedOpportunity(clientId, now)).catch(() => null);
+    if (c && "id" in c) done.push(`${clientId}: combined`);
   }
   return done;
 }

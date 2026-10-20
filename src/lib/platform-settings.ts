@@ -92,6 +92,8 @@ export const SETTING_DEFAULTS = {
   confidenceMinimums: { orders: 100, deals: 30 } as Record<string, number>,
   /** Phase V: two sources "agree" when their counts are within this share of each other. */
   sourcesAgreeWithin: 0.1 as number,
+  /** Phase V: the budget a "move budget" opportunity tests with (in the client's revenue currency). */
+  opportunityTestBudget: 2000 as number,
 };
 export type SettingKey = keyof typeof SETTING_DEFAULTS;
 

@@ -1,6 +1,7 @@
 import type { Prisma } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
 import { DEMO_ACCOUNT, guessStage, type SalesSettings } from "@/lib/sales-sources";
+import { upsertCombinedOpportunity } from "@/lib/combined";
 
 /**
  * Phase V demo (V6): ouhers' sales sources. Shopify (online), HubSpot (retail and wholesale pipeline) and Klaviyo are
@@ -45,11 +46,12 @@ export async function setDemoHubSpotState(clientId: string, state: "connected" |
  */
 type Row = { channel: string; path: "online" | "retail"; output?: string; campaign: string; m: Record<string, number> };
 const ONLINE: Row[] = [
-  { channel: "Meta", path: "online", output: "whipped", campaign: "q4-cloud-cream-push", m: { orders: 1160, new_customers: 860, revenue: 58000 } },
-  { channel: "Meta", path: "online", campaign: "summer", m: { orders: 750, new_customers: 545, revenue: 21000 } },
+  // Stories sell at €62 an order, Feed at €45 (the OpportunityCombined design's numbers).
+  { channel: "Meta", path: "online", output: "whipped", campaign: "q4-cloud-cream-push", m: { orders: 1160, new_customers: 860, revenue: 71920 } },
+  { channel: "Meta", path: "online", output: "summerFeed", campaign: "summer", m: { orders: 750, new_customers: 545, revenue: 33750 } },
   { channel: "Google Ads", path: "online", campaign: "search-brand", m: { orders: 1390, new_customers: 1020, revenue: 56000 } },
-  { channel: "Klaviyo email", path: "online", output: "newsletter", campaign: "newsletter", m: { orders: 410, new_customers: 90, revenue: 39000 } },
-  { channel: "Klaviyo email", path: "online", campaign: "welcome-flow", m: { orders: 200, new_customers: 73, revenue: 35000 } },
+  { channel: "Klaviyo email", path: "online", output: "newsletter", campaign: "newsletter", m: { orders: 410, new_customers: 90, revenue: 26000 } },
+  { channel: "Klaviyo email", path: "online", campaign: "welcome-flow", m: { orders: 200, new_customers: 73, revenue: 21330 } },
   { channel: "Instagram (organic)", path: "online", output: "glass", campaign: "dew-drop-creators", m: { orders: 210, new_customers: 155, revenue: 9000 } },
   { channel: "Unattributed", path: "online", campaign: "", m: { orders: 190, new_customers: 127, revenue: 8000 } },
 ];
@@ -71,6 +73,10 @@ const SESSIONS: Record<string, number> = { Meta: 32000, "Google Ads": 64000, "Kl
 const LEAN: Record<string, number> = { Meta: 0.12, "Google Ads": -0.1, "Klaviyo email": -0.25, "Instagram (organic)": 0.2, "LinkedIn (organic)": 0.2, "Retail fairs": 0.15, Unattributed: 0 };
 const MARKETS = ["SE", "SE", "SE", "SE", "SE", "NO", "NO", "NO", "DK", "DK"];
 const META_90 = { spend: 41200, impressions: 3_980_000 };
+/** Meta spend per campaign in the 90 days: €17 an order on Stories (Q4, always-on), €19 on Feed (summer). */
+const META_CAMPAIGN_SPEND: Record<string, number> = { "always-on | best performers | SE-NO-DK": 19720, "summer | sun day | SE-NO-DK": 14250 };
+/** Meta's own count of the Story orders: 4% above Shopify's 1,160. */
+const META_STORY_ORDERS = 1206;
 const GOOGLE_90 = { spend: 29500, impressions: 2_220_000, clicks: 108_250 };
 export const DEMO_REVENUE = { online: 226000, retail: 186000, spend: 89000, orders: 4310, openDeals: 38, openValue: 214000 };
 
@@ -115,10 +121,22 @@ export async function seedPhaseVRevenue(ctx: { clientId: string; now: Date; proj
   // its last numbers are from before the window; Google Ads added. ───────────────────────────────────────────────
   const meta90 = await prisma.metricDaily.groupBy({ by: ["metric"], where: { clientId, source: "Meta", date: { gte: start90 } }, _sum: { value: true } });
   const sum = (m: string) => meta90.find((x) => x.metric === m)?._sum.value ?? 0;
-  const fSpend = sum("spend") ? META_90.spend / sum("spend") : 0;
   const fImp = sum("impressions") ? META_90.impressions / sum("impressions") : 0;
-  await prisma.$executeRaw`UPDATE "MetricDaily" SET "value" = ROUND("value" * ${fSpend}, 2), "currency" = 'EUR' WHERE "clientId" = ${clientId} AND "source" = 'Meta' AND "metric" = 'spend'`;
   await prisma.$executeRaw`UPDATE "MetricDaily" SET "value" = ROUND("value" * ${fImp}), "currency" = 'EUR' WHERE "clientId" = ${clientId} AND "source" = 'Meta' AND "metric" IN ('impressions', 'clicks', 'conversions')`;
+  // Spend per campaign: the two named campaigns to their figures, the rest share what's left of the 90 days' total.
+  const byCampaign = await prisma.metricDaily.groupBy({ by: ["campaignName"], where: { clientId, source: "Meta", metric: "spend", date: { gte: start90 } }, _sum: { value: true } });
+  const rest = byCampaign.filter((c) => !(c.campaignName in META_CAMPAIGN_SPEND)).reduce((a, c) => a + (c._sum.value ?? 0), 0);
+  const restTarget = META_90.spend - Object.values(META_CAMPAIGN_SPEND).reduce((a, b) => a + b, 0);
+  for (const c of byCampaign) {
+    const target = META_CAMPAIGN_SPEND[c.campaignName] ?? (rest ? ((c._sum.value ?? 0) / rest) * restTarget : 0);
+    const f = c._sum.value ? target / c._sum.value : 0;
+    await prisma.$executeRaw`UPDATE "MetricDaily" SET "value" = ROUND("value" * ${f}, 2), "currency" = 'EUR' WHERE "clientId" = ${clientId} AND "source" = 'Meta' AND "metric" = 'spend' AND "campaignName" = ${c.campaignName}`;
+  }
+  const storyConv = (await prisma.metricDaily.aggregate({ where: { clientId, source: "Meta", metric: "conversions", campaignName: "always-on | best performers | SE-NO-DK", date: { gte: start90 } }, _sum: { value: true } }))._sum.value ?? 0;
+  if (storyConv) {
+    const f = META_STORY_ORDERS / storyConv;
+    await prisma.$executeRaw`UPDATE "MetricDaily" SET "value" = "value" * ${f} WHERE "clientId" = ${clientId} AND "source" = 'Meta' AND "metric" = 'conversions' AND "campaignName" = 'always-on | best performers | SE-NO-DK'`;
+  }
   // The Meta spend rounding is settled on the newest day, so 90 days are exactly the design's figure.
   const metaSpend = (await prisma.metricDaily.aggregate({ where: { clientId, source: "Meta", metric: "spend", date: { gte: start90 } }, _sum: { value: true } }))._sum.value ?? 0;
   const newest = await prisma.metricDaily.findFirst({ where: { clientId, source: "Meta", metric: "spend" }, orderBy: [{ date: "desc" }, { value: "desc" }] });
@@ -153,9 +171,10 @@ export async function seedPhaseVRevenue(ctx: { clientId: string; now: Date; proj
   }
 
   // ─── Sales: Shopify (online), HubSpot (retail & wholesale), sessions (GA4), Klaviyo and the fairs ───────────
-  const outputs = await prisma.asset.findMany({ where: { clientId, OR: [{ name: "whipped, weightless.", format: { startsWith: "Story" } }, { name: { in: ["Launch deck for retail partners", "Summer newsletter", "Glass skin, minus the effort"] } }] }, select: { id: true, name: true } });
+  const outputs = await prisma.asset.findMany({ where: { clientId, OR: [{ name: "whipped, weightless.", format: { startsWith: "Story" } }, { name: "sun day, every day", format: { startsWith: "Feed" } }, { name: { in: ["Launch deck for retail partners", "Summer newsletter", "Glass skin, minus the effort"] } }] }, select: { id: true, name: true, format: true } });
   const outputId: Record<string, string | undefined> = {
     whipped: outputs.find((o) => o.name.startsWith("whipped"))?.id,
+    summerFeed: outputs.find((o) => o.name === "sun day, every day")?.id,
     deck: outputs.find((o) => o.name.startsWith("Launch deck"))?.id,
     newsletter: outputs.find((o) => o.name === "Summer newsletter")?.id,
     glass: outputs.find((o) => o.name.startsWith("Glass skin"))?.id,
@@ -195,6 +214,10 @@ export async function seedPhaseVRevenue(ctx: { clientId: string; now: Date; proj
     const per = spread(kl * 1.08 * factor, 90, false, w);
     for (let i = 0; i < 90; i++) push({ date: day(startBack - i), source: "Klaviyo", channel: "Klaviyo email", path: "online", model: "last", metric: "reported_revenue", value: per[i] });
   }
+  // Story buyers' repeat orders within 60 days, with and without Klaviyo's welcome flow (cohort totals, no people).
+  for (const [id, buyers, repeat] of [["cohort:story:flow", 1000, 410], ["cohort:story:noflow", 480, 82]] as const) {
+    for (const [metric, value] of [["cohort_buyers", buyers], ["cohort_repeat_60d", repeat], ["cohort_repeat_value", repeat * 45]] as const) push({ date: day(0), source: "Shopify", channel: "Meta", campaignId: id, campaignName: id.endsWith(":flow") ? "Story buyers · welcome flow" : "Story buyers · no welcome flow", path: "online", metric, value });
+  }
   // Open pipeline today (a snapshot, not a sum over days).
   push({ date: day(0), source: "HubSpot", channel: "All", path: "retail", metric: "open_deals", value: DEMO_REVENUE.openDeals });
   push({ date: day(0), source: "HubSpot", channel: "All", path: "retail", metric: "open_value", value: DEMO_REVENUE.openValue });
@@ -217,6 +240,11 @@ export async function seedPhaseVRevenue(ctx: { clientId: string; now: Date; proj
     await prisma.metricDaily.updateMany({ where: { clientId, source, campaignId: ad.campaignId }, data: { utmCampaign } });
   }
 
+  // Black Friday in the Planner: 3 Feed ads and an email, no Stories (the opportunity's starting point).
+  const friday = await prisma.keyMoment.findFirst({ where: { name: "Black Friday", date: { gte: now } }, orderBy: { date: "asc" } });
+  const bf = await prisma.clientCalendarItem.findFirst({ where: { clientId, title: "Black Friday", archivedAt: null } });
+  if (bf) await prisma.clientCalendarItem.update({ where: { id: bf.id }, data: { ...(friday ? { date: friday.date } : {}), formats: ["Feed ad", "Feed ad", "Feed ad", "Email"], channels: ["Meta", "Newsletter"], channel: "Meta", maker: "klingit_help" } });
+
   // ─── Sources: every one the tab is based on; TikTok's token expired 12 days ago ──────────────────────────────
   const expired = new Date(now.getTime() - 12 * DAY);
   const label = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(expired);
@@ -231,5 +259,7 @@ export async function seedPhaseVRevenue(ctx: { clientId: string; now: Date; proj
     const data = { status: d.status, account: d.account, lastError: d.lastError ?? null, lastSyncAt: d.status === "connected" ? new Date(now.getTime() - 20 * 60000) : expired, isDemo: true };
     await prisma.dataSource.upsert({ where: { clientId_source: { clientId, source: d.source } }, update: data, create: { clientId, source: d.source, connectedAt: new Date(now.getTime() - 120 * DAY), ...data } });
   }
+  // The opportunity built from all of it (computed in code, lib/combined.ts).
+  await upsertCombinedOpportunity(clientId, now, { isDemo: true });
   return rows.length;
 }
