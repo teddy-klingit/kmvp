@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
+import { isClientAdmin } from "@/lib/client-roles";
+import { taggedLinkForOutput } from "@/lib/utm";
+import { TaggedLink } from "@/components/portal/library/tagged-link";
 import { formatDay } from "@/lib/project-state";
 import { CardRows, SectionCard } from "@/components/ds/card";
 import { PillLink } from "@/components/ds/pill-link";
@@ -13,6 +16,7 @@ export default async function SkillOutputPage({ params }: { params: Promise<{ id
   const viewer = await getPortalViewer();
   const output = await prisma.skillOutput.findFirst({ where: { id, clientId: viewer.clientId } });
   if (!output) notFound();
+  const tagged = await taggedLinkForOutput(output.id, viewer.clientId);
   const [skill, by, run] = await Promise.all([
     output.agentId ? prisma.agent.findUnique({ where: { id: output.agentId }, select: { id: true, name: true } }) : null,
     output.createdByUserId ? prisma.user.findUnique({ where: { id: output.createdByUserId }, select: { name: true } }) : null,
@@ -54,6 +58,7 @@ export default async function SkillOutputPage({ params }: { params: Promise<{ id
               ))}
             </CardRows>
           </SectionCard>
+          {tagged && <TaggedLink link={tagged} kind="output" id={output.id} admin={isClientAdmin(viewer)} />}
           <div className="flex flex-wrap gap-3">
             {skill && (
               <PillLink href={`/skills/${skill.id}?like=${output.id}`} variant="primary">

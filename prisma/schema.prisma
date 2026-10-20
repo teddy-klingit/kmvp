@@ -222,6 +222,8 @@ model SkillOutput {
   agentRunId      String?
   agentId         String?
   title           String
+  /// Phase V: where this output points; the tagged link adds UTMs. Default: the client website.
+  linkUrl         String?
   format          String?
   channel         String?
   text            String?
@@ -1106,6 +1108,8 @@ model Project {
   id                      String         @id @default(cuid())
   clientId                String
   name                    String
+  /// Phase V: utm_campaign for everything shipped from this project; set once, so a rename never breaks links.
+  utmSlug                 String?
   type                    ProjectType    @default(CAMPAIGN)
   status                  ProjectStatus  @default(BRIEFING)
   pausedFromStatus        ProjectStatus? // status to restore to on resume — only set while status = PAUSED
@@ -1456,6 +1460,8 @@ model Asset {
   platform           String? // e.g. "Instagram", "TikTok", "Facebook", "Display Network"
   type               AssetType   @default(IMAGE)
   fileUrl            String?
+  /// Phase V: where this piece points (its landing page); the tagged link adds UTMs. Default: the client website.
+  linkUrl            String?
   // Uploaded file, stored under UPLOADS_DIR (/data/uploads on Railway) and served through an access-checked route.
   storageKey         String?
   mimeType           String?

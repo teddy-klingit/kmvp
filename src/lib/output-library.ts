@@ -75,8 +75,11 @@ const dm = (d: Date) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month
  * The line under a piece (Phase U): how it performed (only work that ran on a connected channel), else how it was
  * used (facts we have or someone added), else "+ Add how it did". Never an empty metric or a zero.
  */
-function infoFor(metrics: { ctr: number | null; views: number | null; hookRate?: number | null; savesVsAvg?: number | null; topPct?: number | null }, facts: Fact[], downloads: number): Info {
+function infoFor(metrics: { ctr: number | null; views: number | null; hookRate?: number | null; savesVsAvg?: number | null; topPct?: number | null; revenue?: OutputRevenue | null }, facts: Fact[], downloads: number): Info {
+  const r = metrics.revenue;
   const perf = [
+    // Phase V: revenue linked to this piece through utm_content (the data layer), first.
+    r && r.revenue > 0 ? `${moneyShort(r.revenue, r.currency)} revenue${r.orders ? ` · ${Math.round(r.orders).toLocaleString("en-GB")} orders` : r.won ? ` · ${Math.round(r.won)} deals won` : ""}` : null,
     metrics.ctr != null && metrics.ctr > 0 ? `CTR ${metrics.ctr}%${metrics.topPct ? ` · top ${metrics.topPct}%` : ""}` : null,
     metrics.savesVsAvg ? `Saves ${metrics.savesVsAvg}× your average` : null,
     metrics.hookRate ? `Hook rate ${metrics.hookRate}%` : null,
@@ -88,8 +91,38 @@ function infoFor(metrics: { ctr: number | null; views: number | null; hookRate?:
   return { kind: "add", text: "+ Add how it did" };
 }
 
+type OutputRevenue = { revenue: number; orders: number; won: number; currency: string; impressions: number; clicks: number };
+const moneyShort = (n: number, currency: string) => {
+  const sym = currency === "EUR" ? "€" : currency === "USD" ? "$" : currency === "GBP" ? "£" : "";
+  const v = n >= 10000 ? `${Math.round(n / 1000)}k` : n >= 1000 ? `${(n / 1000).toFixed(1).replace(/\.0$/, "")}k` : String(Math.round(n));
+  return sym ? `${sym}${v}` : `${v} ${currency}`.trim();
+};
+
+/**
+ * Phase V: what the data layer knows per piece of work (rows whose utm_content named it): ad delivery, and the
+ * orders, deals and revenue credited to it ("shared": the average of first and last touch).
+ */
+export async function outputNumbers(clientId: string, outputIds?: string[]) {
+  const rows = await prisma.metricDaily.groupBy({ by: ["outputId", "metric", "model", "currency"], where: { clientId, outputId: outputIds ? { in: outputIds } : { not: null } }, _sum: { value: true } });
+  const out = new Map<string, OutputRevenue>();
+  for (const r of rows) {
+    if (!r.outputId) continue;
+    const o = out.get(r.outputId) ?? { revenue: 0, orders: 0, won: 0, currency: "", impressions: 0, clicks: 0 };
+    const v = (r._sum.value ?? 0) * (r.model ? 0.5 : 1);
+    if (r.metric === "revenue" || r.metric === "won_value") {
+      o.revenue += v;
+      o.currency = o.currency || r.currency;
+    } else if (r.metric === "orders") o.orders += v;
+    else if (r.metric === "won") o.won += v;
+    else if (r.metric === "impressions" && !r.model) o.impressions += v;
+    else if (r.metric === "clicks" && !r.model) o.clicks += v;
+    out.set(r.outputId, o);
+  }
+  return out;
+}
+
 export async function loadOutputLibrary(clientId: string, filters: LibraryFilters = {}, now = new Date()) {
-  const [assets, outputs, sources, facts, clientUsers] = await Promise.all([
+  const [assets, outputs, sources, facts, clientUsers, layer] = await Promise.all([
     prisma.asset.findMany({
       where: { clientId, ...clientVisibleAsset, status: { in: ["APPROVED", "DELIVERED"] } },
       include: { project: { select: { id: true, name: true, type: true } }, versions: { where: clientVisibleVersion, orderBy: { number: "desc" }, take: 1, select: { posterKey: true, sentAt: true } } },
@@ -99,7 +132,13 @@ export async function loadOutputLibrary(clientId: string, filters: LibraryFilter
     prisma.metricDaily.groupBy({ by: ["source"], where: { clientId, source: { in: [...AD_SOURCES] } }, _max: { date: true } }),
     prisma.outputFact.findMany({ where: { clientId }, orderBy: { createdAt: "asc" } }),
     prisma.clientUser.findMany({ where: { clientId }, select: { userId: true } }),
+    outputNumbers(clientId),
   ]);
+  // A piece's CTR from the data layer when the ad platform delivered enough of it; else what was stored on it.
+  const layerCtr = (id: string, stored: number | null) => {
+    const n = layer.get(id);
+    return n && n.impressions >= 500 ? Math.round((n.clicks / n.impressions) * 10000) / 100 : stored;
+  };
   const skills = new Map((await prisma.agent.findMany({ where: { id: { in: outputs.map((o) => o.agentId).filter((x): x is string => Boolean(x)) } }, select: { id: true, name: true } })).map((a) => [a.id, a.name]));
   const clientUserIds = new Set(clientUsers.map((c) => c.userId));
   const factsFor = (k: { assetId?: string; skillOutputId?: string }) => facts.filter((f) => (k.assetId ? f.assetId === k.assetId : f.skillOutputId === k.skillOutputId));
@@ -146,7 +185,7 @@ export async function loadOutputLibrary(clientId: string, filters: LibraryFilter
         category,
         meta: tags.meta ?? [category === "Ads" || category === "Social" ? (a.platform ?? fam) : category === "Video & motion" ? `Video · ${fam.replace(/^Video\s*/, "") || fam}` : fam, a.project.name, dm(date)].filter(Boolean).join(" · "),
         tags: tags.keywords ?? [],
-        info: infoFor({ ctr: a.performanceCtr, views: a.performanceViews, hookRate: tags.metrics?.hookRate, savesVsAvg: tags.metrics?.savesVsAvg, topPct: topPct(fam, a.performanceCtr) }, factsFor({ assetId: a.id }), a.downloadCount),
+        info: infoFor({ ctr: layerCtr(a.id, a.performanceCtr), views: a.performanceViews, hookRate: tags.metrics?.hookRate, savesVsAvg: tags.metrics?.savesVsAvg, topPct: topPct(fam, a.performanceCtr), revenue: layer.get(a.id) ?? null }, factsFor({ assetId: a.id }), a.downloadCount),
       };
     }),
     ...outputs.map((o): LibraryItem => {
@@ -169,7 +208,7 @@ export async function loadOutputLibrary(clientId: string, filters: LibraryFilter
         category,
         meta: [o.format, o.channel, `Skill: ${(o.agentId && skills.get(o.agentId)) ?? "skill"}`, dm(o.createdAt)].filter(Boolean).join(" · "),
         tags: [],
-        info: infoFor({ ctr: null, views: null }, factsFor({ skillOutputId: o.id }), o.downloadCount),
+        info: infoFor({ ctr: layerCtr(o.id, null), views: null, revenue: layer.get(o.id) ?? null }, factsFor({ skillOutputId: o.id }), o.downloadCount),
       };
     }),
   ];

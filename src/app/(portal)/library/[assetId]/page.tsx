@@ -3,6 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Check, Download } from "lucide-react";
 import { getPortalViewer } from "@/lib/current-viewer";
+import { isClientAdmin } from "@/lib/client-roles";
+import { taggedLinkForAsset } from "@/lib/utm";
+import { TaggedLink } from "@/components/portal/library/tagged-link";
 import { loadAssetDetail } from "@/lib/asset-detail";
 import { formatDay } from "@/lib/project-state";
 import { SectionCard, CardBody, CardRows } from "@/components/ds/card";
@@ -24,6 +27,8 @@ export default async function LibraryAssetPage({ params, searchParams }: { param
   const from = (await searchParams).from === "insights" ? { href: "/insights", label: "Insights" } : { href: "/library", label: "Output library" };
   const viewer = await getPortalViewer();
   const a = await loadAssetDetail(assetId, viewer.clientId);
+  // Phase V: the link to use for it, with UTMs (not for a web page, which is the destination itself).
+  const tagged = a ? await taggedLinkForAsset(a.id, viewer.clientId) : null;
   const more = a ? await prisma.agent.findFirst({ where: { key: /carousel|slide/i.test(a.format) ? "carousel_builder" : "ad_gen", availability: "self_service" }, select: { id: true } }) : null;
   if (!a) notFound();
   // Phase U: category, how it was used, who made it, the Brand OS check and every version the client was sent.
@@ -164,6 +169,8 @@ export default async function LibraryAssetPage({ params, searchParams }: { param
               <Row label="Status">{a.approval ? `Approved${a.approval.by ? ` by ${a.approval.by}` : ""}${a.approval.at ? ` · ${formatDay(a.approval.at)}` : ""}` : inReview ? "Waiting for your review" : a.status === "CHANGES_REQUESTED" ? "Changes asked" : "In review"}</Row>
             </CardRows>
           </SectionCard>
+
+          {tagged && <TaggedLink link={tagged} kind="asset" id={a.id} admin={isClientAdmin(viewer)} />}
 
           <div className="flex flex-wrap gap-3">
             {/* Make more like this: the matching skill, started from this asset (or Klingit, from a brief). */}

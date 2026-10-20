@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireOpsPage } from "@/lib/authz";
-import { setDemoHubSpotStateAction } from "@/lib/actions/ops-client-admin-actions";
+import { setCampaignMappingAction, setDemoHubSpotStateAction } from "@/lib/actions/ops-client-admin-actions";
+import { campaignsToMap } from "@/lib/campaign-mapping";
 import { prisma } from "@/lib/prisma";
 import { SectionCard, CardRows, CardNote } from "@/components/ds/card";
 import { StatRows, type Stat } from "@/components/ds/stats";
@@ -46,6 +47,7 @@ export default async function ClientAdminPage({ params }: { params: Promise<{ cl
   if (!client) notFound();
   const [ai, team] = await Promise.all([aiCreditStatus(clientId), teamAllowance(clientId)]);
   const ledger = await prisma.aiCreditLedger.findMany({ where: { clientId }, orderBy: { createdAt: "desc" }, take: 8 });
+  const mapping = await campaignsToMap(clientId);
   const hubspot = await prisma.dataSource.findUnique({ where: { clientId_source: { clientId, source: "HubSpot" } }, select: { status: true, isDemo: true } });
   const [adAccounts, adLog] = await Promise.all([listLiveAdAccounts().then((xs) => xs.filter((a) => !a.internal)), prisma.auditLog.findMany({ where: { area: "ad-accounts", clientId }, orderBy: { createdAt: "desc" }, take: 5 })]);
   const actors = new Map((await prisma.user.findMany({ where: { id: { in: adLog.flatMap((l) => (l.actorUserId ? [l.actorUserId] : [])) } }, select: { id: true, name: true } })).map((u) => [u.id, u.name]));
@@ -141,6 +143,41 @@ export default async function ClientAdminPage({ params }: { params: Promise<{ cl
           )}
         </SectionCard>
       </div>
+
+      <SectionCard title="Campaign mapping" meta={<span className="font-brand-mono text-[12px] text-brand-ink-2">{mapping.campaigns.length} CAMPAIGNS · 90 DAYS</span>}>
+        <CardNote>Ad platforms don&apos;t carry UTMs, so each campaign is joined to a project here (its utm_campaign). Anything not mapped shows as Unattributed in Insights → Revenue. A name match is suggested; nothing is mapped until you save.</CardNote>
+        {mapping.campaigns.length === 0 ? (
+          <CardNote>No ad campaigns with spend in the last 90 days.</CardNote>
+        ) : (
+          <CardRows>
+            {mapping.campaigns.map((c) => (
+              <li key={`${c.source}|${c.campaignId}`}>
+                <form action={setCampaignMappingAction} className="flex flex-wrap items-center gap-3 px-6 py-3 text-[14px]">
+                  <input type="hidden" name="clientId" value={client.id} />
+                  <input type="hidden" name="campaign" value={`${c.source}|${c.campaignId}`} />
+                  <span className="flex min-w-0 flex-1 basis-[240px] flex-col">
+                    <span className="truncate">{c.campaignName}</span>
+                    <span className="text-[12px] text-brand-ink-2">
+                      {c.source} · {Math.round(c.spend).toLocaleString("en-GB")} spent{c.mapped ? "" : c.suggested ? ` · suggested: ${c.suggested}` : " · Unattributed"}
+                    </span>
+                  </span>
+                  <select name="utmCampaign" defaultValue={c.mapped ?? c.suggested ?? ""} aria-label={`Project for ${c.campaignName}`} className="h-9 max-w-[260px] rounded-full border border-[#CFC8B8] bg-white px-3 text-[13px]">
+                    <option value="">Unattributed</option>
+                    {mapping.projects.map((p) => (
+                      <option key={p.slug} value={p.slug}>
+                        {p.name} ({p.slug})
+                      </option>
+                    ))}
+                  </select>
+                  <Button type="submit" size="sm" variant="secondary">
+                    {c.mapped ? "Save" : "Map"}
+                  </Button>
+                </form>
+              </li>
+            ))}
+          </CardRows>
+        )}
+      </SectionCard>
 
       {client.isDemo && hubspot?.isDemo && (
         <SectionCard title="Demo states" meta={<span className="font-brand-mono text-[12px] text-brand-ink-2">STAFF ONLY</span>}>

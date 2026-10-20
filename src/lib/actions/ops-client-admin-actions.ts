@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { setDemoHubSpotState } from "@/lib/demo/ouhers-phase-v";
+import { setCampaignMapping } from "@/lib/campaign-mapping";
 import { syncDailyAdMetrics } from "@/lib/integrations/ad-daily";
 import { prisma } from "@/lib/prisma";
 import { activateQueued } from "@/lib/active-slots";
@@ -108,5 +109,16 @@ export async function setDemoHubSpotStateAction(formData: FormData) {
   if (await setDemoHubSpotState(clientId, state)) await prisma.auditLog.create({ data: { clientId, actorUserId: viewer.userId, area: "connections", action: `Demo state: HubSpot shown as ${state === "setting_up" ? "setting up" : "connected"}` } });
   revalidatePath(`/ops/clients/${clientId}/admin`);
   revalidatePath("/settings/connections");
+  revalidatePath("/insights", "layout");
+}
+
+/** Phase V: staff map an ad campaign to a project's utm_campaign (or back to Unattributed). Logged. */
+export async function setCampaignMappingAction(formData: FormData) {
+  const viewer = await requireOpsRole(["ADMIN"]);
+  const clientId = String(formData.get("clientId") ?? "");
+  const [source, campaignId] = String(formData.get("campaign") ?? "").split("|");
+  if (!clientId || !source || !campaignId) return;
+  await setCampaignMapping(clientId, source, campaignId, String(formData.get("utmCampaign") ?? ""), viewer.userId);
+  revalidatePath(`/ops/clients/${clientId}/admin`);
   revalidatePath("/insights", "layout");
 }
