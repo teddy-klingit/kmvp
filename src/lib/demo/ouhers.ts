@@ -4,7 +4,8 @@ import bcrypt from "bcryptjs";
 import type { AssetStatus, AssetVersionState, ClientPermission, InternalRole, PipelineStageName, Prisma, ProjectStatus, ProjectType, StageStatus } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
 import { recordSync, writeAdDays } from "@/lib/metrics";
-import { seedPhaseVSources } from "@/lib/demo/ouhers-phase-v";
+import { seedPhaseVRevenue, seedPhaseVSources } from "@/lib/demo/ouhers-phase-v";
+import { projectUtmSlug } from "@/lib/utm";
 import { removeUploadsUnder, writeUploadAt } from "@/lib/uploads";
 import { PIPELINE_STAGE_ORDER } from "@/lib/labels";
 import { DEMO_PASSWORD } from "@/lib/demo-personas";
@@ -826,6 +827,7 @@ export async function seedOuhers(opts: { dir?: string; shift?: boolean; log?: (s
 
   // Phase V: the sales sources (Shopify, HubSpot, Klaviyo), connected as demo sources.
   await seedPhaseVSources({ clientId: OUHERS_CLIENT_ID, now, login: "maja@ouhers.com" });
+  say(`Phase V · revenue · ${await seedPhaseVRevenue({ clientId: OUHERS_CLIENT_ID, now, projectSlug: (id) => projectUtmSlug(projectId(id)) })} numbers in the data layer`);
 
   // ─── Computed vs expected ───────────────────────────────────────────────
   const health = await loadBrandHealth(OUHERS_CLIENT_ID);

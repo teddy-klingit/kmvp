@@ -15,6 +15,7 @@ import { Suspense } from "react";
 const SECTIONS = [
   { label: "Overview", href: "/insights" },
   { label: "Performance", href: "/insights/performance" },
+  { label: "Revenue", href: "/insights/revenue" },
   { label: "Market", href: "/insights/market" },
   { label: "Audience", href: "/insights/audience" },
   { label: "SEO & AI visibility", href: "/insights/seo" },

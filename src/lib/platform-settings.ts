@@ -83,6 +83,15 @@ export const SETTING_DEFAULTS = {
   } as Record<string, number>,
   /** VAT for clients in Sweden; clients abroad are reverse charge (0). */
   vatRateDomestic: 0.25 as number,
+  /**
+   * Phase V: the usual share kept at each funnel step (%), so "the biggest drop" is the step furthest below its usual
+   * rate, worked out, not guessed.
+   */
+  funnelTypical: { "impressions→clicks": 1.5, "clicks→sessions": 85, "sessions→orders": 2.5, "leads→qualified": 40, "qualified→deals": 25, "deals→won": 30 } as Record<string, number>,
+  /** Phase V: below these there's no recommendation, only "not enough data yet". */
+  confidenceMinimums: { orders: 100, deals: 30 } as Record<string, number>,
+  /** Phase V: two sources "agree" when their counts are within this share of each other. */
+  sourcesAgreeWithin: 0.1 as number,
 };
 export type SettingKey = keyof typeof SETTING_DEFAULTS;
 

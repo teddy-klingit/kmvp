@@ -13,6 +13,7 @@ vi.mock("@/lib/integrations/meta-ads", async (orig) => ({
 
 import { prisma } from "@/lib/prisma";
 import { adDays } from "@/lib/metrics";
+import { loadRevenue } from "@/lib/revenue";
 import { teamBalances } from "@/lib/team-ledger";
 import { aiCreditStatus } from "@/lib/ai-credits";
 import { loadToday } from "@/lib/today";
@@ -65,7 +66,8 @@ describe("the ouhers demo seed", () => {
   it("is idempotent and never touches other clients", async () => {
     const first = await counts();
     // 15 projects: one more in Phase S, the estimate waiting for the PM's number.
-    expect(first).toMatchObject({ projects: 15, daily: 318, users: 6, demoAgents: 3 });
+    // daily: Meta's and TikTok's stored days plus Google Ads (Phase V).
+    expect(first).toMatchObject({ projects: 15, daily: 769, users: 6, demoAgents: 3 });
     await seedOuhers({ shift: true });
     expect(await counts()).toEqual(first);
     expect(await prisma.client.count({ where: { id: { not: OUHERS_CLIENT_ID } } })).toBe(other.clients);
@@ -147,7 +149,8 @@ describe("the ouhers demo seed", () => {
   it("reads Insights from its own seeded days, never the live ad accounts", async () => {
     live.calls = 0;
     const paid = await loadPaidMedia(OUHERS_CLIENT_ID);
-    expect(paid.connected.sort()).toEqual(["Meta", "TikTok"]);
+    // Phase V: Meta and Google Ads (TikTok's token expired, so it has no numbers in the last 30 days).
+    expect(paid.connected.sort()).toEqual(["Google", "Meta"]);
     const daily = await loadDaily(OUHERS_CLIENT_ID, 30);
     expect(daily.has).toBe(true);
     expect(await syncDailyAdMetrics(OUHERS_CLIENT_ID, { force: true })).toMatchObject({ skipped: "demo account" });
@@ -192,7 +195,34 @@ describe("the ouhers demo seed", () => {
     for (const c of CATEGORIES) expect(lib.categoryCounts[c] ?? 0).toBeGreaterThan(0);
     const decksAndPrint = lib.items.filter((i) => i.category === "Presentations" || i.category === "Print");
     expect(decksAndPrint.some((i) => i.info.kind === "used")).toBe(true);
-    expect(decksAndPrint.every((i) => i.info.kind !== "performed")).toBe(true);
+    // Decks and print never get ad numbers (CTR, views); revenue linked through their UTM tags is fine (Phase V).
+    expect(decksAndPrint.every((i) => !/CTR|views/.test(i.info.text))).toBe(true);
     expect(lib.items.filter((i) => i.info.kind === "add").length).toBeGreaterThan(0);
+  });
+
+  it("Phase V: the Revenue tab adds up: €226k online + €186k retail = €412k, €89k spend, the same totals under every credit model", async () => {
+    const r = await loadRevenue(OUHERS_CLIENT_ID, { days: 90 });
+    expect(Math.round(r.funnels.online.revenue)).toBe(226000);
+    expect(Math.round(r.funnels.retail.revenue)).toBe(186000);
+    expect(Math.round(r.tiles.revenue.value)).toBe(412000);
+    expect(Math.round(r.tiles.roas.spend)).toBe(89000);
+    expect(r.tiles.roas.value!.toFixed(1)).toBe("4.6");
+    expect(Math.round(r.tiles.revenue.change! * 100)).toBe(18);
+    expect(Math.round(r.tiles.perCustomer.online!)).toBe(31);
+    expect(r.funnels.online.steps.map((x) => Math.round(x.value))).toEqual([6199999, 147969, 121000, 4310].map((v, i) => (i < 2 ? expect.any(Number) : v)));
+    expect(r.funnels.retail.steps.map((x) => x.value)).toEqual([1240, 578, 74, 31]);
+    expect(r.biggestDrop).toMatchObject({ path: "retail", from: "Qualified", to: "Deals" });
+    // The channel table is the same money: its revenue and spend add up to the tiles.
+    expect(Math.round(r.tables.channel.reduce((a, c) => a + c.revenue, 0))).toBe(412000);
+    expect(Math.round(r.tables.channel.reduce((a, c) => a + (c.spend ?? 0), 0))).toBe(89000);
+    expect(r.tables.channel.find((c) => c.name === "Retail fairs")!.return!).toBeLessThan(1);
+    expect(r.tables.channel.find((c) => c.name === "Unattributed")).toMatchObject({ orders: 190 });
+    expect(r.work.map((w) => Math.round(w.revenue))).toEqual([71000, 58000, 39000, 9000]);
+    expect(r.blind.map((b) => b.text).join(" ")).toMatch(/TikTok: token expired/);
+    for (const model of ["first", "last"] as const) {
+      const m = await loadRevenue(OUHERS_CLIENT_ID, { days: 90, model });
+      expect(Math.round(m.tiles.revenue.value)).toBe(412000);
+      expect(m.tables.channel.find((c) => c.name === "Meta")!.revenue).not.toBeCloseTo(r.tables.channel.find((c) => c.name === "Meta")!.revenue, 0);
+    }
   });
 });
