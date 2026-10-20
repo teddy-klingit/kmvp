@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { prisma } from "@/lib/prisma";
+import { writeAdDays } from "@/lib/metrics";
 import { createSecurityFixtures } from "./fixtures";
 import { isGrounded, numbersIn, textGrounded } from "@/lib/insights/number-guard";
 import { groundAction, groundTakeaway } from "@/lib/insights-brief";
@@ -74,13 +75,11 @@ describe("daily ad numbers", () => {
   beforeAll(async () => {
     fx = await createSecurityFixtures();
     await prisma.client.update({ where: { id: fx.clientA.id }, data: { paidMediaInScope: true, isSampleAccount: false } });
-    const row = (n: number, campaignId: string, impressions: number, clicks: number, spend: number) => ({ clientId: fx.clientA.id, platform: "Meta", accountName: "Acct", currency: "SEK", campaignId, campaignName: `Campaign ${campaignId}`, date: iso(n), impressions, clicks, spend });
-    await prisma.adDailyMetric.createMany({
-      data: [row(0, "a", 1000, 10, 100), row(2, "a", 1000, 20, 50), row(2, "b", 500, 5, 25), row(10, "a", 2000, 10, 80), row(20, "a", 1000, 1, 10)],
-    });
+    const row = (n: number, campaignId: string, impressions: number, clicks: number, spend: number) => ({ campaignId, campaignName: `Campaign ${campaignId}`, date: iso(n), impressions, clicks, spend, conversions: 0 });
+    await writeAdDays(fx.clientA.id, "Meta", { name: "Acct", currency: "SEK" }, "0000-00-00", [row(0, "a", 1000, 10, 100), row(2, "a", 1000, 20, 50), row(2, "b", 500, 5, 25), row(10, "a", 2000, 10, 80), row(20, "a", 1000, 1, 10)]);
   });
   afterAll(async () => {
-    await prisma.adDailyMetric.deleteMany({ where: { clientId: fx.clientA.id } });
+    await prisma.metricDaily.deleteMany({ where: { clientId: fx.clientA.id } });
     await fx.cleanup();
   });
 

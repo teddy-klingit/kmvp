@@ -1,11 +1,10 @@
 import Link from "next/link";
 import { ExternalLink, X } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { latestCompetitorChecks } from "@/lib/integrations/market-refresh";
 import { getPortalViewer } from "@/lib/current-viewer";
 import { jsonArray } from "@/lib/utils";
 import { domainForBrand } from "@/lib/brand-domains";
-import { getCompetitorAdLibraryActivity } from "@/lib/integrations/meta-ad-library";
-import { getLinkedInCompetitorAds } from "@/lib/integrations/linkedin-ad-library";
 import { loadMeasuredAssets } from "@/lib/insights-data";
 import { loadDaily, parseRange, pct } from "@/lib/insights/daily";
 import { CHANNEL_COLOR, newAdsByChannel } from "@/lib/insights/signals";
@@ -32,9 +31,9 @@ export default async function MarketCompetitorsPage({ searchParams }: { searchPa
   const clientId = viewer.clientId;
   const brands = jsonArray<string>(viewer.client.competitorBrands);
 
-  const [meta, linkedIn, profiles, benchmark, suggestions, newAds, daily, { measured }] = await Promise.all([
-    brands.length && !viewer.client.isDemo ? getCompetitorAdLibraryActivity(brands) : Promise.resolve([]),
-    brands.length && !viewer.client.isDemo ? getLinkedInCompetitorAds(brands) : Promise.resolve([]),
+  const [checks, profiles, benchmark, suggestions, newAds, daily, { measured }] = await Promise.all([
+    // The scheduler's stored checks (Phase V), never the ad libraries on a page load.
+    latestCompetitorChecks(clientId),
     prisma.competitorProfile.findMany({ where: { clientId } }),
     prisma.performanceBenchmark.findUnique({ where: { clientId } }),
     prisma.suggestedCompetitor.findMany({ where: { clientId, status: "NEW" }, orderBy: { createdAt: "desc" } }),
@@ -47,13 +46,9 @@ export default async function MarketCompetitorsPage({ searchParams }: { searchPa
   const rows = brands.map((brand) => {
     const counts = newAds.get(brand);
     const byChannel = CHANNELS.map((c) => ({ label: c, value: counts?.get(c) ?? 0, color: CHANNEL_COLOR[c] }));
-    const m = meta.find((r) => r.brand === brand);
-    const li = linkedIn.find((r) => r.brand === brand);
-    const ads = [
-      ...(li?.ok ? li.ads.slice(0, 3).map((a) => ({ href: a.adUrl, label: "LinkedIn ad" })) : []),
-      ...(m?.ok ? m.ads.slice(0, 3).map((a) => ({ href: a.snapshotUrl, label: "Meta ad" })) : []),
-    ].slice(0, 3);
-    const checked = [m?.ok && "Meta", li?.ok && "LinkedIn"].filter((x): x is string => Boolean(x));
+    const check = checks.get(brand);
+    const ads = [...(check?.ads.filter((a) => a.label === "LinkedIn ad") ?? []), ...(check?.ads.filter((a) => a.label === "Meta ad") ?? [])].slice(0, 3);
+    const checked = check?.checked ?? [];
     return { brand, total: byChannel.reduce((a, c) => a + c.value, 0), tracked: counts !== undefined, byChannel, ads, checked, positioning: profile.get(brand)?.positioning ?? null };
   });
   const share = rows.filter((r) => r.total > 0);

@@ -4,10 +4,6 @@ import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
 import { OpportunityLinks, opportunityLinksFor } from "@/components/portal/insights/opportunity-links";
 import { jsonArray } from "@/lib/utils";
-import { getIndustryNews } from "@/lib/integrations/industry-news";
-import { getCompetitorAdLibraryActivity } from "@/lib/integrations/meta-ad-library";
-import { getLinkedInCompetitorAds } from "@/lib/integrations/linkedin-ad-library";
-import { recordCompetitorSnapshots, recordNewsSignals } from "@/lib/integrations/market-signals";
 import { generateMarketIntelligenceAction } from "@/lib/actions/market-intelligence-actions";
 import { parseRange, sinceDays } from "@/lib/insights/daily";
 import { loadSignals, perfChange, signalSource, signalsPerWeek, SIGNAL_TYPES, weeksFor } from "@/lib/insights/signals";
@@ -41,18 +37,8 @@ export default async function MarketFeedPage({ searchParams }: { searchParams: P
   const viewer = await getPortalViewer();
   const opportunityLinks = await opportunityLinksFor(viewer.clientId, "/insights/market");
   const client = viewer.client;
-  const competitorBrands = jsonArray<string>(client.competitorBrands);
-  const newsQuery = client.industry ? `${client.industry} marketing` : client.name;
-
-  // A demo account's signals are seeded: no live news or ad-library checks.
-  const live = !client.isDemo;
-  const [news, adLibraryResults, linkedInAdResults, brief] = await Promise.all([
-    live ? getIndustryNews(newsQuery) : Promise.resolve([]),
-    live && competitorBrands.length ? getCompetitorAdLibraryActivity(competitorBrands) : Promise.resolve([]),
-    live && competitorBrands.length ? getLinkedInCompetitorAds(competitorBrands) : Promise.resolve([]),
-    prisma.marketIntelligenceBrief.findUnique({ where: { clientId: viewer.clientId } }),
-  ]);
-  if (live) await Promise.all([recordCompetitorSnapshots(client.id, adLibraryResults, linkedInAdResults), recordNewsSignals(client.id, news)]);
+  // Signals are stored by the scheduler's market refresh (Phase V), never fetched on a page load.
+  const brief = await prisma.marketIntelligenceBrief.findUnique({ where: { clientId: viewer.clientId } });
   const weeks = weeksFor(days);
   const signals = await loadSignals(client.id, weeks);
   const perWeek = signalsPerWeek(signals, weeks);

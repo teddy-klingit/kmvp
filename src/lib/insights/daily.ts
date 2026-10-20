@@ -1,10 +1,11 @@
-import { after } from "next/server";
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
-import { dailyMetricsFreshness, syncDailyAdMetrics, DAILY_WINDOW_DAYS } from "@/lib/integrations/ad-daily";
+import { DAILY_WINDOW_DAYS } from "@/lib/integrations/ad-daily";
+import { adDays, adPlatforms } from "@/lib/metrics";
 
 /**
- * Per-day ad numbers for Insights, read from AdDailyMetric (real days from the ad platforms). A day without a row
+ * Per-day ad numbers for Insights, read from the data layer (MetricDaily: real days from the ad platforms, written
+ * by the scheduler's sync; a page load never syncs or calls a platform, Phase V). A day without a row
  * inside the stored window means the campaigns didn't deliver that day, so it counts as zero; nothing outside the
  * window is ever filled in.
  */
@@ -45,35 +46,20 @@ const ctrOf = (rows: { clicks: number; impressions: number }[]) => {
   return i >= 500 ? Math.round((c / i) * 10000) / 100 : null;
 };
 
-/** Makes sure the daily rows exist and are fresh: the very first time it waits for them, after that it refreshes behind the page. */
-async function ensureDaily(clientId: string) {
-  const { lastSynced, stale } = await dailyMetricsFreshness(clientId);
-  if (!lastSynced) {
-    await syncDailyAdMetrics(clientId).catch(() => undefined);
-    return;
-  }
-  if (stale) {
-    try {
-      after(() => syncDailyAdMetrics(clientId).catch(() => undefined));
-    } catch {
-      // Outside a request (tests, scripts): the scheduler refreshes it.
-    }
-  }
-}
-
 export const loadDaily = cache(async (clientId: string, days: RangeDays, platform?: string | null) => {
   const client = await prisma.client.findUniqueOrThrow({ where: { id: clientId }, select: { isSampleAccount: true, paidMediaInScope: true, isDemo: true } });
   // A demo account reads its stored (seeded) days like a live one, but never syncs.
   const live = !client.isSampleAccount && client.paidMediaInScope;
-  if (live && !client.isDemo) await ensureDaily(clientId);
   // Today only counts once it has numbers; until then the window ends yesterday, so a day not reported yet
   // never reads as a zero day.
   const today = daysBackFrom(0);
-  const shift = live && (await prisma.adDailyMetric.count({ where: { clientId, date: today, ...(platform ? { platform } : {}) } })) === 0 ? 1 : 0;
+  // Everything in the stored window at once (one read of the data layer); the ranges below are cut from it.
+  const all = live ? await adDays(clientId, { since: daysBackFrom(DAILY_WINDOW_DAYS + 1), platform }) : [];
+  const shift = live && !all.some((r) => r.date === today) ? 1 : 0;
   const daysBack = (n: number): string => daysBackFrom(n + shift);
   const since = daysBack(Math.min(DAILY_WINDOW_DAYS, days * 2) - 1);
-  const rows = live ? await prisma.adDailyMetric.findMany({ where: { clientId, date: { gte: since }, ...(platform ? { platform } : {}) }, orderBy: { date: "asc" } }) : [];
-  const platforms = live ? [...new Set((await prisma.adDailyMetric.findMany({ where: { clientId }, select: { platform: true }, distinct: ["platform"] })).map((r) => r.platform))] : [];
+  const rows = all.filter((r) => r.date >= since);
+  const platforms = live ? await adPlatforms(clientId) : [];
   const start = daysBack(days - 1);
   const inRange = rows.filter((r) => r.date >= start);
   const prev = rows.filter((r) => r.date < start);
@@ -95,7 +81,7 @@ export const loadDaily = cache(async (clientId: string, days: RangeDays, platfor
   const last2 = daysBack(1);
   const last7 = daysBack(6);
   const trailingStart = daysBack(29);
-  const allRecent = live ? await prisma.adDailyMetric.findMany({ where: { clientId, date: { gte: trailingStart }, ...(platform ? { platform } : {}) } }) : [];
+  const allRecent = all.filter((r) => r.date >= trailingStart);
   const campaigns = new Map<string, CampaignRow>();
   for (const r of inRange) {
     const key = `${r.platform}:${r.campaignId}`;
@@ -115,7 +101,7 @@ export const loadDaily = cache(async (clientId: string, days: RangeDays, platfor
   }
 
   // A previous period only counts when the stored window covers all of it and the days were already being stored.
-  const earliest = live ? (await prisma.adDailyMetric.findFirst({ where: { clientId, ...(platform ? { platform } : {}) }, orderBy: { date: "asc" }, select: { date: true } }))?.date : undefined;
+  const earliest = live ? all[0]?.date : undefined;
   const coversPrevious = days * 2 <= DAILY_WINDOW_DAYS && earliest !== undefined && earliest <= daysBack(days * 2 - 1);
   return {
     has: inRange.length > 0,

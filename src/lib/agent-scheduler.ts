@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { refreshMarketSources } from "@/lib/integrations/market-refresh";
 import { generatePerformanceBrief } from "@/lib/insights-brief";
 import { loadTakeaways } from "@/lib/insights-data";
 import { lastClosed, writeReport } from "@/lib/report-data";
@@ -45,6 +46,9 @@ export async function runScheduledAgents(now = new Date()) {
       // Real per-day ad metrics first (every 6 hours), so the takeaways and charts read today's numbers.
       const daily = await syncDailyAdMetrics(c.id).catch((e: unknown) => ({ synced: [], skipped: e instanceof Error ? e.message : "failed" }));
       if (daily.synced.length) done.push(`${c.name}: daily ${daily.synced.join(", ")}`);
+      // Market sources (news, ad libraries) for the Market tabs, stored at most every 6 hours (Phase V).
+      const market = await refreshMarketSources(c.id, now).catch(() => ({ refreshed: false }));
+      if (market.refreshed) done.push(`${c.name}: market`);
       // Don't pile up runs: skip a client whose performance agent ran in the last half hour.
       const recent = await prisma.agentRun.findFirst({ where: { clientId: c.id, agent: { key: "performance_agent" }, createdAt: { gte: new Date(now.getTime() - RETRY_AFTER_MS) } }, select: { id: true } });
       if (recent) continue;

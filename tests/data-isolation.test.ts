@@ -35,7 +35,7 @@ function fakeMeta() {
   const fetchSpy = vi.fn(async (url: string) => {
     const body = url.includes("/insights")
       ? url.includes("time_increment")
-        ? { data: [{ campaign_id: "a1", campaign_name: SECRET, date_start: "2026-10-01", impressions: "1000", clicks: "20", spend: "50" }] }
+        ? { data: [{ campaign_id: "a1", campaign_name: SECRET, date_start: new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10), impressions: "1000", clicks: "20", spend: "50" }] }
         : { data: [{ campaign_id: "a1", campaign_name: SECRET, impressions: "1000", clicks: "20", ctr: "2", spend: "50" }] }
       : url.includes("/ads?")
         ? { data: [] }
@@ -90,6 +90,9 @@ describe("live ad data belongs to one client", () => {
 
   it("Ask your data never gives client B client A's campaigns", async () => {
     fakeMeta();
+    // Ask your data reads the data layer (Phase V): both clients' syncs run first, only A's account answers for A.
+    await syncDailyAdMetrics(fx.clientA.id, { force: true });
+    await syncDailyAdMetrics(fx.clientB.id, { force: true });
     setMockSession({ user: { id: fx.userB.id, role: "CLIENT" } });
     await askMarketIntelligenceQuestionAction({}, question());
     expect(asked.calls).toHaveLength(1);
@@ -104,19 +107,22 @@ describe("live ad data belongs to one client", () => {
   it("the daily sync never copies client A's campaigns into client B", async () => {
     fakeMeta();
     await syncDailyAdMetrics(fx.clientB.id, { force: true });
-    expect(await prisma.adDailyMetric.count({ where: { clientId: fx.clientB.id } })).toBe(0);
+    expect(await prisma.metricDaily.count({ where: { clientId: fx.clientB.id } })).toBe(0);
   });
 
   it("an unowned connection feeds nobody: no client, no assistant, no sync", async () => {
     const fetchSpy = fakeMeta();
-    for (const p of ["meta", "linkedin", "google-ads"]) await own(p, null);
+    // Unassigning takes the account's synced numbers out of the previous owner's data layer with it.
+    expect((await setLiveAdsOwner("meta", null, fx.adminUser.id)).error).toBeNull();
+    for (const p of ["linkedin", "google-ads"]) await own(p, null);
+    expect(await prisma.metricDaily.count({ where: { clientId: fx.clientA.id, source: "Meta" } })).toBe(0);
     for (const c of [fx.clientA, fx.clientB]) {
       expect((await getMetaAdAccountInsights(c.id)).ok).toBe(false);
       expect((await getMetaDailyInsights(c.id)).ok).toBe(false);
       expect((await getLinkedInAdInsights(c.id)).ok).toBe(false);
       expect((await getGoogleAdsAccountInsights(c.id)).ok).toBe(false);
       await syncDailyAdMetrics(c.id, { force: true });
-      expect(await prisma.adDailyMetric.count({ where: { clientId: c.id } })).toBe(0);
+      expect(await prisma.metricDaily.count({ where: { clientId: c.id } })).toBe(0);
       expect(await adDataStatus(c.id)).toBe("none");
     }
     setMockSession({ user: { id: fx.userA.id, role: "CLIENT" } });

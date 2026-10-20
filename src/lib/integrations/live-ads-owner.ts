@@ -74,6 +74,9 @@ export async function unassignedLiveAdAccounts() {
   return (await listLiveAdAccounts()).filter((a) => a.configured && !a.ownerId && !a.internal);
 }
 
+/** A live account's numbers in the data layer (MetricDaily.source). */
+const PROVIDER_SOURCE: Record<LiveAdProvider, string> = { meta: "Meta", linkedin: "LinkedIn", "google-ads": "Google" };
+
 /**
  * Assign (clientId) or unassign (null) a live account, logged in the AuditLog with before and after. An account
  * owned by another client must be unassigned there first, so an assignment never silently moves data.
@@ -86,8 +89,19 @@ export async function setLiveAdsOwner(provider: LiveAdProvider, clientId: string
   if (account.ownerId === clientId) return { error: null };
   const client = clientId ? await prisma.client.findUnique({ where: { id: clientId }, select: { id: true, name: true } }) : null;
   if (clientId && !client) return { error: "No such client." };
+  if (clientId && account.internal) return { error: "It's marked as Klingit's own. Unmark it first." };
 
+  // The previous owner's synced numbers from this account leave their data layer with it (Phase V: synced data
+  // goes on disconnect). If it comes back, the next sync fills the window again.
+  const source = PROVIDER_SOURCE[provider];
+  const prev = account.ownerId;
   await prisma.$transaction([
+    ...(prev
+      ? [
+          prisma.metricDaily.deleteMany({ where: { clientId: prev, source } }),
+          prisma.dataSource.updateMany({ where: { clientId: prev, source }, data: { status: "disconnected", disconnectedAt: new Date(), purgeAfter: new Date() } }),
+        ]
+      : []),
     provider === "meta"
       ? // Meta's token lives in the env: its row only says who owns the account.
         prisma.integrationConnection.upsert({ where: { provider }, update: { clientId }, create: { provider, clientId, accessToken: "" } })
@@ -97,7 +111,7 @@ export async function setLiveAdsOwner(provider: LiveAdProvider, clientId: string
         clientId: clientId ?? account.ownerId,
         actorUserId,
         area: "ad-accounts",
-        action: clientId ? `Assigned ${account.platform}${account.accountId ? ` ${account.accountId}` : ""} to ${client!.name}` : `Unassigned ${account.platform}${account.accountId ? ` ${account.accountId}` : ""} from ${account.ownerName ?? "its client"}`,
+        action: clientId ? `Assigned ${account.platform}${account.accountId ? ` ${account.accountId}` : ""} to ${client!.name}` : `Unassigned ${account.platform}${account.accountId ? ` ${account.accountId}` : ""} from ${account.ownerName ?? "its client"}${prev ? "; its synced numbers were removed" : ""}`,
         before: { provider, ownerId: account.ownerId, ownerName: account.ownerName },
         after: { provider, ownerId: clientId, ownerName: client?.name ?? null },
       },

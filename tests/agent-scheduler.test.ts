@@ -6,6 +6,7 @@ import { createSecurityFixtures } from "./fixtures";
 const calls = vi.hoisted(() => ({ briefs: [] as string[], reports: [] as string[] }));
 vi.mock("@/lib/insights-brief", () => ({ generatePerformanceBrief: async (id: string) => (calls.briefs.push(id), { ok: true }) }));
 vi.mock("@/lib/integrations/ad-daily", () => ({ syncDailyAdMetrics: async () => ({ synced: [] }) }));
+vi.mock("@/lib/integrations/market-refresh", () => ({ refreshMarketSources: async () => ({ refreshed: false }) }));
 // Reports straight away here (the Batch API path has its own test, report-batch.test.ts).
 vi.mock("@/lib/platform-settings", async (orig) => {
   const real = await orig<typeof import("@/lib/platform-settings")>();

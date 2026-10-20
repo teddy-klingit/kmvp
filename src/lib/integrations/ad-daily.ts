@@ -1,19 +1,20 @@
 import { prisma } from "@/lib/prisma";
+import { adCampaigns, adFreshness, recordSync, writeAdDays } from "@/lib/metrics";
+import { recordPerformanceSnapshots } from "@/lib/integrations/performance-alerts";
 import { getMetaDailyInsights, type DailyResult } from "@/lib/integrations/meta-ads";
 import { getLinkedInDailyInsights } from "@/lib/integrations/linkedin-ads";
 import { getGoogleAdsDailyInsights } from "@/lib/integrations/google-ads";
 
 /**
- * Real per-day ad metrics for a client: fetched day by day from every connected platform and stored in
- * AdDailyMetric (one row per campaign per day). Refreshed at most every 6 hours; the last 90 days are re-read
+ * Real per-day ad metrics for a client: fetched day by day from every connected platform and stored in the data
+ * layer (MetricDaily, Phase V; one number per campaign per day). Refreshed at most every 6 hours; the last 90 days are re-read
  * each time, because platforms keep adjusting recent days. Sample accounts and organic-only clients have none.
  */
 export const DAILY_WINDOW_DAYS = 90;
 const STALE_MS = 6 * 60 * 60 * 1000;
 
 export async function dailyMetricsFreshness(clientId: string) {
-  const latest = await prisma.adDailyMetric.findFirst({ where: { clientId }, orderBy: { updatedAt: "desc" }, select: { updatedAt: true } });
-  return { lastSynced: latest?.updatedAt ?? null, stale: !latest || Date.now() - latest.updatedAt.getTime() > STALE_MS };
+  return adFreshness(clientId, STALE_MS);
 }
 
 /** Fetches and stores the daily rows. Returns which platforms answered. */
@@ -31,21 +32,18 @@ export async function syncDailyAdMetrics(clientId: string, opts: { force?: boole
     ["Google", google],
   ];
   const synced: string[] = [];
+  const since = new Date(Date.now() - (DAILY_WINDOW_DAYS - 1) * 86400000).toISOString().slice(0, 10);
   for (const [platform, r] of results) {
-    if (!r.ok) continue;
-    // Upserts in chunks: a 90-day window is a few thousand rows at most.
-    for (let i = 0; i < r.rows.length; i += 200) {
-      await prisma.$transaction(
-        r.rows.slice(i, i + 200).map((row) =>
-          prisma.adDailyMetric.upsert({
-            where: { clientId_platform_campaignId_date: { clientId, platform, campaignId: row.campaignId, date: row.date } },
-            update: { campaignName: row.campaignName, accountName: r.accountName, currency: r.currency, impressions: row.impressions, clicks: row.clicks, spend: row.spend, conversions: row.conversions },
-            create: { clientId, platform, accountName: r.accountName, currency: r.currency, ...row },
-          })
-        )
-      );
+    if (!r.ok) {
+      // A platform that's set up but failed is recorded (and shown with Reconnect); one that isn't set up is skipped.
+      if (r.reason === "api_error") await recordSync(clientId, platform, { ok: false, error: r.message ?? "The platform didn't answer." });
+      continue;
     }
+    await writeAdDays(clientId, platform, { name: r.accountName, currency: r.currency }, since, r.rows);
+    await recordSync(clientId, platform, { ok: true, account: r.accountName });
     synced.push(platform);
   }
+  // Performance alerts compare snapshots over time; they're taken here, by the sync, never on a page load.
+  if (synced.length) await recordPerformanceSnapshots(clientId, await adCampaigns(clientId, 30));
   return { synced, skipped: null };
 }

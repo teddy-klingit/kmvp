@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { AD_SOURCES } from "@/lib/metrics";
 import { assetTitle } from "@/lib/asset-display";
 import { clientVisibleAsset, clientVisibleVersion } from "@/lib/qc/visibility";
 import { categoryFor, isCategory, type Category } from "@/lib/output-categories";
@@ -95,7 +96,7 @@ export async function loadOutputLibrary(clientId: string, filters: LibraryFilter
       orderBy: { createdAt: "desc" },
     }),
     prisma.skillOutput.findMany({ where: { clientId }, orderBy: { createdAt: "desc" } }),
-    prisma.adDailyMetric.groupBy({ by: ["platform"], where: { clientId }, _max: { date: true } }),
+    prisma.metricDaily.groupBy({ by: ["source"], where: { clientId, source: { in: [...AD_SOURCES] } }, _max: { date: true } }),
     prisma.outputFact.findMany({ where: { clientId }, orderBy: { createdAt: "asc" } }),
     prisma.clientUser.findMany({ where: { clientId }, select: { userId: true } }),
   ]);
@@ -204,7 +205,7 @@ export async function loadOutputLibrary(clientId: string, filters: LibraryFilter
     total: base.length,
     facets: { projects: uniq(all.map((i) => i.source)), formats: uniq(all.map((i) => i.format)), channels: uniq(all.map((i) => i.channel)) },
     summary: { total: shown.length, byKlingit: shown.filter((i) => i.madeBy === "klingit").length, bySkills: shown.filter((i) => i.madeBy === "skill").length },
-    dataSources: { platforms: sources.map((s) => s.platform), lastUpdate },
+    dataSources: { platforms: sources.map((s) => s.source), lastUpdate },
   };
 }
 

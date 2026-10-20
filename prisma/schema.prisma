@@ -325,6 +325,9 @@ model Client {
   performanceSnapshots         PerformanceSnapshot[]
   customApps                   ClientApp[]
   adDailyMetrics               AdDailyMetric[]
+  metricDaily                  MetricDaily[]
+  dataSources                  DataSource[]
+  campaignMappings             CampaignMapping[]
   contentPosts                 ContentPost[]
   followerSnapshots            FollowerSnapshot[]
   businessOutcomes             ClientBusinessOutcome[]
@@ -420,6 +423,8 @@ model CompetitorSnapshot {
   platform   String // "Meta" | "LinkedIn"
   totalAds   Int? // true total, only available where the platform's API reports one (LinkedIn)
   adIds      Json // string[] — ad ids/urls in this sample, for new-ad detection even without a true total
+  /// Phase V: up to 3 example ads [{ href, label }], so the Competitors page reads stored checks, never the libraries.
+  ads        Json?
   capturedAt DateTime @default(now())
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
@@ -523,6 +528,90 @@ model AdDailyMetric {
 
   @@unique([clientId, platform, campaignId, date])
   @@index([clientId, date])
+}
+
+/// Phase V: one data layer per client. Every source (ad platforms, shop, CRM, email, offline uploads) writes its
+/// numbers here through its sync job, one number per row: counts and amounts per day × source × channel ×
+/// campaign (× piece of work where known). Never personal data. Insights, Opportunities, Ask your data, skills and
+/// the Output library read from here, never from a source's API at request time.
+model MetricDaily {
+  id           String   @id @default(cuid())
+  clientId     String
+  /// YYYY-MM-DD in the source's time zone.
+  date         String
+  /// Where the number came from: "Meta" | "Google" | "LinkedIn" | "Shopify" | "HubSpot" | "Klaviyo" | "GA4" | "Offline".
+  source       String
+  /// The marketing channel it's credited to ("Meta", "Google Ads", "Klaviyo email", "Unattributed", ...).
+  channel      String
+  campaignId   String   @default("")
+  campaignName String   @default("")
+  accountName  String   @default("")
+  utmCampaign  String   @default("")
+  utmContent   String   @default("")
+  /// The piece of work (Asset or SkillOutput id), when utm_content names one.
+  outputId     String?
+  market       String   @default("")
+  /// "online" | "retail" for sales numbers, "" otherwise.
+  path         String   @default("")
+  /// Credit model for orders/revenue/deals/won: "first" | "last"; "" for numbers that aren't credited.
+  model        String   @default("")
+  /// impressions | clicks | spend | conversions | sessions | orders | new_customers | revenue | leads | qualified | deals | won | won_value | open_value | sends
+  metric       String
+  value        Float
+  currency     String   @default("")
+  updatedAt    DateTime @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, source, date, channel, campaignId, utmContent, market, path, model, metric])
+  @@index([clientId, date])
+  @@index([clientId, metric, date])
+  @@index([clientId, source])
+}
+
+/// Phase V: a connected data source per client (ads, shop, CRM, email): its state, last sync, data health and the
+/// choices made when setting it up (stage mapping, pipelines, currency, history). No tokens here.
+model DataSource {
+  id            String    @id @default(cuid())
+  clientId      String
+  /// "Meta" | "Google" | "LinkedIn" | "Shopify" | "HubSpot" | "Klaviyo" | "GA4" | "Offline"
+  source        String
+  /// "setting_up" | "connected" | "needs_reconnect" | "error" | "requested" | "disconnected"
+  status        String
+  account       String?
+  lastSyncAt    DateTime?
+  lastError     String?
+  /// e.g. { withSource: 0.97, of: "orders" }
+  health        Json?
+  /// Stage mapping, pipelines, currency, history months (sales sources).
+  settings      Json?
+  isDemo        Boolean   @default(false)
+  connectedAt   DateTime?
+  disconnectedAt DateTime?
+  /// Synced numbers are deleted by this date after a disconnect (30 days).
+  purgeAfter    DateTime?
+  updatedAt     DateTime  @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, source])
+}
+
+/// Phase V: joins a source's campaign to the work when its numbers carry no UTM: staff map a campaign to a
+/// utm_campaign (a project's slug). Anything unmatched shows as "Unattributed", never hidden.
+model CampaignMapping {
+  id              String   @id @default(cuid())
+  clientId        String
+  source          String
+  campaignId      String
+  campaignName    String
+  utmCampaign     String
+  createdByUserId String?
+  updatedAt       DateTime @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, source, campaignId])
 }
 
 model PerformanceSnapshot {

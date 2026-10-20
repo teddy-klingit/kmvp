@@ -1,11 +1,8 @@
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
-import { getMetaAdAccountInsights } from "@/lib/integrations/meta-ads";
-import { getLinkedInAdInsights } from "@/lib/integrations/linkedin-ads";
-import { getGoogleAdsAccountInsights } from "@/lib/integrations/google-ads";
 import { buildSamplePlatformCampaigns } from "@/lib/integrations/sample-data";
-import { recordPerformanceSnapshots } from "@/lib/integrations/performance-alerts";
-import { buildPlatformCampaigns, type PlatformCampaign } from "@/lib/performance";
+import { type PlatformCampaign } from "@/lib/performance";
+import { AD_SOURCES, adCampaigns, sourceErrors } from "@/lib/metrics";
 import { campaignMetricsForRange, weeklyPerformanceTrend } from "@/lib/campaign-history";
 import { resolveDateRange } from "@/lib/report-filters";
 import { computeContentKpis } from "@/lib/content-calendar-metrics";
@@ -15,8 +12,8 @@ import type { PerformanceAction, Takeaway } from "@/lib/ai/agents/performance-ag
 import { clientVisibleAsset } from "@/lib/qc/visibility";
 
 /**
- * Data shared by the Insights header and tabs. Each loader is cached per request (React cache), so the
- * header's "META CONNECTED" and the Overview's numbers come from one fetch of each ad account.
+ * Data shared by the Insights header and tabs, read from the data layer (Phase V). Each loader is cached per
+ * request (React cache), so the header and the tabs read the same numbers.
  */
 
 type ApiError = { platform: string; message: string };
@@ -38,7 +35,7 @@ export const loadPaidMedia = cache(async (clientId: string, rangePreset?: string
   if (!client.paidMediaInScope) return { inScope: false, isSample: client.isSampleAccount, campaigns: [], connected: [], errors: [], trend: null };
   // A demo account never reads the platform's real ad accounts: its campaigns are its own stored days.
   if (client.isDemo) {
-    const campaigns = await demoCampaigns(clientId);
+    const campaigns = await adCampaigns(clientId, 30);
     return { inScope: true, isSample: false, campaigns, connected: [...new Set(campaigns.map((c) => c.platform))], errors: [], trend: null };
   }
 
@@ -48,40 +45,17 @@ export const loadPaidMedia = cache(async (clientId: string, rangePreset?: string
     return { inScope: true, isSample: true, campaigns: all, connected: [...new Set(all.map((c) => c.platform))], errors: [], trend };
   }
 
-  const [meta, linkedIn, google] = await Promise.all([getMetaAdAccountInsights(clientId), getLinkedInAdInsights(clientId), getGoogleAdsAccountInsights(clientId)]);
-  const campaigns = buildPlatformCampaigns(meta, linkedIn, google);
-  await recordPerformanceSnapshots(clientId, campaigns);
-  const results = [
-    { platform: "Meta", r: meta },
-    { platform: "LinkedIn", r: linkedIn },
-    { platform: "Google", r: google },
-  ];
+  // Live accounts read the data layer like everyone else: the hourly sync fills it, never a page load (Phase V).
+  const [campaigns, errors, platforms] = await Promise.all([adCampaigns(clientId, 30), sourceErrors(clientId), prisma.dataSource.findMany({ where: { clientId, status: "connected", source: { in: [...AD_SOURCES] } }, select: { source: true } })]);
   return {
     inScope: true,
     isSample: false,
     campaigns,
-    connected: results.filter((x) => x.r.ok).map((x) => x.platform),
-    errors: results.flatMap((x) => (!x.r.ok && x.r.reason === "api_error" ? [{ platform: x.platform, message: x.r.message ?? "Unknown error" }] : [])),
+    connected: [...new Set([...platforms.map((p) => p.source), ...campaigns.map((c) => c.platform)])],
+    errors: errors.filter((e) => (AD_SOURCES as readonly string[]).includes(e.source)).map((e) => ({ platform: e.source, message: e.lastError ?? "The last sync failed." })),
     trend: null,
   };
 });
-
-/** The last 30 days of a demo account's stored daily rows, per campaign, in the shape the live accounts return. */
-async function demoCampaigns(clientId: string): Promise<PlatformCampaign[]> {
-  const since = new Date(Date.now() - 29 * 86400000).toISOString().slice(0, 10);
-  const rows = await prisma.adDailyMetric.groupBy({
-    by: ["platform", "accountName", "currency", "campaignId", "campaignName"],
-    where: { clientId, date: { gte: since } },
-    _sum: { impressions: true, clicks: true, spend: true, conversions: true },
-  });
-  return rows.map((r) => {
-    const impressions = r._sum.impressions ?? 0;
-    const clicks = r._sum.clicks ?? 0;
-    const spend = Math.round(r._sum.spend ?? 0);
-    const conversions = Math.round(r._sum.conversions ?? 0);
-    return { platform: r.platform, accountName: r.accountName, currency: r.currency, campaignId: r.campaignId, campaignName: r.campaignName, impressions, clicks, ctr: impressions ? Math.round((clicks / impressions) * 10000) / 100 : 0, spend, conversions, costPerConversion: conversions ? Math.round(spend / conversions) : null };
-  });
-}
 
 export const loadContentKpis = cache((clientId: string) => computeContentKpis(clientId));
 

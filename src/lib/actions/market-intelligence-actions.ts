@@ -4,14 +4,11 @@ import { withAiCharge, assistantCharge, ASSISTANTS } from "@/lib/ai-context";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { adCampaigns } from "@/lib/metrics";
 import { findOwnTopFormat, runMarketIntelligence } from "@/lib/market-intelligence-run";
 import { getPortalViewer } from "@/lib/current-viewer";
 import { jsonArray } from "@/lib/utils";
 import { getRecentMarketSignals } from "@/lib/integrations/market-signals";
-import { getMetaAdAccountInsights } from "@/lib/integrations/meta-ads";
-import { getLinkedInAdInsights } from "@/lib/integrations/linkedin-ads";
-import { getGoogleAdsAccountInsights } from "@/lib/integrations/google-ads";
-import { buildPlatformCampaigns } from "@/lib/performance";
 import { answerMarketIntelligenceQuestion } from "@/lib/ai/agents/market-intelligence-agent";
 
 const MARKET_INTEL_PATHS = ["/insights", "/insights/market", "/insights/market/competitors", "/insights/market/trends", "/planner/opportunities"];
@@ -45,25 +42,15 @@ export async function askMarketIntelligenceQuestionAction(
   if (!question) return { error: "Ask a question first." };
 
   const competitorBrands = jsonArray<string>(client.competitorBrands);
-  const liveAds = client.paidMediaInScope && !client.isDemo && !client.isSampleAccount;
-  const [signals, topFormat, metaInsights, linkedInInsights, googleInsights, seoBrief] = await Promise.all([
+  // The client's own numbers from the data layer (Phase V): stored by the sync, never fetched here, and only ever
+  // this client's rows. A sample account has none.
+  const [signals, topFormat, campaigns, seoBrief] = await Promise.all([
     getRecentMarketSignals(client.id, { take: 15 }),
     findOwnTopFormat(client.id),
-    // Only this client's own live ad accounts (live-ads-owner.ts): never the platform's, never a demo's.
-    liveAds ? getMetaAdAccountInsights(client.id) : ({ ok: false, reason: "not_configured" } as const),
-    liveAds ? getLinkedInAdInsights(client.id) : ({ ok: false, reason: "not_connected" } as const),
-    liveAds ? getGoogleAdsAccountInsights(client.id) : ({ ok: false, reason: "not_connected" } as const),
+    client.paidMediaInScope && !client.isSampleAccount ? adCampaigns(client.id, 30) : Promise.resolve([]),
     prisma.seoBrief.findUnique({ where: { clientId: client.id } }),
   ]);
-
-  const liveCampaigns = buildPlatformCampaigns(metaInsights, linkedInInsights, googleInsights).map((c) => ({
-    platform: c.platform,
-    campaignName: c.campaignName,
-    ctr: c.ctr,
-    impressions: c.impressions,
-    spend: c.spend,
-    currency: c.currency,
-  }));
+  const liveCampaigns = campaigns.map((c) => ({ platform: c.platform, campaignName: c.campaignName, ctr: c.ctr, impressions: c.impressions, spend: c.spend, currency: c.currency }));
 
   const result = await withAiCharge(assistantCharge(viewer.clientId, viewer.userId, ASSISTANTS.ask), () => answerMarketIntelligenceQuestion({
     clientId: client.id,

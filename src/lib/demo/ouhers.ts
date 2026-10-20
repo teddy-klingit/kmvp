@@ -3,6 +3,7 @@ import path from "node:path";
 import bcrypt from "bcryptjs";
 import type { AssetStatus, AssetVersionState, ClientPermission, InternalRole, PipelineStageName, Prisma, ProjectStatus, ProjectType, StageStatus } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
+import { recordSync, writeAdDays } from "@/lib/metrics";
 import { removeUploadsUnder, writeUploadAt } from "@/lib/uploads";
 import { PIPELINE_STAGE_ORDER } from "@/lib/labels";
 import { DEMO_PASSWORD } from "@/lib/demo-personas";
@@ -576,9 +577,13 @@ export async function seedOuhers(opts: { dir?: string; shift?: boolean; log?: (s
     asOf: string;
   }>("insights.json");
   const campaign = new Map(ins.campaigns.map((c) => [c.id, c]));
-  await prisma.adDailyMetric.createMany({
-    data: ins.daily.map((d) => ({ clientId: OUHERS_CLIENT_ID, platform: d.platform === "tiktok" ? "TikTok" : "Meta", accountName: d.platform === "tiktok" ? "ouhers tiktok (demo)" : "ouhers ads (demo)", currency: "SEK", campaignId: d.campaign, campaignName: campaign.get(d.campaign)?.name ?? d.campaign, date: day(d.date), impressions: d.impressions, clicks: d.clicks, spend: d.spend, conversions: d.purchases })),
-  });
+  // Into the data layer (Phase V), as the Meta and TikTok syncs would write it; both sources are demo connections.
+  for (const [platform, account] of [["Meta", "ouhers ads (demo)"], ["TikTok", "ouhers tiktok (demo)"]] as const) {
+    const days = ins.daily.filter((d) => (d.platform === "tiktok" ? "TikTok" : "Meta") === platform);
+    await writeAdDays(OUHERS_CLIENT_ID, platform, { name: account, currency: "SEK" }, "0000-00-00", days.map((d) => ({ campaignId: d.campaign, campaignName: campaign.get(d.campaign)?.name ?? d.campaign, date: day(d.date), impressions: d.impressions, clicks: d.clicks, spend: d.spend, conversions: d.purchases })));
+    await recordSync(OUHERS_CLIENT_ID, platform, { ok: true, account }, now);
+  }
+  await prisma.dataSource.updateMany({ where: { clientId: OUHERS_CLIENT_ID }, data: { isDemo: true } });
   for (const c of ins.creativePerformance) {
     const assetId = fileAsset.get(c.file);
     if (assetId) await prisma.asset.update({ where: { id: assetId }, data: { performanceCtr: c.ctr } });

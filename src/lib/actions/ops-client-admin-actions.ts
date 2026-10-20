@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { syncDailyAdMetrics } from "@/lib/integrations/ad-daily";
 import { prisma } from "@/lib/prisma";
 import { activateQueued } from "@/lib/active-slots";
 import { runAutopilot } from "@/lib/autopilot-runner";
@@ -62,6 +63,8 @@ export async function setLiveAdsOwnerAction(formData: FormData) {
   if (!LIVE_AD_PROVIDERS.some((p) => p.provider === provider) || !clientId) return;
   const { error } = await setLiveAdsOwner(provider, assign ? clientId : null, viewer.userId);
   if (error) throw new Error(error);
+  // The new owner's numbers arrive with a first sync right away; after that the hourly scheduler keeps them fresh.
+  if (assign) await syncDailyAdMetrics(clientId, { force: true }).catch(() => undefined);
   revalidatePath(`/ops/clients/${clientId}/admin`);
   revalidatePath("/ops");
   revalidatePath("/insights", "layout");

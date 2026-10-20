@@ -12,6 +12,7 @@ vi.mock("@/lib/integrations/meta-ads", async (orig) => ({
 }));
 
 import { prisma } from "@/lib/prisma";
+import { adDays } from "@/lib/metrics";
 import { teamBalances } from "@/lib/team-ledger";
 import { aiCreditStatus } from "@/lib/ai-credits";
 import { loadToday } from "@/lib/today";
@@ -37,7 +38,7 @@ const counts = async () => {
     projects: await prisma.project.count({ where }),
     assets: await prisma.asset.count({ where }),
     versions: await prisma.assetVersion.count({ where: { asset: where } }),
-    daily: await prisma.adDailyMetric.count({ where }),
+    daily: (await adDays(OUHERS_CLIENT_ID)).length,
     signals: await prisma.marketSignal.count({ where }),
     runs: await prisma.agentRun.count({ where }),
     users: await prisma.user.count({ where: { email: { endsWith: "@ouhers.demo" } } }),

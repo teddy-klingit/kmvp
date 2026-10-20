@@ -56,13 +56,13 @@ export async function recordCompetitorSnapshots(
   });
   if (latest && Date.now() - latest.capturedAt.getTime() < SNAPSHOT_STALE_MS) return;
 
-  const current: { brand: string; platform: string; totalAds: number | null; adIds: string[] }[] = [];
+  const current: { brand: string; platform: string; totalAds: number | null; adIds: string[]; ads: { href: string; label: string }[] }[] = [];
 
   for (const r of metaResults) {
-    if (r.ok) current.push({ brand: r.brand, platform: "Meta", totalAds: null, adIds: r.ads.map((a) => a.id) });
+    if (r.ok) current.push({ brand: r.brand, platform: "Meta", totalAds: null, adIds: r.ads.map((a) => a.id), ads: r.ads.slice(0, 3).map((a) => ({ href: a.snapshotUrl, label: "Meta ad" })) });
   }
   for (const r of linkedInResults) {
-    if (r.ok) current.push({ brand: r.brand, platform: "LinkedIn", totalAds: r.total, adIds: r.ads.map((a) => a.adUrl) });
+    if (r.ok) current.push({ brand: r.brand, platform: "LinkedIn", totalAds: r.total, adIds: r.ads.map((a) => a.adUrl), ads: r.ads.slice(0, 3).map((a) => ({ href: a.adUrl, label: "LinkedIn ad" })) });
   }
 
   for (const snap of current) {
@@ -72,7 +72,7 @@ export async function recordCompetitorSnapshots(
     });
 
     await prisma.competitorSnapshot.create({
-      data: { clientId, brand: snap.brand, platform: snap.platform, totalAds: snap.totalAds, adIds: snap.adIds },
+      data: { clientId, brand: snap.brand, platform: snap.platform, totalAds: snap.totalAds, adIds: snap.adIds, ads: snap.ads },
     });
 
     if (!previous) continue;
