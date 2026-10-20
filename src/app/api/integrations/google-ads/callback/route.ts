@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireOpsRole } from "@/lib/authz";
+import { clearOAuthState, oauthStateMatches } from "@/lib/oauth-state";
 
 export async function GET(req: NextRequest) {
   await requireOpsRole(["ADMIN"]);
@@ -10,7 +11,8 @@ export async function GET(req: NextRequest) {
   const errorParam = req.nextUrl.searchParams.get("error");
   const settingsUrl = new URL("/ops/admin/settings", appUrl);
 
-  if (errorParam || !code) {
+  // A callback this browser wasn't sent off on (no or a different state) is refused before asking for a token.
+  if (errorParam || !code || !oauthStateMatches(req, "google-ads")) {
     settingsUrl.searchParams.set("google", "error");
     return NextResponse.redirect(settingsUrl);
   }
@@ -52,5 +54,5 @@ export async function GET(req: NextRequest) {
   });
 
   settingsUrl.searchParams.set("google", "connected");
-  return NextResponse.redirect(settingsUrl);
+  return clearOAuthState(NextResponse.redirect(settingsUrl), "google-ads");
 }
