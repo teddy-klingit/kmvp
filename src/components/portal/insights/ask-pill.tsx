@@ -3,8 +3,22 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import { Loader2, X } from "lucide-react";
 import { askMarketIntelligenceQuestionAction, type AskQuestionState } from "@/lib/actions/market-intelligence-actions";
+import { Chips } from "@/components/insights/source-chip";
 
-type Question = { id: string; question: string; answer: string };
+type Question = { id: string; question: string; answer: string; sources?: string[] | null; dataSize?: string | null; confidence?: string | null };
+
+const CONF: Record<string, string> = { high: "High confidence", medium: "Medium confidence", low: "Low confidence" };
+/** Phase V: what an answer is based on: its sources, how much data, and the rule-based confidence. */
+function Basis({ sources, size, confidence }: { sources?: string[] | null; size?: string | null; confidence?: string | null }) {
+  if (!sources?.length) return null;
+  return (
+    <span className="flex flex-wrap items-center gap-1.5 text-[11px] text-brand-ink-2">
+      <Chips sources={sources} />
+      {size && <span>{size}</span>}
+      <span>· {confidence ? CONF[confidence] : "Not enough data for a confidence label"}</span>
+    </span>
+  );
+}
 
 /**
  * "Ask anything" as a pill input in the Insights header (it replaces the old fixed bottom bar). The
@@ -89,6 +103,7 @@ export function AskPill({ recent, notice }: { recent: Question[]; notice?: React
               <div className="flex flex-col gap-1.5">
                 <span className="text-[14px] font-semibold">{state.question}</span>
                 <p className="m-0 whitespace-pre-line text-[14px] leading-[1.55]">{state.answer}</p>
+                <Basis sources={state.sources} size={state.dataSize} confidence={state.confidence} />
               </div>
             )}
             {past.length > 0 &&
@@ -102,6 +117,7 @@ export function AskPill({ recent, notice }: { recent: Question[]; notice?: React
                     <li key={q.id} className="flex flex-col gap-1">
                       <span className="text-[13px] font-semibold">{q.question}</span>
                       <span className="line-clamp-4 text-[13px] leading-[1.5] text-brand-ink-2">{q.answer}</span>
+                      <Basis sources={q.sources} size={q.dataSize} confidence={q.confidence} />
                     </li>
                   ))}
                 </ul>

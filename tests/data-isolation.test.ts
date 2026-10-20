@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from "vitest";
 
 // What the assistant would be told, captured instead of calling the model.
-const asked = vi.hoisted(() => ({ calls: [] as { clientId: string; liveCampaigns?: { campaignName: string }[] }[] }));
+const asked = vi.hoisted(() => ({ calls: [] as { clientId: string; liveCampaigns?: { campaignName: string }[]; dataContext?: string[] }[], answer: "ok" }));
 vi.mock("@/lib/ai/agents/market-intelligence-agent", async (orig) => ({
   ...(await orig<typeof import("@/lib/ai/agents/market-intelligence-agent")>()),
-  answerMarketIntelligenceQuestion: async (args: { clientId: string; liveCampaigns?: { campaignName: string }[] }) => {
+  answerMarketIntelligenceQuestion: async (args: { clientId: string; liveCampaigns?: { campaignName: string }[]; dataContext?: string[] }) => {
     asked.calls.push(args);
-    return { ok: true, data: { answer: "ok" } };
+    return { ok: true, data: { answer: asked.answer } };
   },
 }));
 
@@ -17,6 +17,7 @@ import { getMetaAdAccountInsights, getMetaDailyInsights } from "@/lib/integratio
 import { getLinkedInAdInsights } from "@/lib/integrations/linkedin-ads";
 import { syncDailyAdMetrics } from "@/lib/integrations/ad-daily";
 import { askMarketIntelligenceQuestionAction } from "@/lib/actions/market-intelligence-actions";
+import { clientDataContext } from "@/lib/data-context";
 import { getGoogleAdsAccountInsights } from "@/lib/integrations/google-ads";
 import { adDataStatus, setLiveAdsOwner, unassignedLiveAdAccounts } from "@/lib/integrations/live-ads-owner";
 import PerformancePage from "@/app/(portal)/insights/performance/page";
@@ -102,6 +103,35 @@ describe("live ad data belongs to one client", () => {
     setMockSession({ user: { id: fx.userA.id, role: "CLIENT" } });
     await askMarketIntelligenceQuestionAction({}, question());
     expect(asked.calls[1].liveCampaigns?.map((c) => c.campaignName)).toEqual([SECRET]);
+  });
+
+  it("Phase V: Ask your data's one context (data layer, Planner, Output library, Brand OS) never holds another client's data", async () => {
+    fakeMeta();
+    await syncDailyAdMetrics(fx.clientA.id, { force: true });
+    await prisma.metricDaily.create({ data: { clientId: fx.clientA.id, date: new Date().toISOString().slice(0, 10), source: "Shopify", channel: SECRET, path: "online", model: "last", metric: "revenue", value: 98765, currency: "EUR" } });
+    const b = await clientDataContext(fx.clientB.id);
+    expect(b.lines.join(" ")).not.toContain(SECRET);
+    expect(b.pool).not.toContain(98765);
+    setMockSession({ user: { id: fx.userB.id, role: "CLIENT" } });
+    await askMarketIntelligenceQuestionAction({}, question());
+    expect(JSON.stringify(asked.calls.at(-1))).not.toContain(SECRET);
+    // Client A's own context has it.
+    expect((await clientDataContext(fx.clientA.id)).lines.join(" ")).toContain(SECRET);
+    await prisma.metricDaily.deleteMany({ where: { clientId: fx.clientA.id, source: "Shopify" } });
+  });
+
+  it("Phase V: a number the data doesn't hold never reaches the answer; the answer keeps its sources and data size", async () => {
+    setMockSession({ user: { id: fx.userA.id, role: "CLIENT" } });
+    asked.answer = "Your best campaign is Client A's secret campaign. It made 31337 euros last month.";
+    const r = await askMarketIntelligenceQuestionAction({}, question());
+    expect(r.answer).not.toContain("31337");
+    expect(r.answer).toContain("Your best campaign is Client A's secret campaign.");
+    expect(r.answer).toMatch(/couldn't be checked against your data/);
+    expect(r.sources?.length).toBeGreaterThan(0);
+    expect(r.dataSize).toBeTruthy();
+    const stored = await prisma.marketIntelligenceQuestion.findFirstOrThrow({ where: { clientId: fx.clientA.id }, orderBy: { createdAt: "desc" } });
+    expect(stored.answer).not.toContain("31337");
+    asked.answer = "ok";
   });
 
   it("the daily sync never copies client A's campaigns into client B", async () => {

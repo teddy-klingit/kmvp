@@ -12,6 +12,7 @@ import { AgentButton } from "@/components/portal/insights/agent-button";
 import { ChartCard, SkeletonChart, StatTile, WhySheet } from "@/components/insights/cards";
 import { BarList, ColumnChart, DumbbellRow, LineChart } from "@/components/insights/charts";
 import { SubBar } from "@/components/insights/toolbar";
+import { Basis } from "@/components/insights/basis";
 import { Suspense } from "react";
 import { NoAdAccount } from "@/components/portal/insights/no-ad-account";
 import { adDataStatus } from "@/lib/integrations/live-ads-owner";
@@ -33,7 +34,7 @@ export default async function InsightsPerformancePage({ searchParams }: { search
   const clientId = viewer.clientId;
   // No ad account: Performance has nothing to show but the way to connect one.
   if ((await adDataStatus(clientId)) === "none") return <NoAdAccount admin={isClientAdmin(viewer)} />;
-  const [paid, daily, { all, measured }, { actions }, connect] = await Promise.all([
+  const [paid, daily, { all, measured }, { actions, basis }, connect] = await Promise.all([
     loadPaidMedia(clientId),
     loadDaily(clientId, days, platform ?? null),
     loadMeasuredAssets(clientId),
@@ -193,6 +194,7 @@ export default async function InsightsPerformancePage({ searchParams }: { search
         side={
           <>
             <ChartCard flush title="What to do" meta={<span className="font-brand-mono text-[12px] text-brand-ink">BY PERFORMANCE INSIGHTS</span>}>
+              <Basis basis={basis} className="border-b border-brand-line px-6 py-2.5" />
               {actions.length > 0 ? (
                 <>
                   <ol className="m-0 list-none p-0">

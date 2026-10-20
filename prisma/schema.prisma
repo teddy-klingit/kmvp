@@ -406,6 +406,10 @@ model MarketIntelligenceQuestion {
   clientId  String
   question  String
   answer    String
+  /// Phase V: what the answer is based on: source chips, how much data, rule-based confidence.
+  sources   Json?
+  dataSize  String?
+  confidence String?
   createdAt DateTime @default(now())
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
@@ -501,6 +505,8 @@ model PerformanceBrief {
   actions         Json?
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  /// Phase V: what the takeaways are based on: { sources, size, confidence }.
+  basis      Json?
 }
 
 // Point-in-time read of one live campaign's CTR, so we can detect a real

@@ -124,8 +124,10 @@ export async function answerMarketIntelligenceQuestion(args: {
   ownTopFormat: { format: string; platform: string; ctr: number } | null;
   liveCampaigns?: { platform: string; campaignName: string; ctr: number; impressions: number; spend: number; currency: string }[];
   seoSummary?: string | null;
+  /** Phase V: the client's own data (the data layer, Planner, Output library, Brand OS), numbers computed in code. */
+  dataContext?: string[];
 }) {
-  const system = `You are the Market Intelligence agent at Klingit, a creative agency. A client is asking you a specific, ad-hoc question — it could be about their competitive landscape, their own live ad performance, or their SEO/AI-search visibility standing. Answer directly in 2-4 sentences, grounded only in the specific signals given below — never invent data points, use the currency code given for any spend figures (never assume USD or use a "$" sign), and explicitly say when you don't have enough real signal to answer confidently rather than speculating as fact.`;
+  const system = `You are the Market Intelligence agent at Klingit, a creative agency. A client is asking you a specific, ad-hoc question — it could be about their competitive landscape, their own live ad performance, or their SEO/AI-search visibility standing. Answer directly in 2-4 sentences, grounded only in the specific signals given below — never invent data points or numbers (every number you write must appear in the data given, or be a simple ratio or % change of two of them), use the currency code given for any spend figures (never assume USD or use a "$" sign), and explicitly say when you don't have enough real signal to answer confidently rather than speculating as fact.`;
 
   const parts = [
     `Client: ${args.clientName}`,
@@ -154,6 +156,10 @@ export async function answerMarketIntelligenceQuestion(args: {
 
   if (args.seoSummary) {
     parts.push(`SEO / AI VISIBILITY STANDING: ${args.seoSummary}`, "");
+  }
+
+  if (args.dataContext?.length) {
+    parts.push("THE CLIENT'S OWN DATA (computed by Klingit; use these numbers exactly, never others, and say what's missing when it doesn't cover the question):", ...args.dataContext, "");
   }
 
   parts.push(`QUESTION: ${args.question}`);

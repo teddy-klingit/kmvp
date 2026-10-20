@@ -11,6 +11,7 @@ import { PageGrid } from "@/components/ds/page-grid";
 import { PillLink, monoLink } from "@/components/ds/pill-link";
 import { AgentButton } from "@/components/portal/insights/agent-button";
 import { ChartCard, SkeletonChart, StatTile, Takeaway } from "@/components/insights/cards";
+import { Basis } from "@/components/insights/basis";
 import { BarList, ColumnChart, Legend, MiniBars } from "@/components/insights/charts";
 import { cn } from "@/lib/utils";
 import { NoAdAccount } from "@/components/portal/insights/no-ad-account";
@@ -28,7 +29,7 @@ export default async function InsightsOverviewPage({ searchParams }: { searchPar
   const days = parseRange((await searchParams).range);
   const viewer = await getPortalViewer();
   const clientId = viewer.clientId;
-  const [paid, daily, { all, measured }, { takeaways }, sources, signals, connect, kpis, audits, mi, adStatus] = await Promise.all([
+  const [paid, daily, { all, measured }, { takeaways, basis }, sources, signals, connect, kpis, audits, mi, adStatus] = await Promise.all([
     loadPaidMedia(clientId),
     loadDaily(clientId, days),
     loadMeasuredAssets(clientId),
@@ -82,6 +83,8 @@ export default async function InsightsOverviewPage({ searchParams }: { searchPar
       {noAds ? (
         <NoAdAccount admin={isClientAdmin(viewer)} />
       ) : takeaways.length > 0 ? (
+        <>
+        <Basis basis={basis} className="-mb-2" />
         <div className="grid grid-cols-1 gap-4 min-[800px]:grid-cols-3">
           {takeaways.map((t, i) => (
             <Takeaway
@@ -96,6 +99,7 @@ export default async function InsightsOverviewPage({ searchParams }: { searchPar
             />
           ))}
         </div>
+        </>
       ) : (
         <ChartCard title="This week's takeaways">
           <SkeletonChart line="Performance insights writes three takeaways from your numbers every week." action={<AgentButton action={generatePerformanceInsightsAction} label="Write takeaways" pendingLabel="Reading the numbers…" />} />

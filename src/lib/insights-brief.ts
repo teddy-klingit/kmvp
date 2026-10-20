@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { clientDataContext } from "@/lib/data-context";
 import { performancePrompt, synthesizePerformanceInsights, type CampaignFacts, type Takeaway, type PerformanceAction } from "@/lib/ai/agents/performance-agent";
 import { getRecentMarketSignals } from "@/lib/integrations/market-signals";
 import { loadMeasuredAssets, loadPaidMedia } from "@/lib/insights-data";
@@ -32,13 +33,16 @@ export async function generatePerformanceBrief(clientId: string): Promise<{ ok: 
   }
 
   const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-  const prompt = performancePrompt({
+  // Phase V: the client's combined data (revenue, Planner, Output library, Brand OS) goes in too; numbers from it only.
+  const ctx = await clientDataContext(clientId);
+  const base = performancePrompt({
     clientName: client.name,
     platformCampaigns: campaigns,
     ownFormatBreakdown,
     assets: measured.map((a) => ({ name: a.title, project: a.project, format: a.format, ctr: a.ctr })),
     marketSignals: signals.filter((s) => s.publishedAt.getTime() >= weekAgo),
   });
+  const prompt = `${base}\n\nTHE CLIENT'S OWN DATA (computed by Klingit; use these numbers exactly):\n${ctx.lines.join("\n")}`;
   const result = await synthesizePerformanceInsights({ clientId: client.id, prompt });
   if (!result.ok) return { ok: false, error: result.error };
 
@@ -52,6 +56,7 @@ export async function generatePerformanceBrief(clientId: string): Promise<{ ok: 
     takeaways,
     actions,
     generatedAt: new Date(),
+    basis: { sources: ctx.sources, size: ctx.size, confidence: ctx.confidence },
   };
   await prisma.performanceBrief.upsert({ where: { clientId }, update: data, create: { clientId, ...data } });
   return { ok: true };

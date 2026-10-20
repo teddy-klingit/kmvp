@@ -64,7 +64,7 @@ export default async function InsightsLayout({ children }: { children: React.Rea
           <span className="font-brand-mono text-[12px] text-brand-ink-2">{eyebrow}</span>
           <h1 className="m-0 text-[32px] font-light leading-[1.15] tracking-[0.01em] min-[700px]:text-[36px]">Insights</h1>
         </div>
-        <AskPill recent={questions.map((q) => ({ id: q.id, question: q.question, answer: q.answer }))} notice={adStatus === "none" ? <NoAdAccount admin={isClientAdmin(viewer)} compact /> : undefined} />
+        <AskPill recent={questions.map((q) => ({ id: q.id, question: q.question, answer: q.answer, sources: q.sources as string[] | null, dataSize: q.dataSize, confidence: q.confidence }))} notice={adStatus === "none" ? <NoAdAccount admin={isClientAdmin(viewer)} compact /> : undefined} />
       </header>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <SegmentedNav label="Insights sections" items={SECTIONS} />

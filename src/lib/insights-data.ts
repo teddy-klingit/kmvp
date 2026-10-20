@@ -160,12 +160,14 @@ export async function loadTakeaways(clientId: string, now = new Date()) {
   const takeaways = brief?.takeaways ? jsonArray<Takeaway | OldTakeaway>(brief.takeaways).map(normalizeTakeaway).slice(0, TAKEAWAYS_MAX) : [];
   const actions = brief?.actions ? jsonArray<PerformanceAction>(brief.actions).slice(0, 3) : [];
   const stale = !brief?.takeaways || !brief.actions || now.getTime() - brief.generatedAt.getTime() > TAKEAWAYS_STALE_MS;
-  return { takeaways, actions, generatedAt: brief?.generatedAt ?? null, stale };
+  const basis = (brief?.basis ?? null) as { sources?: string[]; size?: string; confidence?: string | null } | null;
+  return { takeaways, actions, generatedAt: brief?.generatedAt ?? null, stale, basis };
 }
 
 const VIEW_HREF: Record<NonNullable<Takeaway["action"]["view"]>, string> = {
   performance: "/insights/performance",
   creative: "/insights/performance#creative",
+  revenue: "/insights/revenue",
   market: "/insights/market",
   competitors: "/insights/market/competitors",
   trends: "/insights/market/trends",

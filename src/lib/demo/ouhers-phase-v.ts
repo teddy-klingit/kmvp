@@ -2,6 +2,8 @@ import type { Prisma } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
 import { DEMO_ACCOUNT, guessStage, type SalesSettings } from "@/lib/sales-sources";
 import { upsertCombinedOpportunity } from "@/lib/combined";
+import { clientDataContext } from "@/lib/data-context";
+import { loadRevenue } from "@/lib/revenue";
 
 /**
  * Phase V demo (V6): ouhers' sales sources. Shopify (online), HubSpot (retail and wholesale pipeline) and Klaviyo are
@@ -261,5 +263,32 @@ export async function seedPhaseVRevenue(ctx: { clientId: string; now: Date; proj
   }
   // The opportunity built from all of it (computed in code, lib/combined.ts).
   await upsertCombinedOpportunity(clientId, now, { isDemo: true });
+  // The takeaways say what they're based on (Phase V), like everything else the AI writes.
+  const basis = await clientDataContext(clientId, now);
+  // The older seeded TikTok takeaway and action (TikTok's token expired) give way to ones computed from the data
+  // layer: the return per channel, and the combined opportunity.
+  const brief = await prisma.performanceBrief.findUnique({ where: { clientId } });
+  if (brief) {
+    const rev = await loadRevenue(clientId, { days: 90, now });
+    const paid = rev.tables.channel.filter((c) => c.spend && c.return !== null).sort((a, b) => (b.return ?? 0) - (a.return ?? 0));
+    const below = paid.filter((c) => (c.return ?? 0) < 1);
+    const ads = paid.filter((c) => c.name === "Meta" || c.name === "Google Ads");
+    const takeaways = (brief.takeaways as unknown as { tag: string }[]).map((t, i) =>
+      i === 2
+        ? {
+            tag: "Performance",
+            metric: `${rev.tiles.roas.value!.toFixed(1)}×`,
+            headline: below.length ? `Ads return their spend; ${below.map((b) => b.name.toLowerCase()).join(", ")} don't` : "Every paid channel returns its spend",
+            compare: ads.map((c) => ({ label: `${c.name} return`, value: Math.round(c.return! * 10) / 10, display: `${c.return!.toFixed(1)}×` })),
+            action: { kind: "view", label: "See revenue", view: "revenue" },
+            why: `Over the last 90 days, real revenue from Shopify and HubSpot was ${Math.round(rev.tiles.revenue.value / 1000)}k against ${Math.round(rev.tiles.roas.spend / 1000)}k ad spend.${below.length ? ` ${below.map((b) => `${b.name} returned ${b.return!.toFixed(1)}×`).join(", ")}.` : ""}`,
+          }
+        : t
+    );
+    const opp = await prisma.opportunity.findFirst({ where: { clientId, origin: "combined" } });
+    const c = opp?.combined as { headline?: string; effect?: { text?: string } } | null;
+    const actions = (brief.actions as unknown as { headline: string; chip: string; why: string; brief: string }[]).map((a, i) => (i === 2 && opp && c?.headline ? { headline: c.headline, chip: c.effect?.text?.replace(/^≈ /, "").replace(" revenue over 60 days", "") ?? "", why: opp.summary, brief: c.headline } : a));
+    await prisma.performanceBrief.update({ where: { id: brief.id }, data: { takeaways, actions, recommendations: actions.map((a) => ({ title: a.headline, detail: a.why })), summary: "Ads return their spend, with Stories selling bigger orders; always-on Meta creative is tiring ahead of Black Friday.", basis: { sources: basis.sources, size: basis.size, confidence: basis.confidence } } });
+  }
   return rows.length;
 }

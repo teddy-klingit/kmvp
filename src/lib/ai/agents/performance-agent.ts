@@ -8,7 +8,7 @@ import { runAgentTask } from "@/lib/ai/run-agent";
  */
 
 /** Where a takeaway's action can send the client inside Insights (see takeawayHref). */
-export const TAKEAWAY_VIEWS = ["performance", "creative", "market", "competitors", "trends", "audience", "seo"] as const;
+export const TAKEAWAY_VIEWS = ["performance", "creative", "revenue", "market", "competitors", "trends", "audience", "seo"] as const;
 export const TAKEAWAY_TAGS = ["Performance", "Creative", "Fatigue", "Spend", "Market", "Audience"] as const;
 
 const CompareSchema = z.object({
