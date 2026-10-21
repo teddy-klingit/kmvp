@@ -217,7 +217,7 @@ export async function upsertCombinedOpportunity(clientId: string, now = new Date
   const sourceKey = `combined:budget-shift:${r.planItemId}`;
   const existing = await prisma.opportunity.findFirst({ where: { clientId, sourceKey } });
   if (existing?.status === "dismissed") return existing;
-  const data = { title: r.title, summary: r.summary, whyNow: r.combined.evidence[0]?.text ?? null, combined: r.combined, confidence: r.confidence, sources: ["data"], evidence: [], windowEnd: r.combined.decideBy ? new Date(r.combined.decideBy) : null, origin: "combined", isDemo: Boolean(opts.isDemo) };
+  const data = { title: r.title, summary: r.summary, whyNow: r.combined.evidence[0]?.text ?? null, combined: r.combined, confidence: r.confidence, sources: ["data"], evidence: [], windowEnd: r.combined.decideBy ? new Date(r.combined.decideBy) : null, origin: "combined", kind: "budget", isDemo: Boolean(opts.isDemo) };
   const o = existing ? await prisma.opportunity.update({ where: { id: existing.id }, data }) : await prisma.opportunity.create({ data: { clientId, sourceKey, ...data } });
   // Phase W: built from its findings, written as insight records and linked.
   const insights = [];

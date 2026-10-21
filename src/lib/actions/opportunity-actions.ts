@@ -9,11 +9,13 @@ import { startBriefForItem } from "@/lib/plan-brief";
 import { addAnotherRoute, dismissOpportunity, loadOpportunity, markRoute, runOpportunityScan } from "@/lib/opportunities";
 import { jsonArray } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
+import { sendPmMessage } from "@/lib/pm-thread";
 
 /** Plan → Opportunities (Phase R step 4). Every action is scoped to the signed-in client. */
 
 function refresh(id?: string) {
   revalidatePath("/planner", "layout");
+  revalidatePath("/opportunities", "layout");
   if (id) revalidatePath(`/opportunities/${id}`);
   revalidatePath("/dashboard");
 }
@@ -28,6 +30,20 @@ export async function dismissOpportunityAction(formData: FormData) {
 }
 
 export type AskState = { error?: string; ok?: string };
+
+/**
+ * Phase W: "Ask for an opportunity": a short note to the Marketing PM (in the message panel, so it lands on their
+ * Today and they reply there), logged.
+ */
+export async function askForOpportunityAction(formData: FormData) {
+  const viewer = await getPortalViewer();
+  const what = String(formData.get("what") ?? "").trim().slice(0, 1000);
+  if (!what) redirect("/opportunities?ask=1");
+  await sendPmMessage({ clientId: viewer.clientId, author: { userId: viewer.userId, clientUserId: viewer.id, name: viewer.user.name }, body: `Could you look for an opportunity? ${what}` });
+  await prisma.auditLog.create({ data: { clientId: viewer.clientId, actorUserId: viewer.userId, area: "opportunities", action: `Asked for an opportunity: “${what.slice(0, 120)}”` } });
+  refresh();
+  redirect("/opportunities?asked=1");
+}
 
 /** Ask for more: a scan now, on the client's AI credits (the weekly one is Klingit's). */
 export async function askForMoreAction(): Promise<AskState> {
@@ -86,7 +102,7 @@ export async function addCombinedToPlanAction(formData: FormData) {
   if (!item) return;
   const formats = [...new Set([...jsonArray<string>(item.formats), ...add.formats])];
   await prisma.clientCalendarItem.update({ where: { id: item.id }, data: { formats, opportunityId: o.id } });
-  await prisma.opportunity.update({ where: { id: o.id }, data: { status: "added" } });
+  await prisma.opportunity.update({ where: { id: o.id }, data: { status: "in_plan" } });
   await prisma.auditLog.create({ data: { clientId: viewer.clientId, actorUserId: viewer.userId, area: "plan", action: `Added ${add.formats.join(", ")} to “${item.title}” from the opportunity “${o.title}”` } });
   refresh(id);
   redirect(`/planner?item=${item.id}`);

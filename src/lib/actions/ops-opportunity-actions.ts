@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireOpsRole } from "@/lib/authz";
-import { runOpportunityScan, SOURCES, type Source } from "@/lib/opportunities";
+import { kindFor, runOpportunityScan, SOURCES, type Source } from "@/lib/opportunities";
 import { linkInsights } from "@/lib/insight-records";
 
 /**
@@ -91,6 +91,7 @@ export async function addOpportunityAction(formData: FormData) {
       summary,
       whyNow: summary.split(". ")[0],
       sources: [(source in SOURCES ? source : "trend") as Source],
+      kind: kindFor([source]),
       windowStart: start,
       windowEnd: date(formData.get("windowEnd")) ?? start,
       windowNote: start ? null : "Any time · sooner is better",

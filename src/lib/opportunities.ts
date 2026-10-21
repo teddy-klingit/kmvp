@@ -32,6 +32,19 @@ export const SOURCES = {
 export type Source = keyof typeof SOURCES;
 export const isSource = (s: unknown): s is Source => typeof s === "string" && s in SOURCES;
 
+/** Phase W: the stepper. Dismissed sits before In plan, so adding a set-aside one to the Planner brings it back. */
+export const STATUSES = ["new", "considering", "in_plan", "running", "result"] as const;
+export type Status = (typeof STATUSES)[number];
+export const STATUS_LABEL: Record<Status | "dismissed", string> = { new: "New", considering: "Considering", in_plan: "In plan", running: "Running", result: "Result", dismissed: "Not for us" };
+export const statusRank = (s: string) => ["new", "considering", "dismissed", "in_plan", "running", "result"].indexOf(s);
+
+/** Phase W: what kind of move it is. */
+export const KINDS = { budget: "Budget", competitor: "Competitor", trend: "Trend", seasonal: "Seasonal", content: "Content" } as const;
+export type Kind = keyof typeof KINDS;
+export const kindFor = (sources: string[], origin?: string | null): Kind =>
+  origin === "combined" ? "budget" : sources.includes("seasonal") ? "seasonal" : sources.includes("competitor") ? "competitor" : sources.includes("trend") ? "trend" : "content";
+export const kindOf = (o: Pick<Opportunity, "kind" | "sources" | "origin">): Kind => (o.kind && o.kind in KINDS ? (o.kind as Kind) : kindFor(sourcesOf(o), o.origin));
+
 export const DISMISS_REASONS = ["Not our audience", "Wrong timing", "Off-brand", "Already planned", "Budget is fixed", "Don't trust the data"] as const;
 /** Phase V: the reasons offered on an opportunity built from several sources (OpportunityCombined). */
 export const COMBINED_DISMISS_REASONS = ["Budget is fixed", "Wrong timing", "Don't trust the data"] as const;
@@ -55,7 +68,6 @@ export const chartOf = (o: Pick<Opportunity, "chart">): Chart | null => {
 export const clientVisible = (clientId: string): Prisma.OpportunityWhereInput => ({ clientId, hiddenAt: null, insights: { some: {} } });
 /** Shown to the client: visible and not dismissed. */
 const shown = (clientId: string): Prisma.OpportunityWhereInput => ({ ...clientVisible(clientId), status: { not: "dismissed" } });
-const NEW_FOR = 14 * DAY;
 
 export async function listOpportunities(clientId: string, opts: { source?: Source | null } = {}) {
   const rows = await prisma.opportunity.findMany({ where: shown(clientId), include: { routes: { orderBy: { sortOrder: "asc" } } } });
@@ -72,12 +84,12 @@ export async function countBySource(clientId: string) {
   return out;
 }
 
-/** "New": not acted on yet and suggested in the last two weeks. */
-export const newWhere = (clientId: string, now = new Date()): Prisma.OpportunityWhereInput => ({ ...shown(clientId), status: "new", createdAt: { gte: new Date(now.getTime() - NEW_FOR) } });
-export const isNew = (o: Pick<Opportunity, "status" | "createdAt">, now = new Date()) => o.status === "new" && o.createdAt.getTime() >= now.getTime() - NEW_FOR;
+/** "New": not opened by the client yet (Phase W: opening one makes it Considering). */
+export const newWhere = (clientId: string): Prisma.OpportunityWhereInput => ({ ...shown(clientId), status: "new" });
+export const isNew = (o: Pick<Opportunity, "status">) => o.status === "new";
 
-export async function newOpportunities(clientId: string, now = new Date(), take = 3) {
-  const where = newWhere(clientId, now);
+export async function newOpportunities(clientId: string, take = 3) {
+  const where = newWhere(clientId);
   const [count, newest] = await Promise.all([prisma.opportunity.count({ where }), prisma.opportunity.findMany({ where, orderBy: { createdAt: "desc" }, take })]);
   return { count, newest };
 }
@@ -89,7 +101,7 @@ export async function loadOpportunity(clientId: string, id: string, opts: { staf
 
 export const routeCost = (r: Pick<OpportunityRoute, "teamCreditsLow" | "teamCreditsHigh" | "aiCredits">) => {
   const team = r.teamCreditsLow != null ? (r.teamCreditsHigh != null && r.teamCreditsHigh !== r.teamCreditsLow ? `${r.teamCreditsLow}–${r.teamCreditsHigh}` : `${r.teamCreditsLow}`) : null;
-  return [team ? `≈ ${team} team credits` : null, r.aiCredits != null ? `≈ ${r.aiCredits} AI` : null].filter(Boolean).join(" or ");
+  return [team ? `≈ ${team} creative credits` : null, r.aiCredits != null ? `≈ ${r.aiCredits} AI` : null].filter(Boolean).join(" or ");
 };
 
 /** The card's cost range across the routes. */
@@ -98,8 +110,8 @@ export function costRange(routes: Pick<OpportunityRoute, "teamCreditsLow" | "tea
   const highs = routes.flatMap((r) => (r.teamCreditsHigh ?? r.teamCreditsLow) ?? []);
   const ai = routes.flatMap((r) => (r.aiCredits != null ? [r.aiCredits] : []));
   const team = lows.length ? (Math.min(...lows) === Math.max(...highs) ? `${Math.min(...lows)}` : `${Math.min(...lows)}–${Math.max(...highs)}`) : null;
-  if (team && ai.length) return `≈ ${Math.min(...ai)} AI credits or ${Math.min(...lows)} team credits`;
-  return team ? `≈ ${team} team credits` : ai.length ? `≈ ${Math.min(...ai)} AI credits` : null;
+  if (team && ai.length) return `≈ ${Math.min(...ai)} AI credits or ${Math.min(...lows)} creative credits`;
+  return team ? `≈ ${team} creative credits` : ai.length ? `≈ ${Math.min(...ai)} AI credits` : null;
 }
 
 const day = (d: Date) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(d);
@@ -162,14 +174,17 @@ export async function dismissOpportunity(clientId: string, userId: string | null
   return res.count > 0;
 }
 
-/** A plan item was made from a route: the route and the opportunity move on (never backwards). */
+/**
+ * A plan item was made from a route: the route moves on (added, then briefed) and the opportunity is In plan
+ * (never backwards: a running one or one with a result stays where it is; a dismissed one comes back).
+ */
 export async function markRoute(clientId: string, opportunityId: string, letter: string | null, step: "added" | "briefed", link: { planItemId?: string; projectId?: string }) {
   const o = await prisma.opportunity.findFirst({ where: { id: opportunityId, clientId }, select: { id: true, status: true } });
   if (!o) return;
-  const rank = (s: string) => ["new", "dismissed", "added", "briefed", "live"].indexOf(s);
-  if (rank(step) > rank(o.status)) await prisma.opportunity.update({ where: { id: o.id }, data: { status: step } });
+  if (statusRank("in_plan") > statusRank(o.status)) await prisma.opportunity.update({ where: { id: o.id }, data: { status: "in_plan" } });
+  const routeRank = (s: string) => ["new", "dismissed", "added", "briefed", "live"].indexOf(s);
   const route = letter ? await prisma.opportunityRoute.findFirst({ where: { opportunityId: o.id, letter } }) : null;
-  if (route) await prisma.opportunityRoute.update({ where: { id: route.id }, data: { status: rank(step) > rank(route.status) ? step : route.status, planItemId: link.planItemId ?? route.planItemId, projectId: link.projectId ?? route.projectId } });
+  if (route) await prisma.opportunityRoute.update({ where: { id: route.id }, data: { status: routeRank(step) > routeRank(route.status) ? step : route.status, planItemId: link.planItemId ?? route.planItemId, projectId: link.projectId ?? route.projectId } });
 }
 
 /** Add to plan prefilled from an opportunity (and a route). */
@@ -364,6 +379,7 @@ export async function runOpportunityScan(clientId: string, opts: { origin: "week
           summary: o.summary,
           whyNow: o.whyNow,
           sources: [...new Set(evidence.map(sourceOfFact))],
+          kind: kindFor([...new Set(evidence.map(sourceOfFact))]),
           evidence: evidence.map((e) => ({ value: e.value, text: e.text, source: e.source, kind: e.kind, ref: e.ref ?? null, demo: e.demo ?? false })) as Prisma.InputJsonValue,
           windowStart: start,
           windowEnd: end,

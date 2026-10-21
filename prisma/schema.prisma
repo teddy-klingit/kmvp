@@ -2451,8 +2451,31 @@ model Opportunity {
   combined          Json?
   /// Phase V: "high" | "medium" | "low", from rules (enough data, sources agree, holds across credit models).
   confidence        String?
-  /// new | added | briefed | live | dismissed
+  /// Phase W: new → considering → in_plan → running → result, or dismissed. Moves on its own (first client view,
+  /// added to the Planner, its work goes live, measured); staff can override (statusSetBy/At).
   status            String    @default("new")
+  /// Phase W: budget | competitor | trend | seasonal | content
+  kind              String?
+  /// Phase W: "From your Marketing PM", written by staff.
+  pmNote            String?
+  pmNoteByUserId    String?
+  pmNoteAt          DateTime?
+  /// Phase W: first opened by someone at the client (new → considering).
+  viewedAt          DateTime?
+  /// Phase W: a staff override of the status.
+  statusSetByUserId String?
+  statusSetAt       DateTime?
+  /// Phase W: when its work went live, and the prediction stored then:
+  /// { metric, unit, low, high, currency?, windowStart, windowEnd, baseline, text }.
+  runningAt         DateTime?
+  prediction        Json?
+  /// Phase W: the measured result when the window ended: { outcome: beat | met | missed, actual, unit, currency?, text }.
+  result            Json?
+  resultAt          DateTime?
+  /// Phase W: what we learned from a miss (staff write it, or approve a draft): draft | approved.
+  learning          String?
+  learningStatus    String?
+  learningByUserId  String?
   dismissReason     String?
   dismissedAt       DateTime?
   dismissedByUserId String?

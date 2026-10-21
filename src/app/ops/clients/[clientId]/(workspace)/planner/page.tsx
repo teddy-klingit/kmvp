@@ -19,7 +19,7 @@ export default async function ClientPlanPage({ params }: { params: Promise<{ cli
   const now = new Date();
   const [items, opportunities] = await Promise.all([
     prisma.clientCalendarItem.findMany({ where: { clientId, archivedAt: null, date: { gte: new Date(now.getTime() - 7 * 86400000), lt: new Date(now.getTime() + 70 * 86400000) } }, orderBy: { date: "asc" } }),
-    prisma.opportunity.findMany({ where: { clientId, status: { in: ["added", "briefed"] }, hiddenAt: null }, orderBy: { updatedAt: "desc" }, take: 10 }),
+    prisma.opportunity.findMany({ where: { clientId, status: "in_plan", hiddenAt: null }, orderBy: { updatedAt: "desc" }, take: 10 }),
   ]);
   return (
     <>

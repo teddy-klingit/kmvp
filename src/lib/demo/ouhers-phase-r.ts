@@ -4,7 +4,7 @@ import { insightsFromEvidence } from "@/lib/insight-records";
 import { checkCopy } from "@/lib/rule-check";
 import { briefByFor, loadLeadTimes, mondayOf, teamCreditsFor } from "@/lib/plan";
 import { loadMeasuredAssets } from "@/lib/insights-data";
-import { routeCheckOf } from "@/lib/opportunities";
+import { kindFor, routeCheckOf } from "@/lib/opportunities";
 import { clientVisibleAsset } from "@/lib/qc/visibility";
 
 
@@ -220,7 +220,7 @@ export async function seedPhaseROpportunities(ctx: { clientId: string; now: Date
       fits: await project("Holiday: the soft set"),
       skillKey: "carousel_builder",
       insightHref: "/insights/audience",
-      status: "added",
+      status: "in_plan",
       createdDaysAgo: 2,
       reviewed: true,
       routes: [
@@ -325,7 +325,7 @@ export async function seedPhaseROpportunities(ctx: { clientId: string; now: Date
         teamCreditsHigh: t != null ? Math.round(t * 1.5) : null,
         aiCredits: r.aiCredits ?? null,
         status: r.status ?? "new",
-        planItemId: r.status === "added" && o.status === "added" ? (singlesItem?.id ?? null) : null,
+        planItemId: r.status === "added" && o.status === "in_plan" ? (singlesItem?.id ?? null) : null,
         sortOrder: i,
         createdAt: created,
       });
@@ -347,6 +347,7 @@ export async function seedPhaseROpportunities(ctx: { clientId: string; now: Date
         skillKey: o.skillKey ?? null,
         insightHref: o.insightHref ?? null,
         status: o.status ?? "new",
+        kind: kindFor(o.sources),
         origin: "seed",
         reviewedAt: o.reviewed && ctx.staffUserId ? new Date(created.getTime() + 3 * 3600000) : null,
         reviewedByUserId: o.reviewed ? ctx.staffUserId : null,
@@ -356,7 +357,7 @@ export async function seedPhaseROpportunities(ctx: { clientId: string; now: Date
         routes: { create: routes },
       },
     });
-    if (o.status === "added" && singlesItem) await prisma.clientCalendarItem.update({ where: { id: singlesItem.id }, data: { opportunityId: row.id, route: "A" } });
+    if (o.status === "in_plan" && singlesItem) await prisma.clientCalendarItem.update({ where: { id: singlesItem.id }, data: { opportunityId: row.id, route: "A" } });
     // Phase W: built from its evidence, as insight records.
     await insightsFromEvidence(clientId, row.id);
   }

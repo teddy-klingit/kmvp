@@ -69,7 +69,7 @@ export default async function DashboardPage() {
     loadUsage(viewer.clientId, now),
     listSkills(viewer.clientId, now),
     loadBrandHealth(viewer.clientId),
-    newOpportunities(viewer.clientId, now, 1),
+    newOpportunities(viewer.clientId, 1),
     marketingPm(viewer.clientId),
     teamBalances(viewer.clientId, now),
   ]);

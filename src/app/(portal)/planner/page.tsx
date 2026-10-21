@@ -66,7 +66,7 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
     loadLeadTimes(),
     prisma.project.findMany({ where: { clientId: viewer.clientId, status: { notIn: ["ARCHIVED", "DELIVERED", "DRAFT"] }, agentBuild: false }, orderBy: { updatedAt: "desc" }, take: 30, select: { id: true, name: true } }),
     q.item ? prisma.clientCalendarItem.findFirst({ where: { id: q.item, clientId: viewer.clientId, archivedAt: null } }) : null,
-    newOpportunities(viewer.clientId, now),
+    newOpportunities(viewer.clientId),
     q.opportunity ? prefillFromOpportunity(viewer.clientId, q.opportunity, q.route) : null,
   ]);
   const keep = (extra: Record<string, string | null>) => {

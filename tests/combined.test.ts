@@ -60,7 +60,7 @@ describe("rules for AI on combined data", () => {
     setMockSession({ user: { id: fx.userA.id, role: "CLIENT" } });
     await expect(addCombinedToPlanAction(form({ id: a.id }))).rejects.toThrow(/REDIRECT:\/planner\?item=/);
     expect((await prisma.clientCalendarItem.findUniqueOrThrow({ where: { id: item.id } })).formats).toEqual(["Feed ad", "Email", "Stories"]);
-    expect((await prisma.opportunity.findUniqueOrThrow({ where: { id: a.id } })).status).toBe("added");
+    expect((await prisma.opportunity.findUniqueOrThrow({ where: { id: a.id } })).status).toBe("in_plan");
     // Client B can't add client A's.
     const b = await prisma.opportunity.create({ data: { clientId: fx.clientA.id, title: "Another", summary: "s", origin: "combined", combined } });
     setMockSession({ user: { id: fx.userB.id, role: "CLIENT" } });
