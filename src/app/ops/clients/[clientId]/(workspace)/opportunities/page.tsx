@@ -4,12 +4,14 @@ import { SectionCard, CardBody } from "@/components/ds/card";
 import { Button } from "@/components/ds/button";
 import { Field, fieldClass } from "@/components/ops/form-field";
 import { SOURCES, STATUS_LABEL, evidenceOf, sourcesOf, windowLabel, type Source } from "@/lib/opportunities";
-import { addOpportunityAction, editOpportunityAction, hideOpportunityAction, linkInsightAction, reviewOpportunityAction, runScanNowAction, saveLearningAction, savePmNoteAction, setOpportunityStatusAction } from "@/lib/actions/ops-opportunity-actions";
+import { addOpportunityAction, clearOpportunityRuleAction, editOpportunityAction, hideOpportunityAction, linkInsightAction, reviewOpportunityAction, runScanNowAction, saveLearningAction, savePmNoteAction, setOpportunityStatusAction } from "@/lib/actions/ops-opportunity-actions";
+import { opportunityPrefs } from "@/lib/opportunity-learning";
 import { predictionOf, resultOf } from "@/lib/opportunity-view";
 import { insightSources } from "@/lib/insight-records";
 
 
 const iso = (d: Date | null) => (d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}` : "");
+const short = (d: Date) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(d);
 const ORIGIN: Record<string, string> = { weekly: "Weekly scan", ask: "Client asked for more", staff: "Added by Klingit", migrated: "From before Phase R", seed: "Demo seed" };
 
 /**
@@ -20,10 +22,18 @@ export default async function OpsOpportunitiesPage({ params }: { params: Promise
   const { clientId } = await params;
   const client = await prisma.client.findUnique({ where: { id: clientId }, select: { id: true, isDemo: true } });
   if (!client) notFound();
-  const [rows, insights] = await Promise.all([
+  const [rows, insights, prefs] = await Promise.all([
     prisma.opportunity.findMany({ where: { clientId }, orderBy: [{ hiddenAt: "asc" }, { createdAt: "desc" }], include: { routes: { orderBy: { sortOrder: "asc" } }, insights: { include: { insight: true }, orderBy: { sortOrder: "asc" } } }, take: 60 }),
     prisma.insight.findMany({ where: { clientId, status: "active" }, orderBy: { foundAt: "desc" }, take: 60 }),
+    opportunityPrefs(clientId),
   ]);
+  const now = new Date();
+  const rules = [
+    ...(prefs.budgetFixedUntil && prefs.budgetFixedUntil > now ? [{ text: `Budget is fixed: only €0-spend suggestions until ${short(prefs.budgetFixedUntil)}`, rule: "budget", value: "" }] : []),
+    ...(prefs.moreChecksUntil && prefs.moreChecksUntil > now ? [{ text: `Doesn't trust the data: more data checks on every opportunity until ${short(prefs.moreChecksUntil)}`, rule: "checks", value: "" }] : []),
+    ...prefs.excludeTopics.map((t) => ({ text: `Off-brand, never suggested again: “${t.topic}”`, rule: "topic", value: t.topic })),
+    ...Object.entries(prefs.minDataDays).map(([s, d]) => ({ text: `${s} suggestions need ${d} days of ${s} data (learned from a miss)`, rule: "source", value: s })),
+  ];
   const insightLabel = (i: (typeof insights)[number]) => `${i.title} · ${i.value} (${insightSources(i).join(", ")})`;
   const reviewers = new Map((await prisma.user.findMany({ where: { id: { in: rows.flatMap((r) => (r.reviewedByUserId ? [r.reviewedByUserId] : [])) } }, select: { id: true, name: true } })).map((u) => [u.id, u.name]));
   const dismissed = rows.filter((r) => r.status === "dismissed");
@@ -134,6 +144,13 @@ export default async function OpsOpportunitiesPage({ params }: { params: Promise
                     <Field label={`What we learned (${o.learningStatus === "approved" ? "approved, the client sees it" : "draft, only staff see it"})`} htmlFor={`l-${o.id}`}>
                       <textarea id={`l-${o.id}`} name="learning" defaultValue={o.learning ?? ""} rows={2} placeholder="e.g. Pinterest suggestions now need 90 days of Pinterest data." className={fieldClass} />
                     </Field>
+                    <span className="flex flex-wrap items-center gap-2 text-[13px]">
+                      Tighten a rule (optional): suggestions from
+                      <input name="ruleSource" placeholder="Pinterest" aria-label="Source" className={`${fieldClass} h-8 w-[120px] py-0 text-[13px]`} />
+                      need
+                      <input name="ruleDays" type="number" min={1} max={730} placeholder="90" aria-label="Days of data" className={`${fieldClass} h-8 w-[72px] py-0 text-[13px]`} />
+                      days of its data
+                    </span>
                     <span className="flex gap-2">
                       <Button type="submit" name="approve" value="1" variant="primary" size="sm">
                         Approve
@@ -198,15 +215,35 @@ export default async function OpsOpportunitiesPage({ params }: { params: Promise
         )}
       </SectionCard>
 
-      {dismissed.length > 0 && (
-        <SectionCard title="Why clients said not for us">
+      {(dismissed.length > 0 || rules.length > 0) && (
+        <SectionCard title="What the client told us">
           <CardBody>
-            <p className="m-0 text-[14px]">
-              {Object.entries(dismissed.reduce<Record<string, number>>((m, d) => ({ ...m, [d.dismissReason ?? "No reason"]: (m[d.dismissReason ?? "No reason"] ?? 0) + 1 }), {}))
-                .map(([r, n]) => `${r} ${n}`)
-                .join(" · ")}
-            </p>
-            <p className="m-0 mt-2 text-[12px] text-brand-ink-2">The scan reads the latest reasons and steers away from them.</p>
+            {dismissed.length > 0 && (
+              <p className="m-0 text-[14px]">
+                Not for us:{" "}
+                {Object.entries(dismissed.reduce<Record<string, number>>((m, d) => ({ ...m, [d.dismissReason ?? "No reason"]: (m[d.dismissReason ?? "No reason"] ?? 0) + 1 }), {}))
+                  .map(([r, n]) => `${r} ${n}`)
+                  .join(" · ")}
+              </p>
+            )}
+            {rules.length > 0 && (
+              <ul className="m-0 mt-3 flex list-none flex-col gap-2 p-0 text-[14px]">
+                {rules.map((r) => (
+                  <li key={r.text} className="flex flex-wrap items-center gap-3">
+                    <span className="min-w-0 flex-1">{r.text}</span>
+                    <form action={clearOpportunityRuleAction}>
+                      <input type="hidden" name="clientId" value={clientId} />
+                      <input type="hidden" name="rule" value={r.rule} />
+                      <input type="hidden" name="value" value={r.value} />
+                      <Button type="submit" variant="secondary" size="sm">
+                        Take off
+                      </Button>
+                    </form>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="m-0 mt-3 text-[12px] text-brand-ink-2">The weekly scan follows these. Every reason and change is in Activity.</p>
           </CardBody>
         </SectionCard>
       )}

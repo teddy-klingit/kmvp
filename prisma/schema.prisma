@@ -297,6 +297,7 @@ model Client {
   brandRules                   BrandRule[]
   opportunities                Opportunity[]
   insights                     Insight[]
+  opportunityPrefs             OpportunityPrefs?
   contracts                    Contract[]
   serviceAllocations           ServiceAllocation[]
   billingProfile               BillingProfile?
@@ -2540,6 +2541,23 @@ model Insight {
 
   @@unique([clientId, key])
   @@index([clientId, status, foundAt])
+}
+
+/// Phase W: what a client's "Not for us" reasons (and missed results) taught the suggestions. Staff see and can undo
+/// each one in the client's Opportunities in /ops; every change is in the AuditLog.
+model OpportunityPrefs {
+  clientId         String    @id
+  /// "Budget is fixed": until then, only €0-spend suggestions.
+  budgetFixedUntil DateTime?
+  /// "Don't trust the data": until then, every opportunity shows more data checks.
+  moreChecksUntil  DateTime?
+  /// "Off-brand": topics never to suggest again: [{ topic, at, opportunityId }]
+  excludeTopics    Json      @default("[]")
+  /// Learned from a miss: a source's suggestions need this many days of its data: { "Pinterest": 90 }
+  minDataDays      Json      @default("{}")
+  updatedAt        DateTime  @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 }
 
 /// Phase W: Opportunity ↔ Insight, many-to-many.

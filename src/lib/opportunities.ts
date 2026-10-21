@@ -11,6 +11,7 @@ import { checkCopy, type CopyCheck } from "@/lib/rule-check";
 import { loadMeasuredAssets } from "@/lib/insights-data";
 import { briefByFor, loadLeadTimes, teamCreditsFor } from "@/lib/plan";
 import { insightSources, refreshInsights } from "@/lib/insight-records";
+import { isExcluded, learnFromDismissal, scanRules } from "@/lib/opportunity-learning";
 
 /**
  * Plan → Opportunities (Phase R step 4, designs 06–07). What used to be Insights ideas, calendar suggestions and
@@ -168,10 +169,11 @@ export async function dismissOpportunity(clientId: string, userId: string | null
   const r = (DISMISS_REASONS as readonly string[]).includes(reason) ? reason : "Not for us";
   const res = await prisma.opportunity.updateMany({ where: { id, clientId }, data: { status: "dismissed", dismissReason: r, dismissedAt: new Date(), dismissedByUserId: userId } });
   if (res.count) await prisma.opportunityRoute.updateMany({ where: { opportunityId: id, status: "new" }, data: { status: "dismissed" } });
-  // Phase V: "Don't trust the data" is logged and goes to the Marketing PM, who can check the numbers with the client.
+  // Phase W: every reason is logged (the client's Activity) and changes what's suggested next (opportunity-learning).
+  if (res.count) await learnFromDismissal(clientId, userId, { id, title: (await prisma.opportunity.findUnique({ where: { id }, select: { title: true } }))?.title ?? id }, r);
+  // Phase V: "Don't trust the data" goes to the Marketing PM, who can check the numbers with the client.
   if (res.count && r === "Don't trust the data") {
     const o = await prisma.opportunity.findUnique({ where: { id }, select: { title: true } });
-    await prisma.auditLog.create({ data: { clientId, actorUserId: userId, area: "opportunities", action: `Doesn't trust the data behind “${o?.title ?? id}”` } });
     const pm = await marketingPm(clientId);
     const who = userId ? (await prisma.user.findUnique({ where: { id: userId }, select: { name: true } }))?.name : null;
     if (pm) await notify({ userId: pm.userId, clientId, type: "SYSTEM", title: `${who?.split(" ")[0] ?? "The client"} doesn't trust the data behind an opportunity`, body: `“${o?.title ?? "An opportunity"}” was set aside: “Don't trust the data”. Worth a look at its sources together.`, actionUrl: `/ops/clients/${clientId}/opportunities`, actionLabel: "Open opportunities" });
@@ -296,7 +298,7 @@ export type ScanResult = { created: number; error: string | null };
  */
 export async function runOpportunityScan(clientId: string, opts: { origin: "weekly" | "ask" | "staff"; userId?: string | null; now?: Date; max?: number } = { origin: "weekly" }): Promise<ScanResult> {
   const now = opts.now ?? new Date();
-  const [client, brand, facts, leadTimes, existing, dismissed, projects] = await Promise.all([
+  const [client, brand, allFacts, leadTimes, existing, dismissed, projects, rules] = await Promise.all([
     prisma.client.findUniqueOrThrow({ where: { id: clientId }, select: { name: true, industry: true, brandSummary: true, isDemo: true } }),
     loadBrandForAgents(clientId),
     opportunityFacts(clientId, now),
@@ -304,7 +306,10 @@ export async function runOpportunityScan(clientId: string, opts: { origin: "week
     prisma.opportunity.findMany({ where: { clientId, createdAt: { gte: new Date(now.getTime() - 120 * DAY) } }, select: { title: true } }),
     prisma.opportunity.findMany({ where: { clientId, status: "dismissed", dismissReason: { not: null } }, orderBy: { dismissedAt: "desc" }, take: 8, select: { title: true, dismissReason: true } }),
     prisma.project.findMany({ where: { clientId, status: { in: ["BRIEFING", "ESTIMATING", "STAFFING", "IN_PRODUCTION", "AWAITING_REVIEW"] } }, select: { id: true, name: true } }),
+    scanRules(clientId, now),
   ]);
+  // Phase W: what the client taught us. A source too new for a learned rule can't carry a suggestion.
+  const facts = allFacts.filter((f) => !rules.tooNew.some((s) => f.source.split(" + ").includes(s)));
   if (!facts.length) return { created: 0, error: "Nothing to go on yet: no key moments ahead, no measured results and nothing in the Market feed." };
   const formats = leadTimes.map((l) => l.format);
   const r = await runAgentTask({
@@ -324,6 +329,7 @@ export async function runOpportunityScan(clientId: string, opts: { origin: "week
       projects.length ? `RUNNING PROJECTS: ${projects.map((p) => p.name).join("; ")}` : "",
       existing.length ? `ALREADY SUGGESTED (don't repeat): ${existing.map((e) => e.title).join("; ")}` : "",
       dismissed.length ? `THE CLIENT SAID NOT FOR US: ${dismissed.map((d) => `${d.title} (${d.dismissReason})`).join("; ")}` : "",
+      ...rules.lines,
       "",
       `Suggest up to ${opts.max ?? 3} opportunities.`,
     ]
@@ -341,7 +347,7 @@ export async function runOpportunityScan(clientId: string, opts: { origin: "week
   for (const o of r.data.opportunities.slice(0, opts.max ?? 3)) {
     // Evidence only from this client's facts; an opportunity without any is dropped.
     const evidence = [...new Set(o.evidenceIds)].flatMap((id) => (byId.has(id) ? [byId.get(id)!] : [])).slice(0, 3);
-    if (!evidence.length || taken.has(o.title.toLowerCase())) continue;
+    if (!evidence.length || taken.has(o.title.toLowerCase()) || isExcluded(`${o.title} ${o.summary}`, rules.prefs.excludeTopics)) continue;
     taken.add(o.title.toLowerCase());
     let start = parse(o.windowStart);
     let end = parse(o.windowEnd) ?? start;

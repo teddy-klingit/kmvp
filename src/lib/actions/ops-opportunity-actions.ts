@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireOpsRole } from "@/lib/authz";
 import { kindFor, runOpportunityScan, SOURCES, STATUS_LABEL, type Source } from "@/lib/opportunities";
 import { linkInsights } from "@/lib/insight-records";
+import { clearRule, setMinDataDays } from "@/lib/opportunity-learning";
 
 /**
  * Staff review of Plan → Opportunities (Phase R step 4): before or after a client sees them, an account lead or
@@ -92,6 +93,23 @@ export async function saveLearningAction(formData: FormData) {
   const approve = formData.get("approve") === "1";
   const opp = await prisma.opportunity.update({ where: { id: o.id }, data: text ? { learning: text, learningStatus: approve ? "approved" : "draft", learningByUserId: viewer.userId } : { learning: null, learningStatus: null, learningByUserId: null } });
   await prisma.auditLog.create({ data: { clientId, actorUserId: viewer.userId, area: "opportunities", action: text ? `${approve ? "Approved" : "Saved"} what we learned from “${opp.title}”: “${text.slice(0, 120)}”` : `Removed what we learned from “${opp.title}”` } });
+  // It can tighten a rule: suggestions resting on a source need N days of its data.
+  const source = String(formData.get("ruleSource") ?? "").trim();
+  const days = Math.round(Number(formData.get("ruleDays")));
+  if (approve && source && days > 0 && days <= 730) await setMinDataDays(clientId, viewer.userId, source, days);
+  refresh(clientId);
+}
+
+/** Phase W: take one of the learned rules off (logged). */
+export async function clearOpportunityRuleAction(formData: FormData) {
+  const viewer = await requireOpsRole([...STAFF]);
+  const clientId = String(formData.get("clientId") ?? "");
+  if (!(await prisma.client.findUnique({ where: { id: clientId }, select: { id: true } }))) return;
+  const rule = String(formData.get("rule") ?? "");
+  const value = String(formData.get("value") ?? "");
+  if (rule === "budget" || rule === "checks") await clearRule(clientId, viewer.userId, rule);
+  else if (rule === "topic" && value) await clearRule(clientId, viewer.userId, { topic: value });
+  else if (rule === "source" && value) await clearRule(clientId, viewer.userId, { source: value });
   refresh(clientId);
 }
 

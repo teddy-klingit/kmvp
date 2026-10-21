@@ -16,6 +16,7 @@ import { ConfidencePill, OutcomePill, PmNote, wday } from "@/components/portal/o
 import { InsightCard } from "@/components/insights/insight-card";
 import { MessagePmButton } from "@/components/pm-panel/pm-panel-provider";
 import { marketingPm } from "@/lib/contact-person";
+import { opportunityPrefs } from "@/lib/opportunity-learning";
 
 const NUMBER = ["No", "One", "Two", "Three", "Four", "Five"];
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -40,13 +41,15 @@ export default async function OpportunityPage({ params, searchParams }: { params
   const v = (await opportunityViews(viewer.clientId, [o], now)).get(o.id)!;
   const combined = o.combined as unknown as Combined | null;
   const picked = o.routes.find((r) => r.letter === q.route) ?? o.routes.find((r) => r.status !== "new" && r.status !== "dismissed") ?? o.routes[0] ?? null;
-  const [pm, measure, leadTimes, skill, noteBy, item] = await Promise.all([
+  const [pm, measure, leadTimes, skill, noteBy, item, prefs, dataSources] = await Promise.all([
     marketingPm(viewer.clientId),
     measurementPlan(o, v),
     loadLeadTimes(),
     o.skillKey ? prisma.agent.findUnique({ where: { key: o.skillKey }, select: { id: true, name: true, availability: true } }) : null,
     o.pmNoteByUserId ? prisma.user.findUnique({ where: { id: o.pmNoteByUserId }, select: { name: true } }) : null,
     combined?.actions.addToPlan ? prisma.clientCalendarItem.findFirst({ where: { id: combined.actions.addToPlan.planItemId, clientId: viewer.clientId }, select: { title: true, date: true, endDate: true } }) : null,
+    opportunityPrefs(viewer.clientId),
+    prisma.dataSource.findMany({ where: { clientId: viewer.clientId }, select: { source: true, status: true, lastSyncAt: true } }),
   ]);
   const pmFirst = pm?.name.split(" ")[0] ?? null;
   const sources = [...new Set(v.insights.flatMap((i) => jsonArray<string>(i.sources)))];
@@ -55,6 +58,14 @@ export default async function OpportunityPage({ params, searchParams }: { params
   const prediction = predictionOf(o);
   const step = o.status === "dismissed" ? -1 : STATUSES.indexOf(o.status as (typeof STATUSES)[number]);
   const welcome = v.insights.some((i) => i.key === "combined:welcome-repeat");
+  // Phase W: after "Don't trust the data", every opportunity shows what's behind each finding and how fresh each source is.
+  const moreChecks = prefs.moreChecksUntil && prefs.moreChecksUntil > now;
+  const extraChecks = moreChecks
+    ? [
+        ...v.insights.map((i) => ({ ok: true, text: `Behind “${i.title}”: ${[i.dataSize, i.period].filter(Boolean).join(", ") || "one reading"} from ${jsonArray<string>(i.sources).join(" and ")}, found ${day(i.foundAt)}` })),
+        ...dataSources.filter((d) => sources.includes(d.source)).map((d) => ({ ok: ["connected", "syncing"].includes(d.status) || (!["needs_reconnect", "error", "disconnected"].includes(d.status) && Boolean(d.lastSyncAt)), text: `${d.source}: ${d.lastSyncAt ? `last synced ${day(d.lastSyncAt)}` : "not synced yet"}` })),
+      ]
+    : [];
 
   // What to do: the client's next moves, the main one in orange (it's their action).
   const doCards: { title: string; text: string; cta: React.ReactNode }[] = [];
@@ -273,13 +284,14 @@ export default async function OpportunityPage({ params, searchParams }: { params
           <section aria-label="Data checks" className={card}>
             <h2 className={h2}>Data checks</h2>
             <ul className="m-0 flex list-none flex-col gap-3 px-6 py-5 text-[14px]">
-              {v.checks.map((x) => (
+              {[...v.checks, ...extraChecks].map((x) => (
                 <li key={x.text} className="flex items-start gap-2">
                   {x.ok ? <Check className="mt-0.5 size-4 shrink-0 text-[#8D9E47]" strokeWidth={2.5} /> : <AlertTriangle className="mt-0.5 size-4 shrink-0 text-[#B42318]" strokeWidth={2} />}
                   {x.text}
                 </li>
               ))}
             </ul>
+            {moreChecks && <p className="m-0 border-t border-brand-line px-6 py-3 text-[12px] text-brand-ink-2">More checks, because you told us you didn&apos;t trust the data. Your Marketing PM has seen it.</p>}
           </section>
           {o.status !== "dismissed" && o.status !== "result" && (
             <section aria-label="Not for us?" className={card}>
