@@ -13,7 +13,7 @@ export function MiniBars({ insight, className }: { insight: Pick<Insight, "chart
   return (
     <span aria-hidden className={cn("flex h-11 shrink-0 items-end gap-1", className)}>
       {chart.bars.map((b) => (
-        <span key={b.label} className={cn("w-[44px] rounded-[2px]", b.highlight ? "bg-[#B455B6]" : "bg-[#E8E2D6]")} style={{ height: b.value ? `${Math.max(8, (b.value / max) * 100)}%` : "2px" }} title={`${b.label}: ${b.value}`} />
+        <span key={b.label} className={cn(chart.bars.length > 3 ? "w-[16px]" : "w-[44px]", "rounded-[2px]", b.highlight ? "bg-[#B455B6]" : "bg-[#E8E2D6]")} style={{ height: b.value ? `${Math.max(8, (b.value / max) * 100)}%` : "2px" }} title={`${b.label}: ${b.value}`} />
       ))}
     </span>
   );

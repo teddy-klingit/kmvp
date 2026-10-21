@@ -210,9 +210,9 @@ export async function seedPhaseROpportunities(ctx: { clientId: string; now: Date
       whyNow: "Your audience was 2.3× more active on 11.11 last year, and the big brands shout discounts. A calm self-care angle stands out.",
       sources: ["seasonal", "data", "competitor"],
       evidence: [
-        { value: "2.3×", text: "more active on 11.11 than on a normal November day", source: "your Meta data", kind: "data", ref: "/insights/audience", demo: true },
+        { value: "2.3×", text: "more active on 11.11 than on a normal November day", source: "Meta", kind: "data", ref: "/insights/audience", demo: true },
         { value: "4 of 5", text: "competitors ran 30–50% off last year", source: "Market feed", kind: "market", ref: `signal:${discounts.id}`, demo: true },
-        { value: "+64%", text: "saves on your “ritual” posts vs. product posts", source: "last 90 days", kind: "data", ref: "/insights/audience", demo: true },
+        { value: "+64%", text: "saves on your “ritual” posts vs. product posts", source: "Meta", kind: "data", ref: "/insights/audience", demo: true },
       ],
       chart: singlesChart,
       windowStart: new Date(singlesDay.getTime() - 7 * DAY),
@@ -258,8 +258,8 @@ export async function seedPhaseROpportunities(ctx: { clientId: string; now: Date
       whyNow: ratio ? `9:16 got ${ratio}× the click-through of wide formats in your delivered creative. milk wash has no 9:16 ads live.` : "9:16 stories keep winning on your ads. milk wash has no 9:16 ads live.",
       sources: ["data"],
       evidence: [
-        { value: r1(tall), text: "average CTR for 9:16 formats (delivered creative)", source: "Insights · Performance", kind: "data", ref: "/insights/performance", demo: true },
-        { value: r1(wide), text: "average CTR for wide and square formats", source: "Insights · Performance", kind: "data", ref: "/insights/performance", demo: true },
+        { value: r1(tall), text: "average CTR for 9:16 formats (delivered creative)", source: "Meta", kind: "data", ref: "/insights/performance", demo: true },
+        { value: r1(wide), text: "average CTR for wide and square formats", source: "Meta", kind: "data", ref: "/insights/performance", demo: true },
       ],
       windowStart: null,
       windowEnd: null,

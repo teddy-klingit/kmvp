@@ -5,6 +5,7 @@ import type { AssetStatus, AssetVersionState, ClientPermission, InternalRole, Pi
 import { prisma } from "@/lib/prisma";
 import { recordSync, writeAdDays } from "@/lib/metrics";
 import { seedPhaseVRevenue, seedPhaseVSources } from "@/lib/demo/ouhers-phase-v";
+import { seedPhaseW } from "@/lib/demo/ouhers-phase-w";
 import { projectUtmSlug } from "@/lib/utm";
 import { removeUploadsUnder, writeUploadAt } from "@/lib/uploads";
 import { PIPELINE_STAGE_ORDER } from "@/lib/labels";
@@ -828,6 +829,9 @@ export async function seedOuhers(opts: { dir?: string; shift?: boolean; log?: (s
   // Phase V: the sales sources (Shopify, HubSpot, Klaviyo), connected as demo sources.
   await seedPhaseVSources({ clientId: OUHERS_CLIENT_ID, now, login: "maja@ouhers.com" });
   say(`Phase V · revenue · ${await seedPhaseVRevenue({ clientId: OUHERS_CLIENT_ID, now, projectSlug: (id) => projectUtmSlug(projectId(id)) })} numbers in the data layer`);
+
+  // Phase W: opportunities with their findings, results and what the client told us (Opps, OppDetail, InsightsLinked).
+  say(`Phase W · opportunities · ${await seedPhaseW({ clientId: OUHERS_CLIENT_ID, now, teddyUserId: teddy?.userId ?? null, majaUserId: clientUserIds.get("ou-maja")!.userId })}`);
 
   // ─── Computed vs expected ───────────────────────────────────────────────
   const health = await loadBrandHealth(OUHERS_CLIENT_ID);

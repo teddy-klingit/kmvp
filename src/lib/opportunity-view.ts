@@ -106,7 +106,7 @@ export async function opportunityViews(clientId: string, rows: Row[], now = new 
         const vals = same.map((x) => x.r!.actual).sort((a, b) => a - b);
         const q = (p: number) => vals[Math.min(vals.length - 1, Math.max(0, Math.round(p * (vals.length - 1))))];
         const currency = same[0].r!.currency ?? "EUR";
-        const days = Math.round(same.map((x) => (new Date(x.p!.windowEnd).getTime() - new Date(x.p!.windowStart).getTime()) / DAY).sort((a, b) => a - b)[Math.floor(same.length / 2)]);
+        const days = Math.round(same.map((x) => (new Date(x.p!.windowEnd).getTime() - new Date(x.p!.windowStart).getTime()) / DAY + 1).sort((a, b) => a - b)[Math.floor(same.length / 2)]);
         const [lo, hi] = [Math.floor(q(0.25) / 1000), Math.max(Math.floor(q(0.25) / 1000) + 1, Math.round(q(0.75) / 1000))];
         estimate = {
           text: `+${sym(currency)}${lo}–${hi}k in ${days} days`,
@@ -118,7 +118,10 @@ export async function opportunityViews(clientId: string, rows: Row[], now = new 
           unclear: null,
           maths: [`Your last ${same.length} ${kind} opportunities brought ${same.slice(0, 5).map((x) => `+${k(x.r!.actual, currency)}`).join(", ")} in about ${days} days. We expect the middle half of that: +${sym(currency)}${lo}–${hi}k.`],
         };
-      } else estimate = { text: `Unclear: no results yet for ${kind} opportunities`, low: null, high: null, unit: null, currency: "EUR", days: null, unclear: `no results yet for ${kind} opportunities`, maths: [] };
+      } else {
+        const why = same.length ? `only 1 result so far for ${kind} opportunities` : `no results yet for ${kind} opportunities`;
+        estimate = { text: `Unclear: ${why}`, low: null, high: null, unit: null, currency: "EUR", days: null, unclear: why, maths: [] };
+      }
     }
 
     // Cost and decide-by.

@@ -38,7 +38,7 @@ async function make(title: string, data: { kind?: string; status?: string; chann
   return prisma.opportunity.findUniqueOrThrow({ where: { id: o.id }, include });
 }
 const result = (actual: number, outcome: Result["outcome"]): Result => ({ outcome, actual, unit: "money", currency: "EUR", text: `+€${actual}` });
-const prediction = (low: number, high: number): Prediction => ({ metric: "revenue", unit: "money", low, high, currency: "EUR", windowStart: "2026-07-01", windowEnd: "2026-07-31", baseline: 0, text: `+€${low / 1000}–${high / 1000}k` });
+const prediction = (low: number, high: number): Prediction => ({ metric: "revenue", unit: "money", low, high, currency: "EUR", windowStart: "2026-07-01", windowEnd: "2026-07-30", baseline: 0, text: `+€${low / 1000}–${high / 1000}k` });
 
 beforeAll(async () => {
   fx = await createSecurityFixtures();

@@ -67,7 +67,7 @@ export function OpportunityCard({ o, v, rank, pmNoteBy }: { o: Opportunity; v: O
                 <span aria-hidden className="mt-[7px] size-1.5 shrink-0 rounded-full bg-brand-ink" />
                 <span>
                   {i.title}
-                  {i.kind !== "plan" && i.kind !== "moment" ? <span className="text-brand-ink-2"> · {i.value}</span> : null}
+                  {i.kind !== "moment" ? <span className="text-brand-ink-2"> · {i.value}</span> : null}
                 </span>
               </span>
               <Chips sources={insightSources(i)} />

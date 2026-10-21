@@ -222,9 +222,9 @@ export async function recentFindings(clientId: string, now = new Date(), take = 
   return { findings, total, bridge: { feeding: feeding.length, open: open.size, unused: findings.filter((f) => f.used.length === 0).length } };
 }
 
-/** An opportunity's name on a chip: the budget move by its plan item ("Black Friday Stories"), else its title up to a colon. */
+/** An opportunity's name on a chip: the budget move by its plan item ("Black Friday Stories"), else its title up to a colon or a "with" / "before". */
 export function shortTitle(o: { title: string; combined: Prisma.JsonValue | null }) {
   const plan = (o.combined as { actions?: { addToPlan?: { label?: string } | null } } | null)?.actions?.addToPlan?.label;
   if (plan) return `${plan.replace(/^Add to /, "").replace(/ plan$/, "")} Stories`;
-  return o.title.split(":")[0].trim();
+  return o.title.split(/:| with | before /)[0].trim();
 }

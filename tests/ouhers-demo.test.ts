@@ -15,6 +15,9 @@ import { prisma } from "@/lib/prisma";
 import { adDays } from "@/lib/metrics";
 import { loadRevenue } from "@/lib/revenue";
 import { budgetShiftOpportunity } from "@/lib/combined";
+import { clientVisible } from "@/lib/opportunities";
+import { opportunityViews, trackRecord } from "@/lib/opportunity-view";
+import { recentFindings } from "@/lib/insight-records";
 import { teamBalances } from "@/lib/team-ledger";
 import { aiCreditStatus } from "@/lib/ai-credits";
 import { loadToday } from "@/lib/today";
@@ -252,6 +255,43 @@ describe("the ouhers demo seed", () => {
       ["Email brings Story buyers back", "41% vs 17%"],
       ["Black Friday has no Stories", "3 Feed · 0 Story"],
     ]);
+  });
+
+  it("Phase W: the Opps design, computed: counts by status, the track record, and the three new cards", async () => {
+    const all = await prisma.opportunity.findMany({ where: clientVisible(OUHERS_CLIENT_ID), include: { routes: true, insights: { include: { insight: true } } } });
+    const by = (s: string) => all.filter((o) => o.status === s);
+    expect([by("new").length, by("considering").length, by("in_plan").length, by("running").length, by("result").length, by("dismissed").length]).toEqual([3, 1, 2, 1, 9, 4]);
+
+    const record = await trackRecord(OUHERS_CLIENT_ID);
+    expect(record).toMatchObject({ metOrBeat: 7, measured: 9, revenue: { value: 38000, currency: "EUR" }, learning: "Pinterest suggestions now need 90 days of your own Pinterest data." });
+    expect(record.recent.map((r) => [r.title, r.prediction?.text, r.result.text, r.result.outcome])).toEqual([
+      ["Summer: sun day, every day · more Reels", "+€8–12k", "+€14.2k", "beat"],
+      ["lip ours: let the community vote", "+400–600 sign-ups", "+910 sign-ups", "beat"],
+      ["Pre-launch teaser on Pinterest", "+€2–3k", "+€900", "missed"],
+    ]);
+
+    const views = await opportunityViews(OUHERS_CLIENT_ID, by("new"));
+    const card = (re: RegExp) => views.get(by("new").find((o) => re.test(o.title))!.id)!;
+    expect(card(/^Move €2,000/)).toMatchObject({ confidence: "high", estimate: { text: "+€4–5k in 60 days" }, cost: "€0 extra spend · ≈ 4 creative credits" });
+    expect(card(/SPF/)).toMatchObject({ confidence: "medium", estimate: { text: "+€2–3k in 30 days" }, cost: "≈ 8 creative credits", warning: null });
+    expect(card(/SPF/).insights.map((i) => i.title)).toEqual(["Competitor launch", "“tinted SPF” searches are rising", "sun day stick sells second best"]);
+    expect(card(/refill/)).toMatchObject({ confidence: "low", estimate: { text: "Unclear: no TikTok data" }, cost: "≈ 40 AI credits or 4 creative credits", missing: ["TikTok"] });
+    // Decide by: the SPF answer in two days (7 working days before it goes live), the refill test 7 before the launch.
+    expect(card(/SPF/).decideBy!.toDateString()).toBe(new Date(Date.now() + 2 * 86400000).toDateString());
+    expect((await prisma.opportunity.findFirstOrThrow({ where: { clientId: OUHERS_CLIENT_ID, origin: "combined" } })).pmNote).toMatch(/^I'd do this one\. Concept B is ready/);
+  });
+
+  it("Phase W: Insights Overview shows the design's six findings, linked as shown", async () => {
+    const r = await recentFindings(OUHERS_CLIENT_ID);
+    expect(r.findings.map((f) => [f.insight.title, f.insight.value, f.used.map((u) => u.title)])).toEqual([
+      ["Story ads bring bigger orders", "€62 vs €45", ["Black Friday Stories"]],
+      ["Email brings Story buyers back", "41% vs 17%", ["Black Friday Stories"]],
+      ["“tinted SPF” searches are rising", "+52%", ["Answer the new SPF launch"]],
+      ["Retail fairs don't pay back", "0.7× return", []],
+      ["Saves on “ritual” posts", "+64%", ["Singles Day"]],
+      ["Newsletter opens are steady", "41%", []],
+    ]);
+    expect(r.bridge).toEqual({ feeding: 4, open: 3, unused: 2 });
   });
 
   it("Phase W: every ouhers opportunity is built from at least one insight", async () => {
