@@ -57,7 +57,7 @@ export async function computeUrgentMatters(clientId: string, userId: string): Pr
       kind: "suggestion" as const,
       title: `New for ${daysAgo(s.createdAt)} days — ${s.title}`,
       detail: "Its best window opens soon. Add it to your plan, brief Klingit, or say it's not for you.",
-      href: `/planner/opportunities/${s.id}`,
+      href: `/opportunities/${s.id}`,
       actionLabel: "Review",
       createdAt: s.createdAt,
     })),

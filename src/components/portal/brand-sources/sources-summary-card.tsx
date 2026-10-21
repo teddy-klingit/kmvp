@@ -4,7 +4,7 @@ import { AppIcon } from "@/components/portal/brand-sources/app-icon";
 import { appMeta } from "@/lib/brand-sources";
 
 /** Brand OS overview: which apps are connected and how many files are linked. */
-export function SourcesSummaryCard({ apps, linkedFiles, demo }: { apps: string[]; linkedFiles: number; demo: boolean }) {
+export function SourcesSummaryCard({ apps, linkedFiles }: { apps: string[]; linkedFiles: number }) {
   const named = apps.filter((a) => a !== "web").map((a) => appMeta(a).name);
   return (
     <SectionCard
@@ -19,7 +19,7 @@ export function SourcesSummaryCard({ apps, linkedFiles, demo }: { apps: string[]
         <p className="m-0 min-w-0 flex-1 basis-[260px] text-[14px] leading-[1.5] text-brand-ink-2">
           {apps.length === 0 && linkedFiles === 0
             ? "Nothing linked yet. Link where your brand lives so Klingit and your skills can use it."
-            : `${linkedFiles} linked file${linkedFiles === 1 ? "" : "s"}${named.length ? ` from ${named.join(", ")}${apps.includes("web") ? " and the web" : ""}` : ""}${demo ? " · demo connections, nothing synced yet" : ""}`}
+            : `${linkedFiles} linked file${linkedFiles === 1 ? "" : "s"}${named.length ? ` from ${named.join(", ")}${apps.includes("web") ? " and the web" : ""}` : ""}`}
         </p>
         {apps.length > 0 && (
           <span className="flex items-center gap-1.5" aria-label="Connected apps">

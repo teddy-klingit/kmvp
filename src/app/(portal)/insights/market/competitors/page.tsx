@@ -138,7 +138,7 @@ export default async function MarketCompetitorsPage({ searchParams }: { searchPa
                         </Link>
                       ))
                     ) : (
-                      <span className="text-[13px] text-brand-mute">{r.checked.length ? `No ads found on ${r.checked.join(" or ")}` : viewer.client.isDemo ? "Ad previews aren't part of the demo" : "Ad libraries not connected yet"}</span>
+                      <span className="text-[13px] text-brand-mute">{r.checked.length ? `No ads found on ${r.checked.join(" or ")}` : "Ad libraries not connected yet"}</span>
                     )}
                   </span>
                 </article>

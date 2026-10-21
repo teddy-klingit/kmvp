@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutGrid, Image as ImageIcon, Loader, SquareKanban, Layers, CalendarDays, BarChart3, Bell, ChevronsUpDown } from "lucide-react";
+import { LayoutGrid, Image as ImageIcon, Loader, SquareKanban, Layers, CalendarDays, Crosshair, BarChart3, Bell, ChevronsUpDown } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { AppNav, type NavSection } from "@/components/shared/app-nav";
 import { ProfileMenu } from "@/components/portal/profile-menu";
@@ -19,8 +19,9 @@ type SidebarProps = {
 };
 
 /**
- * Client nav v3: Home · Brand OS · Skills · Ongoing projects · Output library · Calendar · Insights; then the
- * Notifications inbox and the profile menu (settings, Usage for admins, Sign out). Home's badge counts what needs you.
+ * Client nav v3: Home · Brand OS · Skills · Ongoing projects · Output library · Planner · Opportunities · Insights;
+ * then the Notifications inbox and the profile menu (settings, Usage for admins, Sign out). Home's badge counts what
+ * needs you; Opportunities' counts the new ones (Phase W).
  */
 export function PortalSidebar({ userId, userName, userEmail, clientName, role, admin, brands, unreadCount, summary }: SidebarProps) {
   const sections: NavSection[] = [
@@ -32,6 +33,7 @@ export function PortalSidebar({ userId, userName, userEmail, clientName, role, a
         { label: "Ongoing projects", href: "/projects", icon: SquareKanban },
         { label: "Output library", href: "/library", icon: Layers },
         { label: "Planner", href: "/planner", icon: CalendarDays },
+        { label: "Opportunities", href: "/opportunities", icon: Crosshair, badge: summary.opportunities || undefined },
         { label: "Insights", href: "/insights", icon: BarChart3 },
       ],
     },

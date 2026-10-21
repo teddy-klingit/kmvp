@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
-import { lastUpdated, loadDemoSources, loadPaidMedia } from "@/lib/insights-data";
+import { lastUpdated, loadPaidMedia } from "@/lib/insights-data";
 import { WORK_TZ } from "@/lib/working-hours";
 import { SegmentedNav } from "@/components/ds/segmented-control";
 import { AskPill } from "@/components/portal/insights/ask-pill";
@@ -35,23 +35,20 @@ function updatedLabel(at: Date, now: Date) {
  */
 export default async function InsightsLayout({ children }: { children: React.ReactNode }) {
   const viewer = await getPortalViewer();
-  const [paid, questions, demo, audits, adStatus] = await Promise.all([
+  const [paid, questions, audits, adStatus] = await Promise.all([
     loadPaidMedia(viewer.clientId),
     prisma.marketIntelligenceQuestion.findMany({ where: { clientId: viewer.clientId }, orderBy: { createdAt: "desc" }, take: 5 }),
-    loadDemoSources(viewer.clientId),
     prisma.siteAudit.count({ where: { clientId: viewer.clientId } }),
     adDataStatus(viewer.clientId),
   ]);
   // After loadPaidMedia: reading the ad accounts may have just written a fresh snapshot.
   const updated = paid.isSample ? null : await lastUpdated(viewer.clientId);
   const eyebrow = (
-    viewer.client.isDemo
-      ? ["DEMO ACCOUNT", paid.connected.length ? `${paid.connected.join(" + ")} CONNECTED · DEMO DATA` : null]
-      : [
-          updated && updatedLabel(updated, new Date()),
-          paid.inScope ? (paid.connected.length ? `${paid.connected.join(" + ")} CONNECTED${paid.isSample ? " · SAMPLE DATA" : ""}` : "NO AD ACCOUNTS CONNECTED") : "ORGANIC ONLY",
-          demo.length ? `${demo.join(" + ")}: DEMO DATA` : null,
-        ]
+    // Phase W: no "demo" wording on the client side; a demo account reads like any other.
+    [
+      updated && updatedLabel(updated, new Date()),
+      paid.inScope ? (paid.connected.length ? `${paid.connected.join(" + ")} CONNECTED${paid.isSample ? " · SAMPLE DATA" : ""}` : "NO AD ACCOUNTS CONNECTED") : "ORGANIC ONLY",
+    ]
   )
     .filter(Boolean)
     .join(" · ")

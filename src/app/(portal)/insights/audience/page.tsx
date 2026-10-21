@@ -18,7 +18,6 @@ import { SubBar } from "@/components/insights/toolbar";
 
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 const FUNNEL_SHADES = ["#1E1E1E", "#4A4A4A", "#6E6E6E", "#9A9A9A", "#C2C3C5"];
-const Demo = () => <span className="rounded-full bg-brand-peach-pale px-2.5 py-0.5 text-[12px] text-brand-orange-text">Demo data</span>;
 
 /**
  * Insights → Audience (InsightsAudience.dc.html): tiles, follower growth, from visit to purchase, what people
@@ -33,9 +32,6 @@ export default async function AudiencePage({ searchParams }: { searchParams: Pro
   const clientId = viewer.clientId;
   const [{ community, website, escalations }, kpis, sources, connect] = await Promise.all([loadAudienceData(clientId), loadContentKpis(clientId), insightSources(clientId), connectHref(clientId)]);
   const since = sinceDays(days);
-  // Demo data says so: a demo account, or a source filled with dummy data.
-  const socialDemo = viewer.client.isDemo || sources.demo.includes("LinkedIn") || sources.demo.includes("Instagram");
-  const siteDemo = viewer.client.isDemo || sources.demo.includes("Google Analytics");
 
   const socialPlatforms = [...new Set([...kpis.followerGrowth.map((f) => f.platform), ...kpis.publishedPosts.map((p) => p.platform)])];
   const showWebsite = !platform || platform === "Website";
@@ -90,10 +86,10 @@ export default async function AudiencePage({ searchParams }: { searchParams: Pro
       <OpportunityLinks rows={opportunityLinks} />
 
       <div className="grid grid-cols-2 gap-4 min-[1000px]:grid-cols-4">
-        {followers.length > 0 && <StatTile icon="followers" label="Followers" value={compact(totalFollowers)} context={`${followers.map((f) => f.platform).join(" + ")}${socialDemo ? " · demo" : ""}`} spark={followerSpark.length > 1 ? followerSpark : undefined} />}
+        {followers.length > 0 && <StatTile icon="followers" label="Followers" value={compact(totalFollowers)} context={`${followers.map((f) => f.platform).join(" + ")}`} spark={followerSpark.length > 1 ? followerSpark : undefined} />}
         {engagement !== null && <StatTile icon="engagement" label="Engagement rate" value={pct(engagement)} context={`${rated.length} organic post${rated.length === 1 ? "" : "s"} · ${days} days`} />}
-        {latestC && <StatTile icon="comments" label="Comments" value={latestC.commentVolume.toLocaleString("en-GB")} context={`${period(latestC)}${socialDemo ? " · demo" : ""}`} />}
-        {latestW && <StatTile icon="visits" label="Site visits" value={compact(latestW.visits)} context={`${period(latestW)}${siteDemo ? " · demo" : ""}`} />}
+        {latestC && <StatTile icon="comments" label="Comments" value={latestC.commentVolume.toLocaleString("en-GB")} context={period(latestC)} />}
+        {latestW && <StatTile icon="visits" label="Site visits" value={compact(latestW.visits)} context={period(latestW)} />}
       </div>
 
       <PageGrid
@@ -102,7 +98,7 @@ export default async function AudiencePage({ searchParams }: { searchParams: Pro
             {showSocial && (
               <ChartCard
                 title="Follower growth"
-                meta={followers.length > 0 && socialDemo ? <Demo /> : undefined}
+                meta={undefined}
                 table={{ columns: ["Week", ...followerSeries.map((s) => s.name)], rows: snapDates.map((d, i) => [dayLabel(d), ...followerSeries.map((s) => s.values[i] ?? "")]) }}
               >
                 {snapDates.length > 1 ? (
@@ -121,7 +117,7 @@ export default async function AudiencePage({ searchParams }: { searchParams: Pro
             {showWebsite && (
               <ChartCard
                 title={funnel ? "From ad to purchase" : "From visit to purchase"}
-                meta={latestW ? siteDemo ? <Demo /> : <span className="font-brand-mono text-[12px] text-brand-ink">GOOGLE ANALYTICS</span> : undefined}
+                meta={latestW ? <span className="font-brand-mono text-[12px] text-brand-ink">GOOGLE ANALYTICS</span> : undefined}
                 table={latestW ? { columns: ["Step", "People"], rows: funnelRows.map((r) => [r.label, r.value]) } : undefined}
               >
                 {latestW ? (
@@ -168,7 +164,7 @@ export default async function AudiencePage({ searchParams }: { searchParams: Pro
         side={
           <>
             {showSocial && (
-              <ChartCard title="What people say" meta={latestC && socialDemo ? <Demo /> : undefined} table={latestC ? { columns: ["Sentiment", "Share"], rows: [["Positive", `${latestC.sentimentPositivePct}%`], ["Neutral", `${latestC.sentimentNeutralPct}%`], ["Negative", `${latestC.sentimentNegativePct}%`]] } : undefined}>
+              <ChartCard title="What people say" meta={undefined} table={latestC ? { columns: ["Sentiment", "Share"], rows: [["Positive", `${latestC.sentimentPositivePct}%`], ["Neutral", `${latestC.sentimentNeutralPct}%`], ["Negative", `${latestC.sentimentNegativePct}%`]] } : undefined}>
                 {latestC ? (
                   <>
                     <span className="text-[16px]">Comment sentiment, {period(latestC)}</span>

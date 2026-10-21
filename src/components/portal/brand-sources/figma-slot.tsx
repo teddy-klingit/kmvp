@@ -1,6 +1,5 @@
 import { ExternalLink } from "lucide-react";
 import { Card, CardHeader } from "@/components/ds/card";
-import { StatusPill } from "@/components/ds/status-pill";
 import { AppIcon } from "@/components/portal/brand-sources/app-icon";
 import { ConnectModal } from "@/components/portal/brand-sources/connect-modal";
 import { AddSourcePopover, RemoveSourceButton, type ConnectedApp, type SourceChipData } from "@/components/portal/brand-sources/sources-row";
@@ -11,7 +10,7 @@ export function FigmaDesignSystemSlot({ source, figmaConnected, connected, linke
     // Card (not SectionCard) so nothing inside is clipped.
     return (
       <Card aria-label="Figma design system">
-        <CardHeader title="Figma design system" meta={source.isDemo ? <StatusPill>Demo link</StatusPill> : undefined} action={<RemoveSourceButton sourceId={source.id} label="Unlink" />} />
+        <CardHeader title="Figma design system" action={<RemoveSourceButton sourceId={source.id} label="Unlink" />} />
         <div className="flex items-start gap-3 px-6 py-5">
           <AppIcon app="figma" size={20} tile />
           <div className="flex min-w-0 flex-1 flex-col gap-1">

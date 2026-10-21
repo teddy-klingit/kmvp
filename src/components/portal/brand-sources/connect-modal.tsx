@@ -142,7 +142,7 @@ export function ConnectModal({
                 </span>
                 <div className="flex flex-col items-center gap-1.5">
                   <span className="text-[16px] font-semibold text-ds-text">{meta.name} is connected</span>
-                  <StatusPill tone="success">Connected · demo</StatusPill>
+                  <StatusPill tone="success">Connected</StatusPill>
                   <span className="max-w-[340px] text-[14px] text-ds-text-2">
                     {state.ok ?? `${linkedCount} items linked`}. Pin them to any Brand OS section with “Add source”.
                   </span>

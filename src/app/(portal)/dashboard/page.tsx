@@ -214,12 +214,12 @@ export default async function DashboardPage() {
               <CardHeader
                 title={`${fresh.count} new opportunit${fresh.count === 1 ? "y" : "ies"}`}
                 action={
-                  <Link href="/planner/opportunities" className={monoLink}>
+                  <Link href="/opportunities" className={monoLink}>
                     ALL
                   </Link>
                 }
               />
-              <Link href={`/planner/opportunities/${fresh.newest[0].id}`} className="flex flex-col gap-2 px-6 py-5 text-brand-ink no-underline hover:bg-[#FBF9F4]">
+              <Link href={`/opportunities/${fresh.newest[0].id}`} className="flex flex-col gap-2 px-6 py-5 text-brand-ink no-underline hover:bg-[#FBF9F4]">
                 <SourcePills sources={fresh.newest[0].sources} />
                 <span className="text-[16px]">{fresh.newest[0].title}</span>
                 {fresh.newest[0].whyNow && <span className="line-clamp-2 text-[13px] text-brand-ink-2">{fresh.newest[0].whyNow}</span>}

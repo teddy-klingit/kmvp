@@ -148,8 +148,8 @@ describe("insights redirects", () => {
     expect(to("/insights/market-intelligence")).toBe("/insights/market");
     expect(to("/insights/market-intelligence/:view(competitors|trends)")).toBe("/insights/market/:view");
     // Ideas are Plan → Opportunities now (Phase R).
-    expect(to("/insights/market-intelligence/ideas")).toBe("/planner/opportunities");
-    expect(to("/insights/market/ideas")).toBe("/planner/opportunities");
+    expect(to("/insights/market-intelligence/ideas")).toBe("/opportunities");
+    expect(to("/insights/market/ideas")).toBe("/opportunities");
     expect(to("/insights/market-intelligence/seo")).toBe("/insights/seo");
     expect(to("/insights/community")).toBe("/insights/audience#community");
     expect(to("/insights/website")).toBe("/insights/audience#website");

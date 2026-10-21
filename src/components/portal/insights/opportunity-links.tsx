@@ -16,7 +16,7 @@ export function OpportunityLinks({ rows }: { rows: { id: string; title: string }
         <Sparkles className="size-4" strokeWidth={1.75} /> These numbers led to
       </span>
       {rows.map((o) => (
-        <Link key={o.id} href={`/planner/opportunities/${o.id}`} className="inline-flex items-center gap-1 text-brand-ink underline underline-offset-4">
+        <Link key={o.id} href={`/opportunities/${o.id}`} className="inline-flex items-center gap-1 text-brand-ink underline underline-offset-4">
           {o.title} <ArrowRight className="size-3.5" strokeWidth={1.75} />
         </Link>
       ))}

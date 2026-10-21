@@ -54,7 +54,7 @@ export function OpportunitiesSideCard({ count, newest }: { count: number; newest
     <section aria-label="Opportunities" className="overflow-hidden rounded-[12px] bg-white">
       <h2 className="m-0 flex items-baseline gap-2 border-b border-brand-line px-6 py-5 text-[18px] font-normal">
         Opportunities {count > 0 && <span className="text-[14px] text-brand-ink-2">{count} new</span>}
-        <Link href="/planner/opportunities" className="ml-auto font-brand-mono text-[12px] uppercase text-brand-ink underline underline-offset-4">
+        <Link href="/opportunities" className="ml-auto font-brand-mono text-[12px] uppercase text-brand-ink underline underline-offset-4">
           All
         </Link>
       </h2>
@@ -64,7 +64,7 @@ export function OpportunitiesSideCard({ count, newest }: { count: number; newest
         <ul className="m-0 list-none p-0">
           {newest.map((o) => (
             <li key={o.id} className="border-b border-brand-line last:border-b-0">
-              <Link href={`/planner/opportunities/${o.id}`} className="flex flex-col gap-2 px-6 py-4 text-brand-ink no-underline hover:bg-[#FBF9F4]">
+              <Link href={`/opportunities/${o.id}`} className="flex flex-col gap-2 px-6 py-4 text-brand-ink no-underline hover:bg-[#FBF9F4]">
                 <SourcePills sources={o.sources} />
                 <span className="text-[15px]">{o.title}</span>
               </Link>

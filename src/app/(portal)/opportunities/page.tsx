@@ -6,6 +6,7 @@ import { getPortalViewer } from "@/lib/current-viewer";
 import { prisma } from "@/lib/prisma";
 import { pillClass } from "@/components/ds/button";
 import { PlaceholderTag } from "@/components/ds/placeholder-tag";
+import { PageHeader } from "@/components/ds/page-header";
 import { countBySource, costRange, DISMISS_REASONS, isSource, listOpportunities, quarterStats, SOURCES, windowLabel, type Source } from "@/lib/opportunities";
 import { briefRouteAction } from "@/lib/actions/opportunity-actions";
 import { DismissMenu, ReviewedFlag, SourcePills } from "@/components/portal/plan/opportunity-bits";
@@ -28,12 +29,13 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
 
   return (
     <>
+      <PageHeader eyebrow={`What to do next · ${viewer.client.name}`} title="Opportunities" />
       <div className="flex flex-wrap items-center gap-2">
-        <Link href="/planner/opportunities" aria-current={!source ? "page" : undefined} className={chip(!source)}>
+        <Link href="/opportunities" aria-current={!source ? "page" : undefined} className={chip(!source)}>
           All · {counts.all}
         </Link>
         {(Object.keys(SOURCES) as Source[]).map((s) => (
-          <Link key={s} href={`/planner/opportunities?source=${s}`} aria-current={source === s ? "page" : undefined} className={chip(source === s)}>
+          <Link key={s} href={`/opportunities?source=${s}`} aria-current={source === s ? "page" : undefined} className={chip(source === s)}>
             {FILTER_LABEL[s]}
             {counts[s] > 0 && source !== s ? <span className="ml-1.5 text-brand-ink-2">{counts[s]}</span> : null}
           </Link>
@@ -68,7 +70,7 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
                       )}
                     </span>
                     <h2 id={`opp-${o.id}`} className="m-0 text-[20px] font-normal">
-                      <Link href={`/planner/opportunities/${o.id}`} className="text-brand-ink no-underline hover:underline">
+                      <Link href={`/opportunities/${o.id}`} className="text-brand-ink no-underline hover:underline">
                         {o.title}
                       </Link>
                     </h2>
@@ -77,10 +79,9 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
                       <span className="text-brand-ink">{combined.effect.text}</span>
                       <span>{combined.cost.text}</span>
                       <span>{combined.dataSize}</span>
-                      {o.isDemo && <span>demo data</span>}
                     </p>
                     <div className="flex flex-wrap items-center gap-2 pt-1">
-                      <Link href={`/planner/opportunities/${o.id}`} className={pillClass(added ? "secondary" : "primary", "sm")}>
+                      <Link href={`/opportunities/${o.id}`} className={pillClass(added ? "secondary" : "primary", "sm")}>
                         See why
                       </Link>
                       {added && inPlan && (
@@ -103,7 +104,7 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
                     )}
                   </span>
                   <h2 id={`opp-${o.id}`} className="m-0 text-[20px] font-normal">
-                    <Link href={`/planner/opportunities/${o.id}`} className="text-brand-ink no-underline hover:underline">
+                    <Link href={`/opportunities/${o.id}`} className="text-brand-ink no-underline hover:underline">
                       {o.title}
                     </Link>
                   </h2>
@@ -118,10 +119,9 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
                         {cost} <PlaceholderTag>Placeholder</PlaceholderTag>
                       </span>
                     )}
-                    {o.isDemo && <span>demo data</span>}
                   </p>
                   <div className="flex flex-wrap items-center gap-2 pt-1">
-                    <Link href={`/planner/opportunities/${o.id}`} className={pillClass(added ? "secondary" : "primary", "sm")}>
+                    <Link href={`/opportunities/${o.id}`} className={pillClass(added ? "secondary" : "primary", "sm")}>
                       View routes
                     </Link>
                     {added && inPlan ? (

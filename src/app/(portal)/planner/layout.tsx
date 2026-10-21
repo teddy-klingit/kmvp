@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getPortalViewer } from "@/lib/current-viewer";
 import { PageHeader } from "@/components/ds/page-header";
 import { PillLink } from "@/components/ds/pill-link";
@@ -5,7 +6,10 @@ import { Subscribe } from "@/components/portal/plan/subscribe";
 import { prisma } from "@/lib/prisma";
 import { newWhere } from "@/lib/opportunities";
 
-/** Planner (was Plan; Phase R, designs 04 and 06): what you make, and when, and what you could make next. Replaces Calendar (/calendar redirects here). */
+/**
+ * Planner (was Plan; Phase R, design 04): what you make, and when. Replaces Calendar (/calendar redirects here).
+ * Phase W: Opportunities moved to the main nav; Planner keeps its calendar and a link to the new ones.
+ */
 export default async function PlanLayout({ children }: { children: React.ReactNode }) {
   const viewer = await getPortalViewer();
   const fresh = await prisma.opportunity.count({ where: newWhere(viewer.clientId) });
@@ -22,12 +26,12 @@ export default async function PlanLayout({ children }: { children: React.ReactNo
             </PillLink>
           </div>
         }
-        tabsLabel="Planner sections"
-        tabs={[
-          { label: "Calendar", href: "/planner" },
-          { label: "Opportunities", href: "/planner/opportunities", badge: fresh ? `${fresh} new` : undefined },
-        ]}
       />
+      {fresh > 0 && (
+        <Link href="/opportunities" className="-mt-2 self-start text-[14px] text-brand-ink underline underline-offset-4">
+          {fresh} new opportunit{fresh === 1 ? "y" : "ies"} ›
+        </Link>
+      )}
       {children}
     </div>
   );

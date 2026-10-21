@@ -46,7 +46,7 @@ export default async function BrandOsOverviewPage() {
   const linkCount = new Map<string, number>();
   for (const s of sources) linkCount.set(s.app, (linkCount.get(s.app) ?? 0) + 1);
   const sourceRows = [
-    ...connections.map((c) => ({ app: c.app, name: appMeta(c.app).name, note: c.isDemo ? "Connected · demo" : "Connected" })),
+    ...connections.map((c) => ({ app: c.app, name: appMeta(c.app).name, note: "Connected" })),
     ...[...linkCount].filter(([app]) => app !== "web" && !connections.some((c) => c.app === app)).map(([app, n]) => ({ app, name: appMeta(app).name, note: `${n} link${n === 1 ? "" : "s"}` })),
     ...(client.website ? [{ app: "web", name: "Website", note: client.website.replace(/^https?:\/\//, "").replace(/\/$/, "") }] : []),
   ];

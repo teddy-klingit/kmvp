@@ -15,7 +15,7 @@ import { createSecurityFixtures } from "./fixtures";
 import { dismissOpportunity, listOpportunities, loadOpportunity, newOpportunities, opportunityFacts, prefillFromOpportunity, runOpportunityScan } from "@/lib/opportunities";
 import { dismissOpportunityAction, briefRouteAction } from "@/lib/actions/opportunity-actions";
 import { addPlanItemAction } from "@/lib/actions/plan-item-actions";
-import OpportunityPage from "@/app/(portal)/planner/opportunities/[id]/page";
+import OpportunityPage from "@/app/(portal)/opportunities/[id]/page";
 
 type Fx = Awaited<ReturnType<typeof createSecurityFixtures>>;
 let fx: Fx;

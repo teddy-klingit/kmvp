@@ -62,7 +62,7 @@ export default async function ConnectionsPage({ searchParams }: { searchParams: 
   const fileMeta = (app: string) => {
     const m = metaOf(app);
     const n = sources.filter((s) => s.app === app).length;
-    return [m.folders ? `${m.folders} folder${m.folders === 1 ? "" : "s"}` : m.workspace ?? (n ? `${n} linked` : null), m.lastSyncAt ? `synced ${formatDay(new Date(m.lastSyncAt))}` : null, row(app)?.isDemo ? "demo" : null].filter(Boolean).join(" · ");
+    return [m.folders ? `${m.folders} folder${m.folders === 1 ? "" : "s"}` : m.workspace ?? (n ? `${n} linked` : null), m.lastSyncAt ? `synced ${formatDay(new Date(m.lastSyncAt))}` : null].filter(Boolean).join(" · ");
   };
 
   // Sales & revenue (Phase V): where sales happen, so Insights can follow a click all the way to revenue.

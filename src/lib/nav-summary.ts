@@ -6,6 +6,8 @@ import { aiCreditStatus } from "@/lib/ai-credits";
 import { planTurns } from "@/lib/plan";
 import { teamBalances } from "@/lib/team-ledger";
 import { marketingPm } from "@/lib/contact-person";
+import { prisma } from "@/lib/prisma";
+import { newWhere } from "@/lib/opportunities";
 
 /**
  * What the client nav shows on every page: the Home badge (things that need you, the same rule as Home's "Needs
@@ -17,9 +19,11 @@ export const loadNavSummary = cache(async (viewer: { id: string; clientId: strin
     creditSummary(viewer.clientId),
     aiCreditStatus(viewer.clientId),
   ]);
-  const [plan, balances, pm] = await Promise.all([planTurns(viewer.clientId), teamBalances(viewer.clientId), marketingPm(viewer.clientId)]);
+  const [plan, balances, pm, opportunities] = await Promise.all([planTurns(viewer.clientId), teamBalances(viewer.clientId), marketingPm(viewer.clientId), prisma.opportunity.count({ where: newWhere(viewer.clientId) })]);
   return {
     needsYou: yourTurn(items).length + plan.length,
+    // Phase W: the Opportunities badge, the new ones.
+    opportunities,
     plan: ai.plan.name || "Your",
     team: { left: team.free, allowance: team.allowance },
     // Phase S: on a contract, the PM and creative balances separately (never pooled), and the Marketing PM.

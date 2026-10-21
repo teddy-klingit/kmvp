@@ -46,7 +46,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
 
   return (
     <div className="flex flex-col gap-6">
-      <Link href="/planner/opportunities" className="-mt-2 inline-flex items-center gap-1 self-start text-[13px] text-brand-ink-2 no-underline hover:text-brand-ink">
+      <Link href="/opportunities" className="-mt-2 inline-flex items-center gap-1 self-start text-[13px] text-brand-ink-2 no-underline hover:text-brand-ink">
         <ChevronLeft className="size-3.5" /> Opportunities
       </Link>
 
@@ -56,7 +56,6 @@ export default async function OpportunityPage({ params, searchParams }: { params
           {o.reviewedAt && <ReviewedFlag />}
           <span className="text-[12px] text-brand-ink-2">
             Suggested {new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(o.createdAt)} · for {viewer.client.name}
-            {o.isDemo ? " · demo data" : ""}
           </span>
         </span>
         <h1 className="m-0 text-[34px] font-normal leading-[1.15] [text-wrap:balance]">{o.title}</h1>
@@ -92,7 +91,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
                 return (
                   <li key={r.id} className={cn("grid grid-cols-1 gap-4 border-b border-brand-line px-6 py-5 min-[760px]:grid-cols-[minmax(0,1fr)_230px]", on && "border-l-[3px] border-l-brand-ink bg-[#FBF9F4] pl-[21px]")}>
                     <div className="flex min-w-0 gap-3">
-                      <Link href={`/planner/opportunities/${o.id}?route=${r.letter}#add`} scroll={false} aria-label={`Pick route ${r.letter}`} aria-current={on ? "true" : undefined} className={cn("mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border", on ? "border-brand-ink" : "border-brand-outline")}>
+                      <Link href={`/opportunities/${o.id}?route=${r.letter}#add`} scroll={false} aria-label={`Pick route ${r.letter}`} aria-current={on ? "true" : undefined} className={cn("mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border", on ? "border-brand-ink" : "border-brand-outline")}>
                         {on && <span className="size-2.5 rounded-full bg-brand-ink" />}
                       </Link>
                       <div className="flex min-w-0 flex-col gap-2">
@@ -152,7 +151,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
                   <div key={i} className="grid grid-cols-[72px_minmax(0,1fr)] items-baseline gap-3">
                     <dt className="text-[22px] leading-tight tabular-nums">{e.value}</dt>
                     <dd className="m-0 text-[14px] leading-[1.45]">
-                      {e.text} <span className="text-brand-ink-2">({e.source}{e.demo ? ", demo" : ""})</span>
+                      {e.text} <span className="text-brand-ink-2">({e.source})</span>
                     </dd>
                   </div>
                 ))}

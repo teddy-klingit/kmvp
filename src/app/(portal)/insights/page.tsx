@@ -18,7 +18,7 @@ import { NoAdAccount } from "@/components/portal/insights/no-ad-account";
 import { adDataStatus } from "@/lib/integrations/live-ads-owner";
 import { isClientAdmin } from "@/lib/client-roles";
 
-const STATE_LABEL = { live: "Live", sample: "Sample data", demo: "Demo" } as const;
+const STATE_LABEL = { live: "Live", sample: "Sample data", demo: "Connected" } as const;
 
 /**
  * Insights → Overview (InsightsOverview.dc.html): four tiles, the performance agent's three takeaways, the
@@ -66,7 +66,7 @@ export default async function InsightsOverviewPage({ searchParams }: { searchPar
   const followers = kpis.followerGrowth.filter((f) => f.followerCount !== null);
   const own = audits.find((a) => a.subject === "Own site");
   const seoRows = audits.filter((a) => a.seoScore !== null);
-  // A demo account's connections are all demo ones: they count as connected there (and say "Demo").
+  // A demo account's connections are all demo ones: they count as connected there.
   const connectedCount = sources.filter((s) => s.state === "live" || s.state === "sample" || (viewer.client.isDemo && s.state === "demo")).length;
   const firstBrief = takeaways.findIndex((t) => t.action.kind === "brief");
 
@@ -139,7 +139,7 @@ export default async function InsightsOverviewPage({ searchParams }: { searchPar
               <ChartCard title="Audience" meta={followers.length > 0 ? <Link href="/insights/audience" className={monoLink}>OPEN</Link> : undefined}>
                 {followers.length > 0 ? (
                   <>
-                    <span className="text-[14px] text-brand-ink-2">Followers by platform{sources.some((s) => s.state === "demo") ? " · demo" : ""}</span>
+                    <span className="text-[14px] text-brand-ink-2">Followers by platform</span>
                     <MiniBars rows={followers.map((f, i) => ({ label: f.platform, value: f.followerCount, display: f.followerCount.toLocaleString("en-GB"), tone: i === 0 ? "ink" : "grey" }))} />
                   </>
                 ) : (

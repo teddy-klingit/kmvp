@@ -7,6 +7,7 @@ import { loadNavSummary } from "@/lib/nav-summary";
 import { clientRoleLabel, isClientAdmin } from "@/lib/client-roles";
 import { PmPanelProvider } from "@/components/pm-panel/pm-panel-provider";
 import { pmUnread } from "@/lib/pm-thread";
+import { StaffTagsProvider } from "@/components/ds/placeholder-tag";
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const viewer = await getPortalViewer();
@@ -19,7 +20,9 @@ export default async function PortalLayout({ children }: { children: React.React
     pmUnread(viewer.clientId, viewer.userId, "client"),
   ]);
 
+  // Phase W: no Placeholder tags anywhere on the client side.
   return (
+    <StaffTagsProvider show={false}>
     <PmPanelProvider side="client" unread={pmUnreadCount}>
     <div className="flex h-screen w-full flex-col bg-brand-page min-[900px]:flex-row">
       <PortalSidebar
@@ -36,5 +39,6 @@ export default async function PortalLayout({ children }: { children: React.React
       <PortalMain>{children}</PortalMain>
     </div>
     </PmPanelProvider>
+    </StaffTagsProvider>
   );
 }

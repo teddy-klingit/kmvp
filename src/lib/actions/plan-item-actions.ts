@@ -21,7 +21,7 @@ const dateAt = (v: FormDataEntryValue | null) => {
 
 function refresh() {
   revalidatePath("/planner", "layout");
-  revalidatePath("/planner/opportunities", "layout");
+  revalidatePath("/opportunities", "layout");
   revalidatePath("/dashboard");
 }
 

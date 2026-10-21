@@ -18,7 +18,6 @@ export function SourceChip({ source, removable = true }: { source: SourceChipDat
       <a href={source.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-w-0 items-center gap-2 text-brand-ink no-underline hover:underline" title={source.url}>
         <AppIcon app={source.app} size={13} tile />
         <span className="truncate">{source.title}</span>
-        {source.isDemo && <span className="rounded-full bg-ds-subtle px-1.5 text-[11px] text-ds-text-2">demo</span>}
         <ExternalLink className="size-3 shrink-0 text-ds-text-3" strokeWidth={1.75} />
       </a>
       {removable ? (

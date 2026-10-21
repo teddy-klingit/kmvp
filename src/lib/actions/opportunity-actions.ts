@@ -14,7 +14,7 @@ import { prisma } from "@/lib/prisma";
 
 function refresh(id?: string) {
   revalidatePath("/planner", "layout");
-  if (id) revalidatePath(`/planner/opportunities/${id}`);
+  if (id) revalidatePath(`/opportunities/${id}`);
   revalidatePath("/dashboard");
 }
 
@@ -24,7 +24,7 @@ export async function dismissOpportunityAction(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   await dismissOpportunity(viewer.clientId, viewer.userId, id, String(formData.get("reason") ?? ""));
   refresh(id);
-  if (formData.get("back") === "1") redirect("/planner/opportunities?dismissed=1");
+  if (formData.get("back") === "1") redirect("/opportunities?dismissed=1");
 }
 
 export type AskState = { error?: string; ok?: string };

@@ -19,10 +19,10 @@ const nextConfig: NextConfig = {
       { source: "/insights", has: [{ type: "query", key: "tier" }], destination: "/insights/performance", permanent: true },
       { source: "/insights", has: [{ type: "query", key: "range" }], destination: "/insights/performance", permanent: true },
       { source: "/insights/market-intelligence/seo", destination: "/insights/seo", permanent: true },
-      { source: "/insights/market-intelligence/ideas", destination: "/planner/opportunities", permanent: true },
+      { source: "/insights/market-intelligence/ideas", destination: "/opportunities", permanent: true },
       { source: "/insights/market-intelligence/:view(competitors|trends)", destination: "/insights/market/:view", permanent: true },
-      { source: "/insights/market/ideas", destination: "/planner/opportunities", permanent: true },
-      { source: "/projects/inspiration", destination: "/planner/opportunities", permanent: true },
+      { source: "/insights/market/ideas", destination: "/opportunities", permanent: true },
+      { source: "/projects/inspiration", destination: "/opportunities", permanent: true },
       { source: "/insights/market-intelligence", destination: "/insights/market", permanent: true },
       { source: "/insights/community", destination: "/insights/audience#community", permanent: true },
       { source: "/insights/website", destination: "/insights/audience#website", permanent: true },
@@ -38,6 +38,9 @@ const nextConfig: NextConfig = {
       { source: "/plan/:rest*", destination: "/planner/:rest*", permanent: true },
       { source: "/ops/plan", destination: "/ops/planner", permanent: true },
       { source: "/ops/clients/:clientId/plan", destination: "/ops/clients/:clientId/planner", permanent: true },
+      // Phase W: Opportunities got their own place in the main nav.
+      { source: "/planner/opportunities", destination: "/opportunities", permanent: true },
+      { source: "/planner/opportunities/:id", destination: "/opportunities/:id", permanent: true },
       // Phase R: Plan replaces Calendar.
       { source: "/calendar", destination: "/planner", permanent: true },
       { source: "/calendar/:rest*", destination: "/planner", permanent: true },

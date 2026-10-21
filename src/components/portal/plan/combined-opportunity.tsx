@@ -25,7 +25,7 @@ export function CombinedOpportunity({ o, clientName, pmFirst }: { o: Opportunity
   const dismissed = o.status === "dismissed";
   return (
     <div className="flex flex-col gap-6">
-      <Link href="/planner/opportunities" className="-mt-2 inline-flex items-center gap-1 self-start text-[13px] text-brand-ink-2 no-underline hover:text-brand-ink">
+      <Link href="/opportunities" className="-mt-2 inline-flex items-center gap-1 self-start text-[13px] text-brand-ink-2 no-underline hover:text-brand-ink">
         <ChevronLeft className="size-3.5" /> Planner · Opportunities
       </Link>
 
@@ -35,7 +35,6 @@ export function CombinedOpportunity({ o, clientName, pmFirst }: { o: Opportunity
           {confidence ? <span className="rounded-full bg-[#E4F2B3] px-3 py-1 text-[12px] text-[#5E6B2A]">{CONFIDENCE_LABEL[confidence]}</span> : <span className="rounded-full bg-brand-chip px-3 py-1 text-[12px]">Not enough data yet</span>}
           <span className="text-[12px] text-brand-ink-2">
             Found {day(o.createdAt)} · for {clientName}
-            {o.isDemo ? " · demo data" : ""}
           </span>
         </span>
         <h1 className="m-0 text-[34px] font-normal leading-[1.15] [text-wrap:balance]">{c.headline}</h1>
