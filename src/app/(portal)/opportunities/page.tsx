@@ -27,15 +27,17 @@ const pill = "inline-flex h-10 items-center rounded-full border px-4 font-brand-
  * Opportunities (Phase W, design Opps): what to do next, with how well our past suggestions did. Status filters with
  * counts, sorted by impact × urgency, big cards built from insights, and the latest results.
  */
-export default async function OpportunitiesPage({ searchParams }: { searchParams: Promise<{ status?: string; how?: string; ask?: string; asked?: string; dismissed?: string }> }) {
+export default async function OpportunitiesPage({ searchParams }: { searchParams: Promise<{ status?: string; how?: string; ask?: string; about?: string; asked?: string; dismissed?: string }> }) {
   const q = await searchParams;
   const viewer = await getPortalViewer();
   const tab: Tab = (TABS as readonly string[]).includes(q.status ?? "") ? (q.status as Tab) : "new";
   const now = new Date();
-  const [all, record, pm] = await Promise.all([
+  const [all, record, pm, about] = await Promise.all([
     prisma.opportunity.findMany({ where: clientVisible(viewer.clientId), include: { routes: { orderBy: { sortOrder: "asc" } }, insights: { include: { insight: true } } } }),
     trackRecord(viewer.clientId, now),
     marketingPm(viewer.clientId),
+    // "Ask for one" from a finding on Insights: the request starts with it (only this client's).
+    q.about ? prisma.insight.findFirst({ where: { id: q.about, clientId: viewer.clientId }, select: { title: true, value: true } }) : null,
   ]);
   const counts = Object.fromEntries(TABS.map((t) => [t, all.filter((o) => o.status === t).length])) as Record<Tab, number>;
   const list = all.filter((o) => o.status === tab);
@@ -78,7 +80,7 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
           <label htmlFor="what" className="text-[18px]">
             What should we look into?
           </label>
-          <textarea id="what" name="what" rows={3} required placeholder="e.g. Anything we could do around the spring launch in Norway?" className="w-full max-w-[70ch] rounded-[10px] border border-brand-outline bg-white px-3 py-2 text-[14px]" />
+          <textarea id="what" name="what" rows={3} required defaultValue={about ? `About “${about.title}” (${about.value}): ` : undefined} placeholder="e.g. Anything we could do around the spring launch in Norway?" className="w-full max-w-[70ch] rounded-[10px] border border-brand-outline bg-white px-3 py-2 text-[14px]" />
           <span className="flex flex-wrap items-center gap-3">
             <button type="submit" className={cn(pill, "border-brand-ink bg-brand-ink text-white")}>
               Send to {pmFirst ?? "Klingit"}

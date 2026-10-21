@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { prisma } from "@/lib/prisma";
 import { setMockSession } from "./setup";
 import { createSecurityFixtures } from "./fixtures";
-import { insightsOf, linkInsights, refreshInsights, upsertInsight } from "@/lib/insight-records";
+import { insightsOf, linkInsights, recentFindings, refreshInsights, shortTitle, upsertInsight } from "@/lib/insight-records";
 import { listOpportunities, loadOpportunity, newOpportunities, opportunityFacts } from "@/lib/opportunities";
 import { addOpportunityAction, linkInsightAction } from "@/lib/actions/ops-opportunity-actions";
 
@@ -92,5 +92,40 @@ describe("insight records", () => {
     const fact = facts.find((f) => f.ref === `signal:${s.id}`)!;
     const insight = await prisma.insight.findUniqueOrThrow({ where: { id: fact.insightId } });
     expect(insight).toMatchObject({ clientId: fx.clientA.id, key: `signal:${s.id}`, kind: "market", title: "Refills are up" });
+  });
+});
+
+describe("What we found this month (Insights Overview)", () => {
+  it("shows each finding's opportunities, and the bridge counts only open, visible ones", async () => {
+    const C = fx.clientB.id;
+    const mk = (key: string, title: string) => upsertInsight(C, { key, kind: "data", title, value: "1", sources: ["Meta"] });
+    const [story, email, retail, opens] = [await mk("f:story", "Story ads bring bigger orders"), await mk("f:email", "Email brings Story buyers back"), await mk("f:retail", "Retail fairs don't pay back"), await mk("f:opens", "Newsletter opens are steady")];
+    const opp = async (title: string, status: string, ids: string[], extra: object = {}) => {
+      const o = await prisma.opportunity.create({ data: { clientId: C, title, summary: "s", status, ...extra } });
+      await linkInsights(C, o.id, ids);
+      return o;
+    };
+    await opp("Move €2,000 of Black Friday budget to Story ads", "new", [story.id, email.id], { combined: { actions: { addToPlan: { label: "Add to Black Friday plan" } } } });
+    await opp("Singles Day: self-care, not discounts", "result", [retail.id]);
+    await opp("Set aside", "dismissed", [opens.id]);
+    await upsertInsight(C, { key: "f:old", kind: "data", title: "Old", value: "1", sources: ["Meta"], foundAt: new Date(Date.now() - 60 * 86400000) });
+    await upsertInsight(C, { key: "f:plan", kind: "plan", title: "Planner context", value: "1", sources: ["Planner"] });
+
+    const r = await recentFindings(C);
+    const used = Object.fromEntries(r.findings.map((f) => [f.insight.title, f.used.map((u) => `${u.title}${u.done ? " (done)" : ""}`)]));
+    expect(used["Story ads bring bigger orders"]).toEqual(["Black Friday Stories"]);
+    expect(used["Retail fairs don't pay back"]).toEqual(["Singles Day (done)"]);
+    expect(used["Newsletter opens are steady"]).toEqual([]);
+    expect(Object.keys(used)).not.toContain("Old");
+    expect(Object.keys(used)).not.toContain("Planner context");
+    expect(r.findings.some((f) => f.insight.clientId !== C)).toBe(false);
+    // 2 findings feed 1 open opportunity; the dismissed one doesn't count, so 1 finding is unused.
+    expect(r.bridge).toMatchObject({ feeding: 2, open: 1 });
+    expect(r.bridge.unused).toBe(r.findings.filter((f) => f.used.length === 0).length);
+  });
+
+  it("names an opportunity on a chip: the budget move by its plan item, else its title up to a colon", () => {
+    expect(shortTitle({ title: "Move €2,000…", combined: { actions: { addToPlan: { label: "Add to Black Friday plan" } } } })).toBe("Black Friday Stories");
+    expect(shortTitle({ title: "Singles Day: self-care, not discounts", combined: null })).toBe("Singles Day");
   });
 });

@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { recentFindings } from "@/lib/insight-records";
+import { Findings } from "@/components/insights/findings";
 import { getPortalViewer } from "@/lib/current-viewer";
 import { connectHref, dataSources, loadContentKpis, loadMeasuredAssets, loadPaidMedia, loadTakeaways, takeawayHref } from "@/lib/insights-data";
 import { loadDaily, parseRange, sinceDays } from "@/lib/insights/daily";
@@ -42,6 +44,8 @@ export default async function InsightsOverviewPage({ searchParams }: { searchPar
     prisma.marketIntelligenceBrief.findUnique({ where: { clientId } }),
     adDataStatus(clientId),
   ]);
+  // Phase W: what we found this month, linked to the opportunities it feeds.
+  const found = await recentFindings(clientId);
   // Phase U: how work without channel data did, as the client and their PM added it in the Output library.
   const facts = await prisma.outputFact.findMany({ where: { clientId }, orderBy: { createdAt: "desc" }, take: 6 });
   const factAssets = new Map((await prisma.asset.findMany({ where: { id: { in: facts.flatMap((f) => (f.assetId ? [f.assetId] : [])) } }, select: { id: true, name: true } })).map((a) => [a.id, a.name]));
@@ -72,6 +76,7 @@ export default async function InsightsOverviewPage({ searchParams }: { searchPar
 
   return (
     <div className="flex flex-col gap-6">
+      <Findings data={found} />
       {tiles.length > 0 && (
         <div className="grid grid-cols-2 gap-4 min-[1000px]:grid-cols-4">
           {tiles.map((t) => (

@@ -206,3 +206,25 @@ export async function insightsFromEvidence(clientId: string, opportunityId: stri
   }
   return linkInsights(clientId, opportunityId, ids);
 }
+
+/**
+ * Insights Overview, "What we found this month" (design InsightsLinked): the latest findings from the client's data
+ * and the market (last 31 days), each with the opportunities it's used in, and the bridge line above them.
+ */
+export async function recentFindings(clientId: string, now = new Date(), take = 6) {
+  const where: Prisma.InsightWhereInput = { clientId, status: "active", kind: { in: ["data", "market"] }, foundAt: { gte: new Date(now.getTime() - 31 * DAY) } };
+  const [rows, total] = await Promise.all([prisma.insight.findMany({ where, orderBy: { foundAt: "desc" }, take }), prisma.insight.count({ where })]);
+  // Only opportunities the client can see (not hidden, not set aside).
+  const links = await prisma.opportunityInsight.findMany({ where: { insightId: { in: rows.map((r) => r.id) }, opportunity: { clientId, hiddenAt: null, status: { not: "dismissed" } } }, include: { opportunity: { select: { id: true, title: true, status: true, combined: true } } } });
+  const findings = rows.map((insight) => ({ insight, used: links.filter((l) => l.insightId === insight.id).map((l) => ({ id: l.opportunity.id, title: shortTitle(l.opportunity), done: l.opportunity.status === "result" })) }));
+  const feeding = findings.filter((f) => f.used.some((u) => !u.done));
+  const open = new Set(feeding.flatMap((f) => f.used.filter((u) => !u.done).map((u) => u.id)));
+  return { findings, total, bridge: { feeding: feeding.length, open: open.size, unused: findings.filter((f) => f.used.length === 0).length } };
+}
+
+/** An opportunity's name on a chip: the budget move by its plan item ("Black Friday Stories"), else its title up to a colon. */
+export function shortTitle(o: { title: string; combined: Prisma.JsonValue | null }) {
+  const plan = (o.combined as { actions?: { addToPlan?: { label?: string } | null } } | null)?.actions?.addToPlan?.label;
+  if (plan) return `${plan.replace(/^Add to /, "").replace(/ plan$/, "")} Stories`;
+  return o.title.split(":")[0].trim();
+}
