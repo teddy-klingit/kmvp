@@ -30,6 +30,7 @@ export type OppView = {
   decideBy: Date | null;
   warning: string | null;
   missing: string[];
+  checks: { ok: boolean; text: string }[];
   score: number;
 };
 
@@ -71,12 +72,20 @@ export async function opportunityViews(clientId: string, rows: Row[], now = new 
 
     // Confidence: the budget move has its own (Phase V); otherwise enough data, and two or more sources that agree.
     let confidence: Confidence | null;
-    if (combined) confidence = (o.confidence as Confidence | null) ?? null;
-    else {
+    let checks: { ok: boolean; text: string }[];
+    if (combined) {
+      confidence = (o.confidence as Confidence | null) ?? null;
+      checks = [...combined.checks, ...combined.blind.map((text) => ({ ok: false, text }))];
+    } else {
       const measured = insights.filter((i) => i.kind === "data" || i.kind === "market");
-      const independent = new Set(measured.flatMap(insightSources).filter((s) => !["Planner", "Key moments"].includes(s)));
-      confidence = confidenceFrom({ enough: measured.length > 0, agree: independent.size >= 2, holds: null });
+      const independent = [...new Set(measured.flatMap(insightSources).filter((s) => !["Planner", "Key moments"].includes(s)))];
+      confidence = confidenceFrom({ enough: measured.length > 0, agree: independent.length >= 2, holds: null });
+      checks = [
+        measured.length ? { ok: true, text: `Enough data: ${measured.length} finding${measured.length === 1 ? "" : "s"} from your data and the market` } : { ok: false, text: "Not enough data yet: no finding from your data or the market" },
+        independent.length >= 2 ? { ok: true, text: `Sources agree: ${independent.join(", ")} point the same way` } : { ok: false, text: independent.length ? `Only one source so far (${independent[0]}), so nothing to check it against` : "No source to check it against yet" },
+      ];
     }
+    if (missing.length) checks.push({ ok: false, text: `${missing.join(", ")} disconnected: its results can't be checked` });
     if (missing.length) confidence = lower(confidence) ?? null;
 
     // Expected effect.
@@ -117,7 +126,7 @@ export async function opportunityViews(clientId: string, rows: Row[], now = new 
     // Impact × urgency: the middle of the range per day left to decide (no range: after the ones with one).
     const mid = estimate.low !== null && estimate.high !== null ? (estimate.low + estimate.high) / 2 : 0;
     const days = decideBy ? Math.max(1, Math.ceil((decideBy.getTime() - now.getTime()) / DAY)) : 60;
-    out.set(o.id, { kind, tag, insights, confidence, estimate, cost, decideBy, warning, missing, score: mid ? mid / days : -days });
+    out.set(o.id, { kind, tag, insights, confidence, estimate, cost, decideBy, warning, missing, checks, score: mid ? mid / days : -days });
   }
   return out;
 }
@@ -142,5 +151,33 @@ export async function trackRecord(clientId: string, now = new Date()) {
     recent: results.slice(0, 3).map((r) => ({ id: r.id, title: r.title, prediction: predictionOf(r), result: resultOf(r)! })),
     results: results.length,
     learning: learned?.learning ?? null,
+  };
+}
+
+const short = (d: Date) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(d);
+const wday = (d: Date) => new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short" }).format(d);
+
+/**
+ * "How we'll measure it": the metric, the window and when the result is ready. Once it's running, the stored
+ * prediction says it; before that it's worked out from the estimate and the date its work goes live.
+ */
+export async function measurementPlan(o: Pick<Opportunity, "id" | "clientId" | "combined" | "prediction" | "windowStart" | "windowEnd">, v: OppView) {
+  const stored = predictionOf(o);
+  const combined = o.combined as unknown as Combined | null;
+  let start: Date | null = stored ? new Date(stored.windowStart) : null;
+  let end: Date | null = stored ? new Date(stored.windowEnd) : null;
+  if (!start) {
+    const item = await prisma.clientCalendarItem.findFirst({ where: { clientId: o.clientId, archivedAt: null, OR: [{ opportunityId: o.id }, ...(combined?.actions.addToPlan ? [{ id: combined.actions.addToPlan.planItemId }] : [])] }, orderBy: { date: "asc" }, select: { date: true } });
+    start = item?.date ?? o.windowStart ?? o.windowEnd ?? null;
+    end = start ? new Date(start.getTime() + (v.estimate.days ?? 30) * DAY) : null;
+  }
+  const metric = combined ? "Story revenue" : "the revenue from the work it makes (through its UTM tags)";
+  const ready = end ? new Date(end.getTime() + 2 * DAY) : null;
+  if (v.missing.length) return { text: `We'll measure ${metric} once ${v.missing.join(" and ")} is reconnected. Without it there's nothing to compare against.`, ready: null };
+  if (!start || !end) return { text: `We'll measure ${metric} for ${v.estimate.days ?? 30} days from when its work goes live.`, ready: null };
+  const against = stored ? stored.text : v.estimate.low !== null ? v.estimate.text.replace(/ in \d+ days$/, "") : null;
+  return {
+    text: `We compare ${metric} ${short(start)} – ${short(end)}${against ? ` against the ${against} we expect, and show the result here and in your track record` : ", and show what it brought here and in your track record (there's no estimate to beat yet)"}.`,
+    ready: ready ? `Result ready: ${wday(ready)}` : null,
   };
 }

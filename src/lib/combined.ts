@@ -32,6 +32,8 @@ export type Combined = {
   actions: { addToPlan: { planItemId: string; label: string; formats: string[] } | null; brief: { label: string; href: string }; askPm: boolean };
   sources: string[];
   dataSize: string;
+  /** Phase W: "What it means", the reasoning in two sentences, and what to do in one. */
+  meaning?: { why: string; move: string };
 };
 
 /** High: all three checks hold. Medium: enough data and one other. Low: enough data only. Null: not enough data. */
@@ -196,6 +198,10 @@ export async function budgetShiftOpportunity(clientId: string, now = new Date())
     actions: { addToPlan: { planItemId: item.id, label: `Add to ${item.title} plan`, formats: ["Stories"] }, brief: { label: best ? `Brief 3 Story versions of ${best.name.replace(/\.$/, "")}` : "Brief 3 Story versions", href: "/brief/new" }, askPm: true },
     sources: [...new Set(evidence.flatMap((e) => e.sources))],
     dataSize: `${n0(S.orders + F.orders)} orders · ${days} days`,
+    meaning: {
+      why: `Buyers from Stories are worth more${flowBuyers ? ", and email keeps them" : ""}. ${item.title} is planned without Stories.`,
+      move: `Shift ${sym}${n0(budget)} from Feed to Stories${flowBuyers ? ", and make sure every Story buyer gets the welcome flow" : ""}.`,
+    },
   };
   return {
     combined,

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireOpsRole } from "@/lib/authz";
-import { kindFor, runOpportunityScan, SOURCES, type Source } from "@/lib/opportunities";
+import { kindFor, runOpportunityScan, SOURCES, STATUS_LABEL, type Source } from "@/lib/opportunities";
 import { linkInsights } from "@/lib/insight-records";
 
 /**
@@ -55,6 +55,29 @@ export async function editOpportunityAction(formData: FormData) {
     where: { id: o.id },
     data: { title, summary, whyNow: String(formData.get("whyNow") ?? "").trim() || null, windowStart: date(formData.get("windowStart")), windowEnd: date(formData.get("windowEnd")) ?? date(formData.get("windowStart")), reviewedAt: new Date(), reviewedByUserId: viewer.userId },
   });
+  refresh(clientId);
+}
+
+/** Phase W: staff override the status (it normally moves on its own), logged. */
+export async function setOpportunityStatusAction(formData: FormData) {
+  const { viewer, clientId, o } = await own(formData);
+  if (!o) return;
+  const status = String(formData.get("status") ?? "");
+  if (!(status in STATUS_LABEL)) return;
+  const before = await prisma.opportunity.findUniqueOrThrow({ where: { id: o.id }, select: { title: true, status: true } });
+  if (before.status === status) return;
+  await prisma.opportunity.update({ where: { id: o.id }, data: { status, statusSetByUserId: viewer.userId, statusSetAt: new Date(), ...(status === "running" ? { runningAt: new Date() } : {}) } });
+  await prisma.auditLog.create({ data: { clientId, actorUserId: viewer.userId, area: "opportunities", action: `Moved “${before.title}” from ${STATUS_LABEL[before.status as keyof typeof STATUS_LABEL] ?? before.status} to ${STATUS_LABEL[status as keyof typeof STATUS_LABEL]}` } });
+  refresh(clientId);
+}
+
+/** Phase W: "From your Marketing PM": the note on the opportunity (empty removes it), logged. */
+export async function savePmNoteAction(formData: FormData) {
+  const { viewer, clientId, o } = await own(formData);
+  if (!o) return;
+  const note = String(formData.get("pmNote") ?? "").trim().slice(0, 600);
+  const opp = await prisma.opportunity.update({ where: { id: o.id }, data: note ? { pmNote: note, pmNoteByUserId: viewer.userId, pmNoteAt: new Date() } : { pmNote: null, pmNoteByUserId: null, pmNoteAt: null } });
+  await prisma.auditLog.create({ data: { clientId, actorUserId: viewer.userId, area: "opportunities", action: note ? `Wrote a PM note on “${opp.title}”` : `Removed the PM note on “${opp.title}”` } });
   refresh(clientId);
 }
 

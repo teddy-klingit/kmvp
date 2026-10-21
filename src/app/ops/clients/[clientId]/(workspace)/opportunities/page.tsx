@@ -3,8 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { SectionCard, CardBody } from "@/components/ds/card";
 import { Button } from "@/components/ds/button";
 import { Field, fieldClass } from "@/components/ops/form-field";
-import { SOURCES, evidenceOf, sourcesOf, windowLabel, type Source } from "@/lib/opportunities";
-import { addOpportunityAction, editOpportunityAction, hideOpportunityAction, linkInsightAction, reviewOpportunityAction, runScanNowAction } from "@/lib/actions/ops-opportunity-actions";
+import { SOURCES, STATUS_LABEL, evidenceOf, sourcesOf, windowLabel, type Source } from "@/lib/opportunities";
+import { addOpportunityAction, editOpportunityAction, hideOpportunityAction, linkInsightAction, reviewOpportunityAction, runScanNowAction, savePmNoteAction, setOpportunityStatusAction } from "@/lib/actions/ops-opportunity-actions";
 import { insightSources } from "@/lib/insight-records";
 
 
@@ -58,7 +58,7 @@ export default async function OpsOpportunitiesPage({ params }: { params: Promise
                     </span>
                   ))}
                   <span>{ORIGIN[o.origin] ?? o.origin}</span>
-                  <span>· {o.status}</span>
+                  <span>· {STATUS_LABEL[o.status as keyof typeof STATUS_LABEL] ?? o.status}</span>
                   {o.hiddenAt && <span>· hidden</span>}
                   {o.insights.length === 0 && <span className="text-brand-orange-text">· needs an insight, so the client doesn&apos;t see it</span>}
                   {o.reviewedAt ? <span>· Reviewed by {reviewers.get(o.reviewedByUserId ?? "") ?? "Klingit"}</span> : <span className="text-brand-orange-text">· not reviewed</span>}
@@ -90,6 +90,16 @@ export default async function OpsOpportunitiesPage({ params }: { params: Promise
                         Save and mark reviewed
                       </Button>
                     </div>
+                  </form>
+                  <form action={savePmNoteAction} className="mt-4 flex flex-col gap-2">
+                    <input type="hidden" name="clientId" value={clientId} />
+                    <input type="hidden" name="id" value={o.id} />
+                    <Field label="From your Marketing PM (the client sees it on the card and the page)" htmlFor={`n-${o.id}`}>
+                      <textarea id={`n-${o.id}`} name="pmNote" defaultValue={o.pmNote ?? ""} rows={2} placeholder="e.g. I'd do this one. Concept B is ready, so it's a quick brief." className={fieldClass} />
+                    </Field>
+                    <Button type="submit" variant="secondary" size="sm" className="self-start">
+                      Save note
+                    </Button>
                   </form>
                 </details>
                 <p className="m-0 text-[13px] text-brand-ink-2">
@@ -136,6 +146,20 @@ export default async function OpsOpportunitiesPage({ params }: { params: Promise
                       </Button>
                     </form>
                   )}
+                  <form action={setOpportunityStatusAction} className="flex items-center gap-2">
+                    <input type="hidden" name="clientId" value={clientId} />
+                    <input type="hidden" name="id" value={o.id} />
+                    <select name="status" defaultValue={o.status} aria-label={`Status of ${o.title}`} className={`${fieldClass} h-9 py-0 text-[13px]`}>
+                      {Object.entries(STATUS_LABEL).map(([k, l]) => (
+                        <option key={k} value={k}>
+                          {l}
+                        </option>
+                      ))}
+                    </select>
+                    <Button type="submit" variant="secondary" size="sm">
+                      Set status
+                    </Button>
+                  </form>
                   <form action={hideOpportunityAction}>
                     <input type="hidden" name="clientId" value={clientId} />
                     <input type="hidden" name="id" value={o.id} />

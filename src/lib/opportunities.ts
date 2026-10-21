@@ -94,6 +94,11 @@ export async function newOpportunities(clientId: string, take = 3) {
   return { count, newest };
 }
 
+/** Phase W: someone at the client opened it: a new one becomes Considering (once). */
+export async function markViewed(clientId: string, id: string, now = new Date()) {
+  await prisma.opportunity.updateMany({ where: { id, ...clientVisible(clientId), status: "new" }, data: { status: "considering", viewedAt: now } });
+}
+
 /** One opportunity, only for its own client (and never one staff hid). */
 export async function loadOpportunity(clientId: string, id: string, opts: { staff?: boolean } = {}) {
   return prisma.opportunity.findFirst({ where: { id, ...(opts.staff ? { clientId } : clientVisible(clientId)) }, include: { routes: { orderBy: { sortOrder: "asc" } } } });
