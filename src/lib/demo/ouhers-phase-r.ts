@@ -1,5 +1,6 @@
 import type { BrandRuleType, Prisma } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
+import { insightsFromEvidence } from "@/lib/insight-records";
 import { checkCopy } from "@/lib/rule-check";
 import { briefByFor, loadLeadTimes, mondayOf, teamCreditsFor } from "@/lib/plan";
 import { loadMeasuredAssets } from "@/lib/insights-data";
@@ -356,6 +357,8 @@ export async function seedPhaseROpportunities(ctx: { clientId: string; now: Date
       },
     });
     if (o.status === "added" && singlesItem) await prisma.clientCalendarItem.update({ where: { id: singlesItem.id }, data: { opportunityId: row.id, route: "A" } });
+    // Phase W: built from its evidence, as insight records.
+    await insightsFromEvidence(clientId, row.id);
   }
   return opps.length;
 }

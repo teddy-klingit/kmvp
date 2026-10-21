@@ -15,6 +15,7 @@ import { createSecurityFixtures } from "./fixtures";
 import { dismissOpportunity, listOpportunities, loadOpportunity, newOpportunities, opportunityFacts, prefillFromOpportunity, runOpportunityScan } from "@/lib/opportunities";
 import { dismissOpportunityAction, briefRouteAction } from "@/lib/actions/opportunity-actions";
 import { addPlanItemAction } from "@/lib/actions/plan-item-actions";
+import { insightsFromEvidence } from "@/lib/insight-records";
 import OpportunityPage from "@/app/(portal)/opportunities/[id]/page";
 
 type Fx = Awaited<ReturnType<typeof createSecurityFixtures>>;
@@ -40,6 +41,9 @@ beforeAll(async () => {
     });
   oppA = (await mk(fx.clientA.id, "A's opportunity", "client A's own CTR")).id;
   oppB = (await mk(fx.clientB.id, "B's opportunity", "client B's private CTR")).id;
+  // Phase W: each is built from an insight (its evidence), or the client wouldn't see it.
+  await insightsFromEvidence(fx.clientA.id, oppA);
+  await insightsFromEvidence(fx.clientB.id, oppB);
   await prisma.marketSignal.create({ data: { clientId: fx.clientB.id, type: "COMPETITOR", title: "B-only competitor signal", summary: "Only client B tracks this.", publishedAt: new Date() } });
   await prisma.marketSignal.create({ data: { clientId: fx.clientA.id, type: "TREND", title: "A trend for A", summary: "Refills are up.", publishedAt: new Date() } });
 });

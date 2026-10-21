@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireOpsRole } from "@/lib/authz";
 import { runOpportunityScan, SOURCES, type Source } from "@/lib/opportunities";
+import { linkInsights } from "@/lib/insight-records";
 
 /**
  * Staff review of Plan → Opportunities (Phase R step 4): before or after a client sees them, an account lead or
@@ -16,6 +17,7 @@ const date = (v: FormDataEntryValue | null) => (/^\d{4}-\d{2}-\d{2}$/.test(Strin
 function refresh(clientId: string) {
   revalidatePath(`/ops/clients/${clientId}/opportunities`);
   revalidatePath("/planner", "layout");
+  revalidatePath("/opportunities", "layout");
   revalidatePath("/dashboard");
 }
 
@@ -56,7 +58,21 @@ export async function editOpportunityAction(formData: FormData) {
   refresh(clientId);
 }
 
-/** Add one by hand: no evidence (the client sees "Klingit added this one"), one route to start from. */
+/**
+ * Phase W: link one of the client's insights to an opportunity (logged). An opportunity needs at least one before the
+ * client sees it, so this is how staff bring back an older one that had no evidence.
+ */
+export async function linkInsightAction(formData: FormData) {
+  const { viewer, clientId, o } = await own(formData);
+  if (!o) return;
+  const insightId = String(formData.get("insightId") ?? "");
+  if (!(await linkInsights(clientId, o.id, [insightId]))) return;
+  const [opp, insight] = await Promise.all([prisma.opportunity.findUnique({ where: { id: o.id }, select: { title: true } }), prisma.insight.findUnique({ where: { id: insightId }, select: { title: true } })]);
+  await prisma.auditLog.create({ data: { clientId, actorUserId: viewer.userId, area: "opportunities", action: `Linked the insight “${insight?.title}” to “${opp?.title}”` } });
+  refresh(clientId);
+}
+
+/** Add one by hand, built from at least one of the client's insights (Phase W), with one route to start from. */
 export async function addOpportunityAction(formData: FormData) {
   const viewer = await requireOpsRole([...STAFF]);
   const clientId = String(formData.get("clientId") ?? "");
@@ -66,7 +82,9 @@ export async function addOpportunityAction(formData: FormData) {
   if (!title || !summary) return;
   const source = String(formData.get("source") ?? "trend");
   const start = date(formData.get("windowStart"));
-  await prisma.opportunity.create({
+  const insightIds = formData.getAll("insightId").map(String).filter(Boolean);
+  if (!(await prisma.insight.count({ where: { clientId, id: { in: insightIds } } }))) return;
+  const made = await prisma.opportunity.create({
     data: {
       clientId,
       title,
@@ -83,6 +101,7 @@ export async function addOpportunityAction(formData: FormData) {
       routes: { create: [{ letter: "A", name: String(formData.get("route") ?? "").trim() || "As Klingit suggests", description: summary }] },
     },
   });
+  await linkInsights(clientId, made.id, insightIds);
   refresh(clientId);
 }
 

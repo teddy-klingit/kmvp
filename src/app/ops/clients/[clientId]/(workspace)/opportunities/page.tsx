@@ -4,7 +4,8 @@ import { SectionCard, CardBody } from "@/components/ds/card";
 import { Button } from "@/components/ds/button";
 import { Field, fieldClass } from "@/components/ops/form-field";
 import { SOURCES, evidenceOf, sourcesOf, windowLabel, type Source } from "@/lib/opportunities";
-import { addOpportunityAction, editOpportunityAction, hideOpportunityAction, reviewOpportunityAction, runScanNowAction } from "@/lib/actions/ops-opportunity-actions";
+import { addOpportunityAction, editOpportunityAction, hideOpportunityAction, linkInsightAction, reviewOpportunityAction, runScanNowAction } from "@/lib/actions/ops-opportunity-actions";
+import { insightSources } from "@/lib/insight-records";
 
 
 const iso = (d: Date | null) => (d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}` : "");
@@ -18,7 +19,11 @@ export default async function OpsOpportunitiesPage({ params }: { params: Promise
   const { clientId } = await params;
   const client = await prisma.client.findUnique({ where: { id: clientId }, select: { id: true, isDemo: true } });
   if (!client) notFound();
-  const rows = await prisma.opportunity.findMany({ where: { clientId }, orderBy: [{ hiddenAt: "asc" }, { createdAt: "desc" }], include: { routes: { orderBy: { sortOrder: "asc" } } }, take: 60 });
+  const [rows, insights] = await Promise.all([
+    prisma.opportunity.findMany({ where: { clientId }, orderBy: [{ hiddenAt: "asc" }, { createdAt: "desc" }], include: { routes: { orderBy: { sortOrder: "asc" } }, insights: { include: { insight: true }, orderBy: { sortOrder: "asc" } } }, take: 60 }),
+    prisma.insight.findMany({ where: { clientId, status: "active" }, orderBy: { foundAt: "desc" }, take: 60 }),
+  ]);
+  const insightLabel = (i: (typeof insights)[number]) => `${i.title} · ${i.value} (${insightSources(i).join(", ")})`;
   const reviewers = new Map((await prisma.user.findMany({ where: { id: { in: rows.flatMap((r) => (r.reviewedByUserId ? [r.reviewedByUserId] : [])) } }, select: { id: true, name: true } })).map((u) => [u.id, u.name]));
   const dismissed = rows.filter((r) => r.status === "dismissed");
 
@@ -55,6 +60,7 @@ export default async function OpsOpportunitiesPage({ params }: { params: Promise
                   <span>{ORIGIN[o.origin] ?? o.origin}</span>
                   <span>· {o.status}</span>
                   {o.hiddenAt && <span>· hidden</span>}
+                  {o.insights.length === 0 && <span className="text-brand-orange-text">· needs an insight, so the client doesn&apos;t see it</span>}
                   {o.reviewedAt ? <span>· Reviewed by {reviewers.get(o.reviewedByUserId ?? "") ?? "Klingit"}</span> : <span className="text-brand-orange-text">· not reviewed</span>}
                 </span>
                 <details>
@@ -98,6 +104,12 @@ export default async function OpsOpportunitiesPage({ params }: { params: Promise
                     ))}
                   </ul>
                 )}
+                {o.insights.length > 0 && (
+                  <p className="m-0 text-[13px]">
+                    <span className="text-brand-ink-2">Built from: </span>
+                    {o.insights.map((l) => `${l.insight.title} (${l.insight.value})`).join(" · ")}
+                  </p>
+                )}
                 {o.dismissReason && <p className="m-0 text-[13px]">Not for us: {o.dismissReason}</p>}
                 <span className="flex flex-wrap gap-2">
                   <form action={reviewOpportunityAction}>
@@ -108,6 +120,22 @@ export default async function OpsOpportunitiesPage({ params }: { params: Promise
                       {o.reviewedAt ? "Unmark reviewed" : "Mark reviewed"}
                     </Button>
                   </form>
+                  {insights.length > 0 && (
+                    <form action={linkInsightAction} className="flex items-center gap-2">
+                      <input type="hidden" name="clientId" value={clientId} />
+                      <input type="hidden" name="id" value={o.id} />
+                      <select name="insightId" aria-label={`Insight to link to ${o.title}`} className={`${fieldClass} h-9 max-w-[320px] py-0 text-[13px]`}>
+                        {insights.map((i) => (
+                          <option key={i.id} value={i.id}>
+                            {insightLabel(i)}
+                          </option>
+                        ))}
+                      </select>
+                      <Button type="submit" variant="secondary" size="sm">
+                        Link insight
+                      </Button>
+                    </form>
+                  )}
                   <form action={hideOpportunityAction}>
                     <input type="hidden" name="clientId" value={clientId} />
                     <input type="hidden" name="id" value={o.id} />
@@ -154,6 +182,15 @@ export default async function OpsOpportunitiesPage({ params }: { params: Promise
             </Field>
             <Field label="Summary" htmlFor="summary">
               <textarea id="summary" name="summary" rows={3} required className={fieldClass} />
+            </Field>
+            <Field label="Built from (one or more insights)" htmlFor="insightId">
+              <select id="insightId" name="insightId" multiple required size={Math.min(6, Math.max(2, insights.length))} className={fieldClass}>
+                {insights.map((i) => (
+                  <option key={i.id} value={i.id}>
+                    {insightLabel(i)}
+                  </option>
+                ))}
+              </select>
             </Field>
             <Field label="First route" htmlFor="route">
               <input id="route" name="route" placeholder="e.g. The gift set edit" className={fieldClass} />

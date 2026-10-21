@@ -8,6 +8,7 @@ import { syncDailyAdMetrics } from "@/lib/integrations/ad-daily";
 import { logError } from "@/lib/secrets";
 import { sendPlanReminders } from "@/lib/plan";
 import { runWeeklyOpportunityScans } from "@/lib/opportunities";
+import { refreshInsights } from "@/lib/insight-records";
 import { applyAllDueChanges } from "@/lib/contracts";
 import { ensureAllGrants } from "@/lib/team-ledger";
 import { getSetting } from "@/lib/platform-settings";
@@ -53,6 +54,8 @@ export async function runScheduledAgents(now = new Date()) {
       // Market sources (news, ad libraries) for the Market tabs, stored at most every 6 hours (Phase V).
       const market = await refreshMarketSources(c.id, now).catch(() => ({ refreshed: false }));
       if (market.refreshed) done.push(`${c.name}: market`);
+      // Findings as insight records (Phase W), with the market: at most every 6 hours.
+      if (market.refreshed) await refreshInsights(c.id, now).catch(() => null);
       // Don't pile up runs: skip a client whose performance agent ran in the last half hour.
       const recent = await prisma.agentRun.findFirst({ where: { clientId: c.id, agent: { key: "performance_agent" }, createdAt: { gte: new Date(now.getTime() - RETRY_AFTER_MS) } }, select: { id: true } });
       if (recent) continue;

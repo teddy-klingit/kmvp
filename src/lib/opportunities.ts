@@ -9,8 +9,8 @@ import { buildBrandContext } from "@/lib/ai/brand-context";
 import { loadBrandForAgents } from "@/lib/brand-rules";
 import { checkCopy, type CopyCheck } from "@/lib/rule-check";
 import { loadMeasuredAssets } from "@/lib/insights-data";
-import { loadDaily } from "@/lib/insights/daily";
 import { briefByFor, loadLeadTimes, teamCreditsFor } from "@/lib/plan";
+import { insightSources, refreshInsights } from "@/lib/insight-records";
 
 /**
  * Plan → Opportunities (Phase R step 4, designs 06–07). What used to be Insights ideas, calendar suggestions and
@@ -48,8 +48,13 @@ export const chartOf = (o: Pick<Opportunity, "chart">): Chart | null => {
   return c && Array.isArray(c.bars) && c.bars.length ? c : null;
 };
 
-/** Shown to the client: not hidden by staff, not dismissed. */
-const shown = (clientId: string): Prisma.OpportunityWhereInput => ({ clientId, hiddenAt: null, status: { not: "dismissed" } });
+/**
+ * What the client may see: not hidden by staff, and built from at least one insight (Phase W: an opportunity without
+ * a linked insight stays with staff until they link one or archive it).
+ */
+export const clientVisible = (clientId: string): Prisma.OpportunityWhereInput => ({ clientId, hiddenAt: null, insights: { some: {} } });
+/** Shown to the client: visible and not dismissed. */
+const shown = (clientId: string): Prisma.OpportunityWhereInput => ({ ...clientVisible(clientId), status: { not: "dismissed" } });
 const NEW_FOR = 14 * DAY;
 
 export async function listOpportunities(clientId: string, opts: { source?: Source | null } = {}) {
@@ -79,7 +84,7 @@ export async function newOpportunities(clientId: string, now = new Date(), take 
 
 /** One opportunity, only for its own client (and never one staff hid). */
 export async function loadOpportunity(clientId: string, id: string, opts: { staff?: boolean } = {}) {
-  return prisma.opportunity.findFirst({ where: { id, clientId, ...(opts.staff ? {} : { hiddenAt: null }) }, include: { routes: { orderBy: { sortOrder: "asc" } } } });
+  return prisma.opportunity.findFirst({ where: { id, ...(opts.staff ? { clientId } : clientVisible(clientId)) }, include: { routes: { orderBy: { sortOrder: "asc" } } } });
 }
 
 export const routeCost = (r: Pick<OpportunityRoute, "teamCreditsLow" | "teamCreditsHigh" | "aiCredits">) => {
@@ -121,7 +126,7 @@ export async function opportunityBriefBy(o: Pick<Opportunity, "windowStart" | "w
 
 export async function quarterStats(clientId: string, now = new Date()) {
   const from = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
-  const rows = await prisma.opportunity.findMany({ where: { clientId, hiddenAt: null, createdAt: { gte: from } }, select: { id: true, status: true, routes: { select: { planItemId: true } } } });
+  const rows = await prisma.opportunity.findMany({ where: { ...clientVisible(clientId), createdAt: { gte: from } }, select: { id: true, status: true, routes: { select: { planItemId: true } } } });
   const live = rows.filter((r) => r.status === "live");
   // Top performers: live ones whose published plan item is an asset measured above the client's average CTR.
   const itemIds = live.flatMap((r) => r.routes.flatMap((x) => (x.planItemId ? [x.planItemId] : [])));
@@ -200,37 +205,33 @@ export async function briefExtras(clientId: string, opportunityId: string, lette
 
 // ─── Facts: the only things evidence can be made of ─────────────────────
 
-export type Fact = Evidence & { id: string; signalType?: string };
+export type Fact = Evidence & { id: string; signalType?: string; insightId: string };
 
 /**
- * The client's own facts for a scan: key moments in the next ten weeks, CTR by delivered format, campaigns that
- * are tiring, and the last six weeks of the Market feed. Scoped to this client; a demo client's facts say demo.
+ * The client's own facts for a scan, as insight records (Phase W): key moments in the next ten weeks, CTR by
+ * delivered format, campaigns that are tiring, the Market feed and revenue findings. A real client's findings are
+ * refreshed first; a demo client's are seeded. Scoped to this client; a demo client's facts say demo.
  */
 export async function opportunityFacts(clientId: string, now = new Date()): Promise<Fact[]> {
   const client = await prisma.client.findUniqueOrThrow({ where: { id: clientId }, select: { isDemo: true } });
-  const demo = client.isDemo;
-  const [moments, { measured }, daily, signals] = await Promise.all([
-    prisma.keyMoment.findMany({ where: { date: { gte: now, lt: new Date(now.getTime() + 70 * DAY) } }, orderBy: { date: "asc" } }),
-    loadMeasuredAssets(clientId),
-    loadDaily(clientId, 30).catch(() => ({ campaigns: [] as { platform: string; name: string; ctrLast7: number | null; ctrTrailing: number | null }[] })),
-    prisma.marketSignal.findMany({ where: { clientId, archivedAt: null, publishedAt: { gte: new Date(now.getTime() - 45 * DAY) } }, orderBy: { publishedAt: "desc" }, take: 15 }),
-  ]);
-  const facts: Fact[] = [];
-  for (const m of moments) facts.push({ id: `M${facts.length + 1}`, kind: "moment", value: day(m.date), text: `${m.name} (${jsonArray<string>(m.markets).join(", ")})`, source: "Key moments", ref: `moment:${m.id}` });
-  const byFormat = new Map<string, number[]>();
-  for (const a of measured) byFormat.set(a.format, [...(byFormat.get(a.format) ?? []), a.ctr]);
-  const avg = measured.length ? measured.reduce((a, m) => a + m.ctr, 0) / measured.length : null;
-  for (const [f, v] of byFormat) {
-    const mean = v.reduce((a, b) => a + b, 0) / v.length;
-    facts.push({ id: `D${facts.length + 1}`, kind: "data", value: `${Math.round(mean * 10) / 10}%`, text: `average CTR for ${f} (${v.length} delivered asset${v.length === 1 ? "" : "s"})${avg ? `, ${Math.round((mean / avg) * 10) / 10}× your average` : ""}`, source: "Insights · Performance", ref: "/insights/performance", demo });
-  }
-  for (const c of daily.campaigns.filter((c) => c.ctrLast7 !== null && c.ctrTrailing !== null && c.ctrLast7 < c.ctrTrailing))
-    facts.push({ id: `D${facts.length + 1}`, kind: "data", value: `${c.ctrTrailing}% → ${c.ctrLast7}%`, text: `CTR on ${c.platform} “${c.name}”, the 23 days before vs the last 7`, source: "Insights · Performance", ref: "/insights/performance", demo });
-  for (const s of signals) {
-    const d = (s.data ?? {}) as { before?: number; after?: number };
-    facts.push({ id: `S${facts.length + 1}`, kind: "market", signalType: s.type, value: d.before != null && d.after != null ? `${d.before} → ${d.after}` : day(s.publishedAt), text: `${s.title}. ${s.summary}`.slice(0, 240), source: s.source ?? "Market feed", ref: `signal:${s.id}`, demo: demo || /\(demo\)/i.test(`${s.title} ${s.summary}`) });
-  }
-  return facts;
+  await refreshInsights(clientId, now).catch(() => null);
+  const insights = await prisma.insight.findMany({ where: { clientId, status: "active", OR: [{ kind: "moment" }, { foundAt: { gte: new Date(now.getTime() - 60 * DAY) } }] }, orderBy: [{ kind: "asc" }, { foundAt: "desc" }], take: 40 });
+  const signalIds = insights.flatMap((i) => (i.key.startsWith("signal:") ? [i.key.slice("signal:".length)] : []));
+  const types = new Map((await prisma.marketSignal.findMany({ where: { clientId, id: { in: signalIds } }, select: { id: true, type: true } })).map((s) => [s.id, s.type]));
+  return insights.map((i, n) => {
+    const kind: Evidence["kind"] = i.kind === "moment" ? "moment" : i.kind === "market" ? "market" : "data";
+    return {
+      id: `${kind === "moment" ? "M" : kind === "market" ? "S" : "D"}${n + 1}`,
+      insightId: i.id,
+      kind,
+      signalType: i.key.startsWith("signal:") ? types.get(i.key.slice("signal:".length)) : undefined,
+      value: i.value,
+      text: `${i.title}${i.comparison ? `${kind === "moment" ? " (" : ". "}${i.comparison}${kind === "moment" ? ")" : ""}` : ""}`.slice(0, 240),
+      source: insightSources(i).join(" + ") || "Klingit",
+      ref: i.key.startsWith("signal:") || i.key.startsWith("moment:") ? i.key : i.href,
+      demo: client.isDemo,
+    };
+  });
 }
 
 const sourceOfFact = (f: Fact): Source => (f.kind === "moment" ? "seasonal" : f.kind === "data" ? "data" : f.signalType === "COMPETITOR" ? "competitor" : "trend");
@@ -376,6 +377,8 @@ export async function runOpportunityScan(clientId: string, opts: { origin: "week
           sourceKey,
           isDemo: client.isDemo,
           routes: { create: routes },
+          // Phase W: built from these insights (the ones it cited).
+          insights: { create: evidence.map((e, i) => ({ insightId: e.insightId, sortOrder: i })) },
         },
       })
       .then(() => created++)

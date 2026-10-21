@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getSetting } from "@/lib/platform-settings";
 import { briefByFor, loadLeadTimes, teamCreditsFor } from "@/lib/plan";
 import { jsonArray } from "@/lib/utils";
+import { linkInsights, upsertInsight, type InsightInput } from "@/lib/insight-records";
 
 /**
  * Phase V: rules for AI on combined data. An opportunity, takeaway or answer built from several sources:
@@ -54,7 +55,7 @@ const family = (format: string | null | undefined) => (/story|9:16|reel/i.test(f
  * Everything below is computed from the data layer, the Planner and the Output library; null when the data isn't
  * enough or there's nothing upcoming to change (then there's no recommendation).
  */
-export async function budgetShiftOpportunity(clientId: string, now = new Date()): Promise<{ combined: Combined; confidence: Confidence | null; planItemId: string; title: string; summary: string } | { notEnough: string } | null> {
+export async function budgetShiftOpportunity(clientId: string, now = new Date()): Promise<{ combined: Combined; confidence: Confidence | null; planItemId: string; title: string; summary: string; insights: InsightInput[] } | { notEnough: string } | null> {
   const days = 90;
   const start = new Date(now.getTime() - (days - 1) * 86400000).toISOString().slice(0, 10);
   const [rows, minimums, within, budget, leadTimes] = await Promise.all([
@@ -167,6 +168,14 @@ export async function budgetShiftOpportunity(clientId: string, now = new Date())
     { title: `${item.title} is planned with Feed only`, text: `${feedAds} Feed ad${feedAds === 1 ? "" : "s"}${emails ? ` and ${emails} email${emails === 1 ? "" : "s"}` : ""} planned for ${itemDay}, no Stories`, sources: ["Planner"], size: `${itemFormats.length} planned pieces` },
     ...(best && avgCtr ? [{ title: "The Story to reuse", text: `${best.name.replace(/\.$/, "")}: CTR ${best.performanceCtr}% vs ${avgCtr.toFixed(1)}% average`, sources: ["Output library", "Meta"], size: `${measured.length} measured pieces` }] : []),
   ];
+  // Phase W: the findings it's built from, as insight records (the same numbers as the claims above).
+  const insights: InsightInput[] = [
+    { key: "combined:aov-story-feed", kind: "data", title: "Story ads bring bigger orders", value: `${sym}${Math.round(aovS)} vs ${sym}${Math.round(aovF)}`, comparison: "Average order, Meta Stories vs Feed", period: `${days} days`, sources: ["Meta", "Shopify"], dataSize: `${n0(S.orders)} orders`, chart: { bars: [{ label: "Feed", value: aovF }, { label: "Story", value: aovS, highlight: true }] }, href: "/insights/revenue", origin: "combined" },
+    ...(flowBuyers && noBuyers
+      ? [{ key: "combined:welcome-repeat", kind: "data" as const, title: "Email brings Story buyers back", value: `${Math.round(rateFlow * 100)}% vs ${Math.round(rateNo * 100)}%`, comparison: "Buy again within 60 days, with vs without the welcome flow", period: "60 days", sources: ["Klaviyo", "Shopify"], dataSize: `${n0(flowBuyers + noBuyers)} customers`, chart: { bars: [{ label: "Without", value: rateNo * 100 }, { label: "With", value: rateFlow * 100, highlight: true }] }, href: "/insights/revenue", origin: "combined" }]
+      : []),
+    { key: `combined:plan-feed-only:${item.id}`, kind: "plan", title: `${item.title} has no Stories`, value: `${feedAds} Feed · 0 Story`, comparison: `What's planned for ${itemDay}`, sources: ["Planner"], dataSize: `${itemFormats.length} planned pieces`, chart: { bars: [{ label: "Feed", value: feedAds, highlight: true }, { label: "Story", value: 0 }] }, href: "/planner", origin: "combined" },
+  ];
   const maths = [
     { label: "On Stories", text: `${sym}${n0(budget)} ÷ ${sym}${Math.round(cpoS)} per order = ${ordersS} orders × ${sym}${Math.round(aovS)} = ${k1(firstS, sym)}, plus ${Math.round(rateFlow * 100)}% repeat orders × ${sym}${Math.round(repeatValue)} = ${k1(repeatS, sym)}. Total ≈ ${k1(onStories, sym)}.` },
     { label: "Kept on Feed", text: `${sym}${n0(budget)} ÷ ${sym}${Math.round(cpoF)} per order = ${ordersF} orders × ${sym}${Math.round(aovF)} = ${k1(onFeed, sym)}.` },
@@ -193,6 +202,7 @@ export async function budgetShiftOpportunity(clientId: string, now = new Date())
     confidence,
     planItemId: item.id,
     title: combined.headline,
+    insights,
     summary: `Story ads bring ${pct}% bigger orders${flowBuyers ? ", and those buyers come back when the welcome email reaches them" : ""}. Your ${item.title} plan has no Stories yet.`,
   };
 }
@@ -208,5 +218,10 @@ export async function upsertCombinedOpportunity(clientId: string, now = new Date
   const existing = await prisma.opportunity.findFirst({ where: { clientId, sourceKey } });
   if (existing?.status === "dismissed") return existing;
   const data = { title: r.title, summary: r.summary, whyNow: r.combined.evidence[0]?.text ?? null, combined: r.combined, confidence: r.confidence, sources: ["data"], evidence: [], windowEnd: r.combined.decideBy ? new Date(r.combined.decideBy) : null, origin: "combined", isDemo: Boolean(opts.isDemo) };
-  return existing ? prisma.opportunity.update({ where: { id: existing.id }, data }) : prisma.opportunity.create({ data: { clientId, sourceKey, ...data } });
+  const o = existing ? await prisma.opportunity.update({ where: { id: existing.id }, data }) : await prisma.opportunity.create({ data: { clientId, sourceKey, ...data } });
+  // Phase W: built from its findings, written as insight records and linked.
+  const insights = [];
+  for (const i of r.insights) insights.push(await upsertInsight(clientId, i, { isDemo: opts.isDemo, now }));
+  await linkInsights(clientId, o.id, insights.map((i) => i.id));
+  return o;
 }

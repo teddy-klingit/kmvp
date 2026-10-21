@@ -33,7 +33,7 @@ describe("Opportunities has its own place", () => {
 describe("no Placeholder or demo tags on the client side", () => {
   it("the Placeholder tag shows for staff and not inside the client portal", () => {
     expect(renderToStaticMarkup(createElement(PlaceholderTag, null, "Prices"))).toContain("Prices");
-    expect(renderToStaticMarkup(createElement(StaffTagsProvider, { show: false }, createElement(PlaceholderTag, null, "Prices")))).toBe("");
+    expect(renderToStaticMarkup(createElement(StaffTagsProvider, { show: false } as { show: boolean; children: React.ReactNode }, createElement(PlaceholderTag, null, "Prices")))).toBe("");
     expect(readFileSync("src/app/(portal)/layout.tsx", "utf8")).toMatch(/<StaffTagsProvider show=\{false\}>/);
   });
 

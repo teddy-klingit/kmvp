@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { clientVisible } from "@/lib/opportunities";
 
 const STALE_SUGGESTION_DAYS = 5;
 
@@ -31,7 +32,7 @@ export async function computeUrgentMatters(clientId: string, userId: string): Pr
       orderBy: { createdAt: "asc" },
     }),
     prisma.opportunity.findMany({
-      where: { clientId, status: "new", hiddenAt: null, createdAt: { lte: staleThreshold }, windowStart: { lte: new Date(Date.now() + 14 * 86400000) } },
+      where: { ...clientVisible(clientId), status: "new", createdAt: { lte: staleThreshold }, windowStart: { lte: new Date(Date.now() + 14 * 86400000) } },
       orderBy: { createdAt: "asc" },
     }),
     prisma.communityEscalation.findMany({

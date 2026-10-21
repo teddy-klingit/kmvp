@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { clientVisible } from "@/lib/opportunities";
 
 /** The opportunities the numbers on an Insights page produced (only this client's, only ones it can see). */
 export function opportunityLinksFor(clientId: string, href: string) {
-  return prisma.opportunity.findMany({ where: { clientId, hiddenAt: null, status: { not: "dismissed" }, insightHref: { startsWith: href } }, orderBy: { createdAt: "desc" }, take: 3, select: { id: true, title: true } });
+  return prisma.opportunity.findMany({ where: { ...clientVisible(clientId), status: { not: "dismissed" }, insightHref: { startsWith: href } }, orderBy: { createdAt: "desc" }, take: 3, select: { id: true, title: true } });
 }
 
 /** Insights → Plan → Opportunities: when these numbers led to an opportunity, say so and link to it. */

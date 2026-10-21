@@ -245,5 +245,18 @@ describe("the ouhers demo seed", () => {
     expect(r.confidence).toBe("high");
     const stored = await prisma.opportunity.findFirstOrThrow({ where: { clientId: OUHERS_CLIENT_ID, origin: "combined" } });
     expect(stored.confidence).toBe("high");
+    // Phase W: built from three insight records with the same numbers.
+    const built = await prisma.opportunityInsight.findMany({ where: { opportunityId: stored.id }, include: { insight: true }, orderBy: { sortOrder: "asc" } });
+    expect(built.map((b) => [b.insight.title, b.insight.value])).toEqual([
+      ["Story ads bring bigger orders", "€62 vs €45"],
+      ["Email brings Story buyers back", "41% vs 17%"],
+      ["Black Friday has no Stories", "3 Feed · 0 Story"],
+    ]);
+  });
+
+  it("Phase W: every ouhers opportunity is built from at least one insight", async () => {
+    const rows = await prisma.opportunity.findMany({ where: { clientId: OUHERS_CLIENT_ID }, select: { title: true, _count: { select: { insights: true } } } });
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.filter((r) => r._count.insights === 0).map((r) => r.title)).toEqual([]);
   });
 });

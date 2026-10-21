@@ -296,6 +296,7 @@ model Client {
   skillOutputs                 SkillOutput[]
   brandRules                   BrandRule[]
   opportunities                Opportunity[]
+  insights                     Insight[]
   contracts                    Contract[]
   serviceAllocations           ServiceAllocation[]
   billingProfile               BillingProfile?
@@ -2468,11 +2469,68 @@ model Opportunity {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
-  client Client             @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  routes OpportunityRoute[]
+  client   Client               @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  routes   OpportunityRoute[]
+  /// Phase W: the insights it's built from (at least one, or the client never sees it).
+  insights OpportunityInsight[]
 
   @@unique([clientId, sourceKey])
   @@index([clientId, status])
+}
+
+/// Phase W: one finding as a record: Insights Overview's "What we found", and what an opportunity is built from.
+/// Every number is computed in code from the data layer, the Market feed, the Planner or key moments (never a model).
+model Insight {
+  id         String   @id @default(cuid())
+  clientId   String
+  /// Stable per client, so a finding is updated rather than repeated: "combined:aov", "signal:<id>", "moment:<id>"…
+  key        String
+  /// data | market | moment | plan
+  kind       String
+  /// "Story ads bring bigger orders"
+  title      String
+  /// The number as shown: "€62 vs €45", "+52%", "0.7× return"
+  value      String
+  /// What it compares and over what: "Average order, Stories vs Feed"
+  comparison String?
+  /// "90 days", "30 days", "last 6 sends"
+  period     String?
+  /// Source chips: ["Meta", "Shopify"]
+  sources    Json     @default("[]")
+  /// How much data is behind it: "1,160 orders"
+  dataSize   String?
+  /// The mini chart: { bars: [{ label, value, highlight? }] }
+  chart      Json?
+  /// Where it lives in the app ("/insights/revenue", "/planner"); null = its own card on Insights Overview.
+  href       String?
+  /// detector | combined | signal | moment | plan | evidence (copied from an older opportunity) | seed | staff
+  origin     String   @default("detector")
+  /// active | archived (no longer true; still shown on the opportunities that used it)
+  status     String   @default("active")
+  isDemo     Boolean  @default(false)
+  foundAt    DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  client        Client               @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  opportunities OpportunityInsight[]
+
+  @@unique([clientId, key])
+  @@index([clientId, status, foundAt])
+}
+
+/// Phase W: Opportunity ↔ Insight, many-to-many.
+model OpportunityInsight {
+  opportunityId String
+  insightId     String
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  opportunity Opportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  insight     Insight     @relation(fields: [insightId], references: [id], onDelete: Cascade)
+
+  @@id([opportunityId, insightId])
+  @@index([insightId])
 }
 
 /// One way to do an opportunity (2–3 each): a sample line in the client's voice, run through the rule check.
