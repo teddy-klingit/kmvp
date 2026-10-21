@@ -121,6 +121,7 @@ export function OpportunityCard({ o, v, rank, pmNoteBy }: { o: Opportunity; v: O
 }
 
 /** Beat or met (green), missed (pink): never orange, which means it's your turn. */
-export function OutcomePill({ outcome }: { outcome: "beat" | "met" | "missed" }) {
-  return <span className={cn("inline-flex self-start justify-self-start rounded-full px-2.5 py-0.5 text-[12px]", outcome === "missed" ? "bg-[#FBE3E8] text-[#A33B57]" : "bg-[#E4F2B3] text-[#5E6B2A]")}>{outcome === "beat" ? "Beat" : outcome === "met" ? "Met" : "Missed"}</span>;
+export function OutcomePill({ outcome }: { outcome: "beat" | "met" | "missed" | "measured" }) {
+  const tone = outcome === "missed" ? "bg-[#FBE3E8] text-[#A33B57]" : outcome === "measured" ? "bg-brand-chip text-brand-ink-2" : "bg-[#E4F2B3] text-[#5E6B2A]";
+  return <span className={cn("inline-flex self-start justify-self-start rounded-full px-2.5 py-0.5 text-[12px]", tone)}>{{ beat: "Beat", met: "Met", missed: "Missed", measured: "Measured" }[outcome]}</span>;
 }

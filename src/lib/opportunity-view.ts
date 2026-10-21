@@ -16,8 +16,8 @@ import { insightSources } from "@/lib/insight-records";
 
 const DAY = 86400000;
 /** Phase W: a prediction and a result, as stored when an opportunity starts running and when it's measured. */
-export type Prediction = { metric: string; unit: "money" | "count"; low: number; high: number; currency?: string; label?: string; windowStart: string; windowEnd: string; baseline: number; text: string };
-export type Result = { outcome: "beat" | "met" | "missed"; actual: number; unit: "money" | "count"; currency?: string; label?: string; text: string };
+export type Prediction = { metric: string; unit: "money" | "count"; low: number | null; high: number | null; currency?: string; label?: string; windowStart: string; windowEnd: string; baseline: number; text: string };
+export type Result = { outcome: "beat" | "met" | "missed" | "measured"; actual: number; unit: "money" | "count"; currency?: string; label?: string; text: string };
 
 export type Estimate = { text: string; low: number | null; high: number | null; unit: "money" | "count" | null; currency: string; days: number | null; unclear: string | null; maths: string[] };
 export type OppView = {
@@ -47,6 +47,13 @@ const lower = (c: Confidence | null): Confidence | null => (c === "high" ? "medi
 export const resultOf = (o: Pick<Opportunity, "result">) => (o.result as Result | null) ?? null;
 export const predictionOf = (o: Pick<Opportunity, "prediction">) => (o.prediction as Prediction | null) ?? null;
 export const formatAmount = (n: number, unit: "money" | "count", currency = "EUR", label?: string) => (unit === "money" ? k(n, currency) : `${Math.round(n).toLocaleString("en-GB")}${label ? ` ${label}` : ""}`);
+/** A range as the design writes it: "+€8–12k", "+€400–600", "+400–600 sign-ups". */
+export function rangeText(low: number, high: number, unit: "money" | "count", currency = "EUR", label?: string) {
+  if (unit === "count") return `+${Math.round(low).toLocaleString("en-GB")}–${Math.round(high).toLocaleString("en-GB")}${label ? ` ${label}` : ""}`;
+  const thousands = low >= 1000 && high >= 1000;
+  const f = (n: number) => (thousands ? (n / 1000).toFixed(1).replace(/\.0$/, "") : String(Math.round(n)));
+  return `+${sym(currency)}${f(low)}–${f(high)}${thousands ? "k" : ""}`;
+}
 
 /** Everything the views need, for a set of one client's opportunities (one round of reads). */
 export async function opportunityViews(clientId: string, rows: Row[], now = new Date()): Promise<Map<string, OppView>> {
@@ -145,8 +152,9 @@ export async function trackRecord(clientId: string, now = new Date()) {
   return {
     suggested: rows.length,
     actedOn: rows.filter((r) => ["in_plan", "running", "result"].includes(r.status)).length,
-    metOrBeat: measured.filter((r) => r.outcome !== "missed").length,
-    measured: measured.length,
+    metOrBeat: measured.filter((r) => r.outcome === "beat" || r.outcome === "met").length,
+    // Only results with an estimate to compare against count here.
+    measured: measured.filter((r) => r.outcome !== "measured").length,
     revenue: money.length ? { value: money.reduce((a, r) => a + r.actual, 0), currency: money[0].currency ?? "EUR" } : null,
     recent: results.slice(0, 3).map((r) => ({ id: r.id, title: r.title, prediction: predictionOf(r), result: resultOf(r)! })),
     results: results.length,

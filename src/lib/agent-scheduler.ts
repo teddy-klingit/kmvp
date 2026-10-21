@@ -9,6 +9,7 @@ import { logError } from "@/lib/secrets";
 import { sendPlanReminders } from "@/lib/plan";
 import { runWeeklyOpportunityScans } from "@/lib/opportunities";
 import { refreshInsights } from "@/lib/insight-records";
+import { advanceOpportunities } from "@/lib/opportunity-results";
 import { applyAllDueChanges } from "@/lib/contracts";
 import { ensureAllGrants } from "@/lib/team-ledger";
 import { getSetting } from "@/lib/platform-settings";
@@ -56,6 +57,9 @@ export async function runScheduledAgents(now = new Date()) {
       if (market.refreshed) done.push(`${c.name}: market`);
       // Findings as insight records (Phase W), with the market: at most every 6 hours.
       if (market.refreshed) await refreshInsights(c.id, now).catch(() => null);
+      // Opportunities move on: Running when their work went live, measured (Beat / Met / Missed) when the window ends.
+      const moved = await advanceOpportunities(c.id, now).catch(() => [] as string[]);
+      if (moved.length) done.push(`${c.name}: ${moved.join("; ")}`);
       // Don't pile up runs: skip a client whose performance agent ran in the last half hour.
       const recent = await prisma.agentRun.findFirst({ where: { clientId: c.id, agent: { key: "performance_agent" }, createdAt: { gte: new Date(now.getTime() - RETRY_AFTER_MS) } }, select: { id: true } });
       if (recent) continue;

@@ -82,6 +82,20 @@ export async function savePmNoteAction(formData: FormData) {
 }
 
 /**
+ * Phase W: "what we learned" from a miss: staff write it, or edit and approve the draft. Only an approved one shows
+ * to the client (on the opportunity and under Recent results). Logged.
+ */
+export async function saveLearningAction(formData: FormData) {
+  const { viewer, clientId, o } = await own(formData);
+  if (!o) return;
+  const text = String(formData.get("learning") ?? "").trim().slice(0, 400);
+  const approve = formData.get("approve") === "1";
+  const opp = await prisma.opportunity.update({ where: { id: o.id }, data: text ? { learning: text, learningStatus: approve ? "approved" : "draft", learningByUserId: viewer.userId } : { learning: null, learningStatus: null, learningByUserId: null } });
+  await prisma.auditLog.create({ data: { clientId, actorUserId: viewer.userId, area: "opportunities", action: text ? `${approve ? "Approved" : "Saved"} what we learned from “${opp.title}”: “${text.slice(0, 120)}”` : `Removed what we learned from “${opp.title}”` } });
+  refresh(clientId);
+}
+
+/**
  * Phase W: link one of the client's insights to an opportunity (logged). An opportunity needs at least one before the
  * client sees it, so this is how staff bring back an older one that had no evidence.
  */

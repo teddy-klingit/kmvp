@@ -4,7 +4,8 @@ import { SectionCard, CardBody } from "@/components/ds/card";
 import { Button } from "@/components/ds/button";
 import { Field, fieldClass } from "@/components/ops/form-field";
 import { SOURCES, STATUS_LABEL, evidenceOf, sourcesOf, windowLabel, type Source } from "@/lib/opportunities";
-import { addOpportunityAction, editOpportunityAction, hideOpportunityAction, linkInsightAction, reviewOpportunityAction, runScanNowAction, savePmNoteAction, setOpportunityStatusAction } from "@/lib/actions/ops-opportunity-actions";
+import { addOpportunityAction, editOpportunityAction, hideOpportunityAction, linkInsightAction, reviewOpportunityAction, runScanNowAction, saveLearningAction, savePmNoteAction, setOpportunityStatusAction } from "@/lib/actions/ops-opportunity-actions";
+import { predictionOf, resultOf } from "@/lib/opportunity-view";
 import { insightSources } from "@/lib/insight-records";
 
 
@@ -121,6 +122,28 @@ export default async function OpsOpportunitiesPage({ params }: { params: Promise
                   </p>
                 )}
                 {o.dismissReason && <p className="m-0 text-[13px]">Not for us: {o.dismissReason}</p>}
+                {resultOf(o) && (
+                  <p className="m-0 text-[13px]">
+                    Result: expected {predictionOf(o)?.text ?? "not estimated"}, got {resultOf(o)!.text} · <b className="font-semibold">{resultOf(o)!.outcome}</b>
+                  </p>
+                )}
+                {resultOf(o)?.outcome === "missed" && (
+                  <form action={saveLearningAction} className="flex flex-col gap-2 rounded-[10px] bg-brand-page p-3">
+                    <input type="hidden" name="clientId" value={clientId} />
+                    <input type="hidden" name="id" value={o.id} />
+                    <Field label={`What we learned (${o.learningStatus === "approved" ? "approved, the client sees it" : "draft, only staff see it"})`} htmlFor={`l-${o.id}`}>
+                      <textarea id={`l-${o.id}`} name="learning" defaultValue={o.learning ?? ""} rows={2} placeholder="e.g. Pinterest suggestions now need 90 days of Pinterest data." className={fieldClass} />
+                    </Field>
+                    <span className="flex gap-2">
+                      <Button type="submit" name="approve" value="1" variant="primary" size="sm">
+                        Approve
+                      </Button>
+                      <Button type="submit" variant="secondary" size="sm">
+                        Save as draft
+                      </Button>
+                    </span>
+                  </form>
+                )}
                 <span className="flex flex-wrap gap-2">
                   <form action={reviewOpportunityAction}>
                     <input type="hidden" name="clientId" value={clientId} />
