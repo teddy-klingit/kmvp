@@ -1,8 +1,10 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, Check, Users } from "lucide-react";
+import { AlertTriangle, Check, ChevronDown, Maximize2, Users, X } from "lucide-react";
+import { InContext, SafeZoneOverlay } from "@/components/review/in-context";
+import { safeZoneFor } from "@/lib/safe-zones";
 import { pillClass } from "@/components/ds/button";
 import { editVersionAction, polishVersionAction, versionAction, type PolishState, type RunVersionsState } from "@/lib/actions/self-service-agent-actions";
 import { cn } from "@/lib/utils";
@@ -20,30 +22,54 @@ export type VersionView = {
 };
 
 const TINTS = ["#E4ECEE", "#F6CDB8", "#F6E7B8", "#F7E6F7"];
-const short = (t: string) => (t.length > 44 ? `${t.slice(0, 42).trimEnd()}…` : t);
+const RATIO: Record<string, number> = { "Story 9:16": 9 / 16, "Feed 4:5": 4 / 5, "Square 1:1": 1, "Landscape 16:9": 16 / 9, "Carousel 4:5": 4 / 5, "Carousel 1:1": 1 };
 const ASPECT: Record<string, string> = { "Story 9:16": "aspect-[9/14]", "Feed 4:5": "aspect-[4/5]", "Square 1:1": "aspect-square", "Landscape 16:9": "aspect-[16/9]", "Carousel 4:5": "aspect-[4/5]", "Carousel 1:1": "aspect-square" };
 
 /**
  * The versions side by side (design 03), each with the shared Brand OS check, and Save · Edit · Redo; pick one and
  * ask Klingit to polish it. A failed image says so honestly and offers Try again (charged only when it works).
  */
-export function SkillVersions({ agentId, versions, format, visual, then }: { agentId: string; versions: VersionView[]; format: string | null; visual: boolean; then: { href: string; name: string } | null }) {
+export function SkillVersions({ agentId, brand, versions, format, visual, then }: { agentId: string; brand: string; versions: VersionView[]; format: string | null; visual: boolean; then: { href: string; name: string } | null }) {
   const [picked, setPicked] = useState(versions[Math.min(1, versions.length - 1)]?.letter ?? "A");
+  const [preview, setPreview] = useState<VersionView | null>(null);
+  // Stories and Reels: shade the dead areas the platform's own UI covers.
+  const zone = visual ? safeZoneFor(format) : null;
+  const [zones, setZones] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [polish, polishAction, polishing] = useActionState<PolishState, FormData>(polishVersionAction, {});
   const chosen = versions.find((v) => v.letter === picked) ?? versions[0];
 
   return (
     <div className="flex flex-col gap-4">
+      {zone && versions.some((v) => v.image) && (
+        <label className="flex items-center gap-2 self-start text-[13px]">
+          <input type="checkbox" checked={zones} onChange={(e) => setZones(e.target.checked)} className="size-4 accent-brand-ink" />
+          Show safe zones <span className="text-brand-ink-2">({zone.label} are covered by the platform&apos;s UI)</span>
+        </label>
+      )}
       <ul className={cn("m-0 grid list-none gap-3 p-0", versions.length >= 3 ? "grid-cols-1 min-[900px]:grid-cols-3" : "grid-cols-1 min-[700px]:grid-cols-2")}>
         {versions.map((v, i) => (
           <li key={v.runId} onClick={() => setPicked(v.letter)} className={cn("flex cursor-pointer flex-col gap-3 rounded-[14px] bg-white p-3", picked === v.letter && "ring-2 ring-brand-ink")}>
             {visual ? (
               <div className={cn("relative flex w-full flex-col justify-end gap-3 overflow-hidden rounded-[10px] p-4", ASPECT[format ?? ""] ?? "aspect-[4/5]")} style={{ backgroundColor: TINTS[i % TINTS.length] }}>
-                <span className="absolute left-3 top-3 flex size-6 items-center justify-center rounded-[6px] bg-white text-[11px] font-semibold">{v.letter}</span>
+                <span className="absolute left-3 top-3 z-20 flex size-6 items-center justify-center rounded-[6px] bg-white text-[11px] font-semibold">{v.letter}</span>
                 {v.image ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- this version's generated image
-                  <img src={v.image} alt={`Version ${v.letter}`} className="absolute inset-0 size-full object-cover" />
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element -- this version's generated image */}
+                    <img src={v.image} alt={`Version ${v.letter}`} className="absolute inset-0 size-full object-cover" />
+                    {zones && zone && <SafeZoneOverlay zone={zone} />}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPreview(v);
+                      }}
+                      aria-label={`Enlarge version ${v.letter}`}
+                      className="absolute right-3 top-3 z-20 flex size-8 items-center justify-center rounded-full bg-white/90 text-brand-ink shadow-sm hover:bg-white"
+                    >
+                      <Maximize2 className="size-4" strokeWidth={1.75} />
+                    </button>
+                  </>
                 ) : (
                   <>
                     {v.headline && <span className="font-serif text-[22px] leading-[1.15] text-brand-ink">{v.headline}</span>}
@@ -79,10 +105,21 @@ export function SkillVersions({ agentId, versions, format, visual, then }: { age
                   <Check className="size-4 text-brand-lime-strong" /> Brand OS check · {v.check.passed} of {v.check.total}
                 </span>
               ) : (
-                <span className="flex items-start gap-1.5 text-[13px] text-ds-danger-text" title={v.check.violations.map((x) => x.why).join(" · ")}>
-                  <AlertTriangle className="mt-0.5 size-4 shrink-0" strokeWidth={1.75} />
-                  {v.check.violations.length === 1 ? `1 rule: ${short(v.check.violations[0].rule)}` : `${v.check.violations.length} rules: ${v.check.violations.map((x) => short(x.rule)).join("; ")}`}
-                </span>
+                <details className="group text-[13px] text-ds-danger-text" onClick={(e) => e.stopPropagation()}>
+                  <summary className="flex cursor-pointer list-none items-center gap-1.5 [&::-webkit-details-marker]:hidden">
+                    <AlertTriangle className="size-4 shrink-0" strokeWidth={1.75} />
+                    {v.check.violations.length === 1 ? "1 rule not met" : `${v.check.violations.length} rules not met`}
+                    <ChevronDown className="size-3.5 transition-transform group-open:rotate-180" />
+                  </summary>
+                  <ul className="m-0 mt-2 flex list-none flex-col gap-2 p-0 text-brand-ink">
+                    {v.check.violations.map((x) => (
+                      <li key={x.rule} className="rounded-[8px] bg-[#FDF1F0] px-3 py-2 leading-[1.45]">
+                        <span className="block font-medium">{x.rule}</span>
+                        {x.why && <span className="block text-brand-ink-2">{x.why}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
               )
             ) : (
               <span className="text-[13px] text-brand-ink-2">No words to check</span>
@@ -115,6 +152,8 @@ export function SkillVersions({ agentId, versions, format, visual, then }: { age
           </li>
         ))}
       </ul>
+
+      {preview && <Preview version={preview} brand={brand} format={format} onClose={() => setPreview(null)} />}
 
       {then && (
         <Link href={then.href} className="self-start text-[14px] text-brand-ink underline underline-offset-2">
@@ -178,5 +217,57 @@ function EditForm({ agentId, version, onDone }: { agentId: string; version: Vers
         </button>
       </div>
     </form>
+  );
+}
+
+/**
+ * A version large: the image itself, or in its placement (a story frame or a feed post, as in project review), with
+ * the dead areas shaded on request. Esc or the backdrop closes it.
+ */
+function Preview({ version, brand, format, onClose }: { version: VersionView; brand: string; format: string | null; onClose: () => void }) {
+  const [view, setView] = useState<"image" | "context">("context");
+  const zone = safeZoneFor(format);
+  const [zones, setZones] = useState(Boolean(zone));
+  const ratio = RATIO[format ?? ""] ?? 4 / 5;
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", key);
+    return () => window.removeEventListener("keydown", key);
+  }, [onClose]);
+  const tab = (on: boolean) => cn("h-9 rounded-full px-4 text-[13px]", on ? "bg-brand-ink text-white" : "bg-white text-brand-ink");
+  return (
+    <div role="dialog" aria-modal="true" aria-label={`Version ${version.letter}`} onClick={onClose} className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[rgba(15,14,12,0.78)] px-4 py-8">
+      <div onClick={(e) => e.stopPropagation()} className="flex w-full max-w-[720px] flex-col items-center gap-4">
+        <div className="flex w-full flex-wrap items-center gap-2">
+          <span className="flex gap-1 rounded-full bg-white/15 p-1">
+            <button type="button" onClick={() => setView("context")} className={tab(view === "context")}>
+              In Instagram
+            </button>
+            <button type="button" onClick={() => setView("image")} className={tab(view === "image")}>
+              Image
+            </button>
+          </span>
+          {zone && (
+            <label className="flex items-center gap-2 text-[13px] text-white">
+              <input type="checkbox" checked={zones} onChange={(e) => setZones(e.target.checked)} className="size-4 accent-white" />
+              Show safe zones
+            </label>
+          )}
+          <button type="button" onClick={onClose} aria-label="Close" className="ml-auto flex size-9 items-center justify-center rounded-full bg-white text-brand-ink">
+            <X className="size-4" />
+          </button>
+        </div>
+        {view === "context" ? (
+          <InContext src={version.image} alt={`Version ${version.letter}`} ratio={ratio} brand={brand} caption={version.body || version.headline} format={format} safeZones={zones} width={ratio < 0.7 ? 340 : ratio > 1.5 ? 600 : 440} />
+        ) : (
+          <span className="relative block w-full max-w-[560px] overflow-hidden rounded-[12px]">
+            {/* eslint-disable-next-line @next/next/no-img-element -- this version's generated image */}
+            <img src={version.image ?? ""} alt={`Version ${version.letter}`} className="block h-auto w-full" />
+            {zones && zone && <SafeZoneOverlay zone={zone} />}
+          </span>
+        )}
+        {zone && <p className="m-0 text-center text-[13px] text-white/80">{zone.label} are covered by the platform&apos;s UI: words, logo and the call to action belong between them.</p>}
+      </div>
+    </div>
   );
 }

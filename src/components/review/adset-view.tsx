@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Bookmark, Check, ChevronLeft, ChevronRight, Heart, MessageCircle, MoreHorizontal, Send } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight } from "lucide-react";
+import { InContext } from "@/components/review/in-context";
 import type { ReviewItem, Thread } from "@/lib/review";
 import { PinStage } from "@/components/review/pin-stage";
 import { ApproveButton, ReviewFooter } from "@/components/review/review-footer";
 import { ReviewShell, type ShellHeader } from "@/components/review/shell";
 import { CommentPanel } from "@/components/review/comment-panel";
-import { cn } from "@/lib/utils";
 
 /**
  * Ad set review (ReviewAdSet.dc.html). Grid: rows = concepts, columns = sizes, the master size labelled; approving
@@ -41,6 +41,8 @@ export function AdSetView({
 }) {
   const router = useRouter();
   const [active, setActive] = useState<string | null>(null);
+  // In context: shade what Stories' and Reels' own UI covers (the dead areas).
+  const [zones, setZones] = useState(false);
   const columns = [...new Map(items.map((i) => [i.size, i.ratio])).entries()].sort((a, b) => a[1] - b[1]).map(([s]) => s);
   const concepts = [...new Set(items.map((i) => i.concept))];
   const focus = focusId ? items.find((i) => i.id === focusId) : null;
@@ -181,6 +183,10 @@ export function AdSetView({
         </div>
       ) : (
         <div className="flex flex-col gap-8">
+          <label className="flex items-center gap-2 self-start text-[14px]">
+            <input type="checkbox" checked={zones} onChange={(e) => setZones(e.target.checked)} className="size-4 accent-brand-ink" />
+            Show safe zones <span className="text-brand-ink-2">(what Stories&apos; and Reels&apos; UI covers)</span>
+          </label>
           {concepts.map((concept) => (
             <section key={concept} aria-label={concept} className="flex flex-col gap-3">
               <h2 className="m-0 text-[17px] font-normal">{concept}</h2>
@@ -190,7 +196,7 @@ export function AdSetView({
                   .sort((a, b) => a.ratio - b.ratio)
                   .map((i) => (
                     <button key={i.id} type="button" onClick={() => router.push(href({ asset: i.id }), { scroll: false })} className="flex flex-col items-center gap-2 text-left">
-                      <InContext item={i} brand={brand} domain={domain} />
+                      <InContext src={i.fileUrl} alt={`${i.concept} ${i.size}`} ratio={i.ratio} brand={brand} domain={domain} caption={i.concept} format={i.size} safeZones={zones} />
                       <span className="text-[13px] text-brand-mute">{i.size}</span>
                     </button>
                   ))}
@@ -216,79 +222,4 @@ function StatusLine({ status, count }: { status: string; count?: number }) {
     );
   if (status === "CHANGES_REQUESTED") return <span className="text-[15px] text-brand-ink-2">Changes asked</span>;
   return <span className="text-[15px] text-brand-ink-2">In review</span>;
-}
-
-/** An ad in its placement: a story frame for 9:16, a feed post for 4:5 and 1:1, a link post for 1.91:1. */
-function InContext({ item, brand, domain }: { item: ReviewItem; brand: string; domain: string }) {
-  const handle = brand.toLowerCase().replace(/\s+/g, "");
-  const img = item.fileUrl ? (
-    // eslint-disable-next-line @next/next/no-img-element -- the access-checked file the client was sent
-    <img src={item.fileUrl} alt={`${item.concept} ${item.size}`} className="size-full object-cover" />
-  ) : null;
-  const avatar = <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-brand-peach-pale text-[11px] font-semibold">{brand.charAt(0)}</span>;
-  if (item.ratio < 0.7) {
-    return (
-      <span className="relative block h-[420px] w-[236px] overflow-hidden rounded-[28px] border-[6px] border-brand-ink bg-black shadow-lg">
-        <span className="absolute inset-0">{img}</span>
-        <span className="absolute inset-x-2 top-2 flex gap-1">
-          {[0, 1, 2].map((i) => (
-            <span key={i} className={cn("h-0.5 flex-1 rounded-full", i === 0 ? "bg-white" : "bg-white/40")} />
-          ))}
-        </span>
-        <span className="absolute left-3 top-5 flex items-center gap-2 text-[12px] font-semibold text-white drop-shadow">
-          {avatar}
-          {handle} <span className="font-normal opacity-80">Sponsored</span>
-        </span>
-        <span className="absolute inset-x-3 bottom-12 flex items-center justify-center rounded-full bg-white/90 py-1.5 text-[12px] font-semibold text-brand-ink">Shop now ›</span>
-        <span className="absolute inset-x-3 bottom-3 flex h-7 items-center rounded-full border border-white/60 px-3 text-[11px] text-white/80">Send message</span>
-      </span>
-    );
-  }
-  if (item.ratio > 1.5) {
-    return (
-      <span className="block w-[340px] overflow-hidden rounded-[12px] border border-brand-line bg-white shadow-sm">
-        <span className="flex items-center gap-2 px-3 py-2 text-[12px]">
-          {avatar}
-          <span className="flex flex-col">
-            <span className="font-semibold">{brand}</span>
-            <span className="text-brand-mute">Sponsored</span>
-          </span>
-        </span>
-        <span className="block aspect-[1.91/1]">{img}</span>
-        <span className="flex items-center gap-2 bg-[#F4F4F2] px-3 py-2">
-          <span className="flex min-w-0 flex-1 flex-col">
-            <span className="text-[11px] uppercase text-brand-mute">{domain}</span>
-            <span className="truncate text-[13px] font-semibold">{item.concept}</span>
-          </span>
-          <span className="rounded-[6px] bg-brand-chip px-3 py-1.5 text-[12px] font-semibold">Shop now</span>
-        </span>
-      </span>
-    );
-  }
-  return (
-    <span className="block w-[270px] overflow-hidden rounded-[12px] border border-brand-line bg-white shadow-sm">
-      <span className="flex items-center gap-2 px-3 py-2 text-[12px]">
-        {avatar}
-        <span className="flex flex-1 flex-col">
-          <span className="font-semibold">{handle}</span>
-          <span className="text-brand-mute">Sponsored</span>
-        </span>
-        <MoreHorizontal className="size-4" />
-      </span>
-      <span className="block" style={{ aspectRatio: String(item.ratio) }}>
-        {img}
-      </span>
-      <span className="flex items-center justify-between bg-brand-chip px-3 py-2 text-[12px] font-semibold">
-        Shop now <ChevronRight className="size-4" />
-      </span>
-      <span className="flex items-center gap-3 px-3 py-2">
-        <Heart className="size-4" /> <MessageCircle className="size-4" /> <Send className="size-4" />
-        <span className="flex-1" />
-        <Bookmark className="size-4" />
-      </span>
-      <span className="block px-3 pb-3 text-[12px]">
-        <span className="font-semibold">{handle}</span> {item.concept}
-      </span>
-    </span>
-  );
 }

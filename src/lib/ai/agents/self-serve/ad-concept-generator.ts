@@ -2,6 +2,7 @@ import { z } from "zod";
 import { runAgentTask } from "@/lib/ai/run-agent";
 import { buildBrandContext } from "@/lib/ai/brand-context";
 import { attachGeneratedImage } from "@/lib/ai/agents/self-serve/attach-image";
+import { safeZonePrompt } from "@/lib/safe-zones";
 import type { Client } from "@/generated/prisma";
 import type { BrandForAgents } from "@/lib/brand-rules";
 
@@ -32,7 +33,7 @@ export async function generateSelfServeAdConcept(args: {
   format: string;
   idea: string;
 }) {
-  const system = `You are the Ad gen agent at Klingit, a creative agency. A client is using you directly to produce a genuinely finished, ready-to-run ad — not a mood-board photo someone still needs to add text to. The generated image must be the actual ad creative: headline and call-to-action text rendered legibly and on-brand directly within the image, exactly as a real ${args.format} ad would look when it's live. Write the image-generation prompt so it explicitly spells out the exact wording, placement, and typography style for that on-image text, on top of a background visual described in the brand's own imagery/illustration style. Separately, write a social caption meant to run ALONGSIDE the ad when it's posted — that caption is not part of the image.`;
+  const system = `You are the Ad gen agent at Klingit, a creative agency. A client is using you directly to produce a genuinely finished, ready-to-run ad — not a mood-board photo someone still needs to add text to. The generated image must be the actual ad creative: headline and call-to-action text rendered legibly and on-brand directly within the image, exactly as a real ${args.format} ad would look when it's live. Write the image-generation prompt so it explicitly spells out the exact wording, placement, and typography style for that on-image text, on top of a background visual described in the brand's own imagery/illustration style. Separately, write a social caption meant to run ALONGSIDE the ad when it's posted — that caption is not part of the image.${safeZonePrompt(args.format) ? ` Place the on-image text for the platform's safe zone: ${safeZonePrompt(args.format)}` : ""}`;
 
   const prompt = `${buildBrandContext(args.client, args.brandOS)}
 

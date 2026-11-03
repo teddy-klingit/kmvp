@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { getOpenAIClient, IMAGE_MODEL } from "@/lib/ai/image-client";
+import { safeZonePrompt } from "@/lib/safe-zones";
 
 type GenerateImageResult = { ok: true; dataUri: string } | { ok: false; error: string };
 
@@ -24,7 +25,8 @@ export async function generateImageFromPrompt(prompt: string, aspectRatioSuggest
   try {
     const response = await client.images.generate({
       model: IMAGE_MODEL,
-      prompt,
+      // Stories and Reels: words, logo and CTA stay out of the bands the platform's UI covers.
+      prompt: [prompt, safeZonePrompt(aspectRatioSuggestion)].filter(Boolean).join("\n\n"),
       size: pickSize(aspectRatioSuggestion),
       n: 1,
     });

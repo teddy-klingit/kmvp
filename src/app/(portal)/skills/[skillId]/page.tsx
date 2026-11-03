@@ -125,7 +125,7 @@ export default async function SkillPage({ params, searchParams }: { params: Prom
                   Used {batch.credits} AI credits · {when(batch.startedAt)}
                 </span>
               </div>
-              <SkillVersions agentId={agent.id} versions={versions} format={batch.settings.format} visual={visual} then={then && thenHref ? { href: thenHref, name: then.name } : null} />
+              <SkillVersions agentId={agent.id} brand={viewer.client.name} versions={versions} format={batch.settings.format} visual={visual} then={then && thenHref ? { href: thenHref, name: then.name } : null} />
             </>
           ) : (
             availability !== "klingit_run" && (
