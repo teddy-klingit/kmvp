@@ -18,10 +18,18 @@ export function safeZoneFor(format: string | number | null | undefined): SafeZon
   return null;
 }
 
-/** The instruction an image prompt gets for a format with dead areas (empty for one without). */
+/** Breathing room on every format: nothing on-image sits closer than this to the left or right edge (share of width). */
+export const EDGE_MARGIN = 0.07;
+
+/**
+ * The layout instruction an image prompt gets: margins from the edges on every format, and for Stories and Reels the
+ * bands the platform's UI covers.
+ */
 export function safeZonePrompt(format: string | null | undefined): string {
   const z = safeZoneFor(format);
-  if (!z) return "";
   const pct = (n: number) => `${Math.round(n * 100)}%`;
-  return `LAYOUT (platform safe zone, ${z.kind}): the platform's UI covers the top ${pct(z.top)} and the bottom ${pct(z.bottom)}${z.side ? ` and ${pct(z.side)} at each side` : ""} of the frame. Keep every word, the logo, the call to action and the product's key details inside the area between them; let only background, texture or sky run into those bands.`;
+  const side = Math.max(EDGE_MARGIN, z?.side ?? 0);
+  const margins = `MARGINS: keep every word, the logo and every button at least ${pct(side)} of the width in from the left and right edges${z ? "" : " and the top and bottom"}; nothing touches an edge, text is never cropped, and buttons have generous padding around their label.`;
+  if (!z) return margins;
+  return `LAYOUT (platform safe zone, ${z.kind}): the platform's UI covers the top ${pct(z.top)} and the bottom ${pct(z.bottom)}${z.side ? ` and ${pct(z.side)} at each side` : ""} of the frame. Keep every word, the logo, the call to action and the product's key details inside the area between them; let only background, texture or sky run into those bands. ${margins}`;
 }

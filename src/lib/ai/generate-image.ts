@@ -4,15 +4,18 @@ import { safeZonePrompt } from "@/lib/safe-zones";
 
 type GenerateImageResult = { ok: true; dataUri: string } | { ok: false; error: string };
 
-/** Maps the agent's free-text aspect ratio suggestion to one of the standard GPT Image sizes. */
-function pickSize(aspectRatioSuggestion: string): "1024x1024" | "1024x1536" | "1536x1024" {
+/**
+ * The exact size for the format, so nothing is cropped when it's shown in its placement (GPT Image 2.5 takes any
+ * WIDTHxHEIGHT divisible by 16). A 2:3 image in a 9:16 story frame loses ~8% at each side, which put text on the edge.
+ */
+export function pickSize(aspectRatioSuggestion: string): string {
   const s = aspectRatioSuggestion.toLowerCase();
-  if (s.includes("9:16") || s.includes("4:5") || s.includes("2:3") || s.includes("portrait") || s.includes("story") || s.includes("reel")) {
-    return "1024x1536";
-  }
-  if (s.includes("16:9") || s.includes("3:2") || s.includes("landscape")) {
-    return "1536x1024";
-  }
+  if (s.includes("9:16") || s.includes("story") || s.includes("stories") || s.includes("reel")) return "1008x1792";
+  if (s.includes("4:5") || s.includes("carousel")) return "1024x1280";
+  if (s.includes("2:3") || s.includes("portrait")) return "1024x1536";
+  if (s.includes("16:9") || s.includes("landscape")) return "1792x1008";
+  if (s.includes("1.91") || s.includes("link")) return "1536x800";
+  if (s.includes("3:2")) return "1536x1024";
   return "1024x1024";
 }
 
@@ -27,7 +30,7 @@ export async function generateImageFromPrompt(prompt: string, aspectRatioSuggest
       model: IMAGE_MODEL,
       // Stories and Reels: words, logo and CTA stay out of the bands the platform's UI covers.
       prompt: [prompt, safeZonePrompt(aspectRatioSuggestion)].filter(Boolean).join("\n\n"),
-      size: pickSize(aspectRatioSuggestion),
+      size: pickSize(aspectRatioSuggestion) as "1024x1024",
       n: 1,
     });
 
