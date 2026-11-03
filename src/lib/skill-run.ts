@@ -165,10 +165,20 @@ export async function retryImage(viewer: PortalViewer, runId: string) {
 export type BatchVersion = { runId: string; letter: string; output: Record<string, unknown>; check: CopyCheck | null; saved: boolean; imageError: string | null; image: string | null; copy: ReturnType<typeof versionCopy> };
 
 /** This user's latest run of a skill, with its versions (replaced ones out of view). */
-export async function loadLatestBatch(clientId: string, userId: string, agent: Agent) {
+/** The user's latest batch of a skill: its id and when it started (the "Your last run" link on a fresh page). */
+export async function latestBatchMeta(clientId: string, userId: string, agent: Agent) {
+  const r = (await recentRuns(clientId, userId, agent.id)).find((x) => (x.input as RunInput | null)?.batchId);
+  const input = r?.input as RunInput | undefined;
+  return input ? { batchId: input.batchId, startedAt: new Date(input.startedAt) } : null;
+}
+
+/**
+ * One batch of a skill's versions, only this user's. A skill page shows a batch only when its address names it
+ * (right after Run, or from "Your last run"); opening the skill otherwise starts fresh.
+ */
+export async function loadBatch(clientId: string, userId: string, agent: Agent, batchId: string) {
   const recent = await recentRuns(clientId, userId, agent.id);
-  const batchId = recent.map((r) => (r.input as RunInput | null)?.batchId).find(Boolean);
-  if (!batchId) return null;
+  if (!recent.some((r) => (r.input as RunInput | null)?.batchId === batchId)) return null;
   const runs = recent.filter((r) => (r.input as RunInput | null)?.batchId === batchId).reverse();
   const live = runs.filter((r) => !(r.input as RunInput).replacedBy && r.status === "SUCCESS");
   const saved = new Set((await prisma.skillOutput.findMany({ where: { agentRunId: { in: live.map((r) => r.id) } }, select: { agentRunId: true } })).map((s) => s.agentRunId));

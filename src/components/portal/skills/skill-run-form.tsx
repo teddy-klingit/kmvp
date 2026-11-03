@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { PlaceholderTag } from "@/components/ds/placeholder-tag";
 import { runSkillVersionsAction, type RunVersionsState } from "@/lib/actions/self-service-agent-actions";
@@ -35,6 +36,11 @@ export function SkillRunForm({
   initial: { format: string | null; channel: string | null; product: string | null; say: string; versions: number; startFrom: string };
 }) {
   const [state, action, pending] = useActionState<RunVersionsState, FormData>(runSkillVersionsAction, {});
+  const router = useRouter();
+  // After a run, show that batch: its id goes in the address, so a later visit to the skill starts fresh.
+  useEffect(() => {
+    if (state.batchId) router.replace(`/skills/${agentId}?batch=${state.batchId}`, { scroll: false });
+  }, [state.batchId, agentId, router]);
   const [format, setFormat] = useState(initial.format ?? form.formats?.[0] ?? null);
   const [channel, setChannel] = useState(initial.channel ?? form.channels?.[0] ?? null);
   const [product, setProduct] = useState(initial.product);

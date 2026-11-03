@@ -12,7 +12,7 @@ import { SkillRunForm, type StartOption } from "@/components/portal/skills/skill
 import { SkillVersions, type VersionView } from "@/components/portal/skills/skill-versions";
 import { AskKlingit } from "@/components/portal/skills/ask-klingit";
 import { brandProducts, formFor } from "@/lib/skill-forms";
-import { loadLatestBatch } from "@/lib/skill-run";
+import { latestBatchMeta, loadBatch } from "@/lib/skill-run";
 import { jsonArray } from "@/lib/utils";
 import { WORK_TZ } from "@/lib/working-hours";
 import { estimateCredits } from "@/lib/ai-cost";
@@ -37,16 +37,18 @@ export default async function SkillPage({ params, searchParams }: { params: Prom
   const availability = agent.clientId ? "custom" : (agent.availability ?? "self_service");
   const form = formFor(agent.key);
 
-  const [ai, gate, brandOS, top, layouts, projects, batch, like, then] = await Promise.all([
+  const [ai, gate, brandOS, top, layouts, projects, batch, like, then, last] = await Promise.all([
     aiCreditStatus(viewer.clientId),
     aiGate(viewer.clientId, "skill"),
     prisma.brandOS.findUnique({ where: { clientId: viewer.clientId }, select: { keyProducts: true, colorPalette: true } }),
     prisma.asset.findFirst({ where: { clientId: viewer.clientId, performanceCtr: { not: null } }, orderBy: { performanceCtr: "desc" }, select: { name: true, thumbnailColor: true } }),
     prisma.template.findMany({ where: { OR: [{ clientId: viewer.clientId }, { clientId: null }] }, orderBy: { usageCount: "desc" }, take: 3 }),
     prisma.project.findMany({ where: { clientId: viewer.clientId, status: { notIn: ["ARCHIVED", "DELIVERED"] }, agentBuild: false }, orderBy: { updatedAt: "desc" }, take: 20, select: { id: true, name: true } }),
-    loadLatestBatch(viewer.clientId, viewer.userId, agent),
+    // Only the batch the address names: opening the skill again starts fresh.
+    q.batch ? loadBatch(viewer.clientId, viewer.userId, agent, q.batch) : null,
     q.like ? prisma.skillOutput.findFirst({ where: { id: q.like, clientId: viewer.clientId }, select: { id: true, title: true } }) : null,
     q.then ? prisma.agent.findFirst({ where: { id: q.then, kind: "SKILL" }, select: { id: true, name: true } }) : null,
+    q.batch ? null : latestBatchMeta(viewer.clientId, viewer.userId, agent),
   ]);
   const likeAsset = q.likeAsset ? await prisma.asset.findFirst({ where: { id: q.likeAsset, clientId: viewer.clientId }, select: { id: true, name: true, thumbnailColor: true } }) : null;
   const palette = jsonArray<{ hex: string }>(brandOS?.colorPalette).map((c) => c.hex);
@@ -132,6 +134,11 @@ export default async function SkillPage({ params, searchParams }: { params: Prom
               <div className="flex min-h-60 flex-col items-center justify-center gap-2 rounded-[16px] border border-dashed border-brand-field px-6 text-center text-[14px] text-brand-ink-2">
                 Your versions show here, side by side, each checked against your Brand OS rules.
                 {agent.status !== "LIVE" && <StatusPill>Paused</StatusPill>}
+                {last && (
+                  <Link href={`/skills/${agent.id}?batch=${last.batchId}`} className="mt-2 text-[13px] text-brand-ink underline underline-offset-2">
+                    Your last run · {when(last.startedAt)} ›
+                  </Link>
+                )}
               </div>
             )
           )}

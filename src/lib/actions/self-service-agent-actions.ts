@@ -124,7 +124,7 @@ async function runnableSkill(viewer: Awaited<ReturnType<typeof getPortalViewer>>
   return agent;
 }
 
-export type RunVersionsState = { error?: string | null; topUp?: boolean };
+export type RunVersionsState = { error?: string | null; topUp?: boolean; batchId?: string | null };
 
 export async function runSkillVersionsAction(_prev: RunVersionsState, formData: FormData): Promise<RunVersionsState> {
   const viewer = await getPortalViewer();
@@ -148,7 +148,8 @@ export async function runSkillVersionsAction(_prev: RunVersionsState, formData: 
   const r = await withAiCharge({ clientId: viewer.clientId, userId: viewer.userId, sourceType: "skill", sourceKey: agent.key, sourceName: agent.name, projectId: projectId ?? undefined }, () => runSkillBatch(agent, viewer, settings));
   revalidatePath(`/skills/${agent.id}`);
   revalidatePath("/skills");
-  return { error: r.error };
+  // The page shows this batch by its id in the address (a fresh visit to the skill starts empty).
+  return { error: r.error, batchId: r.error ? null : r.batchId };
 }
 
 /** Save a version to the Output library, make it again, or try its image again (charged only when it works). */
