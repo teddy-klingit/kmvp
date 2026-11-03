@@ -34,11 +34,20 @@ export async function generateImageFromPrompt(prompt: string, aspectRatioSuggest
 
     return { ok: true, dataUri: `data:image/png;base64,${b64}` };
   } catch (err) {
+    console.error("[image] generation failed:", err instanceof Error ? err.message : err);
     return { ok: false, error: describeOpenAIError(err) };
   }
 }
 
-function describeOpenAIError(err: unknown): string {
+export function describeOpenAIError(err: unknown): string {
+  // The common account problems, in words a person can act on (the raw message stays in the server log).
+  if (err instanceof OpenAI.APIError) {
+    const m = `${err.message ?? ""}`;
+    if (err.status === 403 && /verif/i.test(m)) return "OpenAI hasn't verified Klingit's organisation yet, so it won't make images. An admin verifies it at platform.openai.com → Settings → Organization.";
+    if (/billing|quota|insufficient|hard limit/i.test(m) || err.status === 402) return "Klingit's OpenAI account is out of credit or over its limit, so no image was made.";
+    if (err.status === 400 && /safety|moderation|content policy/i.test(m)) return "OpenAI turned this image down for its content rules. Try describing it differently.";
+  }
+  if (err instanceof OpenAI.APIConnectionTimeoutError) return "OpenAI took too long to make the image. Try again.";
   if (err instanceof OpenAI.AuthenticationError) {
     return "OpenAI API key is missing or invalid.";
   }

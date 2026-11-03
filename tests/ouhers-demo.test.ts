@@ -172,7 +172,10 @@ describe("the ouhers demo seed", () => {
     const ai = await aiCreditStatus(OUHERS_CLIENT_ID);
     expect([ai.left, ai.allowance]).toEqual([240, 3000]);
     const inv = await prisma.invoice.findMany({ where: { clientId: OUHERS_CLIENT_ID, contractId: c.id }, orderBy: { periodStart: "asc" } });
-    expect(inv.map((i) => i.status)).toEqual(["PAID", "SENT"]);
+    // The latest invoice is sent (not yet due), any older ones are paid, whichever month the demo is seeded in.
+    expect(inv.length).toBeGreaterThan(0);
+    expect(inv.map((i) => i.status)).toEqual([...inv.slice(0, -1).map(() => "PAID"), "SENT"]);
+    expect(inv.at(-1)!.dueAt!.getTime()).toBeGreaterThan(Date.now());
     expect(await prisma.purchaseRequest.count({ where: { clientId: OUHERS_CLIENT_ID, kind: "creative_pack", status: "pending" } })).toBe(1);
     const today = await loadToday({ mine: false, clientIds: [OUHERS_CLIENT_ID] });
     expect(today.tasks.filter((i) => i.kind === "ESTIMATE" && i.clientId === OUHERS_CLIENT_ID && /number/.test(i.sentence))).toHaveLength(1);

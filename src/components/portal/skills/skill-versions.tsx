@@ -60,7 +60,9 @@ export function SkillVersions({ agentId, versions, format, visual, then }: { age
             )}
             {v.imageError && (
               <div role="status" className="flex flex-col gap-2 rounded-[10px] bg-[#FFF6DA] px-3 py-2 text-[13px] leading-[1.45]">
-                Image generation didn&apos;t run. The words above are still ready to use.
+                <span>
+                  No image was made: {v.imageError.replace(/\.$/, "")}.{v.headline || v.body ? " The words above are still ready to use." : ""}
+                </span>
                 <form action={versionAction} onClick={(e) => e.stopPropagation()}>
                   <input type="hidden" name="agentId" value={agentId} />
                   <input type="hidden" name="runId" value={v.runId} />

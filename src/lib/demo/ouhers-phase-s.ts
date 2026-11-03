@@ -60,12 +60,14 @@ export async function seedPhaseS(ctx: Ctx) {
   await spend("creative", [["p05-holiday-giftset", "Unique social media design (1 post)", 6], ["p06-dewdrop-creators", "Storyboard", 3], ["p05-holiday-giftset", "Copy editing / proofreading (light touch)", 4], ["p07-website-pdp", "Iteration (small content/layout tweak)", 1]], thisMonth);
   await spend("pm", [["p05-holiday-giftset", PM_LINE_NAME, 2], ["p06-dewdrop-creators", PM_LINE_NAME, 1], ["p07-website-pdp", PM_LINE_NAME, 1], ["p11-agent-seasonal", PM_LINE_NAME, 2]], thisMonth);
 
-  // Invoices: September and Q4, written by the schedule; September paid, Q4 sent.
+  // Invoices, written by the schedule: the older ones paid, the latest one sent a few days ago (not yet due), whatever
+  // month the demo is seeded in (in October: September paid, Q4 sent; in November: Q4 sent).
   const made = await generateDueInvoices(now, [clientId]);
   const invoices = await prisma.invoice.findMany({ where: { number: { in: made } }, orderBy: { periodStart: "asc" } });
-  for (const inv of invoices) {
-    await sendInvoice(inv.id, ctx.staffUserId, new Date(inv.periodStart!.getTime() + DAY));
-    if (inv.periodStart! < thisMonth) await markInvoicePaid(inv.id, ctx.staffUserId, new Date(inv.periodStart!.getTime() + 12 * DAY));
+  for (const [i, inv] of invoices.entries()) {
+    const latest = i === invoices.length - 1;
+    await sendInvoice(inv.id, ctx.staffUserId, latest ? new Date(now.getTime() - 3 * DAY) : new Date(inv.periodStart!.getTime() + DAY));
+    if (!latest) await markInvoicePaid(inv.id, ctx.staffUserId, new Date(inv.periodStart!.getTime() + 12 * DAY));
   }
 
   // One pending request: an extra creative pack of 10, a few days ago.
