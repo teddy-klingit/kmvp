@@ -1,4 +1,5 @@
 import { generateImageFromPrompt } from "@/lib/ai/generate-image";
+import { IMAGE_MODEL } from "@/lib/ai/image-client";
 import { prisma } from "@/lib/prisma";
 import { currentAiCharge } from "@/lib/ai-context";
 import { chargeAi } from "@/lib/ai-credits";
@@ -16,7 +17,7 @@ export async function attachGeneratedImage<T extends ImageBackedData>(result: Ru
   const image = await generateImageFromPrompt(result.data.imagePrompt, result.data.aspectRatioSuggestion);
   // The rendered image is part of the client's skill run: it costs AI credits too (IMAGE_CREDITS, a placeholder).
   const charge = currentAiCharge();
-  if (image.ok && charge) await chargeAi({ ...charge, tokensIn: 0, tokensOut: 0, images: 1, model: "gpt-image-1", agentRunId: result.runId });
+  if (image.ok && charge) await chargeAi({ ...charge, tokensIn: 0, tokensOut: 0, images: 1, model: IMAGE_MODEL, agentRunId: result.runId });
   const output = image.ok ? { ...result.data, imageDataUri: image.dataUri } : { ...result.data, imageError: image.error };
 
   await prisma.agentRun.update({ where: { id: result.runId }, data: { output } });

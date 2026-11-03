@@ -3,7 +3,7 @@ import { getOpenAIClient, IMAGE_MODEL } from "@/lib/ai/image-client";
 
 type GenerateImageResult = { ok: true; dataUri: string } | { ok: false; error: string };
 
-/** Maps the agent's free-text aspect ratio suggestion to a size gpt-image-1 actually supports. */
+/** Maps the agent's free-text aspect ratio suggestion to one of the standard GPT Image sizes. */
 function pickSize(aspectRatioSuggestion: string): "1024x1024" | "1024x1536" | "1536x1024" {
   const s = aspectRatioSuggestion.toLowerCase();
   if (s.includes("9:16") || s.includes("4:5") || s.includes("2:3") || s.includes("portrait") || s.includes("story") || s.includes("reel")) {
@@ -44,7 +44,8 @@ export function describeOpenAIError(err: unknown): string {
   if (err instanceof OpenAI.APIError) {
     const m = `${err.message ?? ""}`;
     if (err.status === 403 && /verif/i.test(m)) return "OpenAI hasn't verified Klingit's organisation yet, so it won't make images. An admin verifies it at platform.openai.com → Settings → Organization.";
-    if (/billing|quota|insufficient|hard limit/i.test(m) || err.status === 402) return "Klingit's OpenAI account is out of credit or over its limit, so no image was made.";
+    if ((err.status === 400 || err.status === 404) && /model .*does not exist|model_not_found/i.test(m)) return `OpenAI doesn't offer the image model “${IMAGE_MODEL}” to this key (retired, or not allowed in the key's project).`;
+    if (/billing|quota|insufficient|hard limit|no credits/i.test(m) || err.status === 402) return "Klingit's OpenAI account is out of credit or over its limit, so no image was made.";
     if (err.status === 400 && /safety|moderation|content policy/i.test(m)) return "OpenAI turned this image down for its content rules. Try describing it differently.";
   }
   if (err instanceof OpenAI.APIConnectionTimeoutError) return "OpenAI took too long to make the image. Try again.";

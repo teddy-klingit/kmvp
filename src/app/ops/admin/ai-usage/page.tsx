@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 const usd = (n: number, d = 2) => `$${n.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d })}`;
 const eur = (n: number) => `€${Math.round(n).toLocaleString("en-GB")}`;
-const MODEL_LABEL: Record<string, string> = { "claude-sonnet-5-5": "Claude Sonnet", "claude-haiku-5-5": "Claude Haiku", "claude-opus-5-5": "Claude Opus", "claude-opus-5": "Claude Opus 5", "gpt-image-1": "Image model" };
+const MODEL_LABEL: Record<string, string> = { "claude-sonnet-5-5": "Claude Sonnet", "claude-haiku-5-5": "Claude Haiku", "claude-opus-5-5": "Claude Opus", "claude-opus-5": "Claude Opus 5", "gpt-image-1": "Image model", "gpt-image-2.5-flare": "Image model", "gpt-image-2.5-sunburst": "Image model" };
 const MODEL_TONE = ["#B455B6", "#D9A6DA", "#BDB6A8", "#6E2F70", "#8D9E47"];
 const input = "h-10 w-24 rounded-[10px] border border-[#CFC8B8] bg-white px-3 text-right text-[14px] tabular-nums outline-none focus:border-brand-ink";
 const chip = (on: boolean) => cn("inline-flex h-9 cursor-pointer items-center rounded-full border px-3.5 text-[13px] has-[:checked]:border-brand-ink has-[:checked]:bg-brand-ink has-[:checked]:text-white", on ? "" : "border-[#DCD6C8] bg-white");

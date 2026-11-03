@@ -8,4 +8,6 @@ export function getOpenAIClient() {
   return new OpenAI();
 }
 
-export const IMAGE_MODEL = "gpt-image-1";
+// gpt-image-1 was retired by OpenAI on 23 Oct 2026. Flare is the fast, everyday GPT Image 2.5 model (Sunburst is
+// the most capable one); OPENAI_IMAGE_MODEL overrides it without a code change.
+export const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || "gpt-image-2.5-flare";
