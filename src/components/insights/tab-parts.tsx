@@ -30,7 +30,8 @@ const TONE_TEXT: Record<Tone, string> = { good: "text-[#6E7D2F]", bad: "text-bra
 
 /** A small trend line: the segment's colour, orange when the change is bad. */
 function Spark({ values, color }: { values: number[]; color: string }) {
-  if (values.length < 2) return null;
+  // No line without numbers behind it: a flat zero line would read as "nothing happened".
+  if (values.length < 2 || values.every((v) => !v)) return null;
   const w = 96;
   const h = 36;
   const max = Math.max(...values);

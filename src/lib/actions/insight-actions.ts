@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
 import { sendPmMessage } from "@/lib/pm-thread";
-import { askKey } from "@/lib/insight-records";
+import { askKey, askedInsightKey, upsertInsight } from "@/lib/insight-records";
 
 export type AskIdeaState = { ok?: boolean; error?: string };
 
@@ -15,7 +15,20 @@ export type AskIdeaState = { ok?: boolean; error?: string };
  */
 export async function askForIdeaAction(_prev: AskIdeaState, formData: FormData): Promise<AskIdeaState> {
   const viewer = await getPortalViewer();
-  const insight = await prisma.insight.findFirst({ where: { id: String(formData.get("insightId") ?? ""), clientId: viewer.clientId } });
+  // A community question or a trend has no finding yet: it becomes one (only this client's), then the ask is the same.
+  const question = String(formData.get("question") ?? "").trim().slice(0, 200);
+  const made = question
+    ? await upsertInsight(viewer.clientId, {
+        key: askedInsightKey(String(formData.get("about") ?? "question"), question),
+        kind: "data",
+        title: question,
+        value: String(formData.get("value") ?? "").slice(0, 40) || "Asked",
+        sources: String(formData.get("sources") ?? "").split(",").map((x) => x.trim()).filter(Boolean).slice(0, 4),
+        href: String(formData.get("href") ?? "") || null,
+        origin: "client",
+      })
+    : null;
+  const insight = made ?? (await prisma.insight.findFirst({ where: { id: String(formData.get("insightId") ?? ""), clientId: viewer.clientId } }));
   if (!insight) return { error: "That finding isn't there anymore." };
   const sourceKey = askKey(insight.id);
   if (await prisma.opportunity.findUnique({ where: { clientId_sourceKey: { clientId: viewer.clientId, sourceKey } }, select: { id: true } })) return { ok: true };

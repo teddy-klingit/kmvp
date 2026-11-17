@@ -354,6 +354,7 @@ model Client {
   brandSources                 BrandSource[]
   brandConnections             BrandConnection[]
   adBudgets                    AdBudget[]
+  audienceActivity             AudienceActivity[]
 }
 
 // AI-synthesized read of the Market Intelligence signals (news, competitor
@@ -703,6 +704,8 @@ model ContentPost {
   saves              Int? // SOW weekly-report metric
   shares             Int? // SOW weekly-report metric
   comments           Int?
+  /// Phase X v2: what the post is about ("Rituals & how-to", "Real people", "Product shots", "Offers"), for "saves by theme".
+  theme              String?
   sourceSuggestionId String? // set when this post was created by approving a ContentPlanSuggestion, so the calendar visibly shows where it came from
   createdAt          DateTime           @default(now())
 
@@ -727,6 +730,8 @@ model CommunityManagementSnapshot {
   escalations          Int      @default(0)
   /// Top comment themes for the period: [{ theme, count }].
   themes               Json?
+  /// Phase X v2: the most-asked questions in comments and DMs, [{ question, count }], most asked first.
+  questions            Json?
   createdAt            DateTime @default(now())
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
@@ -2920,4 +2925,18 @@ model AdBudget {
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@unique([clientId, month, channel])
+}
+
+/// Phase X v2: when a channel's audience is online, as a day × time-of-day grid (Insights → Organic social).
+/// `grid` is 7 rows (Monday first) of 3 values (morning, midday, evening), 0–100 relative activity.
+model AudienceActivity {
+  id         String   @id @default(cuid())
+  clientId   String
+  platform   String
+  grid       Json
+  capturedAt DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, platform, capturedAt])
 }

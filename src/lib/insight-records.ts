@@ -259,3 +259,15 @@ export async function tabFindings(clientId: string, hrefs: string[] | null, opts
   }));
 }
 export type TabFinding = Awaited<ReturnType<typeof tabFindings>>[number];
+
+/** The finding a client's question or trend becomes when they ask for an idea about it ("Ask for an idea"). */
+export const askedInsightKey = (about: string, text: string) => `asked:${about}:${text.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 80)}`;
+
+/** Of these questions or trends, the ones the client already asked for an idea about. */
+export async function askedAbout(clientId: string, about: string, texts: string[]) {
+  const keys = texts.map((t) => askedInsightKey(about, t));
+  const found = await prisma.insight.findMany({ where: { clientId, key: { in: keys } }, select: { id: true, key: true } });
+  const asked = await prisma.opportunity.findMany({ where: { clientId, sourceKey: { in: found.map((f) => askKey(f.id)) } }, select: { sourceKey: true } });
+  const askedIds = new Set(asked.map((a) => a.sourceKey!.slice(4)));
+  return new Set(found.filter((f) => askedIds.has(f.id)).map((f) => texts[keys.indexOf(f.key)]));
+}

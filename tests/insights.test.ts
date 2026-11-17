@@ -115,14 +115,14 @@ describe("insights overview", () => {
     expect(page).not.toContain("writes three takeaways");
   });
 
-  it("Audience hides metrics without data instead of showing '—'", async () => {
+  it("Organic social without channels shows what connecting unlocks, never zeros or '—'", async () => {
     setMockSession({ user: { id: fx.userB.id, role: "CLIENT" } });
     const raw = await html(AudiencePage({ searchParams: Promise.resolve({}) }));
     expect(raw).not.toMatch(/>\s*—\s*</);
     const page = text(raw);
-    expect(page).not.toContain("Comments, latest period");
-    expect(page).not.toContain("Unique visitors");
-    expect(page).toContain("Google Analytics");
+    expect(page).toContain("Connect your Instagram, TikTok or LinkedIn pages");
+    expect(page).toContain("What we can’t see yet");
+    expect(page).not.toMatch(/\b0%/);
   });
 });
 
