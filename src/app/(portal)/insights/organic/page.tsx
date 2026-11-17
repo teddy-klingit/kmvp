@@ -28,7 +28,7 @@ export default async function AudiencePage({ searchParams }: { searchParams: Pro
   const { range, platform } = await searchParams;
   const days = parseRange(range);
   const viewer = await getPortalViewer();
-  const opportunityLinks = await opportunityLinksFor(viewer.clientId, "/insights/audience");
+  const opportunityLinks = await opportunityLinksFor(viewer.clientId, "/insights/organic");
   const clientId = viewer.clientId;
   const [{ community, website, escalations }, kpis, sources, connect] = await Promise.all([loadAudienceData(clientId), loadContentKpis(clientId), insightSources(clientId), connectHref(clientId)]);
   const since = sinceDays(days);
@@ -40,7 +40,7 @@ export default async function AudiencePage({ searchParams }: { searchParams: Pro
     const q = new URLSearchParams();
     if (p) q.set("platform", p);
     if (range) q.set("range", range);
-    return `/insights/audience${q.size ? `?${q}` : ""}`;
+    return `/insights/organic${q.size ? `?${q}` : ""}`;
   };
   const chips = [{ label: "All", href: href(), active: !platform }, ...socialPlatforms.map((p) => ({ label: p, href: href(p), active: platform === p })), ...(website.length ? [{ label: "Website", href: href("Website"), active: platform === "Website" }] : [])];
 
@@ -107,7 +107,7 @@ export default async function AudiencePage({ searchParams }: { searchParams: Pro
                     <LineChart x={snapDates.map(dayLabel)} series={followerSeries} height={220} format={{ kind: "compact" }} />
                   </>
                 ) : followers.length > 0 ? (
-                  <SkeletonChart shape="line" line="Followers are counted weekly: pick 30 or 90 days to see a trend." action={<PillLink href={`/insights/audience?${new URLSearchParams({ range: "90", ...(platform ? { platform } : {}) })}`} size="sm">90 days</PillLink>} />
+                  <SkeletonChart shape="line" line="Followers are counted weekly: pick 30 or 90 days to see a trend." action={<PillLink href={`/insights/organic?${new URLSearchParams({ range: "90", ...(platform ? { platform } : {}) })}`} size="sm">90 days</PillLink>} />
                 ) : (
                   <SkeletonChart shape="line" line="Connect your social accounts to see follower growth." action={<PillLink href={connect} size="sm">Connect</PillLink>} />
                 )}

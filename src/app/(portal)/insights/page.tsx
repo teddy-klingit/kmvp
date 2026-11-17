@@ -119,7 +119,7 @@ export default async function InsightsOverviewPage({ searchParams }: { searchPar
               title="Creative leaderboard"
               meta={
                 all.length > 0 ? (
-                  <Link href="/insights/performance#creative" className={monoLink}>
+                  <Link href="/insights/paid#creative" className={monoLink}>
                     ALL {all.length}
                   </Link>
                 ) : undefined
@@ -141,7 +141,7 @@ export default async function InsightsOverviewPage({ searchParams }: { searchPar
             )}
 
             <div className="grid grid-cols-1 gap-6 @min-[600px]/col:grid-cols-2">
-              <ChartCard title="Audience" meta={followers.length > 0 ? <Link href="/insights/audience" className={monoLink}>OPEN</Link> : undefined}>
+              <ChartCard title="Audience" meta={followers.length > 0 ? <Link href="/insights/organic" className={monoLink}>OPEN</Link> : undefined}>
                 {followers.length > 0 ? (
                   <>
                     <span className="text-[14px] text-brand-ink-2">Followers by platform</span>
@@ -151,14 +151,14 @@ export default async function InsightsOverviewPage({ searchParams }: { searchPar
                   <SkeletonChart line="Connect LinkedIn and Google Analytics" action={<PillLink href={connect} size="sm">Connect</PillLink>} />
                 )}
               </ChartCard>
-              <ChartCard title="SEO & AI visibility" meta={own ? <Link href="/insights/seo" className={monoLink}>OPEN</Link> : undefined}>
+              <ChartCard title="SEO & AI visibility" meta={own ? <Link href="/insights/website" className={monoLink}>OPEN</Link> : undefined}>
                 {seoRows.length > 0 ? (
                   <>
                     <span className="text-[14px] text-brand-ink-2">SEO health score</span>
                     <MiniBars rows={seoRows.sort((a, b) => (a.subject === "Own site" ? -1 : b.subject === "Own site" ? 1 : 0)).slice(0, 4).map((a) => ({ label: a.subject === "Own site" ? viewer.client.name : a.subject, value: a.seoScore!, display: String(a.seoScore), tone: a.subject === "Own site" ? "ink" : "grey" }))} />
                   </>
                 ) : (
-                  <SkeletonChart line={own ? "The audit has no SEO score yet" : "No audit yet"} action={<PillLink href="/insights/seo" size="sm">Run audit</PillLink>} />
+                  <SkeletonChart line={own ? "The audit has no SEO score yet" : "No audit yet"} action={<PillLink href="/insights/website" size="sm">Run audit</PillLink>} />
                 )}
               </ChartCard>
             </div>
@@ -203,7 +203,7 @@ export default async function InsightsOverviewPage({ searchParams }: { searchPar
             <ChartCard
               title="Market pulse"
               meta={
-                <Link href="/insights/market" className={monoLink}>
+                <Link href="/insights/competitors" className={monoLink}>
                   OPEN
                 </Link>
               }
@@ -221,7 +221,7 @@ export default async function InsightsOverviewPage({ searchParams }: { searchPar
                   ))}
                 </>
               ) : (
-                <SkeletonChart line="No signals yet. Competitor and news checks run when you open Market." action={<PillLink href="/insights/market" size="sm">Open Market</PillLink>} />
+                <SkeletonChart line="No signals yet. Competitor and news checks run when you open Market." action={<PillLink href="/insights/competitors" size="sm">Open Market</PillLink>} />
               )}
             </ChartCard>
           </>

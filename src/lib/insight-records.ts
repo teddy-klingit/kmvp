@@ -119,7 +119,7 @@ export async function detectInsights(clientId: string, now = new Date()): Promis
         sources: ["Output library"],
         dataSize: `${measured.length} measured pieces`,
         chart: { bars: [{ label: "Average", value: avg }, { label: top.f, value: top.mean, highlight: true }] },
-        href: "/insights/performance",
+        href: "/insights/paid",
       });
   }
 
@@ -134,7 +134,7 @@ export async function detectInsights(clientId: string, now = new Date()): Promis
       period: "30 days",
       sources: [c.platform],
       chart: { bars: [{ label: "Before", value: c.ctrTrailing! }, { label: "Last 7 days", value: c.ctrLast7!, highlight: true }] },
-      href: "/insights/performance",
+      href: "/insights/paid",
     });
 
   // The Market feed: each signal of the last six weeks.
@@ -147,7 +147,7 @@ export async function detectInsights(clientId: string, now = new Date()): Promis
       value: d.before != null && d.after != null ? `${d.before} → ${d.after}` : day(s.publishedAt),
       comparison: s.summary.slice(0, 160),
       sources: [s.source ?? "Market feed"],
-      href: "/insights/market",
+      href: "/insights/competitors",
       origin: "signal",
       foundAt: s.publishedAt,
     });
@@ -168,7 +168,7 @@ export async function detectInsights(clientId: string, now = new Date()): Promis
         // Where its revenue was counted: the CRM for retail deals, the shop for online orders.
         sources: revenue.based.filter((s) => (worst.deals ? CRMS : SHOPS).includes(s)).slice(0, 1),
         chart: { bars: [{ label: "Revenue", value: worst.revenue, highlight: true }, { label: "Spend", value: worst.spend! }] },
-        href: "/insights/revenue",
+        href: "/insights/sales",
       });
   }
   return out;
@@ -199,7 +199,7 @@ export async function insightsFromEvidence(clientId: string, opportunityId: stri
     const kind: InsightKind = e.kind === "moment" ? "moment" : e.kind === "market" ? "market" : "data";
     const i = await upsertInsight(
       clientId,
-      { key: shared ?? `evidence:${opportunityId}:${n}`, kind, title: e.text, value: e.value, sources: [e.source], href: e.ref?.startsWith("/") ? e.ref : kind === "market" ? "/insights/market" : kind === "moment" ? "/planner" : null, origin: shared ? shared.split(":")[0] : "evidence", foundAt: o.createdAt },
+      { key: shared ?? `evidence:${opportunityId}:${n}`, kind, title: e.text, value: e.value, sources: [e.source], href: e.ref?.startsWith("/") ? e.ref : kind === "market" ? "/insights/competitors" : kind === "moment" ? "/planner" : null, origin: shared ? shared.split(":")[0] : "evidence", foundAt: o.createdAt },
       { isDemo: o.isDemo }
     );
     ids.push(i.id);

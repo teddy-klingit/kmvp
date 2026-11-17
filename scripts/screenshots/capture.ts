@@ -223,13 +223,13 @@ async function warnOverflow(page: Page, name: string) {
 /** Insights (Insights.dc.html): every tab and Market view, at 1440 and 390. */
 const INSIGHTS_PAGES: [string, string][] = [
   ["01-overview", "/insights"],
-  ["02-performance", "/insights/performance"],
-  ["03-market-feed", "/insights/market"],
-  ["04-market-competitors", "/insights/market/competitors"],
-  ["05-market-trends", "/insights/market/trends"],
+  ["02-performance", "/insights/paid"],
+  ["03-market-feed", "/insights/competitors"],
+  ["04-market-competitors", "/insights/competitors"],
+  ["05-market-trends", "/insights/trends"],
   ["06-market-ideas", "/insights/market/ideas"],
-  ["07-audience", "/insights/audience"],
-  ["08-seo", "/insights/seo"],
+  ["07-audience", "/insights/organic"],
+  ["08-seo", "/insights/website"],
 ];
 
 /** Phase J1: the theme switch on a sweep of client and ops pages, to catch anything the tokens broke. */
@@ -661,10 +661,10 @@ async function main() {
         ["06-agents-templates", "/skills"],
         ["07-agent-build", P("p11-agent-seasonal")],
         ["08-insights-overview", "/insights"],
-        ["09-insights-performance", "/insights/performance"],
-        ["10-insights-market", "/insights/market"],
-        ["11-insights-audience", "/insights/audience"],
-        ["12-insights-seo", "/insights/seo"],
+        ["09-insights-performance", "/insights/paid"],
+        ["10-insights-market", "/insights/competitors"],
+        ["11-insights-audience", "/insights/organic"],
+        ["12-insights-seo", "/insights/website"],
         ["13-calendar", "/calendar"],
         ["14-reports", "/settings/reporting"],
         ["15-account", "/settings/account"],

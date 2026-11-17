@@ -14,7 +14,7 @@ import { entitlements } from "@/lib/entitlements";
  */
 export async function uploadStoreSalesAction(formData: FormData) {
   const viewer = await getPortalViewer();
-  const back = (msg: string) => redirect(`/insights/revenue?upload=${encodeURIComponent(msg)}#cant-see`);
+  const back = (msg: string) => redirect(`/insights/sales?upload=${encodeURIComponent(msg)}#cant-see`);
   if (!isClientAdmin(viewer)) back("Only your account's admins can upload sales.");
   const ent = await entitlements(viewer.clientId);
   if (!ent.has("offlineUpload")) back(`Store sales upload is on ${ent.needs("offlineUpload")}.`);
@@ -41,6 +41,6 @@ export async function uploadStoreSalesAction(formData: FormData) {
     prisma.dataSource.upsert({ where: { clientId_source: { clientId: viewer.clientId, source: "Offline" } }, update: { status: "connected", lastSyncAt: new Date() }, create: { clientId: viewer.clientId, source: "Offline", status: "connected", account: "Uploaded", lastSyncAt: new Date(), connectedAt: new Date() } }),
     prisma.auditLog.create({ data: { clientId: viewer.clientId, actorUserId: viewer.userId, area: "connections", action: `Uploaded store sales: ${rows.length} month${rows.length === 1 ? "" : "s"} (${rows[0].date.slice(0, 7)}–${rows.at(-1)!.date.slice(0, 7)})` } }),
   ]);
-  revalidatePath("/insights/revenue");
+  revalidatePath("/insights/sales");
   back(`Store sales uploaded: ${rows.length} line${rows.length === 1 ? "" : "s"}.`);
 }

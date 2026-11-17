@@ -18,7 +18,7 @@ export function performanceAlertKey(platform: string, campaignId: string) {
 async function notifyClientOwner(clientId: string, title: string, body: string) {
   const owner = await prisma.clientUser.findFirst({ where: { clientId, permission: "OWNER" } });
   if (!owner) return;
-  await notify({ userId: owner.userId, clientId, type: "SYSTEM", title, body, actionUrl: "/insights/performance", actionLabel: "View" });
+  await notify({ userId: owner.userId, clientId, type: "SYSTEM", title, body, actionUrl: "/insights/paid", actionLabel: "View" });
 }
 
 /**

@@ -26,21 +26,22 @@ function money(n: number, currency: string, exact = false) {
 const count = (n: number) => (n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M` : n >= 10000 ? `${Math.round(n / 1000)}k` : Math.round(n).toLocaleString("en-GB"));
 const keptPct = (v: number) => `${v < 10 ? v.toFixed(1) : v.toFixed(1)}%`;
 
-export default async function RevenuePage({ searchParams }: { searchParams: Promise<{ days?: string; credit?: string; by?: string; upload?: string }> }) {
+export default async function RevenuePage({ searchParams }: { searchParams: Promise<{ range?: string; days?: string; credit?: string; by?: string; upload?: string }> }) {
   const q = await searchParams;
   const viewer = await getPortalViewer();
   const ent = await entitlements(viewer.clientId);
-  const days = parsePeriod(q.days);
+  // Phase X: the tab header's period (?range=, 30 days by default); ?days= still reads for old links.
+  const days = parsePeriod(q.range ?? q.days ?? "30");
   const model: CreditModel = ent.has("attributionChoice") ? parseModel(q.credit) : "shared";
   const r = await loadRevenue(viewer.clientId, { days, model });
   const by = q.by === "campaign" || q.by === "market" ? q.by : "channel";
-  const href = (p: Partial<{ days: RevenuePeriod; credit: CreditModel; by: string }>) => {
-    const s = new URLSearchParams({ ...(days !== 90 ? { days: String(days) } : {}), ...(model !== "shared" ? { credit: model } : {}), ...(by !== "channel" ? { by } : {}) });
+  const href = (p: Partial<{ range: RevenuePeriod; credit: CreditModel; by: string }>) => {
+    const s = new URLSearchParams({ ...(days !== 30 ? { range: String(days) } : {}), ...(model !== "shared" ? { credit: model } : {}), ...(by !== "channel" ? { by } : {}) });
     for (const [k, v] of Object.entries(p)) {
-      if (v === undefined || (k === "days" && v === 90) || (k === "credit" && v === "shared") || (k === "by" && v === "channel")) s.delete(k);
+      if (v === undefined || (k === "range" && v === 30) || (k === "credit" && v === "shared") || (k === "by" && v === "channel")) s.delete(k);
       else s.set(k, String(v));
     }
-    return `/insights/revenue${s.size ? `?${s}` : ""}`;
+    return `/insights/sales${s.size ? `?${s}` : ""}`;
   };
 
   if (!r.connected) return <Empty admin={isClientAdmin(viewer)} />;
@@ -70,13 +71,6 @@ export default async function RevenuePage({ searchParams }: { searchParams: Prom
       </section>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <nav aria-label="Period" className="flex rounded-full bg-brand-chip p-1">
-          {([30, 90, 365] as const).map((d) => (
-            <Link key={d} href={href({ days: d })} aria-current={d === days ? "page" : undefined} className={cn("rounded-full px-4 py-2 text-[14px] no-underline", d === days ? "bg-brand-ink text-white" : "text-brand-ink")}>
-              {d === 365 ? "12 months" : `${d} days`}
-            </Link>
-          ))}
-        </nav>
         <div className="flex flex-wrap items-center gap-2 text-[14px]">
           <span className="text-brand-ink-2">Credit for a sale goes to</span>
           {(["first", "last", "shared"] as const).map((m) =>

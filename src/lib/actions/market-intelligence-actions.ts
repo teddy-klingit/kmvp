@@ -13,7 +13,7 @@ import { jsonArray } from "@/lib/utils";
 import { getRecentMarketSignals } from "@/lib/integrations/market-signals";
 import { answerMarketIntelligenceQuestion } from "@/lib/ai/agents/market-intelligence-agent";
 
-const MARKET_INTEL_PATHS = ["/insights", "/insights/market", "/insights/market/competitors", "/insights/market/trends", "/opportunities"];
+const MARKET_INTEL_PATHS = ["/insights", "/insights/competitors", "/insights/competitors", "/insights/trends", "/opportunities"];
 
 function revalidateAllTabs() {
   MARKET_INTEL_PATHS.forEach((p) => revalidatePath(p));

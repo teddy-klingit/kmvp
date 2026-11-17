@@ -10,8 +10,9 @@ import { adDays, adPlatforms } from "@/lib/metrics";
  * window is ever filled in.
  */
 
-export type RangeDays = 7 | 30 | 90;
-export const parseRange = (v: string | undefined): RangeDays => (v === "7" ? 7 : v === "90" ? 90 : 30);
+/** The Insights period (Phase X: 30 days · 90 days · 12 months; 7 still reads for old links). */
+export type RangeDays = 7 | 30 | 90 | 365;
+export const parseRange = (v: string | undefined): RangeDays => (v === "7" ? 7 : v === "90" ? 90 : v === "365" ? 365 : 30);
 
 export type DayPoint = { date: string; spend: number; clicks: number; impressions: number; conversions: number };
 export type CampaignRow = {

@@ -16,6 +16,8 @@ export function PortalMain({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "";
   // The Brief studio lays out its own full-height split.
   if (pathname.startsWith("/brief/")) return <main className="min-w-0 flex-1 overflow-y-auto min-[1000px]:overflow-hidden">{children}</main>;
+  // Sections with their own menu (Phase X: Insights) lay out the menu and their own padding (SectionShell).
+  if (pathname === "/insights" || pathname.startsWith("/insights/")) return <main className="min-w-0 flex-1 overflow-y-auto">{children}</main>;
   if (isProjectDetail(pathname)) {
     // No page transition here: it is keyed by pathname and would remount the conversation panel on every tab switch.
     return <main className="min-w-0 flex-1 overflow-y-auto">{children}</main>;

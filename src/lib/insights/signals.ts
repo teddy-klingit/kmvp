@@ -24,7 +24,7 @@ const monday = (d: Date) => {
 const label = (d: Date) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "UTC" }).format(d);
 
 /** How many weeks a range shows: at least 4, so a 7-day view still has something to compare with. */
-export const weeksFor = (days: RangeDays) => (days === 90 ? 13 : days === 30 ? 6 : 4);
+export const weeksFor = (days: RangeDays) => (days === 365 ? 52 : days === 90 ? 13 : days === 30 ? 6 : 4);
 
 export function signalsPerWeek(signals: Pick<MarketSignal, "type" | "publishedAt">[], weeks: number, now = new Date()) {
   const start = monday(new Date(now.getTime() - (weeks - 1) * 7 * DAY));

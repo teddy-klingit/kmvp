@@ -151,7 +151,7 @@ export default async function LibraryAssetPage({ params, searchParams }: { param
 
 
           {sold && sold.revenue > 0 && (
-            <SectionCard title="What it sold" meta={<Link href="/insights/revenue" className="font-brand-mono text-[12px] uppercase text-brand-ink underline underline-offset-4">Revenue</Link>}>
+            <SectionCard title="What it sold" meta={<Link href="/insights/sales" className="font-brand-mono text-[12px] uppercase text-brand-ink underline underline-offset-4">Revenue</Link>}>
               <CardBody className="flex flex-col gap-2">
                 <span className="text-[28px] font-light tabular-nums">
                   {sold.currency === "EUR" ? "€" : ""}

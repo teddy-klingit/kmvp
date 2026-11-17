@@ -30,7 +30,7 @@ export default async function InsightsPerformancePage({ searchParams }: { search
   const { platform, range } = await searchParams;
   const days = parseRange(range);
   const viewer = await getPortalViewer();
-  const opportunityLinks = await opportunityLinksFor(viewer.clientId, "/insights/performance");
+  const opportunityLinks = await opportunityLinksFor(viewer.clientId, "/insights/paid");
   const clientId = viewer.clientId;
   // No ad account: Performance has nothing to show but the way to connect one.
   if ((await adDataStatus(clientId)) === "none") return <NoAdAccount admin={isClientAdmin(viewer)} />;
@@ -47,7 +47,7 @@ export default async function InsightsPerformancePage({ searchParams }: { search
     const q = new URLSearchParams();
     if (p) q.set("platform", p);
     if (range) q.set("range", range);
-    return `/insights/performance${q.size ? `?${q}` : ""}`;
+    return `/insights/paid${q.size ? `?${q}` : ""}`;
   };
   const fallback = platform ? paid.campaigns.filter((c) => c.platform === platform) : paid.campaigns;
   const source = platform ?? (daily.has ? daily.platforms.join(" + ") : paid.isSample ? "sample data" : paid.connected.join(" + "));

@@ -18,6 +18,10 @@ export type NavItem = {
   badge?: number;
   /** Small unread dot on the icon. */
   dot?: boolean;
+  /** What the count means in the rail tooltip ("Opportunities · 3 new"). */
+  badgeNoun?: string;
+  /** Tooltip text that replaces the label on the rail (e.g. "Notifications · 2 unread"). */
+  hint?: string;
 };
 
 export type NavSection = { label?: string; items: NavItem[] };
@@ -38,6 +42,11 @@ type NavProps = {
   userMenu?: (onClose?: () => void) => React.ReactNode;
   /** Whose fold choice this is (the signed-in user), so each user on a shared browser keeps their own. */
   storageKey: string;
+  /**
+   * Sections with their own menu (Phase X: Insights): there the nav is the icon strip, badges are dots, the
+   * expand button sits at the bottom and opens the full nav as an overlay. That choice is remembered separately.
+   */
+  sectionPrefixes?: string[];
 };
 
 /** The most specific matching href is active, so "/ops" doesn't light up on "/ops/projects". */
@@ -57,13 +66,13 @@ const WIDE = "(min-width: 1280px)";
 /** Used when localStorage throws (private windows, blocked site data): the choice lasts for the visit. */
 const memory = new Map<string, NavState>();
 
-function readNav(key: string): NavState {
+function readNav(key: string, fallback?: NavState): NavState {
   let stored = memory.get(key) ?? null;
   try {
     const v = window.localStorage.getItem(key);
     if (v === "open" || v === "folded") stored = v;
   } catch {}
-  return stored ?? (window.matchMedia(WIDE).matches ? "open" : "folded");
+  return stored ?? fallback ?? (window.matchMedia(WIDE).matches ? "open" : "folded");
 }
 
 function writeNav(key: string, state: NavState) {
@@ -86,8 +95,13 @@ function subscribeNav(onChange: () => void) {
   };
 }
 
-function useNavState(key: string) {
-  return useSyncExternalStore(subscribeNav, () => readNav(key), () => "auto" as const);
+function useNavState(key: string, fallback?: NavState) {
+  return useSyncExternalStore(subscribeNav, () => readNav(key, fallback), () => "auto" as const);
+}
+
+/** The section (Phase X) a path is in, if any: "/insights/paid" → "/insights". */
+function sectionOf(pathname: string, prefixes: string[] = []) {
+  return prefixes.find((p) => pathname === p || pathname.startsWith(p + "/")) ?? null;
 }
 
 // ─── Rail tooltips ─────────────────────────────────────────────────────────
@@ -123,11 +137,17 @@ export function RailHint({ label, children }: { label: string; children: React.R
  */
 export function AppNav(props: NavProps) {
   const key = `klingit.nav.${props.storageKey}`;
+  const sectionKey = `klingit.nav.section.${props.storageKey}`;
   const stored = useNavState(key);
+  const pathname = usePathname() ?? "";
   // The Brief studio needs the width: the nav folds to the rail there without changing the saved choice.
-  const studio = (usePathname() ?? "").startsWith("/brief/");
+  const studio = pathname.startsWith("/brief/");
   const [studioOpen, setStudioOpen] = useState(false);
-  const state = studio ? (studioOpen ? "open" : "folded") : stored;
+  // In a section with its own menu the rail stays; "open" shows the full nav over the page instead of pushing it.
+  const section = !studio && Boolean(sectionOf(pathname, props.sectionPrefixes));
+  const sectionState = useNavState(sectionKey, "folded");
+  const overlay = section && sectionState === "open";
+  const state = studio ? (studioOpen ? "open" : "folded") : section ? "folded" : stored;
   const folded = state === "folded";
   const [hint, setHint] = useState<Hint>(null);
 
@@ -148,15 +168,24 @@ export function AppNav(props: NavProps) {
       e.preventDefault();
       setHint(null);
       if (studio) setStudioOpen((o) => !o);
+      else if (section) writeNav(sectionKey, readNav(sectionKey, "folded") === "folded" ? "open" : "folded");
       else writeNav(key, readNav(key) === "folded" ? "open" : "folded");
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [key, studio]);
+  }, [key, sectionKey, studio, section]);
+
+  useEffect(() => {
+    if (!overlay) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && writeNav(sectionKey, "folded");
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [overlay, sectionKey]);
 
   const toggle = () => {
     setHint(null);
     if (studio) setStudioOpen(!studioOpen);
+    else if (section) writeNav(sectionKey, overlay ? "folded" : "open");
     else writeNav(key, folded ? "open" : "folded");
   };
   const showHint = (label: string | null, el?: HTMLElement) => {
@@ -170,10 +199,10 @@ export function AppNav(props: NavProps) {
       <MobileTopBar {...props} />
       <aside
         data-nav={state}
-        className="hidden h-screen w-[240px] shrink-0 flex-col justify-between overflow-y-auto overflow-x-hidden border-r border-brand-rule bg-brand-nav px-3.5 pb-5 pt-7 transition-[width] duration-200 ease-out motion-reduce:transition-none min-[900px]:flex rail:w-[72px]"
+        className="hidden h-screen w-[240px] shrink-0 flex-col justify-between overflow-y-auto overflow-x-hidden border-r border-brand-rule bg-brand-nav px-3.5 pb-5 pt-7 transition-[width] duration-200 ease-out motion-reduce:transition-none print:!hidden min-[900px]:flex rail:w-[72px]"
       >
         <HintContext.Provider value={folded ? showHint : null}>
-          <NavContent {...props} onFold={toggle} folded={folded} />
+          <NavContent {...props} onFold={toggle} folded={folded} section={section} />
         </HintContext.Provider>
         {folded && hint && (
           <span
@@ -185,6 +214,14 @@ export function AppNav(props: NavProps) {
           </span>
         )}
       </aside>
+      {overlay && (
+        <>
+          <button type="button" aria-label="Close menu" onClick={toggle} className="fixed inset-0 z-40 hidden cursor-default bg-black/10 min-[900px]:block" />
+          <aside data-nav="open" className="fixed inset-y-0 left-0 z-50 hidden w-[240px] flex-col justify-between overflow-y-auto border-r border-brand-rule bg-brand-nav px-3.5 pb-5 pt-7 shadow-xl min-[900px]:flex">
+            <NavContent {...props} onFold={toggle} folded={false} section />
+          </aside>
+        </>
+      )}
     </>
   );
 }
@@ -193,7 +230,7 @@ function MobileTopBar(props: NavProps) {
   const [open, setOpen] = useState(false);
   return (
     <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
-      <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b border-brand-rule bg-brand-nav px-4 min-[900px]:hidden">
+      <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between border-b border-brand-rule bg-brand-nav px-4 print:hidden min-[900px]:hidden">
         <LogoLink {...props} />
         <DialogPrimitive.Trigger asChild>
           <button type="button" aria-label="Open menu" className="-mr-2 flex size-11 items-center justify-center rounded-full text-brand-ink hover:bg-brand-ink/5">
@@ -240,8 +277,8 @@ function FoldButton({ folded, onFold }: { folded: boolean; onFold: () => void })
   );
 }
 
-function NavRow({ item, active, sheet, onNavigate }: { item: NavItem; active: boolean; sheet: boolean; onNavigate?: () => void }) {
-  const hint = useHint(item.badge ? `${item.label} · ${item.badge}` : item.label);
+function NavRow({ item, active, sheet, onNavigate, dots = false }: { item: NavItem; active: boolean; sheet: boolean; onNavigate?: () => void; dots?: boolean }) {
+  const hint = useHint(item.hint ?? (item.badge ? `${item.label} · ${item.badge}${item.badgeNoun ? ` ${item.badgeNoun}` : ""}` : item.label));
   return (
     <Link
       href={item.href}
@@ -257,8 +294,8 @@ function NavRow({ item, active, sheet, onNavigate }: { item: NavItem; active: bo
     >
       <span className="relative">
         <item.icon className="size-[18px] shrink-0" strokeWidth={1.75} />
-        {item.dot && <span aria-hidden className="absolute -right-1 -top-1 hidden size-1.5 rounded-full bg-brand-orange rail:block" />}
-        {item.badge ? (
+        {(item.dot || (dots && item.badge)) && <span aria-hidden className="absolute -right-1 -top-1 hidden size-1.5 rounded-full bg-brand-orange rail:block" />}
+        {item.badge && !dots ? (
           <span aria-hidden className="absolute -right-2.5 -top-2 hidden h-4 min-w-4 items-center justify-center rounded-full bg-brand-orange px-1 font-brand-mono text-[10px] text-brand-ink rail:flex">
             {item.badge}
           </span>
@@ -295,7 +332,7 @@ function UserLink({ user, active, onClose }: { user: NavProps["user"]; active: b
   );
 }
 
-function NavContent({ onClose, onFold, folded = false, ...props }: NavProps & { onClose?: () => void; onFold?: () => void; folded?: boolean }) {
+function NavContent({ onClose, onFold, folded = false, section = false, ...props }: NavProps & { onClose?: () => void; onFold?: () => void; folded?: boolean; section?: boolean }) {
   const pathname = usePathname() ?? "";
   const all = [...props.sections.flatMap((s) => s.items), ...props.bottom, { label: "Account", href: props.user.href, icon: Menu }];
   const active = activeHref(pathname, all);
@@ -310,7 +347,7 @@ function NavContent({ onClose, onFold, folded = false, ...props }: NavProps & { 
               <X className="size-5" strokeWidth={1.75} />
             </button>
           ) : (
-            onFold && <FoldButton folded={folded} onFold={onFold} />
+            onFold && !section && <FoldButton folded={folded} onFold={onFold} />
           )}
         </div>
         {props.top && <div className="rail:hidden">{props.top}</div>}
@@ -324,7 +361,7 @@ function NavContent({ onClose, onFold, folded = false, ...props }: NavProps & { 
             )}
             <nav aria-label={s.label ?? "Main"} className="flex flex-col gap-1 rail:items-center">
               {s.items.map((item) => (
-                <NavRow key={item.href} item={item} active={item.href === active} sheet={sheet} onNavigate={onClose} />
+                <NavRow key={item.href} item={item} active={item.href === active} sheet={sheet} onNavigate={onClose} dots={section} />
               ))}
             </nav>
           </div>
@@ -335,8 +372,9 @@ function NavContent({ onClose, onFold, folded = false, ...props }: NavProps & { 
         {props.extra && <div className="rail:hidden">{props.extra}</div>}
         {props.extraRail && <div className="hidden rail:block">{props.extraRail}</div>}
         {props.bottom.map((item) => (
-          <NavRow key={item.href} item={item} active={item.href === active} sheet={sheet} onNavigate={onClose} />
+          <NavRow key={item.href} item={item} active={item.href === active} sheet={sheet} onNavigate={onClose} dots={section} />
         ))}
+        {section && !sheet && onFold && <FoldButton folded={folded} onFold={onFold} />}
         {props.userMenu ? props.userMenu(onClose) : <UserLink user={props.user} active={props.user.href === active} onClose={onClose} />}
       </div>
     </>

@@ -58,7 +58,7 @@ export type SegmentLink = { label: string; href: string; icon?: React.ReactNode;
 
 /**
  * Route-driven version: each pill is a link, so back/forward and deep links work. The most specific
- * matching href is active (so "/insights" doesn't light up on "/insights/market").
+ * matching href is active (so "/insights" doesn't light up on "/insights/competitors").
  */
 export function SegmentedNav({ items, label, className }: { items: SegmentLink[]; label: string; className?: string }) {
   const pathname = usePathname() ?? "";

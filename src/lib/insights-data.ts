@@ -165,20 +165,20 @@ export async function loadTakeaways(clientId: string, now = new Date()) {
 }
 
 const VIEW_HREF: Record<NonNullable<Takeaway["action"]["view"]>, string> = {
-  performance: "/insights/performance",
-  creative: "/insights/performance#creative",
-  revenue: "/insights/revenue",
-  market: "/insights/market",
-  competitors: "/insights/market/competitors",
-  trends: "/insights/market/trends",
-  audience: "/insights/audience",
-  seo: "/insights/seo",
+  performance: "/insights/paid",
+  creative: "/insights/paid#creative",
+  revenue: "/insights/sales",
+  market: "/insights/competitors",
+  competitors: "/insights/competitors",
+  trends: "/insights/trends",
+  audience: "/insights/organic",
+  seo: "/insights/website",
 };
 
 /** A brief action starts a project with the takeaway as its idea; a view action opens the evidence. */
 export function takeawayHref(t: Pick<Takeaway, "headline" | "why" | "action">) {
   if (t.action.kind === "brief" || !t.action.view) return `/brief/new?${new URLSearchParams({ q: `${t.headline}. ${t.why}` })}`;
-  return VIEW_HREF[t.action.view] ?? "/insights/performance";
+  return VIEW_HREF[t.action.view] ?? "/insights/paid";
 }
 
 // ─── Insights v2 helpers ───────────────────────────────────────────────────

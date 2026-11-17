@@ -7,12 +7,13 @@ import { createSecurityFixtures } from "./fixtures";
 import { takeawayHref, unlockSentence } from "@/lib/insights-data";
 import nextConfig from "../next.config";
 import OverviewPage from "@/app/(portal)/insights/page";
-import AudiencePage from "@/app/(portal)/insights/audience/page";
-import PerformancePage from "@/app/(portal)/insights/performance/page";
-import FeedPage from "@/app/(portal)/insights/market/page";
-import CompetitorsPage from "@/app/(portal)/insights/market/competitors/page";
-import TrendsPage from "@/app/(portal)/insights/market/trends/page";
-import SeoPage from "@/app/(portal)/insights/seo/page";
+import AudiencePage from "@/app/(portal)/insights/organic/page";
+import PerformancePage from "@/app/(portal)/insights/paid/page";
+import CompetitorsPage from "@/app/(portal)/insights/competitors/page";
+import TrendsPage from "@/app/(portal)/insights/trends/page";
+import SeoPage from "@/app/(portal)/insights/website/page";
+import EmailPage from "@/app/(portal)/insights/email/page";
+import { TABS, canonicalInsightsHref, hrefAliases, tabFor } from "@/lib/insights/tabs";
 
 // No network in tests: every ad account reads as "not connected", and the agent never runs on page load.
 vi.mock("@/lib/integrations/meta-ads", () => ({ getMetaAdAccountInsights: async () => ({ ok: false, reason: "not_configured" }) }));
@@ -71,8 +72,8 @@ describe("insights overview", () => {
   it("a brief action opens the brief studio with the takeaway; a view action opens the evidence", () => {
     const brief = takeawayHref({ headline: "Stories win", why: "6.0% vs 2.1%", action: { kind: "brief", label: "Brief more stories", view: null } });
     expect(brief).toBe(`/brief/new?${new URLSearchParams({ q: "Stories win. 6.0% vs 2.1%" })}`);
-    expect(takeawayHref({ headline: "t", why: "d", action: { kind: "view", label: "See their ads", view: "competitors" } })).toBe("/insights/market/competitors");
-    expect(takeawayHref({ headline: "t", why: "d", action: { kind: "view", label: "See", view: "creative" } })).toBe("/insights/performance#creative");
+    expect(takeawayHref({ headline: "t", why: "d", action: { kind: "view", label: "See their ads", view: "competitors" } })).toBe("/insights/competitors");
+    expect(takeawayHref({ headline: "t", why: "d", action: { kind: "view", label: "See", view: "creative" } })).toBe("/insights/paid#creative");
   });
 
   it("explains missing sources in one sentence, in the design's order", () => {
@@ -127,11 +128,11 @@ describe("insights overview", () => {
 
 describe("every insights tab renders", () => {
   it.each([
-    ["Performance", () => PerformancePage({ searchParams: Promise.resolve({}) })],
-    ["Market feed", () => FeedPage({ searchParams: Promise.resolve({}) })],
-    ["Competitors", () => CompetitorsPage({ searchParams: Promise.resolve({ range: "7" }) })],
-    ["Trends", () => TrendsPage({ searchParams: Promise.resolve({ range: "90" }) })],
-    ["SEO", () => SeoPage()],
+    ["Paid ads", () => PerformancePage({ searchParams: Promise.resolve({}) })],
+    ["Competitors", () => CompetitorsPage({ searchParams: Promise.resolve({ range: "90" }) })],
+    ["Trends", () => TrendsPage({ searchParams: Promise.resolve({ range: "365" }) })],
+    ["Website & search", () => SeoPage()],
+    ["Email", () => EmailPage()],
   ] as [string, () => Promise<ReactNode>][])("%s, without a '—' tile", async (_name, page) => {
     setMockSession({ user: { id: fx.userA.id, role: "CLIENT" } });
     const raw = await html(page());
@@ -145,14 +146,37 @@ describe("insights redirects", () => {
   it("every old URL lands on its new home", async () => {
     const rules = (await nextConfig.redirects!()) as { source: string; destination: string }[];
     const to = (source: string) => rules.find((r) => r.source === source)?.destination;
-    expect(to("/insights/market-intelligence")).toBe("/insights/market");
-    expect(to("/insights/market-intelligence/:view(competitors|trends)")).toBe("/insights/market/:view");
+    expect(to("/insights/market-intelligence")).toBe("/insights/competitors");
+    expect(to("/insights/market-intelligence/:view(competitors|trends)")).toBe("/insights/:view");
     // Ideas are Plan → Opportunities now (Phase R).
     expect(to("/insights/market-intelligence/ideas")).toBe("/opportunities");
     expect(to("/insights/market/ideas")).toBe("/opportunities");
-    expect(to("/insights/market-intelligence/seo")).toBe("/insights/seo");
-    expect(to("/insights/community")).toBe("/insights/audience#community");
-    expect(to("/insights/website")).toBe("/insights/audience#website");
+    expect(to("/insights/market-intelligence/seo")).toBe("/insights/website");
+    expect(to("/insights/community")).toBe("/insights/organic#community");
+    // Phase X v2: the tabs' new names and addresses.
+    expect(to("/insights/performance")).toBe("/insights/paid");
+    expect(to("/insights/audience")).toBe("/insights/organic");
+    expect(to("/insights/revenue")).toBe("/insights/sales");
+    expect(to("/insights/seo")).toBe("/insights/website");
+    expect(to("/insights/market")).toBe("/insights/competitors");
+    expect(to("/insights/market/:view(competitors|trends)")).toBe("/insights/:view");
+    // /insights/website is a tab now, not a redirect.
+    expect(to("/insights/website")).toBeUndefined();
+  });
+
+  it("the redirects and the stored-link mapping agree, and every tab address is a page", async () => {
+    const rules = (await nextConfig.redirects!()) as { source: string; destination: string }[];
+    for (const old of ["/insights/performance", "/insights/audience", "/insights/revenue", "/insights/seo", "/insights/market", "/insights/community"]) {
+      expect(canonicalInsightsHref(old)).toBe(rules.find((r) => r.source === old)?.destination);
+    }
+    expect(canonicalInsightsHref("/insights/market/trends?range=90")).toBe("/insights/trends?range=90");
+    expect(canonicalInsightsHref("/insights/marketing")).toBe("/insights/marketing");
+    expect(hrefAliases("/insights/sales")).toEqual(["/insights/sales", "/insights/revenue"]);
+    expect(TABS.map((t) => t.href)).toEqual(["/insights", "/insights/paid", "/insights/organic", "/insights/website", "/insights/email", "/insights/sales", "/insights/competitors", "/insights/trends"]);
+    expect(tabFor("/insights/paid").segment).toBe("channels");
+    expect(tabFor("/insights/sales").segment).toBe("sales");
+    expect(tabFor("/insights/trends").segment).toBe("market");
+    expect(tabFor("/insights").key).toBe("overview");
   });
 
   it("Plan is called Planner: the old /plan URLs (client, staff, a client page tab) redirect", async () => {

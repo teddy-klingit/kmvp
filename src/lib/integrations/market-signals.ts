@@ -33,7 +33,7 @@ async function notifyClientOwner(clientId: string, title: string, body: string) 
       type: "SYSTEM",
       title,
       body,
-      actionUrl: "/insights/market/competitors",
+      actionUrl: "/insights/competitors",
       actionLabel: "View",
     });
 }

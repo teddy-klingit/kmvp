@@ -6,6 +6,9 @@ import { AppNav, type NavSection } from "@/components/shared/app-nav";
 import { ProfileMenu } from "@/components/portal/profile-menu";
 import type { NavSummary } from "@/lib/nav-summary";
 
+/** Sections with their own menu: the nav folds to the icon strip there (Phase X). */
+const SECTIONS = ["/insights"];
+
 type SidebarProps = {
   userId: string;
   userName: string;
@@ -27,13 +30,13 @@ export function PortalSidebar({ userId, userName, userEmail, clientName, role, a
   const sections: NavSection[] = [
     {
       items: [
-        { label: "Home", href: "/dashboard", icon: LayoutGrid, badge: summary.needsYou || undefined },
+        { label: "Home", href: "/dashboard", icon: LayoutGrid, badge: summary.needsYou || undefined, badgeNoun: "need you" },
         { label: "Brand OS", href: "/assets", icon: ImageIcon },
         { label: "Skills", href: "/skills", icon: Loader },
         { label: "Ongoing projects", href: "/projects", icon: SquareKanban },
         { label: "Output library", href: "/library", icon: Layers },
         { label: "Planner", href: "/planner", icon: CalendarDays },
-        { label: "Opportunities", href: "/opportunities", icon: Crosshair, badge: summary.opportunities || undefined },
+        { label: "Opportunities", href: "/opportunities", icon: Crosshair, badge: summary.opportunities || undefined, badgeNoun: "new" },
         { label: "Insights", href: "/insights", icon: BarChart3 },
       ],
     },
@@ -42,7 +45,8 @@ export function PortalSidebar({ userId, userName, userEmail, clientName, role, a
     <AppNav
       homeHref="/dashboard"
       sections={sections}
-      bottom={[{ label: "Notifications", href: "/notifications", icon: Bell, dot: unreadCount > 0 }]}
+      bottom={[{ label: "Notifications", href: "/notifications", icon: Bell, dot: unreadCount > 0, hint: unreadCount ? `Notifications · ${unreadCount} unread` : undefined }]}
+      sectionPrefixes={SECTIONS}
       storageKey={userId}
       user={{ name: userName, sub: clientName, href: "/settings/account" }}
       userMenu={(onClose) => <ProfileMenu name={userName} email={userEmail} clientName={clientName} role={role} admin={admin} summary={summary} onNavigate={onClose} />}

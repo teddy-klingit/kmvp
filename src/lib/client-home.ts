@@ -315,7 +315,7 @@ export async function marketThisWeek(clientId: string, now = new Date()): Promis
       title: `Competitors launched ${total} new ${platforms.length === 1 ? `${platforms[0]} ` : ""}ad${total === 1 ? "" : "s"}`,
       detail: [...byBrand.entries()].sort((a, b) => b[1] - a[1]).map(([b, n]) => `${b} ${n}`).join(" · "),
       short: [...byBrand.entries()].sort((a, b) => b[1] - a[1]).map(([b, n]) => `${b} ${n}`).join(" · "),
-      action: { label: "See ads", href: "/insights/market/competitors" },
+      action: { label: "See ads", href: "/insights/competitors" },
     });
   }
 
@@ -326,7 +326,7 @@ export async function marketThisWeek(clientId: string, now = new Date()): Promis
       title: other.length === 1 ? other[0].title : `${other.length} industry updates`,
       detail: other.length === 1 ? other[0].summary : other.slice(0, 2).map((s) => s.title).join(" · "),
       short: other.length === 1 ? other[0].source ?? "Industry news" : `${other.length} headlines from industry news`,
-      action: { label: "Read", href: "/insights/market/trends" },
+      action: { label: "Read", href: "/insights/trends" },
     });
   }
   return rows;

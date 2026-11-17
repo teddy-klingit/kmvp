@@ -398,7 +398,7 @@ export async function runOpportunityScan(clientId: string, opts: { origin: "week
           fitsProjectId: fits?.id ?? null,
           fitsLabel: fits?.name ?? null,
           skillKey: routes.flatMap((x) => x.formats.map((f) => SKILL_FOR_FORMAT[f])).find(Boolean) ?? null,
-          insightHref: evidence.find((e) => e.kind === "data")?.ref ?? (evidence.some((e) => e.kind === "market") ? "/insights/market" : null),
+          insightHref: evidence.find((e) => e.kind === "data")?.ref ?? (evidence.some((e) => e.kind === "market") ? "/insights/competitors" : null),
           origin: opts.origin,
           createdByUserId: opts.userId ?? null,
           sourceKey,

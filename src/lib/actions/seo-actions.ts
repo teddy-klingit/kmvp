@@ -15,7 +15,7 @@ export async function generateSeoReportAction(
   const result = await withAiCharge(assistantCharge(viewer.clientId, viewer.userId, ASSISTANTS.seo), () => runSeoAudit(viewer.client));
   if (result.error) return result;
 
-  revalidatePath("/insights/seo");
+  revalidatePath("/insights/website");
   revalidatePath("/insights");
   return { error: null };
 }

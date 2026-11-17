@@ -3,8 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // Screenshot runs (scripts/screenshots) set this so the dev-mode badge doesn't land in captures.
   ...(process.env.NEXT_HIDE_DEV_INDICATOR === "1" ? { devIndicators: false as const } : {}),
-  // Insights went from two tab levels to one (Insights.dc.html). Old links, bookmarks and notification
-  // actionUrls keep working. Old /insights with performance filters lands on Performance with the same query.
+  // Old links, bookmarks and notification actionUrls keep working. Old /insights with ad filters lands on Paid ads.
   async redirects() {
     return [
       // Phase T: Price List, Billing, Migration and Plans & settings live under Admin. Old links keep working.
@@ -15,17 +14,23 @@ const nextConfig: NextConfig = {
       { source: "/ops/migration", destination: "/ops/admin/migration", permanent: false },
       { source: "/ops/settings", destination: "/ops/admin/settings", permanent: false },
       { source: "/ops/plans", destination: "/ops/admin/settings/plans", permanent: false },
-      { source: "/insights", has: [{ type: "query", key: "platform" }], destination: "/insights/performance", permanent: true },
-      { source: "/insights", has: [{ type: "query", key: "tier" }], destination: "/insights/performance", permanent: true },
-      { source: "/insights", has: [{ type: "query", key: "range" }], destination: "/insights/performance", permanent: true },
-      { source: "/insights/market-intelligence/seo", destination: "/insights/seo", permanent: true },
-      { source: "/insights/market-intelligence/ideas", destination: "/opportunities", permanent: true },
-      { source: "/insights/market-intelligence/:view(competitors|trends)", destination: "/insights/market/:view", permanent: true },
+      { source: "/insights", has: [{ type: "query", key: "platform" }], destination: "/insights/paid", permanent: true },
+      { source: "/insights", has: [{ type: "query", key: "tier" }], destination: "/insights/paid", permanent: true },
+      // Phase X v2: the tabs got new names and addresses. Old links, bookmarks, stored findings and notification
+      // actionUrls land on the tab that took them over (src/lib/insights/tabs.ts keeps the same list).
+      { source: "/insights/performance", destination: "/insights/paid", permanent: true },
+      { source: "/insights/audience", destination: "/insights/organic", permanent: true },
+      { source: "/insights/revenue", destination: "/insights/sales", permanent: true },
+      { source: "/insights/seo", destination: "/insights/website", permanent: true },
+      { source: "/insights/market/:view(competitors|trends)", destination: "/insights/:view", permanent: true },
       { source: "/insights/market/ideas", destination: "/opportunities", permanent: true },
+      { source: "/insights/market", destination: "/insights/competitors", permanent: true },
+      { source: "/insights/market-intelligence/seo", destination: "/insights/website", permanent: true },
+      { source: "/insights/market-intelligence/ideas", destination: "/opportunities", permanent: true },
+      { source: "/insights/market-intelligence/:view(competitors|trends)", destination: "/insights/:view", permanent: true },
+      { source: "/insights/market-intelligence", destination: "/insights/competitors", permanent: true },
       { source: "/projects/inspiration", destination: "/opportunities", permanent: true },
-      { source: "/insights/market-intelligence", destination: "/insights/market", permanent: true },
-      { source: "/insights/community", destination: "/insights/audience#community", permanent: true },
-      { source: "/insights/website", destination: "/insights/audience#website", permanent: true },
+      { source: "/insights/community", destination: "/insights/organic#community", permanent: true },
       // Brand IQ (Phase J): brand health is computed on the overview; its asset list is the Library.
       { source: "/assets/brand-health/assets", destination: "/library", permanent: true },
       { source: "/assets/brand-health/:rest*", destination: "/assets", permanent: true },

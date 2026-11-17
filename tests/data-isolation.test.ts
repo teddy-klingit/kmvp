@@ -20,7 +20,7 @@ import { askMarketIntelligenceQuestionAction } from "@/lib/actions/market-intell
 import { clientDataContext } from "@/lib/data-context";
 import { getGoogleAdsAccountInsights } from "@/lib/integrations/google-ads";
 import { adDataStatus, setLiveAdsOwner, unassignedLiveAdAccounts } from "@/lib/integrations/live-ads-owner";
-import PerformancePage from "@/app/(portal)/insights/performance/page";
+import PerformancePage from "@/app/(portal)/insights/paid/page";
 
 type Fx = Awaited<ReturnType<typeof createSecurityFixtures>>;
 let fx: Fx;
