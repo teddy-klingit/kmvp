@@ -11,7 +11,7 @@ import { FilterChips } from "@/components/ds/filter-chips";
 export const CLIENT_TABS = [
   { label: "Overview", path: "dashboard", sub: [] as { label: string; path: string }[] },
   { label: "Projects", path: "projects", sub: [{ label: "Projects", path: "projects" }, { label: "Files", path: "project-files" }, { label: "Delivery", path: "delivery" }, { label: "Activity", path: "activity" }] },
-  { label: "Planner", path: "planner", sub: [{ label: "Planner", path: "planner" }, { label: "Content plan", path: "content-plan" }, { label: "Opportunities", path: "opportunities" }] },
+  { label: "Planner", path: "planner", sub: [{ label: "Planner", path: "planner" }, { label: "Content plan", path: "content-plan" }, { label: "Opportunities", path: "opportunities" }, { label: "Goals & budget", path: "goals" }] },
   { label: "Contract & billing", path: "contract", sub: [{ label: "Contract", path: "contract" }, { label: "Balances", path: "balances" }, { label: "Billing", path: "billing" }, { label: "Setup", path: "admin" }, { label: "Custom apps", path: "custom-apps" }] },
   { label: "Brand", path: "brand-os", sub: [{ label: "Brand OS", path: "brand-os" }, { label: "Brand assets", path: "brand-assets" }] },
 ];

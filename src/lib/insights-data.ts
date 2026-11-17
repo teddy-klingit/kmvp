@@ -85,7 +85,7 @@ export const loadMeasuredAssets = cache(async (clientId: string) => {
     all: assets.map((a) => ({ ...a, displayTitle: assetTitle(a.name, a.format) })),
     measured: assets
       .filter((a) => a.performanceCtr !== null)
-      .map((a) => ({ id: a.id, title: assetTitle(a.name, a.format), project: a.project.name, format: a.format, ctr: a.performanceCtr!, color: a.thumbnailColor, thumbnail: assetThumbnail(a) })),
+      .map((a) => ({ id: a.id, title: assetTitle(a.name, a.format), project: a.project.name, format: a.format, platform: a.platform, ctr: a.performanceCtr!, color: a.thumbnailColor, thumbnail: assetThumbnail(a) })),
   };
 });
 

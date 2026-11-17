@@ -353,6 +353,7 @@ model Client {
   websiteAnalyticsSnapshots    WebsiteAnalyticsSnapshot[]
   brandSources                 BrandSource[]
   brandConnections             BrandConnection[]
+  adBudgets                    AdBudget[]
 }
 
 // AI-synthesized read of the Market Intelligence signals (news, competitor
@@ -2900,4 +2901,23 @@ model AiBatchJob {
   error       String?
   createdAt   DateTime  @default(now())
   completedAt DateTime?
+}
+
+/// Phase X v2: the client's planned ad spend per month (staff set it), for "90% of plan" and budget pacing on
+/// Insights → Paid ads. `channel` "" is the whole month's plan; a channel name splits it.
+model AdBudget {
+  id          String   @id @default(cuid())
+  clientId    String
+  /// "2026-11"
+  month       String
+  channel     String   @default("")
+  amount      Float
+  currency    String   @default("EUR")
+  setByUserId String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, month, channel])
 }
