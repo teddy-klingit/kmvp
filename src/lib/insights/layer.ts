@@ -6,7 +6,7 @@ import type { CreditModel } from "@/lib/revenue";
  * Overview, Paid ads, Email and Sales always agree. Same rule as Phase V's loadRevenue: shared credit averages first
  * and last touch; a source that only reports last touch counts as-is under every choice.
  */
-export type LayerRow = { date: string; source: string; channel: string; campaignName: string; utmContent: string; outputId: string | null; market: string; path: string; model: string; page: string; metric: string; value: number; currency: string };
+export type LayerRow = { date: string; source: string; channel: string; campaignId: string; campaignName: string; utmContent: string; outputId: string | null; market: string; path: string; model: string; page: string; metric: string; value: number; currency: string };
 
 const CREDITED = new Set(["orders", "new_customers", "revenue", "leads", "qualified", "deals", "won", "won_value"]);
 export const AD_PLATFORMS = ["Meta", "Google", "LinkedIn", "TikTok"] as const;
@@ -44,7 +44,7 @@ export async function loadLayer(clientId: string, opts: { days: number; model?: 
   const today = iso(now);
   const all: LayerRow[] = await prisma.metricDaily.findMany({
     where: { clientId, date: { gte: prevStart, lte: today } },
-    select: { date: true, source: true, channel: true, campaignName: true, utmContent: true, outputId: true, market: true, path: true, model: true, page: true, metric: true, value: true, currency: true },
+    select: { date: true, source: true, channel: true, campaignId: true, campaignName: true, utmContent: true, outputId: true, market: true, path: true, model: true, page: true, metric: true, value: true, currency: true },
   });
   // Page-level rows (a site page's visits and orders) are a breakdown of the totals, never added to them.
   const rows = all.filter((r) => !r.page);
