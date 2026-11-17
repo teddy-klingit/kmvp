@@ -228,3 +228,34 @@ export function shortTitle(o: { title: string; combined: Prisma.JsonValue | null
   if (plan) return `${plan.replace(/^Add to /, "").replace(/ plan$/, "")} Stories`;
   return o.title.split(/:| with | before /)[0].trim();
 }
+
+/** The opportunity a client's "Ask for an idea" creates for a finding (hidden until the PM has written it). */
+export const askKey = (insightId: string) => `ask:${insightId}`;
+
+/**
+ * Phase X v2: a tab's "What we found" — its findings (stored links to the tab or its old address), each with the
+ * opportunities it's used in, or whether the client already asked for an idea. The Overview (`hrefs` null) takes
+ * the month's findings from every tab.
+ */
+export async function tabFindings(clientId: string, hrefs: string[] | null, opts: { now?: Date; days?: number; take?: number } = {}) {
+  const now = opts.now ?? new Date();
+  const where: Prisma.InsightWhereInput = {
+    clientId,
+    status: "active",
+    kind: { in: ["data", "market"] },
+    foundAt: { gte: new Date(now.getTime() - (opts.days ?? 90) * DAY) },
+    ...(hrefs ? { OR: hrefs.map((h) => ({ href: { startsWith: h } })) } : {}),
+  };
+  const rows = await prisma.insight.findMany({ where, orderBy: { foundAt: "desc" }, take: opts.take ?? 4 });
+  const ids = rows.map((r) => r.id);
+  const [links, asks] = await Promise.all([
+    prisma.opportunityInsight.findMany({ where: { insightId: { in: ids }, opportunity: { clientId, hiddenAt: null, status: { not: "dismissed" } } }, include: { opportunity: { select: { id: true, title: true, status: true, combined: true } } } }),
+    prisma.opportunity.findMany({ where: { clientId, sourceKey: { in: ids.map(askKey) } }, select: { sourceKey: true, createdAt: true } }),
+  ]);
+  return rows.map((insight) => ({
+    insight,
+    used: links.filter((l) => l.insightId === insight.id).map((l) => ({ id: l.opportunity.id, title: shortTitle(l.opportunity), done: l.opportunity.status === "result" })),
+    askedAt: asks.find((a) => a.sourceKey === askKey(insight.id))?.createdAt ?? null,
+  }));
+}
+export type TabFinding = Awaited<ReturnType<typeof tabFindings>>[number];
