@@ -131,7 +131,7 @@ describe("every insights tab renders", () => {
     ["Paid ads", () => PerformancePage({ searchParams: Promise.resolve({}) })],
     ["Competitors", () => CompetitorsPage({ searchParams: Promise.resolve({ range: "90" }) })],
     ["Trends", () => TrendsPage({ searchParams: Promise.resolve({ range: "365" }) })],
-    ["Website & search", () => SeoPage()],
+    ["Website & search", () => SeoPage({ searchParams: Promise.resolve({}) })],
     ["Email", () => EmailPage()],
   ] as [string, () => Promise<ReactNode>][])("%s, without a '—' tile", async (_name, page) => {
     setMockSession({ user: { id: fx.userA.id, role: "CLIENT" } });

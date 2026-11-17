@@ -355,6 +355,7 @@ model Client {
   brandConnections             BrandConnection[]
   adBudgets                    AdBudget[]
   audienceActivity             AudienceActivity[]
+  searchRankings               SearchRanking[]
 }
 
 // AI-synthesized read of the Market Intelligence signals (news, competitor
@@ -568,6 +569,8 @@ model MetricDaily {
   /// Credit model for orders/revenue/deals/won: "first" | "last"; "" for numbers that aren't credited.
   model        String   @default("")
   /// impressions | clicks | spend | conversions | sessions | orders | new_customers | revenue | leads | qualified | deals | won | won_value | open_value | sends
+  /// Phase X v2: a site page ("/cloud-cream") for page-level website numbers (sessions, orders); "" otherwise.
+  page         String   @default("")
   metric       String
   value        Float
   currency     String   @default("")
@@ -575,7 +578,7 @@ model MetricDaily {
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
-  @@unique([clientId, source, date, channel, campaignId, utmContent, market, path, model, metric])
+  @@unique([clientId, source, date, channel, campaignId, utmContent, market, path, model, page, metric])
   @@index([clientId, date])
   @@index([clientId, metric, date])
   @@index([clientId, source])
@@ -2939,4 +2942,20 @@ model AudienceActivity {
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId, platform, capturedAt])
+}
+
+/// Phase X v2: where the client ranks on Google for a tracked keyword (Insights → Website & search). A null
+/// position means not in the top 50. One row per keyword per check.
+model SearchRanking {
+  id               String   @id @default(cuid())
+  clientId         String
+  keyword          String
+  position         Int?
+  previousPosition Int?
+  url              String?
+  capturedAt       DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, capturedAt])
 }

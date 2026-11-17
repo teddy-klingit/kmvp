@@ -6,7 +6,7 @@ import type { CreditModel } from "@/lib/revenue";
  * Overview, Paid ads, Email and Sales always agree. Same rule as Phase V's loadRevenue: shared credit averages first
  * and last touch; a source that only reports last touch counts as-is under every choice.
  */
-export type LayerRow = { date: string; source: string; channel: string; campaignName: string; utmContent: string; outputId: string | null; market: string; path: string; model: string; metric: string; value: number; currency: string };
+export type LayerRow = { date: string; source: string; channel: string; campaignName: string; utmContent: string; outputId: string | null; market: string; path: string; model: string; page: string; metric: string; value: number; currency: string };
 
 const CREDITED = new Set(["orders", "new_customers", "revenue", "leads", "qualified", "deals", "won", "won_value"]);
 export const AD_PLATFORMS = ["Meta", "Google", "LinkedIn", "TikTok"] as const;
@@ -42,10 +42,13 @@ export async function loadLayer(clientId: string, opts: { days: number; model?: 
   const start = iso(new Date(now.getTime() - (days - 1) * DAY));
   const prevStart = iso(new Date(now.getTime() - (2 * days - 1) * DAY));
   const today = iso(now);
-  const rows: LayerRow[] = await prisma.metricDaily.findMany({
+  const all: LayerRow[] = await prisma.metricDaily.findMany({
     where: { clientId, date: { gte: prevStart, lte: today } },
-    select: { date: true, source: true, channel: true, campaignName: true, utmContent: true, outputId: true, market: true, path: true, model: true, metric: true, value: true, currency: true },
+    select: { date: true, source: true, channel: true, campaignName: true, utmContent: true, outputId: true, market: true, path: true, model: true, page: true, metric: true, value: true, currency: true },
   });
+  // Page-level rows (a site page's visits and orders) are a breakdown of the totals, never added to them.
+  const rows = all.filter((r) => !r.page);
+  const pageRows = all.filter((r) => r.page && r.date >= iso(new Date(now.getTime() - (days - 1) * DAY)));
   const lastOnly = [...new Set(rows.filter((r) => CREDITED.has(r.metric) && r.model === "last").map((r) => r.source))].filter((s) => !rows.some((r) => r.source === s && CREDITED.has(r.metric) && r.model === "first"));
   const weight = (r: LayerRow) => {
     if (!CREDITED.has(r.metric)) return r.model === "" ? 1 : 0;
@@ -73,7 +76,7 @@ export async function loadLayer(clientId: string, opts: { days: number; model?: 
   };
   const currency = rows.find((r) => r.metric === "revenue" || r.metric === "spend")?.currency || "EUR";
   const sourcesOf = (xs: LayerRow[], metrics: string[], where: (r: LayerRow) => boolean = () => true) => [...new Set(xs.filter((r) => metrics.includes(r.metric) && where(r) && r.value).map((r) => r.source))];
-  return { rows, cur, prev, sum, sales, weight, coversPrev, slices, currency, sourcesOf, lastOnly, start, days, model };
+  return { rows, pageRows, cur, prev, sum, sales, weight, coversPrev, slices, currency, sourcesOf, lastOnly, start, days, model };
 }
 export type Layer = Awaited<ReturnType<typeof loadLayer>>;
 

@@ -1,251 +1,209 @@
-import { Check, Minus } from "lucide-react";
-import { prisma } from "@/lib/prisma";
+import Link from "next/link";
 import { getPortalViewer } from "@/lib/current-viewer";
-import { jsonArray } from "@/lib/utils";
+import { parseRange } from "@/lib/insights/daily";
+import { loadWebsiteTab } from "@/lib/insights/website-tab";
+import { tabFindings } from "@/lib/insight-records";
+import { hrefAliases } from "@/lib/insights/tabs";
+import { shortAnswer } from "@/lib/insights/short-answer";
+import { count, pct1, pts, signedPct, vsLabel } from "@/lib/insights/format";
+import { connectHref } from "@/lib/insights-data";
+import { marketingPm } from "@/lib/contact-person";
 import { generateSeoReportAction } from "@/lib/actions/seo-actions";
-import { PageGrid } from "@/components/ds/page-grid";
-import { PillLink } from "@/components/ds/pill-link";
 import { AgentButton } from "@/components/portal/insights/agent-button";
-import { ChartCard, SkeletonChart, StatTile, WhySheet } from "@/components/insights/cards";
-import { BarList, StackBar } from "@/components/insights/charts";
-import { SERIES } from "@/components/insights/tokens";
+import { BlindSpots, Blurred, Card, KeyNumbers, ShortAnswer, WhatWeFound, type BlindSpot } from "@/components/insights/tab-parts";
+import { WORK_TZ } from "@/lib/working-hours";
+import { cn } from "@/lib/utils";
 
-type OnPageChecks = {
-  hasTitle: boolean;
-  titleLength: number;
-  hasMetaDescription: boolean;
-  metaDescriptionLength: number;
-  h1Count: number;
-  structuredDataTypes: string[];
-  hasSitemap: boolean;
-  aiCrawlerAccess: Record<string, "allowed" | "blocked">;
-  /** From a full crawl, when the audit had one. */
-  pagesCrawled?: number;
-  lcpSeconds?: number;
-};
-type Fix = { title: string; detail: string; impact?: "High" | "Medium" | "Low" };
-type Result = "pass" | "warn" | "error";
-
-const ENGINE: Record<string, string> = { claude: "Claude", perplexity: "Perplexity", chatgpt: "ChatGPT", gemini: "Gemini" };
-const MATRIX_SHOWN = 5;
-
-/** Every audited check, as passed / warning / error. */
-function auditChecks(onPage: OnPageChecks, scores: (number | null)[]): Result[] {
-  const score = (v: number | null): Result[] => (v === null ? [] : [v >= 90 ? "pass" : v >= 50 ? "warn" : "error"]);
-  return [
-    onPage.hasTitle ? (onPage.titleLength > 60 ? "warn" : "pass") : "error",
-    onPage.hasMetaDescription ? (onPage.metaDescriptionLength > 160 ? "warn" : "pass") : "error",
-    onPage.h1Count === 1 ? "pass" : onPage.h1Count === 0 ? "error" : "warn",
-    onPage.hasSitemap ? "pass" : "warn",
-    onPage.structuredDataTypes.length ? "pass" : "warn",
-    ...Object.values(onPage.aiCrawlerAccess).map((a): Result => (a === "allowed" ? "pass" : "warn")),
-    ...scores.flatMap(score),
-  ];
-}
+const PURPLE = "#B455B6";
+const day = (d: Date) => new Intl.DateTimeFormat("en-GB", { timeZone: WORK_TZ, day: "numeric", month: "short" }).format(d);
+const RANKINGS_SHOWN = 4;
 
 /**
- * Insights → SEO & AI visibility (InsightsSEO.dc.html): tiles, who AI assistants recommend (share of buyer
- * questions mentioning each brand), "Are you in the answer?" (question × assistant), the site audit with its
- * top fixes, and you vs competitors. Before the first audit, each block is a skeleton with "Run audit".
+ * Insights → Website & search (Phase X v2, Ins4Website): "Do people find us, and does the website turn visits into
+ * sales?" The short answer, visits / share who buy / visits from Google / visits from AI assistants, where visitors
+ * drop off, where they come from, Google rankings, pages that sell, site health, findings and blind spots. Your own
+ * site only: how you compare is on Competitors.
  */
-export default async function SeoPage() {
+export default async function WebsitePage({ searchParams }: { searchParams: Promise<{ range?: string }> }) {
+  const days = parseRange((await searchParams).range);
   const viewer = await getPortalViewer();
   const clientId = viewer.clientId;
-  const [audits, brief, checks] = await Promise.all([
-    prisma.siteAudit.findMany({ where: { clientId } }),
-    prisma.seoBrief.findUnique({ where: { clientId } }),
-    prisma.aiVisibilityCheck.findMany({ where: { clientId }, orderBy: { checkedAt: "desc" }, take: 200 }),
-  ]);
-  const runAudit = <AgentButton action={generateSeoReportAction} label="Run audit" pendingLabel="Auditing sites…" />;
+  const [t, findings, pm, connect] = await Promise.all([loadWebsiteTab(clientId, { days }), tabFindings(clientId, hrefAliases("/insights/website")), marketingPm(clientId), connectHref(clientId)]);
+  const pmFirst = pm?.name.split(" ")[0] ?? "Klingit";
+  const n = t.numbers;
+  const vs = vsLabel(days);
+  const lastLabel = days === 365 ? "12 months" : `${days} days`;
 
-  if (!viewer.client.website) {
+  const blind: BlindSpot[] = [
+    ...(t.ga4 && ["needs_reconnect", "error"].includes(t.ga4.status) ? [{ text: `Google Analytics disconnected since ${day(t.ga4.updatedAt)}: visits stopped coming in.`, action: { label: "Reconnect", href: "/settings/connections" } }] : []),
+    ...(t.hasVisits ? [] : [{ text: "Visits and what people do on the site: connect Google Analytics.", action: { label: "Connect", href: connect } }]),
+    ...(t.rankings.length ? [] : [{ text: "Google rankings for the searches that matter to you: connect Search Console.", action: { label: "Connect", href: connect } }]),
+    ...(t.hasVisits && !t.funnel ? [{ text: "Where visitors drop off needs product-view and add-to-cart events in Google Analytics.", action: null }] : []),
+    ...(t.hasVisits && !t.pages.length ? [{ text: "Which pages sell needs page-level numbers from Google Analytics.", action: null }] : []),
+  ];
+
+  if (!t.hasVisits) {
     return (
-      <ChartCard title="SEO & AI visibility">
-        <SkeletonChart line="No website on file yet. Your account lead adds it, then audits can run." />
-      </ChartCard>
+      <div className="flex flex-col gap-6">
+        <Blurred line="Connect Google Analytics to see how many people visit, where they come from, and how many buy." action={{ label: "Connect Google Analytics", href: connect }}>
+          <KeyNumbers items={["Visits", "Share who buy", "Visits from Google", "Visits from AI answers"].map((label) => ({ label, value: "00k", spark: [2, 3, 3, 4, 5] }))} />
+        </Blurred>
+        <BlindSpots items={blind} />
+        <SiteHealth audit={t.audit} hasWebsite={Boolean(viewer.client.website)} />
+      </div>
     );
   }
 
-  const own = audits.find((a) => a.subject === "Own site") ?? null;
-  const competitors = audits.filter((a) => a.subject !== "Own site");
-  const onPage = own && !own.fetchError ? (own.onPageChecks as OnPageChecks) : null;
+  // ─── The short answer ───────────────────────────────────────────────────────
+  const ai = t.sources.find((s) => s.group === "AI assistants");
+  const missing = t.rankings.find((r) => r.position === null);
+  const answer = shortAnswer(
+    `${clientId}:website:${days}`,
+    [
+      n.visits.change !== null ? `${n.visits.change >= 0 ? "More" : "Fewer"} people find you: visits ${n.visits.change >= 0 ? "up" : "down"} ${Math.abs(Math.round(n.visits.change * 100))}%${ai && n.ai.value ? `, and AI assistants now send ${count(n.ai.value)} visitors${ai.buyRate !== null && t.overallBuyRate !== null && ai.buyRate > t.overallBuyRate ? " who buy well" : ""}` : ""}.` : `${count(n.visits.value)} visits in the last ${lastLabel}.`,
+      t.biggestDrop ? `Most visitors leave between ${t.biggestDrop.from === "Visited" ? "arriving" : `the ${t.biggestDrop.from.replace("Viewed a ", "").toLowerCase()} page`} and ${t.biggestDrop.to === "Added to cart" ? "the cart" : t.biggestDrop.to === "Bought" ? "buying" : "a product page"}${missing ? `, and you're invisible for “${missing.keyword}”` : ""}.` : missing ? `You're invisible for “${missing.keyword}”.` : null,
+    ]
+      .filter(Boolean)
+      .join(" ")
+  );
 
-  // The latest run: every check within a day of the newest one.
-  const newest = checks[0]?.checkedAt.getTime() ?? 0;
-  const run = checks.filter((c) => newest - c.checkedAt.getTime() < 86400000);
-  const questions = [...new Set(run.map((c) => c.question))];
-  const engines = [...new Set(run.map((c) => c.engine))];
-  const mentions = run.map((c) => ({ ...c, list: jsonArray<{ brand: string; mentioned: boolean }>(c.mentions) }));
-  const isOwn = (b: string) => b.toLowerCase() === viewer.client.name.toLowerCase();
-  const brands = [...new Set(mentions.flatMap((c) => c.list.map((m) => m.brand)))];
-  const share = brands
-    .map((b) => {
-      const asked = mentions.filter((c) => c.list.some((m) => m.brand === b));
-      const hit = asked.filter((c) => c.list.some((m) => m.brand === b && m.mentioned)).length;
-      return { brand: b, value: asked.length ? Math.round((hit / asked.length) * 100) : 0 };
-    })
-    .sort((a, b) => b.value - a.value);
-  const ownHits = mentions.filter((c) => c.list.some((m) => isOwn(m.brand) && m.mentioned)).length;
-  const inAnswer = (q: string, e: string) => mentions.find((c) => c.question === q && c.engine === e)?.list.some((m) => isOwn(m.brand) && m.mentioned);
-  const runDate = newest ? new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(new Date(newest)).toUpperCase() : null;
-
-  const results = onPage ? auditChecks(onPage, [own!.performanceScore, own!.seoScore, own!.accessibilityScore, own!.bestPracticesScore]) : [];
-  const count = (r: Result) => results.filter((x) => x === r).length;
-  const crawlers = onPage ? Object.values(onPage.aiCrawlerAccess) : [];
-  const fixes = jsonArray<Fix>(brief?.recommendations).slice(0, 3);
-  const vs = audits.filter((a) => a.seoScore !== null).sort((a, b) => b.seoScore! - a.seoScore!);
+  const brDiff = n.buyRate.value !== null && n.buyRate.previous !== null ? n.buyRate.value - n.buyRate.previous : null;
+  const delta = (ch: number | null) => (ch === null ? null : { text: `${signedPct(ch)} ${vs}`, tone: ch >= 0 ? ("good" as const) : ("bad" as const) });
+  const maxStep = t.funnel ? Math.max(1, t.funnel[0].value) : 1;
+  const maxSource = Math.max(1, ...t.sources.map((s) => s.visits));
+  const lowPage = t.overallBuyRate !== null ? t.pages.find((p) => p.buyRate !== null && p.buyRate < t.overallBuyRate! / 2) : undefined;
 
   return (
     <div className="flex flex-col gap-6">
-      {(run.length > 0 || own) && (
-        <div className="grid grid-cols-2 gap-4 min-[1000px]:grid-cols-4">
-          {run.length > 0 && <StatTile icon="ai" label="Mentioned by AI assistants" value={`${ownHits} of ${run.length}`} context="answers to buyer questions" />}
-          {own?.seoScore != null && <StatTile icon="seo" label="SEO health" value={String(own.seoScore)} context={onPage?.pagesCrawled ? `of 100 · ${onPage.pagesCrawled} pages` : "of 100 · Lighthouse"} />}
-          {crawlers.length > 0 && <StatTile icon="crawlers" label="AI crawlers allowed" value={`${crawlers.filter((c) => c === "allowed").length} of ${crawlers.length}`} context="robots.txt" />}
-          {onPage?.lcpSeconds != null ? (
-            <StatTile icon="speed" label="Page speed (mobile)" value={`${onPage.lcpSeconds} s`} context="largest content paint" />
-          ) : (
-            own?.performanceScore != null && <StatTile icon="speed" label="Page speed (mobile)" value={String(own.performanceScore)} context="Lighthouse performance score" />
+      <ShortAnswer text={answer} sources={["GA4", ...(t.rankings.length ? ["Search Console"] : []), "Shopify"]} />
+
+      <KeyNumbers
+        items={[
+          { label: "Visits", value: count(n.visits.value), change: delta(n.visits.change), spark: n.visits.spark },
+          { label: "Share who buy", value: n.buyRate.value !== null ? pct1(n.buyRate.value) : "No orders yet", change: brDiff !== null ? { text: `${pts(brDiff)} ${vs}`, tone: brDiff >= 0 ? "good" : "bad" } : null, spark: n.buyRate.spark },
+          { label: "Visits from Google", value: n.google.value ? count(n.google.value) : "Not tracked yet", change: n.google.value ? delta(n.google.change) : null, spark: n.google.spark },
+          { label: "Visits from AI answers", value: n.ai.value ? count(n.ai.value) : "Not tracked yet", change: n.ai.value ? delta(n.ai.change) : null, spark: n.ai.spark },
+        ]}
+      />
+
+      {t.funnel && (
+        <Card title="Where visitors drop off">
+          <div className="grid grid-cols-2 gap-3 min-[700px]:grid-cols-4">
+            {t.funnel.map((s, i) => {
+              const worst = t.biggestDrop?.to === s.label;
+              return (
+                <div key={s.label} className="flex flex-col gap-2">
+                  <span className="flex h-24 items-end">
+                    <span className="w-full rounded-t-[4px]" style={{ height: `${Math.max(4, (s.value / maxStep) * 100)}%`, background: PURPLE }} />
+                  </span>
+                  <span className="text-[14px]">{s.label}</span>
+                  <span className="text-[20px] font-light tabular-nums">{count(s.value, { exactUnder: 10_000 })}</span>
+                  {s.kept !== null && <span className={cn("text-[12px]", worst ? "text-brand-orange-text" : "text-brand-ink-2")}>{Math.round(s.kept * 100)}% of {i === 1 ? "visitors" : i === 2 ? "product views" : "carts"}</span>}
+                </div>
+              );
+            })}
+          </div>
+          {t.biggestDrop && (
+            <p className="m-0 mt-4 text-[14px] leading-[1.5]">
+              The big drop is {t.biggestDrop.from.toLowerCase().replace("viewed a product", "product page")} → {t.biggestDrop.to.toLowerCase().replace("added to cart", "cart")}.
+              {lowPage && t.overallBuyRate ? ` The ${lowPage.page} page converts at ${Math.round((lowPage.buyRate! / t.overallBuyRate) * 100)}% of your average.` : ""}
+            </p>
           )}
-        </div>
+        </Card>
       )}
 
-      <PageGrid
-        main={
-          <>
-            <ChartCard title="Who AI assistants recommend" table={{ columns: ["Brand", "Share of questions"], rows: share.map((s) => [s.brand, `${s.value}%`]) }}>
-              {share.length > 0 ? (
-                <>
-                  <div className="flex flex-col">
-                    <span className="text-[16px]">Share of {questions.length} buyer question{questions.length === 1 ? "" : "s"} where each brand is mentioned</span>
-                    <span className="text-[14px] text-brand-mute">Asked in {engines.map((e) => ENGINE[e] ?? e).join(" and ")}, grounded in a live web search</span>
-                  </div>
-                  <BarList rows={share.map((s) => ({ label: s.brand, value: s.value, display: `${s.value}%`, tone: isOwn(s.brand) ? "ink" : "grey" }))} max={100} labelWidth={130} />
-                </>
-              ) : (
-                <SkeletonChart line="No AI answers checked yet." action={runAudit} />
-              )}
-            </ChartCard>
+      <div className="grid grid-cols-1 items-start gap-6 min-[1100px]:grid-cols-2">
+        <div className="flex min-w-0 flex-col gap-6">
+          <Card title="Where visitors come from">
+            <ul className="m-0 flex list-none flex-col gap-2 p-0">
+              {t.sources.map((s) => (
+                <li key={s.group} className="grid grid-cols-[120px_minmax(0,1fr)_56px_72px] items-center gap-3 text-[14px]">
+                  <span>{s.group}</span>
+                  <span aria-hidden className="h-2.5 rounded-full" style={{ width: `${Math.max(2, (s.visits / maxSource) * 100)}%`, background: s.group === "AI assistants" ? "#1E1E1E" : PURPLE }} />
+                  <span className="text-right tabular-nums">{count(s.visits)}</span>
+                  <span className="text-right text-[13px] text-brand-ink-2">{s.buyRate !== null ? `${pct1(s.buyRate)} buy` : ""}</span>
+                </li>
+              ))}
+            </ul>
+            {ai && ai.buyRate !== null && t.overallBuyRate !== null && ai.buyRate > t.overallBuyRate && <p className="m-0 mt-4 text-[13px] text-brand-ink-2">Visitors from AI assistants are few but buy more than most.</p>}
+          </Card>
+          <WhatWeFound findings={findings} pm={pmFirst} />
+          <BlindSpots items={blind} />
+        </div>
 
-            <ChartCard
-              flush
-              title="Are you in the answer?"
-              meta={runDate ? <span className="font-brand-mono text-[12px] text-brand-ink">RUN {runDate}</span> : undefined}
-              table={{ columns: ["Question", ...engines.map((e) => ENGINE[e] ?? e)], rows: questions.map((q) => [q, ...engines.map((e) => (inAnswer(q, e) === undefined ? "not asked" : inAnswer(q, e) ? "yes" : "no"))]) }}
-            >
-              {questions.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[480px] border-collapse text-[15px]">
-                    <thead>
-                      <tr className="text-[13px] text-brand-mute">
-                        <th className="px-6 py-3 text-left font-normal">Question</th>
-                        {engines.map((e) => (
-                          <th key={e} className="w-24 px-2 py-3 text-center font-normal">
-                            {ENGINE[e] ?? e}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {questions.slice(0, MATRIX_SHOWN).map((q) => (
-                        <MatrixRow key={q} q={q} engines={engines} inAnswer={inAnswer} />
-                      ))}
-                    </tbody>
-                  </table>
-                  {questions.length > MATRIX_SHOWN && (
-                    <details>
-                      <summary className="cursor-pointer list-none px-6 py-3 text-[13px] text-brand-ink-2">
-                        <span className="text-brand-ink underline underline-offset-2">see all {questions.length}</span>
-                      </summary>
-                      <table className="w-full min-w-[480px] border-collapse text-[15px]">
-                        <tbody>
-                          {questions.slice(MATRIX_SHOWN).map((q) => (
-                            <MatrixRow key={q} q={q} engines={engines} inAnswer={inAnswer} />
-                          ))}
-                        </tbody>
-                      </table>
-                    </details>
-                  )}
-                </div>
-              ) : (
-                <div className="px-6 py-5">
-                  <SkeletonChart shape="matrix" line="Buyer questions are asked to AI assistants when the audit runs." action={runAudit} />
-                </div>
+        <div className="flex min-w-0 flex-col gap-6">
+          {t.rankings.length > 0 && (
+            <Card title="How you rank on Google" flush>
+              <ul className="m-0 list-none p-0">
+                {t.rankings.slice(0, RANKINGS_SHOWN).map((r) => (
+                  <RankRow key={r.id} keyword={r.keyword} position={r.position} previous={r.previousPosition} />
+                ))}
+              </ul>
+              {t.rankings.length > RANKINGS_SHOWN && (
+                <details className="border-t border-brand-line">
+                  <summary className="cursor-pointer list-none px-6 py-3 font-brand-mono text-[12px] uppercase text-brand-ink underline underline-offset-4">All {t.rankings.length}</summary>
+                  <ul className="m-0 list-none p-0">
+                    {t.rankings.slice(RANKINGS_SHOWN).map((r) => (
+                      <RankRow key={r.id} keyword={r.keyword} position={r.position} previous={r.previousPosition} />
+                    ))}
+                  </ul>
+                </details>
               )}
-            </ChartCard>
-          </>
-        }
-        side={
-          <>
-            <ChartCard title="Site audit" meta={results.length ? <span className="font-brand-mono text-[12px] text-brand-ink">{results.length} CHECKS</span> : undefined} table={results.length ? { columns: ["Result", "Checks"], rows: [["Passed", count("pass")], ["Warnings", count("warn")], ["Errors", count("error")]] } : undefined}>
-              {onPage ? (
-                <>
-                  <StackBar
-                    segments={[
-                      { label: "Passed", value: count("pass"), color: SERIES[1] },
-                      { label: "Warnings", value: count("warn"), color: "#C2C3C5" },
-                      { label: "Errors", value: count("error"), color: SERIES[2] },
-                    ]}
-                  />
-                  {fixes.length > 0 && (
-                    <ul className="m-0 flex list-none flex-col p-0">
-                      {fixes.map((f) => (
-                        <li key={f.title} className="flex items-center gap-3 border-t border-brand-line py-3">
-                          <span className="min-w-0 flex-1 text-[15px] leading-[1.4]">{f.title}</span>
-                          {f.impact && <span className="shrink-0 rounded-full bg-brand-chip px-2.5 py-0.5 text-[12px] text-brand-ink-2">{f.impact === "Medium" ? "Medium" : `${f.impact} impact`}</span>}
-                          <WhySheet title={f.title} reasoning={f.detail} />
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                  {fixes.length > 0 && (
-                    <PillLink href={`/brief/new?${new URLSearchParams({ q: `Website fixes: ${fixes.map((f) => f.title).join("; ")}` })}`} variant="primary" size="sm" className="self-start">
-                      Make these a brief
-                    </PillLink>
-                  )}
-                </>
-              ) : own?.fetchError ? (
-                <SkeletonChart line={`Couldn't reach the site: ${own.fetchError}`} action={runAudit} />
-              ) : (
-                <SkeletonChart line="No audit yet" action={runAudit} />
-              )}
-            </ChartCard>
-
-            <ChartCard title="You vs competitors" table={{ columns: ["Site", "SEO score"], rows: vs.map((a) => [a.subject === "Own site" ? viewer.client.name : a.subject, a.seoScore!]) }}>
-              {own?.seoScore != null && vs.length > 1 ? (
-                <>
-                  <BarList rows={vs.map((a) => ({ label: a.subject === "Own site" ? viewer.client.name : a.subject, value: a.seoScore!, display: String(a.seoScore), tone: a.subject === "Own site" ? "ink" : "grey" }))} max={100} labelWidth={110} compact />
-                  <span className="text-[13px] text-brand-mute">SEO health score</span>
-                </>
-              ) : (
-                <SkeletonChart line={!competitors.length ? "Audit your competitors' sites alongside yours." : own?.seoScore == null ? "Your site has no Lighthouse score yet." : "No competitor scores yet."} action={runAudit} />
-              )}
-            </ChartCard>
-          </>
-        }
-      />
+            </Card>
+          )}
+          {t.pages.length > 0 && (
+            <Card title="Pages that sell, and pages that don't" flush>
+              <ul className="m-0 list-none p-0">
+                {t.pages.slice(0, 5).map((p) => (
+                  <li key={p.page} className="grid grid-cols-[minmax(0,1fr)_96px_72px] items-center gap-3 border-b border-brand-line px-6 py-3.5 text-[14px] last:border-b-0">
+                    <span className="truncate">{p.page}</span>
+                    <span className="text-right tabular-nums">{count(p.visits)} visits</span>
+                    <span className={cn("text-right tabular-nums", p === lowPage && "text-brand-orange-text")}>{p.buyRate !== null ? `${pct1(p.buyRate)} buy` : ""}</span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+          <SiteHealth audit={t.audit} hasWebsite={Boolean(viewer.client.website)} />
+          <p className="m-0 text-[13px] text-brand-ink-2">
+            How you compare with competitors in Google and AI answers is in{" "}
+            <Link href="/insights/competitors" className="text-brand-ink underline underline-offset-4">
+              Competitors
+            </Link>
+            .
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
 
-function MatrixRow({ q, engines, inAnswer }: { q: string; engines: string[]; inAnswer: (q: string, e: string) => boolean | undefined }) {
+function RankRow({ keyword, position, previous }: { keyword: string; position: number | null; previous: number | null }) {
+  const moved = position !== null && previous !== null ? previous - position : null;
   return (
-    <tr className="border-t border-brand-line">
-      <td className="px-6 py-3.5">{q}</td>
-      {engines.map((e) => {
-        const v = inAnswer(q, e);
-        return (
-          <td key={e} className="px-2 py-3.5 text-center">
-            {v === undefined ? (
-              <span className="text-[12px] text-brand-mute">not asked</span>
-            ) : (
-              <span aria-label={v ? "Mentioned" : "Not mentioned"} className={`inline-flex size-6 items-center justify-center rounded-full ${v ? "bg-brand-lime-pale" : "bg-brand-chip"}`}>
-                {v ? <Check className="size-3.5 text-brand-ink" strokeWidth={2} /> : <Minus className="size-3.5 text-brand-mute" strokeWidth={2} />}
-              </span>
-            )}
-          </td>
-        );
-      })}
-    </tr>
+    <li className="grid grid-cols-[minmax(0,1fr)_96px_40px] items-center gap-3 border-b border-brand-line px-6 py-3.5 text-[14px] last:border-b-0">
+      <span className="truncate">{keyword}</span>
+      <span className={cn("tabular-nums", position === null && "text-brand-orange-text")}>{position === null ? "not in top 50" : `#${position}`}</span>
+      <span className={cn("text-right text-[13px]", moved && moved > 0 ? "text-[#6E7D2F]" : moved && moved < 0 ? "text-brand-orange-text" : "text-brand-ink-2")}>{moved ? `${moved > 0 ? "↑" : "↓"} ${Math.abs(moved)}` : position !== null ? "–" : ""}</span>
+    </li>
+  );
+}
+
+type OnPage = { aiCrawlerAccess?: Record<string, string>; lcpSeconds?: number };
+
+/** Site health (moved here from SEO & AI visibility): SEO score, AI crawlers allowed, page speed, and Run audit. */
+function SiteHealth({ audit, hasWebsite }: { audit: Awaited<ReturnType<typeof loadWebsiteTab>>["audit"]; hasWebsite: boolean }) {
+  if (!hasWebsite) return null;
+  const onPage = audit && !audit.fetchError ? (audit.onPageChecks as OnPage) : null;
+  const crawlers = Object.values(onPage?.aiCrawlerAccess ?? {});
+  const facts = [
+    audit?.seoScore != null ? `SEO health ${audit.seoScore} of 100` : null,
+    crawlers.length ? `${crawlers.filter((c) => c === "allowed").length} of ${crawlers.length} AI crawlers allowed` : null,
+    onPage?.lcpSeconds != null ? `page loads in ${onPage.lcpSeconds} s on mobile` : audit?.performanceScore != null ? `page speed ${audit.performanceScore} of 100` : null,
+  ].filter(Boolean);
+  return (
+    <Card title="Site health" action={<AgentButton action={generateSeoReportAction} label={audit ? "Run audit again" : "Run audit"} pendingLabel="Auditing…" />}>
+      <p className="m-0 text-[14px] leading-[1.5]">{audit?.fetchError ? `The last audit couldn't reach the site: ${audit.fetchError}` : facts.length ? `${facts.join(" · ")}.` : "No audit yet: run one to check SEO basics, AI crawler access and page speed."}</p>
+    </Card>
   );
 }

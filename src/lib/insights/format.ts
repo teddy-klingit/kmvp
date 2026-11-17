@@ -18,7 +18,7 @@ export function count(v: number, opts: { exactUnder?: number } = {}) {
 }
 
 export const signedPct = (change: number) => `${change >= 0 ? "+" : "−"}${Math.round(Math.abs(change) * 100)}%`;
-export const pts = (diff: number) => `${diff >= 0 ? "+" : "−"}${Math.abs(diff).toFixed(1).replace(/\.0$/, "")} pts`;
+export const pts = (diff: number) => (Math.abs(diff) < 0.05 ? "no change" : `${diff >= 0 ? "+" : "−"}${Math.abs(diff).toFixed(1).replace(/\.0$/, "")} pts`);
 export const pct1 = (v: number) => `${v.toFixed(1).replace(/\.0$/, "")}%`;
 export const times = (v: number) => `${v.toFixed(1)}×`;
 

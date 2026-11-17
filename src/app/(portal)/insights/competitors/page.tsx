@@ -11,6 +11,7 @@ import { CHANNEL_COLOR, newAdsByChannel } from "@/lib/insights/signals";
 import { addSuggestedCompetitorAction, dismissSuggestedCompetitorAction, generateMarketIntelligenceAction, trackCompetitorAction } from "@/lib/actions/market-intelligence-actions";
 import { BrandAvatar } from "@/components/ui/avatar";
 import { PageGrid } from "@/components/ds/page-grid";
+import { LegacySeoSections } from "@/components/insights/seo-legacy";
 import { pillClass } from "@/components/ds/button";
 import { AgentButton } from "@/components/portal/insights/agent-button";
 import { ChartCard, SkeletonChart } from "@/components/insights/cards";
@@ -66,6 +67,7 @@ export default async function MarketCompetitorsPage({ searchParams }: { searchPa
     : [];
 
   return (
+    <div className="flex flex-col gap-6">
     <PageGrid
       main={
         <>
@@ -190,5 +192,8 @@ export default async function MarketCompetitorsPage({ searchParams }: { searchPa
         </>
       }
     />
+      {/* Who AI assistants recommend and you vs competitors on Google, until Phase X7 gives them their own views here. */}
+      <LegacySeoSections />
+    </div>
   );
 }
