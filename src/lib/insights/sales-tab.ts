@@ -29,6 +29,8 @@ export async function loadSalesTab(clientId: string, opts: { days: number; model
     orders: { value: orders, change: L.coversPrev ? changePct(orders, ordersPrev) : null, spark: slices.map((xs) => sum(xs, "orders", online)) },
     avgOrder: { value: avgOrder(cur), previous: L.coversPrev ? avgOrder(prev) : null, spark: slices.map((xs) => avgOrder(xs) ?? 0) },
     won: { value: won, wonValue, spark: slices.map((xs) => sum(xs, "won", retail)) },
+    fresh: { value: sum(cur, "new_customers", online), change: L.coversPrev ? changePct(sum(cur, "new_customers", online), sum(prev, "new_customers", online)) : null, spark: slices.map((xs) => sum(xs, "new_customers", online)) },
+    previous: L.coversPrev ? { sales: sales(prev), spend: sum(prev, "spend", isAd) } : null,
   };
 
   // Where the sales came from: one bar per source group, with its orders or deals.

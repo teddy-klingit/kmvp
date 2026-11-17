@@ -80,39 +80,25 @@ describe("insights overview", () => {
     expect(unlockSentence([{ name: "LinkedIn", unlocks: ["follower growth", "community"] }, { name: "Google Analytics", unlocks: ["website"] }])).toBe("follower growth, website and community numbers");
   });
 
-  it("shows max 3 takeaways (older ones read as headline + Why?), real asset names, and never a '—' tile", async () => {
+  it("Overview (Phase X v2): goals, honest empty numbers and no '—' tiles for a client without sales data", async () => {
+    await prisma.clientGoal.create({ data: { clientId: fx.clientA.id, title: "10,000 community members A-secret", target: 10000, current: 6100, unit: "members", startAt: new Date("2026-01-01T12:00:00Z"), dueAt: new Date("2026-12-31T12:00:00Z") } });
     setMockSession({ user: { id: fx.userA.id, role: "CLIENT" } });
     const raw = await html(OverviewPage({ searchParams: Promise.resolve({}) }));
     expect(raw).not.toMatch(/>\s*—\s*</);
     const page = text(raw);
-    expect(page).toContain("Stories beat statics A-secret");
-    expect(page).toContain("Third");
-    expect(page).not.toContain("A fourth one is never shown");
-    // The reasoning is only behind "Why?", never a paragraph on the page.
-    expect(page).not.toContain("Story 9:16 averages 7.4% against 2.1%.");
-    expect(page).toContain("Why?");
-    // The leaderboard uses assetTitle(): "Beach hero", not "Story 9:16 — Beach hero", against the real average.
-    expect(page).toContain("Creative leaderboard");
-    expect(page).toContain("Beach hero");
-    expect(page).toContain("Product shot");
-    expect(page).not.toContain("Story 9:16 — Beach hero");
-    expect(page).toContain("Your average 4.8%");
-    // Organic-only client: no paid numbers; missing sources are a skeleton with Connect.
-    expect(page).not.toContain("Ad spend");
-    expect(page).toContain("Connect LinkedIn and Google Analytics");
-    expect(page).toContain("Data sources");
+    expect(page).toContain("The short answer");
+    expect(page).toContain("Connect your shop or CRM to see what marketing brings in.");
+    expect(page).toContain("10,000 community members A-secret");
+    expect(page).toContain("6,100 members");
+    expect(page).toContain("Behind");
+    expect(page).toContain("Not connected");
   });
 
-  it("client B never sees client A's takeaways or creative", async () => {
+  it("client B never sees client A's goals or findings", async () => {
     setMockSession({ user: { id: fx.userB.id, role: "CLIENT" } });
     const page = text(await html(OverviewPage({ searchParams: Promise.resolve({}) })));
     expect(page).not.toContain("A-secret");
-    expect(page).not.toContain("Beach hero");
-    // B has no data at all: no number cards, just the honest empty states.
-    expect(page).not.toContain("Last 30 days");
-    // No ad account of its own: one clear empty state, never charts of zeros.
-    expect(page).toContain("No ad account connected yet");
-    expect(page).not.toContain("writes three takeaways");
+    expect(page).toContain("No goals on file yet.");
   });
 
   it("Organic social without channels shows what connecting unlocks, never zeros or '—'", async () => {

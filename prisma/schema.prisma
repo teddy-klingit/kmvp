@@ -357,6 +357,7 @@ model Client {
   audienceActivity             AudienceActivity[]
   searchRankings               SearchRanking[]
   trendTopics                  TrendTopic[]
+  clientGoals                  ClientGoal[]
 }
 
 // AI-synthesized read of the Market Intelligence signals (news, competitor
@@ -2984,4 +2985,29 @@ model TrendTopic {
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId, capturedAt])
+}
+
+/// Phase X v2: the client's marketing goals (Insights → Overview "Your goals"), set by its PM or an admin. A goal is
+/// measured from the data layer ("online_sales_yoy": online sales so far this year vs the same days last year, in %)
+/// or by hand ("manual": `current` against `target`, in `unit`).
+model ClientGoal {
+  id          String    @id @default(cuid())
+  clientId    String
+  title       String
+  /// "online_sales_yoy" | "manual"
+  measure     String    @default("manual")
+  target      Float
+  current     Float?
+  unit        String?
+  startAt     DateTime?
+  dueAt       DateTime?
+  note        String?
+  sortOrder   Int       @default(0)
+  setByUserId String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, sortOrder])
 }
