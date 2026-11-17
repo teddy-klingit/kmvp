@@ -63,6 +63,11 @@ export function KeyNumbers({ items, color = "#B455B6" }: { items: KeyNumberData[
   );
 }
 
+/** A finding whose title carries on from its number ("40%" + "off from three…") reads as one line. */
+export function findingLine(i: { title: string; value: string | null }) {
+  return i.value && /^[a-z]/.test(i.title) ? `${i.value} ${i.title}` : i.title;
+}
+
 /** "What we found": each finding with its sources, and the opportunity it's used in, or "Ask for an idea". */
 export function WhatWeFound({ findings, pm, className }: { findings: TabFinding[]; pm: string; className?: string }) {
   if (!findings.length) return null;
@@ -72,7 +77,7 @@ export function WhatWeFound({ findings, pm, className }: { findings: TabFinding[
         {findings.map(({ insight, used, askedAt }) => (
           <li key={insight.id} id={`finding-${insight.id}`} className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-brand-line px-6 py-4 first:border-t-0">
             <span className="flex min-w-0 flex-1 basis-[260px] flex-col gap-2">
-              <span className="text-[15px] leading-snug">{insight.title}</span>
+              <span className="text-[15px] leading-snug">{findingLine(insight)}</span>
               <Chips sources={insightSources(insight)} />
             </span>
             {used.length ? (

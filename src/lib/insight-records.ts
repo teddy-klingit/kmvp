@@ -226,7 +226,7 @@ export async function recentFindings(clientId: string, now = new Date(), take = 
 export function shortTitle(o: { title: string; combined: Prisma.JsonValue | null }) {
   const plan = (o.combined as { actions?: { addToPlan?: { label?: string } | null } } | null)?.actions?.addToPlan?.label;
   if (plan) return `${plan.replace(/^Add to /, "").replace(/ plan$/, "")} Stories`;
-  return o.title.split(/:| with | before /)[0].trim();
+  return o.title.split(/: | with | before /)[0].trim();
 }
 
 /** The opportunity a client's "Ask for an idea" creates for a finding (hidden until the PM has written it). */

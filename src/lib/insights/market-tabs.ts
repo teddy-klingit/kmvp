@@ -81,6 +81,8 @@ export async function loadCompetitorsTab(clientId: string, opts: { days: number;
   const moves = signals
     .filter((s) => s.publishedAt.getTime() >= now.getTime() - opts.days * DAY)
     .map((s) => ({ id: s.id, at: s.publishedAt, brand: brands.find((b) => mentionsBrand(s.title, b)) ?? null, title: s.title }))
+    // Only moves a tracked brand made; market-wide headlines belong to Trends and the findings.
+    .filter((m) => m.brand)
     .slice(0, 6);
 
   return { brand: client.name, brands, table, questions, engines, advertise, moves, checksInRun: run.length };
