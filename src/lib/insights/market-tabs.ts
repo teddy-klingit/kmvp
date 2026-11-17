@@ -108,7 +108,7 @@ export async function loadTrendsTab(clientId: string, opts: { now?: Date; tier: 
   const momentRows = moments.slice(0, 8).map((m) => {
     const item = plan.find((p) => mentionsBrand(p.title, m.name) || near(p.date, m.date, 2));
     const opp = opps.find((o) => mentionsBrand(o.title, m.name) || (o.windowStart && near(o.windowStart, m.date, 3)));
-    return { id: m.id, name: m.name, date: m.date, planned: item ? { status: item.status, briefed: Boolean(item.briefBy) } : null, opportunity: !item && opp ? { id: opp.id } : null, briefBy: new Date(m.date.getTime() - 28 * DAY) };
+    return { id: m.id, name: m.name, date: m.date, planned: item ? { status: item.status, briefed: Boolean(item.briefBy) } : null, opportunity: !item && opp ? { id: opp.id } : null, briefBy: new Date(m.date.getTime() - 28 * DAY), briefPassed: m.date.getTime() - 28 * DAY < now.getTime() };
   });
 
   const demand = brief?.categoryDemand as { series?: { label: string; value: number }[]; change?: number; note?: string } | null;

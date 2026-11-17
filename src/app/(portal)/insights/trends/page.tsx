@@ -142,7 +142,7 @@ export default async function TrendsPage() {
                   <li key={m.id} className="grid grid-cols-[56px_minmax(0,1fr)_minmax(0,1.2fr)] gap-3 border-b border-brand-line px-6 py-3.5 text-[14px] last:border-b-0">
                     <span className="text-brand-ink-2">{day(m.date)}</span>
                     <span>{m.name}</span>
-                    <span className={cn(!m.planned && !m.opportunity && "text-brand-orange-text")}>{m.planned ? `In your Planner${m.planned.briefed ? " · briefed" : ""}` : m.opportunity ? "In your Planner · opportunity open" : m.briefBy.getTime() < Date.now() ? "Not planned · brief now" : `Not planned · brief by ${day(m.briefBy)}`}</span>
+                    <span className={cn(!m.planned && !m.opportunity && "text-brand-orange-text")}>{m.planned ? `In your Planner${m.planned.briefed ? " · briefed" : ""}` : m.opportunity ? "In your Planner · opportunity open" : m.briefPassed ? "Not planned · brief now" : `Not planned · brief by ${day(m.briefBy)}`}</span>
                   </li>
                 ))}
               </ul>
