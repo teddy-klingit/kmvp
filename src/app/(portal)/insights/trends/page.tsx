@@ -1,120 +1,191 @@
+import Link from "next/link";
+import { ChevronRight, Crosshair } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { getPortalViewer } from "@/lib/current-viewer";
 import { jsonArray } from "@/lib/utils";
-import { generateMarketIntelligenceAction } from "@/lib/actions/market-intelligence-actions";
-import { parseRange } from "@/lib/insights/daily";
-import { loadSignals, signalSource, signalsPerWeek, weeksFor } from "@/lib/insights/signals";
-import { PageGrid } from "@/components/ds/page-grid";
-import { AgentButton } from "@/components/portal/insights/agent-button";
-import { ChartCard, SkeletonChart } from "@/components/insights/cards";
-import { ColumnChart, StackBar } from "@/components/insights/charts";
-import { INK } from "@/components/insights/tokens";
+import { loadTrendsTab } from "@/lib/insights/market-tabs";
+import { askedAbout, tabFindings } from "@/lib/insight-records";
+import { hrefAliases } from "@/lib/insights/tabs";
+import { shortAnswer } from "@/lib/insights/short-answer";
+import { entitlements } from "@/lib/entitlements";
+import { marketingPm } from "@/lib/contact-person";
+import { AskIdeaButton } from "@/components/insights/ask-idea-button";
+import { BlindSpots, Card, ShortAnswer, WhatWeFound, type BlindSpot } from "@/components/insights/tab-parts";
+import { WORK_TZ } from "@/lib/working-hours";
+import { cn } from "@/lib/utils";
 
-type Theme = { theme: string; articleTitles: string[]; relevance?: "High" | "Medium" | "Low" };
-const LEVELS = [
-  { key: "High", color: INK },
-  { key: "Medium", color: "#8A8A8A" },
-  { key: "Low", color: "#DCD6C8" },
-] as const;
+const BLUE = "#5B6FB0";
+const day = (d: Date) => new Intl.DateTimeFormat("en-GB", { timeZone: WORK_TZ, day: "numeric", month: "short" }).format(d);
+const STAGE: Record<string, string> = { Early: "bg-[#EEF3D6]", Rising: "bg-[#FCEFD9]", Peaking: "bg-[#FDE7DC]", Fading: "bg-[#EFEBE2]" };
+const signedPct = (c: number) => `${c >= 0 ? "+" : "−"}${Math.round(Math.abs(c) * 100)}%`;
+type Theme = { theme: string; articleTitles: string[] };
+
+function Line({ values }: { values: number[] }) {
+  if (values.length < 2) return null;
+  const max = Math.max(...values);
+  const min = Math.min(...values);
+  const span = max - min || 1;
+  const pts = values.map((v, i) => `${((i / (values.length - 1)) * 96 + 2).toFixed(1)},${(30 - ((v - min) / span) * 26).toFixed(1)}`).join(" ");
+  return (
+    <svg viewBox="0 0 100 34" className="h-8 w-24" aria-hidden>
+      <polyline points={pts} fill="none" stroke={BLUE} strokeWidth={1.75} strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 /**
- * Market → Trends (InsightsTrends.dc.html): the agent's themes as ranked bars (each opens to its headlines),
- * new category headlines per week, and how relevant the themes are for you.
+ * Insights → Trends (Phase X v2, Ins4Trends): "What's rising that we could use, and what's coming up?" The short
+ * answer, what's rising in the category (12-week line, stage, fit for the brand, its opportunity or Ask for an
+ * idea), moments coming up (flagging ones with nothing in the Planner), demand for the category, findings and blind
+ * spots. Top trends on Pro; all of them on Enterprise.
  */
-export default async function MarketTrendsPage({ searchParams }: { searchParams: Promise<{ range?: string }> }) {
-  const days = parseRange((await searchParams).range);
+export default async function TrendsPage() {
   const viewer = await getPortalViewer();
-  const weeks = weeksFor(days);
-  const [brief, signals, allTrends] = await Promise.all([
-    prisma.trendBrief.findUnique({ where: { clientId: viewer.clientId } }),
-    loadSignals(viewer.clientId, weeks),
-    prisma.marketSignal.findMany({ where: { clientId: viewer.clientId, type: "TREND" }, select: { title: true, summary: true, source: true, type: true } }),
-  ]);
-  const themes = jsonArray<Theme>(brief?.themes).sort((a, b) => b.articleTitles.length - a.articleTitles.length);
-  const bySignal = new Map(allTrends.map((s) => [s.title, s]));
-  const max = Math.max(...themes.map((t) => t.articleTitles.length), 1);
-  const headlines = new Set(themes.flatMap((t) => t.articleTitles)).size;
-  const perWeek = signalsPerWeek(signals.filter((s) => s.type === "TREND"), weeks);
-  const rated = themes.filter((t) => t.relevance);
-  const watch = rated.find((t) => t.relevance === "High");
+  const clientId = viewer.clientId;
+  const ent = await entitlements(clientId);
+  const [t, findings, pm, brief] = await Promise.all([loadTrendsTab(clientId, { tier: ent.tier }), tabFindings(clientId, hrefAliases("/insights/trends")), marketingPm(clientId), prisma.trendBrief.findUnique({ where: { clientId } })]);
+  const pmFirst = pm?.name.split(" ")[0] ?? "Klingit";
+  const category = viewer.client.industry ?? "your category";
+  const asked = await askedAbout(clientId, "trend", t.rows.map((r) => r.topic));
+  const notPlanned = t.moments.filter((m) => !m.planned && !m.opportunity);
+  const rising = [...t.rows].filter((r) => r.change > 0).sort((a, b) => b.change - a.change)[0];
+
+  const answer = shortAnswer(
+    `${clientId}:trends`,
+    [
+      rising ? `${rising.topic.replace(/^./, (c) => c.toUpperCase())} is the fastest-rising trend in ${category} (${signedPct(rising.change)})${rising.opportunity ? `, and it fits “${rising.opportunity.title}”` : ""}.` : null,
+      t.demand?.change != null ? `Demand for your category is ${t.demand.change >= 0 ? "up" : "down"} ${Math.round(Math.abs(t.demand.change) * 100)}% on last year.` : null,
+      notPlanned.length ? `${notPlanned.length === 1 ? "One moment" : `${notPlanned.length} moments`} in the next 90 days ${notPlanned.length === 1 ? "isn't" : "aren't"} planned yet.` : null,
+    ]
+      .filter(Boolean)
+      .join(" ") || "Trends for your category show here once the weekly trend check has run.",
+  );
+
+  const themes = jsonArray<Theme>(brief?.themes).sort((a, b) => b.articleTitles.length - a.articleTitles.length).slice(0, 4);
+  const blind: BlindSpot[] = [
+    ...(t.rows.length ? [] : [{ text: "Rising searches and social topics for your category: the weekly trend check hasn't run yet.", action: null }]),
+    ...(t.hidden ? [{ text: `${t.hidden} more trend${t.hidden === 1 ? "" : "s"} for your category are on ${ent.tier === "enterprise" ? "the full list" : "Enterprise"}.`, action: ent.tier === "enterprise" ? null : { label: "See plans", href: "/settings/plan" } }] : []),
+    ...(t.demand ? [] : [{ text: "Demand for your category over the year: search interest arrives with the next trend check.", action: null }]),
+  ];
+  const maxDemand = t.demand ? Math.max(...t.demand.series.map((s) => s.value)) : 1;
+  const minDemand = t.demand ? Math.min(...t.demand.series.map((s) => s.value)) : 0;
 
   return (
-    <PageGrid
-      main={
-        <ChartCard
-          flush
-          title="Themes in the news"
-          meta={<span className="font-brand-mono text-[12px] text-brand-ink">HEADLINES</span>}
-          action={brief ? <AgentButton action={generateMarketIntelligenceAction} label="Refresh" pendingLabel="Reading…" /> : undefined}
-          table={{ columns: ["Theme", "Headlines", "Relevance"], rows: themes.map((t) => [t.theme, t.articleTitles.length, t.relevance ?? ""]) }}
-        >
-          {themes.length > 0 ? (
-            <>
-              <ul className="m-0 list-none p-0">
-                {themes.map((t) => {
-                  const sources = [...new Set(t.articleTitles.map((a) => (bySignal.get(a) ? signalSource(bySignal.get(a)!) : null)).filter(Boolean))];
-                  return (
-                    <li key={t.theme} className="border-b border-brand-line last:border-b-0">
-                      <details className="group">
-                        <summary className="grid cursor-pointer list-none grid-cols-[minmax(0,1fr)_minmax(0,1fr)_32px] items-center gap-4 px-6 py-4 hover:bg-[#FBF9F4]">
-                          <span className="flex min-w-0 flex-col">
-                            <span className="truncate text-[15px]">{t.theme}</span>
-                            {sources.length > 0 && <span className="truncate text-[13px] text-brand-mute">{sources.join(" · ")}</span>}
-                          </span>
-                          <span className="h-3.5">
-                            <span className="block h-full rounded-r-[4px] bg-brand-ink" style={{ width: `${(t.articleTitles.length / max) * 70}%` }} />
-                          </span>
-                          <span className="text-right text-[15px] tabular-nums">{t.articleTitles.length}</span>
-                        </summary>
-                        <ul className="m-0 flex list-none flex-col gap-1.5 px-6 pb-4 pl-6">
-                          {t.articleTitles.map((a) => {
-                            const s = bySignal.get(a);
-                            return (
-                              <li key={a} className="text-[13px] leading-[1.5] text-brand-ink-2">
-                                &ldquo;{a}&rdquo;{s ? ` · ${signalSource(s)}` : ""}
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      </details>
-                    </li>
-                  );
-                })}
-              </ul>
-              <p className="m-0 px-6 pb-5 pt-3 text-[13px] text-brand-mute">Grouped by Market ideas from {headlines} headline{headlines === 1 ? "" : "s"} · click a theme to read them</p>
-            </>
-          ) : (
-            <div className="px-6 py-5">
-              <SkeletonChart line="Market ideas groups category headlines into the themes shaping it." action={<AgentButton action={generateMarketIntelligenceAction} label="Generate" pendingLabel="Reading…" />} />
-            </div>
-          )}
-        </ChartCard>
-      }
-      side={
-        <>
-          <ChartCard title="Category coverage" table={{ columns: ["Week of", "New headlines"], rows: perWeek.data.map((d) => [d.x, d.values[0] ?? 0]) }}>
-            {perWeek.total > 0 ? (
-              <>
-                <span className="text-[16px]">New headlines per week</span>
-                <ColumnChart data={perWeek.data.map((d) => ({ x: d.x, values: [d.values[0] ?? 0] }))} series={[{ name: "Headlines", color: INK }]} height={170} xEvery={weeks > 6 ? 3 : 1} />
-              </>
-            ) : (
-              <SkeletonChart line={`No new category headlines in the last ${weeks} weeks.`} />
-            )}
-          </ChartCard>
+    <div className="flex flex-col gap-6">
+      <ShortAnswer text={answer} sources={["Search trends", "TikTok", "Instagram"]} />
 
-          <ChartCard title="Relevance for you" table={{ columns: ["Relevance", "Themes"], rows: LEVELS.map((l) => [l.key, rated.filter((t) => t.relevance === l.key).length]) }}>
-            {rated.length > 0 ? (
-              <>
-                <StackBar segments={LEVELS.map((l) => ({ label: l.key, value: rated.filter((t) => t.relevance === l.key).length, color: l.color }))} />
-                {watch && <span className="text-[15px]">{watch.theme} is the one to watch.</span>}
-              </>
-            ) : (
-              <SkeletonChart line="Refresh the themes to rate how much each matters for you." action={<AgentButton action={generateMarketIntelligenceAction} label={brief ? "Refresh" : "Generate"} pendingLabel="Reading…" />} />
-            )}
-          </ChartCard>
-        </>
-      }
-    />
+      {t.rows.length > 0 && (
+        <Card title={`What's rising in ${category}`} flush>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[720px] border-collapse text-[14px]">
+              <thead>
+                <tr className="text-left font-brand-mono text-[11px] uppercase tracking-[0.04em] text-brand-ink-2">
+                  {["Trend", "Last 12 weeks", "Stage", "Fit for you", ""].map((h, i) => (
+                    <th key={i} className="px-6 py-3 font-normal">
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {t.rows.map((r) => (
+                  <tr key={r.id} className="border-t border-brand-line align-middle">
+                    <td className="px-6 py-3.5">
+                      <span className="flex flex-col">
+                        <span className="text-[15px]">{r.topic}</span>
+                        <span className={cn("text-[12px]", r.change >= 0 ? "text-[#6E7D2F]" : "text-brand-orange-text")}>
+                          {signedPct(r.change)} {r.measure}
+                        </span>
+                      </span>
+                    </td>
+                    <td className="px-6 py-3.5">
+                      <Line values={r.series} />
+                    </td>
+                    <td className="px-6 py-3.5">
+                      <span className={cn("rounded-full px-2.5 py-0.5 text-[12px]", STAGE[r.stage] ?? "bg-[#EFEBE2]")}>{r.stage}</span>
+                    </td>
+                    <td className="px-6 py-3.5">
+                      <span className="flex flex-col">
+                        <span className="text-[13px]">
+                          <span aria-label={`Fit ${r.fit} of 3`} className="tracking-[0.1em]">
+                            {"●".repeat(Math.max(0, Math.min(3, r.fit)))}
+                            {"○".repeat(3 - Math.max(0, Math.min(3, r.fit)))}
+                          </span>{" "}
+                          fit for {viewer.client.name}
+                        </span>
+                        {r.fitNote && <span className="text-[12px] text-brand-ink-2">{r.fitNote}</span>}
+                      </span>
+                    </td>
+                    <td className="px-6 py-3.5 text-right">
+                      {r.opportunity ? (
+                        <Link href={`/opportunities/${r.opportunity.id}`} className="inline-flex items-center gap-1.5 rounded-full border border-[#F5C9B0] bg-[#FFF4EE] px-3 py-1 text-[12px] text-brand-ink no-underline hover:border-brand-orange">
+                          <Crosshair className="size-3" strokeWidth={2} /> {r.opportunity.title} <ChevronRight className="size-3" />
+                        </Link>
+                      ) : (
+                        <AskIdeaButton asked={asked.has(r.topic)} pm={pmFirst} about={{ question: r.topic, value: signedPct(r.change), sources: ["Search trends"], href: "/insights/trends", kind: "trend" }} />
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+
+      <div className="grid grid-cols-1 items-start gap-6 min-[1100px]:grid-cols-2">
+        <div className="flex min-w-0 flex-col gap-6">
+          {t.moments.length > 0 && (
+            <Card title="Moments coming up" flush action={<Link href="/planner" className="font-brand-mono text-[12px] uppercase text-brand-ink underline underline-offset-4">Open Planner</Link>}>
+              <ul className="m-0 list-none p-0">
+                {t.moments.map((m) => (
+                  <li key={m.id} className="grid grid-cols-[56px_minmax(0,1fr)_minmax(0,1.2fr)] gap-3 border-b border-brand-line px-6 py-3.5 text-[14px] last:border-b-0">
+                    <span className="text-brand-ink-2">{day(m.date)}</span>
+                    <span>{m.name}</span>
+                    <span className={cn(!m.planned && !m.opportunity && "text-brand-orange-text")}>{m.planned ? `In your Planner${m.planned.briefed ? " · briefed" : ""}` : m.opportunity ? "In your Planner · opportunity open" : m.briefBy.getTime() < Date.now() ? "Not planned · brief now" : `Not planned · brief by ${day(m.briefBy)}`}</span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+          <WhatWeFound findings={findings} pm={pmFirst} />
+          {!t.rows.length && themes.length > 0 && (
+            <Card title="In the news for your category" flush>
+              <ul className="m-0 list-none p-0">
+                {themes.map((x) => (
+                  <li key={x.theme} className="flex justify-between gap-3 border-b border-brand-line px-6 py-3.5 text-[14px] last:border-b-0">
+                    <span>{x.theme}</span>
+                    <span className="text-brand-ink-2">
+                      {x.articleTitles.length} headline{x.articleTitles.length === 1 ? "" : "s"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+        </div>
+        <div className="flex min-w-0 flex-col gap-6">
+          {t.demand && (
+            <Card title="Demand for your category">
+              <svg viewBox="0 0 300 90" className="h-24 w-full" preserveAspectRatio="none" aria-hidden>
+                <polyline
+                  points={t.demand.series.map((s, i) => `${((i / Math.max(1, t.demand!.series.length - 1)) * 296 + 2).toFixed(1)},${(84 - ((s.value - minDemand) / Math.max(1, maxDemand - minDemand)) * 76).toFixed(1)}`).join(" ")}
+                  fill="none"
+                  stroke={BLUE}
+                  strokeWidth={2}
+                  vectorEffect="non-scaling-stroke"
+                />
+              </svg>
+              <span className="flex justify-between text-[12px] text-brand-ink-2">
+                <span>{t.demand.series[0].label}</span>
+                <span>{t.demand.series[t.demand.series.length - 1].label}</span>
+              </span>
+              {t.demand.note && <p className="m-0 mt-3 text-[14px] leading-[1.5]">{t.demand.note}</p>}
+            </Card>
+          )}
+          <BlindSpots items={blind} />
+        </div>
+      </div>
+    </div>
   );
 }

@@ -130,7 +130,7 @@ describe("every insights tab renders", () => {
   it.each([
     ["Paid ads", () => PerformancePage({ searchParams: Promise.resolve({}) })],
     ["Competitors", () => CompetitorsPage({ searchParams: Promise.resolve({ range: "90" }) })],
-    ["Trends", () => TrendsPage({ searchParams: Promise.resolve({ range: "365" }) })],
+    ["Trends", () => TrendsPage()],
     ["Website & search", () => SeoPage({ searchParams: Promise.resolve({}) })],
     ["Email", () => EmailPage({ searchParams: Promise.resolve({}) })],
   ] as [string, () => Promise<ReactNode>][])("%s, without a '—' tile", async (_name, page) => {

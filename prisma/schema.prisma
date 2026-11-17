@@ -356,6 +356,7 @@ model Client {
   adBudgets                    AdBudget[]
   audienceActivity             AudienceActivity[]
   searchRankings               SearchRanking[]
+  trendTopics                  TrendTopic[]
 }
 
 // AI-synthesized read of the Market Intelligence signals (news, competitor
@@ -468,6 +469,8 @@ model TrendBrief {
   clientId    String   @unique
   takeaway    String
   themes      Json // { theme: string; articleTitles: string[] }[]
+  /// Phase X v2: search interest for the client's category, { series: [{ label, value }], change, note }.
+  categoryDemand Json?
   generatedAt DateTime @default(now())
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
@@ -2954,6 +2957,29 @@ model SearchRanking {
   previousPosition Int?
   url              String?
   capturedAt       DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, capturedAt])
+}
+
+/// Phase X v2: a rising (or fading) topic in the client's category, for Insights → Trends: its 12-week series, how
+/// much it moved, its stage, how well it fits the brand (1–3) and why, and the opportunity it feeds, if any.
+model TrendTopic {
+  id            String   @id @default(cuid())
+  clientId      String
+  topic         String
+  /// "views" | "searches"
+  measure       String   @default("searches")
+  change        Float
+  series        Json
+  /// "Early" | "Rising" | "Peaking" | "Fading"
+  stage         String
+  fit           Int
+  fitNote       String?
+  opportunityId String?
+  sortOrder     Int      @default(0)
+  capturedAt    DateTime @default(now())
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 

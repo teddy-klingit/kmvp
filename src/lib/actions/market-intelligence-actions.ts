@@ -4,6 +4,8 @@ import { withAiCharge, assistantCharge, ASSISTANTS } from "@/lib/ai-context";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { competitorLimit } from "@/lib/insights/market-tabs";
+import { platformTier } from "@/lib/entitlements";
 import { adCampaigns } from "@/lib/metrics";
 import { clientDataContext, groundedText } from "@/lib/data-context";
 import { numbersIn } from "@/lib/insights/number-guard";
@@ -90,6 +92,7 @@ export async function addSuggestedCompetitorAction(formData: FormData) {
   const name = String(formData.get("name") ?? "");
 
   const current = jsonArray<string>(viewer.client.competitorBrands);
+  if (current.length >= competitorLimit(await platformTier(viewer.clientId))) return;
   if (!current.some((b) => b.toLowerCase() === name.toLowerCase())) {
     await prisma.client.update({ where: { id: viewer.clientId }, data: { competitorBrands: [...current, name] } });
   }
@@ -112,8 +115,22 @@ export async function trackCompetitorAction(formData: FormData) {
   const name = raw.replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "").slice(0, 80);
   if (!name) return;
   const current = jsonArray<string>(viewer.client.competitorBrands);
+  // Phase X: how many brands a plan tracks.
+  if (current.length >= competitorLimit(await platformTier(viewer.clientId))) return;
   if (!current.some((b) => b.toLowerCase() === name.toLowerCase())) {
     await prisma.client.update({ where: { id: viewer.clientId }, data: { competitorBrands: [...current, name] } });
   }
+  revalidateAllTabs();
+}
+
+/** "Edit competitors": stop tracking a brand. Its stored checks stay (history), it just leaves the tab. */
+export async function removeCompetitorAction(formData: FormData) {
+  const viewer = await getPortalViewer();
+  const name = String(formData.get("brand") ?? "");
+  const current = jsonArray<string>(viewer.client.competitorBrands);
+  const next = current.filter((b) => b.toLowerCase() !== name.toLowerCase());
+  if (next.length === current.length) return;
+  await prisma.client.update({ where: { id: viewer.clientId }, data: { competitorBrands: next } });
+  await prisma.auditLog.create({ data: { clientId: viewer.clientId, actorUserId: viewer.userId, area: "insights", action: `Stopped tracking ${name.slice(0, 80)}` } });
   revalidateAllTabs();
 }

@@ -28,6 +28,8 @@ export const FEATURES = {
   attributionChoice: "enterprise",
   campaignMapping: "enterprise",
   offlineUpload: "enterprise",
+  /** Phase X: who AI assistants recommend (the weekly buying questions) and share of AI answers. */
+  aiAnswerTracking: "enterprise",
 } as const satisfies Record<string, PlatformTier>;
 export type Feature = keyof typeof FEATURES;
 
