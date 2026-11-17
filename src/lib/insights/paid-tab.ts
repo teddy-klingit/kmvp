@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { AD_PLATFORMS, adPlatformOf, changePct, loadLayer, type LayerRow } from "@/lib/insights/layer";
 import { loadMeasuredAssets } from "@/lib/insights-data";
 import { WORK_TZ } from "@/lib/working-hours";
+import { assetTitle } from "@/lib/asset-display";
 
 /**
  * Insights → Paid ads (Phase X v2, design Ins4Paid): what the ads cost, what they brought back (sales credited to
@@ -104,7 +105,7 @@ export async function loadPaidTab(clientId: string, opts: { days: number; now?: 
     const before = ctrIn(since(28), since(21));
     const after = ctrIn(since(7), since(-1));
     if (latestFreq !== null && latestFreq > TIRED_FREQUENCY && before && after !== null && after <= before * (1 - TIRED_DROP)) {
-      const a = measured.find((x) => x.id === id) ?? (await prisma.asset.findFirst({ where: { id, clientId }, select: { id: true, name: true, format: true } }).then((x) => (x ? { id: x.id, title: x.name, format: x.format, thumbnail: null } : null)));
+      const a = measured.find((x) => x.id === id) ?? (await prisma.asset.findFirst({ where: { id, clientId }, select: { id: true, name: true, format: true } }).then((x) => (x ? { id: x.id, title: assetTitle(x.name, x.format), format: x.format, thumbnail: null } : null)));
       if (a) tired.push({ id, title: a.title, format: a.format ?? null, thumbnail: "thumbnail" in a ? (a.thumbnail ?? null) : null, frequency: latestFreq, ctrBefore: before, ctrNow: after });
     }
   }

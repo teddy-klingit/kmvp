@@ -31,6 +31,10 @@ export async function loadWebsiteTab(clientId: string, opts: { days: number; now
   const orders = (xs: LayerRow[], where: (r: LayerRow) => boolean = () => true) => sum(xs, "orders", (r) => online(r) && where(r));
   const group = (g: TrafficGroup) => (r: LayerRow) => trafficGroupOf(r.channel) === g;
   const buyRate = (xs: LayerRow[]) => (sessions(xs) ? (orders(xs) / sessions(xs)) * 100 : null);
+  // A source's buy rate: Google Analytics' own purchases per traffic source (last click on the site) when it reports
+  // them, else the shop's orders credited to that channel.
+  const hasPurchases = cur.some((r) => site(r) && r.metric === "purchases");
+  const bought = (xs: LayerRow[], where: (r: LayerRow) => boolean = () => true) => (hasPurchases ? sum(xs, "purchases", (r) => site(r) && where(r)) : orders(xs, where));
   const slices = L.slices();
 
   const visits = sessions(cur);
@@ -47,7 +51,7 @@ export async function loadWebsiteTab(clientId: string, opts: { days: number; now
     { label: "Visited", value: visits },
     { label: "Viewed a product", value: sum(cur, "product_views", site) },
     { label: "Added to cart", value: sum(cur, "add_to_cart", site) },
-    { label: "Bought", value: orders(cur) },
+    { label: "Bought", value: bought(cur) },
   ];
   const funnel = steps[1].value && steps[2].value ? steps.map((s, i) => ({ ...s, kept: i === 0 || !steps[i - 1].value ? null : s.value / steps[i - 1].value })) : null;
   const biggestDrop = funnel ? funnel.slice(1).reduce<{ from: string; to: string; kept: number } | null>((w, s, i) => (s.kept !== null && (!w || s.kept < w.kept) ? { from: funnel[i].label, to: s.label, kept: s.kept } : w), null) : null;
@@ -57,7 +61,7 @@ export async function loadWebsiteTab(clientId: string, opts: { days: number; now
   const sources = groups
     .map((g) => {
       const v = sessions(cur, group(g));
-      const o = orders(cur, group(g));
+      const o = bought(cur, group(g));
       return { group: g, visits: v, buyRate: v ? (o / v) * 100 : null };
     })
     .filter((s) => s.visits > 0)
@@ -68,7 +72,7 @@ export async function loadWebsiteTab(clientId: string, opts: { days: number; now
   const pages = [...new Set(pageRows.map((r) => r.page))]
     .map((page) => {
       const v = pageRows.filter((r) => r.page === page && r.metric === "sessions").reduce((a, r) => a + r.value, 0);
-      const o = pageRows.filter((r) => r.page === page && r.metric === "orders").reduce((a, r) => a + r.value * L.weight(r), 0);
+      const o = pageRows.filter((r) => r.page === page && (r.metric === "purchases" || r.metric === "orders")).reduce((a, r) => a + r.value * L.weight(r), 0);
       return { page, visits: v, buyRate: v ? (o / v) * 100 : null };
     })
     .filter((p) => p.visits > 0)

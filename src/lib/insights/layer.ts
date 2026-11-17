@@ -31,7 +31,7 @@ export function salesGroupOf(r: Pick<LayerRow, "channel" | "path">): SalesGroup 
   if (ad) return ad === "Google" ? "Google Ads" : (`${ad} ads` as SalesGroup);
   if (/klaviyo|email|newsletter/i.test(r.channel)) return "Email";
   if (/organic/i.test(r.channel) && /instagram|tiktok|linkedin|facebook|pinterest|youtube/i.test(r.channel)) return "Organic social";
-  if (/unattributed|direct|search|google organic|seo/i.test(r.channel)) return "Search & direct";
+  if (/unattributed|direct|search|google organic|seo|ai assistant/i.test(r.channel)) return "Search & direct";
   return "Other";
 }
 

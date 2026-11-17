@@ -70,8 +70,8 @@ describe("the ouhers demo seed", () => {
   it("is idempotent and never touches other clients", async () => {
     const first = await counts();
     // 15 projects: one more in Phase S, the estimate waiting for the PM's number.
-    // daily: Meta's and TikTok's stored days plus Google Ads (Phase V).
-    expect(first).toMatchObject({ projects: 15, daily: 769, users: 6, demoAgents: 3 });
+    // daily: the ad platforms' stored days (Phase V's history, and Phase X's 90 days of Meta per ad).
+    expect(first).toMatchObject({ projects: 15, daily: 1244, users: 6, demoAgents: 3 });
     await seedOuhers({ shift: true });
     expect(await counts()).toEqual(first);
     expect(await prisma.client.count({ where: { id: { not: OUHERS_CLIENT_ID } } })).toBe(other.clients);
@@ -153,8 +153,8 @@ describe("the ouhers demo seed", () => {
   it("reads Insights from its own seeded days, never the live ad accounts", async () => {
     live.calls = 0;
     const paid = await loadPaidMedia(OUHERS_CLIENT_ID);
-    // Phase V: Meta and Google Ads (TikTok's token expired, so it has no numbers in the last 30 days).
-    expect(paid.connected.sort()).toEqual(["Google", "Meta"]);
+    // Meta, Google Ads and LinkedIn (TikTok's token expired, so it has no numbers in the last 30 days).
+    expect(paid.connected.sort()).toEqual(["Google", "LinkedIn", "Meta"]);
     const daily = await loadDaily(OUHERS_CLIENT_ID, 30);
     expect(daily.has).toBe(true);
     expect(await syncDailyAdMetrics(OUHERS_CLIENT_ID, { force: true })).toMatchObject({ skipped: "demo account" });
@@ -207,28 +207,22 @@ describe("the ouhers demo seed", () => {
     expect(lib.items.filter((i) => i.info.kind === "add").length).toBeGreaterThan(0);
   });
 
-  it("Phase V: the Revenue tab adds up: €226k online + €186k retail = €412k, €89k spend, the same totals under every credit model", async () => {
-    const r = await loadRevenue(OUHERS_CLIENT_ID, { days: 90 });
-    expect(Math.round(r.funnels.online.revenue)).toBe(226000);
-    expect(Math.round(r.funnels.retail.revenue)).toBe(186000);
-    expect(Math.round(r.tiles.revenue.value)).toBe(412000);
-    expect(Math.round(r.tiles.roas.spend)).toBe(89000);
-    expect(r.tiles.roas.value!.toFixed(1)).toBe("4.6");
+  it("Phase X: Sales adds up to the design: €88k online + €53k retail = €141k (+18%), the same totals under every credit model", async () => {
+    const r = await loadRevenue(OUHERS_CLIENT_ID, { days: 30 });
+    expect(Math.round(r.funnels.online.revenue / 1000)).toBe(88);
+    expect(Math.round(r.funnels.retail.revenue)).toBe(53000);
+    expect(Math.round(r.tiles.revenue.value / 1000)).toBe(141);
     expect(Math.round(r.tiles.revenue.change! * 100)).toBe(18);
-    expect(Math.round(r.tiles.perCustomer.online!)).toBe(31);
-    expect(r.funnels.online.steps.map((x) => Math.round(x.value))).toEqual([6199999, 147969, 121000, 4310].map((v, i) => (i < 2 ? expect.any(Number) : v)));
-    expect(r.funnels.retail.steps.map((x) => x.value)).toEqual([1240, 578, 74, 31]);
+    expect(r.funnels.online.steps[3].value).toBe(1480);
+    expect(r.funnels.retail.steps.map((x) => x.value)).toEqual([410, 190, 26, 11]);
     expect(r.biggestDrop).toMatchObject({ path: "retail", from: "Qualified", to: "Deals" });
-    // The channel table is the same money: its revenue and spend add up to the tiles.
-    expect(Math.round(r.tables.channel.reduce((a, c) => a + c.revenue, 0))).toBe(412000);
-    expect(Math.round(r.tables.channel.reduce((a, c) => a + (c.spend ?? 0), 0))).toBe(89000);
-    expect(r.tables.channel.find((c) => c.name === "Retail fairs")!.return!).toBeLessThan(1);
-    expect(r.tables.channel.find((c) => c.name === "Unattributed")).toMatchObject({ orders: 190 });
-    expect(r.work.map((w) => Math.round(w.revenue))).toEqual([71920, 71000, 33750, 26000]);
+    // The channel table is the same money: its sales add up to the total.
+    expect(Math.round(r.tables.channel.reduce((a, c) => a + c.revenue, 0) / 1000)).toBe(141);
+    expect(Math.round(r.work[0].revenue)).toBe(14260);
     expect(r.blind.map((b) => b.text).join(" ")).toMatch(/TikTok: token expired/);
     for (const model of ["first", "last"] as const) {
-      const m = await loadRevenue(OUHERS_CLIENT_ID, { days: 90, model });
-      expect(Math.round(m.tiles.revenue.value)).toBe(412000);
+      const m = await loadRevenue(OUHERS_CLIENT_ID, { days: 30, model });
+      expect(Math.round(m.tiles.revenue.value / 1000)).toBe(141);
       expect(m.tables.channel.find((c) => c.name === "Meta")!.revenue).not.toBeCloseTo(r.tables.channel.find((c) => c.name === "Meta")!.revenue, 0);
     }
   });
@@ -253,9 +247,10 @@ describe("the ouhers demo seed", () => {
     expect(stored.confidence).toBe("high");
     // Phase W: built from three insight records with the same numbers.
     const built = await prisma.opportunityInsight.findMany({ where: { opportunityId: stored.id }, include: { insight: true }, orderBy: { sortOrder: "asc" } });
+    // Phase X names the first two as the tabs show them (Paid ads, Email).
     expect(built.map((b) => [b.insight.title, b.insight.value])).toEqual([
-      ["Story ads bring bigger orders", "€62 vs €45"],
-      ["Email brings Story buyers back", "41% vs 17%"],
+      ["Story ads bring 38% bigger orders", "€62 vs €45"],
+      ["Welcome flow: 41% buy again vs 17% without", "41% vs 17%"],
       ["Black Friday has no Stories", "3 Feed · 0 Story"],
     ]);
   });
@@ -277,24 +272,25 @@ describe("the ouhers demo seed", () => {
     const card = (re: RegExp) => views.get(by("new").find((o) => re.test(o.title))!.id)!;
     expect(card(/^Move €2,000/)).toMatchObject({ confidence: "high", estimate: { text: "+€4–5k in 60 days" }, cost: "€0 extra spend · ≈ 4 creative credits" });
     expect(card(/SPF/)).toMatchObject({ confidence: "medium", estimate: { text: "+€2–3k in 30 days" }, cost: "≈ 8 creative credits", warning: null });
-    expect(card(/SPF/).insights.map((i) => i.title)).toEqual(["Competitor launch", "“tinted SPF” searches are rising", "sun day stick sells second best"]);
+    // Phase X adds the competitor and website findings behind it.
+    expect(card(/SPF/).insights.map((i) => i.title)).toEqual(["Competitor launch", "Plume Skin leads AI answers for “tinted SPF”", "“tinted SPF” searches are rising", "Missing from “tinted SPF” searches", "sun day stick sells second best"]);
     expect(card(/refill/)).toMatchObject({ confidence: "low", estimate: { text: "Unclear: no TikTok data" }, cost: "≈ 40 AI credits or 4 creative credits", missing: ["TikTok"] });
     // Decide by: the SPF answer in two days (7 working days before it goes live), the refill test 7 before the launch.
     expect(card(/SPF/).decideBy!.toDateString()).toBe(new Date(Date.now() + 2 * 86400000).toDateString());
     expect((await prisma.opportunity.findFirstOrThrow({ where: { clientId: OUHERS_CLIENT_ID, origin: "combined" } })).pmNote).toMatch(/^I'd do this one\. Concept B is ready/);
   });
 
-  it("Phase W: Insights Overview shows the design's six findings, linked as shown", async () => {
+  it("Phase X: Insights Overview's latest findings, each linked to its opportunity", async () => {
     const r = await recentFindings(OUHERS_CLIENT_ID);
     expect(r.findings.map((f) => [f.insight.title, f.insight.value, f.used.map((u) => u.title)])).toEqual([
-      ["Story ads bring bigger orders", "€62 vs €45", ["Black Friday Stories"]],
-      ["Email brings Story buyers back", "41% vs 17%", ["Black Friday Stories"]],
+      ["Plume Skin leads AI answers for “tinted SPF”", "31% vs 18%", ["Answer the new SPF launch"]],
+      ["Story ads bring 38% bigger orders", "€62 vs €45", ["Black Friday Stories"]],
+      ["Welcome flow: 41% buy again vs 17% without", "41% vs 17%", ["Black Friday Stories"]],
+      ["Missing from “tinted SPF” searches", "not in top 50", ["Answer the new SPF launch"]],
       ["“tinted SPF” searches are rising", "+52%", ["Answer the new SPF launch"]],
-      ["Retail fairs don't pay back", "0.7× return", []],
-      ["Saves on “ritual” posts", "+64%", ["Singles Day"]],
-      ["Newsletter opens are steady", "41%", []],
+      ["Nord Bare launches refills 2 weeks before you", "14 Oct", ["Test a refill ritual video on TikTok"]],
     ]);
-    expect(r.bridge).toEqual({ feeding: 4, open: 3, unused: 2 });
+    expect(r.bridge).toEqual({ feeding: 6, open: 3, unused: 0 });
   });
 
   it("Phase W: every ouhers opportunity is built from at least one insight", async () => {

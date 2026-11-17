@@ -40,7 +40,9 @@ export async function goalView(clientId: string, g: ClientGoal, now = new Date()
     }
   } else if (g.current !== null) {
     progress = g.target ? g.current / g.target : null;
-    line = [`${Math.round(g.current).toLocaleString("en-GB")}${g.unit ? ` ${g.unit}` : ""}`, g.note].filter(Boolean).join(" · ");
+    // A milestone (no unit) shows its note only; "%" sits on the number.
+    const amount = g.unit ? `${Math.round(g.current).toLocaleString("en-GB")}${g.unit.startsWith("%") ? g.unit : ` ${g.unit}`}` : null;
+    line = [amount, g.note].filter(Boolean).join(" · ") || null;
   }
   const status = progress === null ? null : expected === null ? (progress >= 1 ? "On track" : null) : progress >= expected - SLACK ? "On track" : "Behind";
   return { id: g.id, title: g.title, progress: progress === null ? null : Math.max(0, progress), expected, status, line };

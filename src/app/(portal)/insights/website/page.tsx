@@ -71,7 +71,7 @@ export default async function WebsitePage({ searchParams }: { searchParams: Prom
   const delta = (ch: number | null) => (ch === null ? null : { text: `${signedPct(ch)} ${vs}`, tone: ch >= 0 ? ("good" as const) : ("bad" as const) });
   const maxStep = t.funnel ? Math.max(1, t.funnel[0].value) : 1;
   const maxSource = Math.max(1, ...t.sources.map((s) => s.visits));
-  const lowPage = t.overallBuyRate !== null ? t.pages.find((p) => p.buyRate !== null && p.buyRate < t.overallBuyRate! / 2) : undefined;
+  const lowPage = t.overallBuyRate !== null ? t.pages.find((p) => p.buyRate !== null && p.buyRate < t.overallBuyRate! * 0.6) : undefined;
 
   return (
     <div className="flex flex-col gap-6">

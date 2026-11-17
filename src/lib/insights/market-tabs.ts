@@ -104,10 +104,10 @@ export async function loadTrendsTab(clientId: string, opts: { now?: Date; tier: 
   const rows = shown.map((t) => ({ ...t, series: jsonArray<number>(t.series), opportunity: t.opportunityId && oppTitle.has(t.opportunityId) ? { id: t.opportunityId, title: oppTitle.get(t.opportunityId)! } : null }));
 
   // Moments in the next 90 days, and whether anything is planned for them.
-  const near = (a: Date, b: Date, days: number) => Math.abs(a.getTime() - b.getTime()) <= days * DAY;
   const momentRows = moments.slice(0, 8).map((m) => {
-    const item = plan.find((p) => mentionsBrand(p.title, m.name) || near(p.date, m.date, 2));
-    const opp = opps.find((o) => mentionsBrand(o.title, m.name) || (o.windowStart && near(o.windowStart, m.date, 3)));
+    // Planned when a Planner item names the moment (dates alone match too much in a busy season).
+    const item = plan.find((p) => mentionsBrand(p.title, m.name));
+    const opp = opps.find((o) => mentionsBrand(o.title, m.name));
     return { id: m.id, name: m.name, date: m.date, planned: item ? { status: item.status, briefed: Boolean(item.briefBy) } : null, opportunity: !item && opp ? { id: opp.id } : null, briefBy: new Date(m.date.getTime() - 28 * DAY), briefPassed: m.date.getTime() - 28 * DAY < now.getTime() };
   });
 

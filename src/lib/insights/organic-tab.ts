@@ -36,12 +36,14 @@ export async function loadOrganicTab(clientId: string, opts: { days: number; now
   const now = opts.now ?? new Date();
   const start = new Date(now.getTime() - opts.days * DAY);
   const prevStart = new Date(now.getTime() - 2 * opts.days * DAY);
-  const [posts, followers, activity, community, openEscalations] = await Promise.all([
+  const [posts, followers, activity, community, openEscalations, accountReach] = await Promise.all([
     prisma.contentPost.findMany({ where: { clientId, status: "PUBLISHED", channelType: "ORGANIC", publishedDate: { gte: prevStart, lte: now } }, select: { id: true, platform: true, title: true, contentType: true, theme: true, publishedDate: true, reach: true, engagements: true, saves: true, shares: true, videoViews: true } }),
     prisma.followerSnapshot.findMany({ where: { clientId, capturedAt: { gte: new Date(prevStart.getTime() - 7 * DAY) } }, orderBy: { capturedAt: "asc" } }),
     prisma.audienceActivity.findMany({ where: { clientId }, orderBy: { capturedAt: "desc" }, take: 6 }),
     prisma.communityManagementSnapshot.findFirst({ where: { clientId, periodEnd: { gte: start } }, orderBy: { periodEnd: "desc" } }),
     prisma.communityEscalation.findMany({ where: { clientId, status: "OPEN" }, orderBy: { createdAt: "desc" }, take: 5 }),
+    // Account reach as the platforms report it (people reached by the account, not the sum of each post's reach).
+    prisma.metricDaily.findMany({ where: { clientId, source: { in: ["Instagram", "TikTok", "LinkedIn", "Facebook"] }, metric: "reach", date: { gte: prevStart.toISOString().slice(0, 10), lte: now.toISOString().slice(0, 10) } }, select: { date: true, value: true } }),
   ]);
   // Only posts the platform reported reach for count (a post with no numbers yet is left out, never a zero).
   const cur = posts.filter((p) => p.publishedDate! >= start && p.reach !== null);
@@ -66,8 +68,18 @@ export async function loadOrganicTab(clientId: string, opts: { days: number; now
   });
   const followerSpark = Array.from({ length: 6 }, (_, i) => platforms.reduce((a, p) => a + (latestAt(p, new Date(start.getTime() + ((i + 1) * opts.days * DAY) / 6))?.followerCount ?? 0), 0));
 
+  // The same day boundaries as the data layer: the period is the last `days` days including today.
+  const startIso = new Date(now.getTime() - (opts.days - 1) * DAY).toISOString().slice(0, 10);
+  const account = accountReach.length ? { cur: accountReach.filter((r) => r.date >= startIso).reduce((a, r) => a + r.value, 0), prev: accountReach.filter((r) => r.date < startIso).reduce((a, r) => a + r.value, 0) } : null;
+  const accountSpark = Array.from({ length: 6 }, (_, i) => {
+    const from = new Date(start.getTime() + (i * opts.days * DAY) / 6).toISOString().slice(0, 10);
+    const to = new Date(start.getTime() + ((i + 1) * opts.days * DAY) / 6).toISOString().slice(0, 10);
+    return accountReach.filter((r) => r.date >= from && r.date < to).reduce((a, r) => a + r.value, 0);
+  });
   const numbers = {
-    reach: { value: reach, change: hasPrev ? changePct(reach, reachPrev) : null, spark: slices.map((xs) => add(xs, "reach")) },
+    reach: account
+      ? { value: account.cur, change: account.prev ? changePct(account.cur, account.prev) : null, spark: accountSpark }
+      : { value: reach, change: hasPrev ? changePct(reach, reachPrev) : null, spark: slices.map((xs) => add(xs, "reach")) },
     followers: { value: followersNow, growth: followersStart !== null ? followersNow - followersStart : null, spark: followerSpark },
     engagement: { value: er(cur), previous: hasPrev ? er(prev) : null, spark: slices.map((xs) => er(xs) ?? 0) },
     savesShares: { value: ss(cur), change: hasPrev ? changePct(ss(cur), ss(prev)) : null, spark: slices.map(ss) },
