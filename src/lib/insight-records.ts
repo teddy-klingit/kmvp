@@ -90,7 +90,7 @@ const money = (n: number, c: string) => (Math.abs(n) >= 1000 ? `${sym(c)}${(n / 
  */
 export async function detectInsights(clientId: string, now = new Date()): Promise<InsightInput[]> {
   const [moments, { measured }, daily, signals, revenue] = await Promise.all([
-    prisma.keyMoment.findMany({ where: { date: { gte: now, lt: new Date(now.getTime() + 70 * DAY) } }, orderBy: { date: "asc" } }),
+    prisma.keyMoment.findMany({ where: { date: { gte: now, lt: new Date(now.getTime() + 70 * DAY) }, OR: [{ clientId: null }, { clientId }] }, orderBy: { date: "asc" } }),
     loadMeasuredAssets(clientId),
     loadDaily(clientId, 30).catch(() => ({ campaigns: [] as { platform: string; name: string; ctrLast7: number | null; ctrTrailing: number | null }[] })),
     prisma.marketSignal.findMany({ where: { clientId, archivedAt: null, publishedAt: { gte: new Date(now.getTime() - 45 * DAY) } }, orderBy: { publishedAt: "desc" }, take: 15 }),

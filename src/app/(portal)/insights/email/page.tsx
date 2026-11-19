@@ -71,7 +71,7 @@ export default async function EmailPage({ searchParams }: { searchParams: Promis
   });
   const openDiff = n.open.value !== null && n.open.previous !== null ? n.open.value - n.open.previous : null;
   const clickDiff = n.click.value !== null && n.click.previous !== null ? n.click.value - n.click.previous : null;
-  const nextMoment = await prisma.keyMoment.findFirst({ where: { date: { gte: new Date() }, kind: "shopping" }, orderBy: { date: "asc" }, select: { name: true } });
+  const nextMoment = await prisma.keyMoment.findFirst({ where: { date: { gte: new Date() }, kind: "shopping", clientId: null }, orderBy: { date: "asc" }, select: { name: true } });
   const sleepText = t.list.inactive !== null ? `Win back the ${count(t.list.inactive)} sleepers${nextMoment ? ` before ${nextMoment.name}` : ""}.` : "";
   const sleepAsked = sleepText ? await askedAbout(clientId, "community", [sleepText]) : new Set<string>();
   const maxFlow = Math.max(1, ...t.flows.map((f) => f.sales));

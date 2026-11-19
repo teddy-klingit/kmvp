@@ -200,7 +200,10 @@ export async function saveProfile(clientId: string, input: ProfileInput) {
   // Key dates feed the Planner as this client's key moments (replaced on every save).
   const markets = (input.markets ?? "").toUpperCase().match(/\b(SE|NO|DK|FI)\b/g) ?? [];
   await prisma.keyMoment.deleteMany({ where: { clientId } });
-  if (keyDates.length) await prisma.keyMoment.createMany({ data: keyDates.map((k) => ({ clientId, name: k.name.trim().slice(0, 80), date: new Date(`${k.date}T09:00:00Z`), markets: [...new Set(markets)], kind: "client" })) });
+  // A date the market calendar already has (Black Friday) isn't added twice.
+  const market = await prisma.keyMoment.findMany({ where: { clientId: null }, select: { name: true, date: true } });
+  const own = keyDates.filter((k) => !market.some((m) => m.name.toLowerCase() === k.name.trim().toLowerCase() && Math.abs(m.date.getTime() - new Date(`${k.date}T12:00:00Z`).getTime()) < 4 * DAY));
+  if (own.length) await prisma.keyMoment.createMany({ data: own.map((k) => ({ clientId, name: k.name.trim().slice(0, 80), date: new Date(`${k.date}T09:00:00Z`), markets: [...new Set(markets)], kind: "client" })) });
 }
 
 // ─── The relationship ─────────────────────────────────────────────────────────────────────────────────────────
@@ -303,8 +306,14 @@ export async function klingitTeam(clientId: string) {
     if (!["DELIVERED", "ARCHIVED", "CANCELLED", "DRAFT"].includes(m.team.project.status)) x.active += 1;
     byUser.set(m.staffMember.userId, x);
   }
+  // A favourite who hasn't worked on their projects yet still shows (as past work).
+  const missing = [...favourites].filter((id) => !byUser.has(id) && id !== pm?.userId);
+  if (missing.length) {
+    const ROLE: Record<string, string> = { ART_DIRECTOR: "Art director", COPYWRITER: "Copy", MOTION_DESIGNER: "Motion", PROJECT_MANAGER: "Project manager", ACCOUNT_LEAD: "Marketing PM" };
+    for (const s of await prisma.staffMember.findMany({ where: { userId: { in: missing } }, select: { userId: true, title: true, user: { select: { name: true } } } })) byUser.set(s.userId, { userId: s.userId, name: s.user.name, role: ROLE[s.title] ?? s.title, projects: 0, active: 0 });
+  }
   return {
     pm: pm ? { userId: pm.userId, name: pm.user.name } : null,
-    creatives: [...byUser.values()].sort((a, b) => b.projects - a.projects).map((c) => ({ ...c, favourite: favourites.has(c.userId) })),
+    creatives: [...byUser.values()].map((c) => ({ ...c, favourite: favourites.has(c.userId) })).sort((a, b) => Number(b.favourite) - Number(a.favourite) || b.projects - a.projects),
   };
 }

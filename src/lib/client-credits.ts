@@ -210,13 +210,16 @@ export async function creditsTab(clientId: string, opts: { period: CreditsPeriod
       advice.push({ tone: "warn", text: `Creative ran over ${grant.creative} in ${over.length} of the last 3 months (${over.map((m) => `${monthName(m)} ${Math.round(teamUsed("creative", m))}`).join(", ")}).`, strong: next ? `Suggest ${next.name} at the next review instead of buying packs every month.` : "Suggest a bigger pack at the next review." });
     }
   }
+  // AI use doubling: this month's forecast against last month, or last month against the one before.
   const aiNow = aiUsed(months[5]);
   const aiForecast = (aiNow / elapsed) * daysInMonth;
-  const aiPrev = aiUsed(months[4]);
-  if (aiPrev > 0 && aiForecast >= aiPrev * 2) {
-    const k = aiForecast / aiPrev;
+  const jumps = [
+    { ratio: aiUsed(months[4]) > 0 ? aiForecast / aiUsed(months[4]) : 0, since: months[4] },
+    { ratio: aiUsed(months[3]) > 0 ? aiUsed(months[4]) / aiUsed(months[3]) : 0, since: months[3] },
+  ].sort((a, b) => b.ratio - a.ratio)[0];
+  if (jumps.ratio >= 2) {
     const skill = topUses.ai[0]?.label;
-    advice.push({ tone: "warn", text: `AI use ${k >= 2.8 ? "tripled" : "doubled"} since ${new Intl.DateTimeFormat("en-GB", { month: "long" }).format(months[4])}${skill ? ` (${skill})` : ""}. Auto top-up would avoid paused skills.` });
+    advice.push({ tone: "warn", text: `AI use ${jumps.ratio >= 2.8 ? "tripled" : "doubled"} since ${new Intl.DateTimeFormat("en-GB", { month: "long" }).format(jumps.since)}${skill ? ` (${skill})` : ""}. Auto top-up would avoid paused skills.` });
   }
   if (grant.pm > 0) {
     const used = full.map((m) => teamUsed("pm", m)).filter((u) => u > 0);

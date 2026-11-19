@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { prisma } from "@/lib/prisma";
 import { setMockSession } from "./setup";
 import { createSecurityFixtures } from "./fixtures";
+import { loadTrendsTab } from "@/lib/insights/market-tabs";
 import { addToNextReview, bookCheckIn, checkIns, createNote, getProfile, klingitTeam, listNotes, mentionedStaff, pinnedNotes, readsFor, saveProfile, setPinned, setRead, splitNote } from "@/lib/client-notes";
 
 /** Phase T2: notes, profile and relationship are staff only, enforced on the server. */
@@ -54,9 +55,13 @@ describe("Phase T2: the account log", () => {
 
   it("profile key dates become this client's key moments; Add to next review books a check-in if none is", async () => {
     asAdmin();
-    await saveProfile(fx.clientA.id, { goal: "+40% online sales", markets: "SE, NO", keyDates: [{ name: "Winter launch", date: "2026-11-20" }, { name: "bad", date: "soon" }] });
-    expect((await getProfile(fx.clientA.id))?.keyDates).toEqual([{ name: "Winter launch", date: "2026-11-20" }]);
-    expect(await prisma.keyMoment.findMany({ where: { clientId: fx.clientA.id }, select: { name: true, markets: true } })).toEqual([{ name: "Winter launch", markets: ["SE", "NO"] }]);
+    const soon = new Date(Date.now() + 10 * 86400000).toISOString().slice(0, 10);
+    await saveProfile(fx.clientA.id, { goal: "+40% online sales", markets: "SE, NO", keyDates: [{ name: "Winter launch (test)", date: soon }, { name: "bad", date: "soon" }] });
+    expect((await getProfile(fx.clientA.id))?.keyDates).toEqual([{ name: "Winter launch (test)", date: soon }]);
+    expect(await prisma.keyMoment.findMany({ where: { clientId: fx.clientA.id }, select: { name: true, markets: true } })).toEqual([{ name: "Winter launch (test)", markets: ["SE", "NO"] }]);
+    // A client's key dates are its own: another client's Trends never lists them.
+    expect((await loadTrendsTab(fx.clientA.id, { tier: "enterprise" })).moments.map((m) => m.name)).toContain("Winter launch (test)");
+    expect((await loadTrendsTab(fx.clientB.id, { tier: "enterprise" })).moments.map((m) => m.name)).not.toContain("Winter launch (test)");
     const note = await addToNextReview(fx.clientA.id, "Creative ran over 40 in 2 of the last 3 months");
     const { next } = await checkIns(fx.clientA.id);
     expect(next).not.toBeNull();

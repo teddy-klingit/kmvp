@@ -66,7 +66,7 @@ export default async function WorkspaceSettingsPage({
   const googleConfigured = Boolean(process.env.GOOGLE_ADS_DEVELOPER_TOKEN && process.env.GOOGLE_ADS_CLIENT_ID);
   const bigQueryConfigured = Boolean(process.env.GOOGLE_BIGQUERY_SERVICE_ACCOUNT_KEY);
   const plans = await prisma.plan.findMany();
-  const [leadTimes, moments] = await Promise.all([prisma.planLeadTime.findMany({ orderBy: { sortOrder: "asc" } }), prisma.keyMoment.findMany({ where: { date: { gte: daysAgo(30) } }, orderBy: { date: "asc" } })]);
+  const [leadTimes, moments] = await Promise.all([prisma.planLeadTime.findMany({ orderBy: { sortOrder: "asc" } }), prisma.keyMoment.findMany({ where: { date: { gte: daysAgo(30) }, clientId: null }, orderBy: { date: "asc" } })]);
   // Live ad accounts belong to one client only (live-ads-owner.ts).
   const owners = (await listLiveAdAccounts()).filter((a) => a.configured);
   const slotsFor = (tier: keyof typeof DEFAULT_ACTIVE_SLOTS) => plans.find((p) => p.tier === tier)?.activeSlots ?? DEFAULT_ACTIVE_SLOTS[tier];

@@ -158,7 +158,7 @@ export async function loadPlan(clientId: string, viewer: { id: string }, from: D
     prisma.clientCalendarItem.findMany({ where: { clientId, archivedAt: null, OR: [{ date: { gte: from, lt: to } }, { endDate: { gte: from }, date: { lt: to } }, { briefBy: { gte: from, lt: to } }] }, orderBy: { date: "asc" } }),
     loadProjectStates({ status: { not: "ARCHIVED" }, agentBuild: false, ...projectVisibilityWhere(viewer.id) }, clientId),
     prisma.contentPost.findMany({ where: { clientId, OR: [{ status: "PLANNED", scheduledDate: { gte: from, lt: to } }, { status: "PUBLISHED", publishedDate: { gte: from, lt: to } }] } }),
-    prisma.keyMoment.findMany({ where: { date: { gte: from, lt: to } }, orderBy: { date: "asc" } }),
+    prisma.keyMoment.findMany({ where: { date: { gte: from, lt: to }, OR: [{ clientId: null }, { clientId }] }, orderBy: { date: "asc" } }),
     prisma.contentPlanTarget.findMany({ where: { clientId } }),
   ]);
   const projectStatus = new Map(states.map(({ project }) => [project.id, project.status as string]));

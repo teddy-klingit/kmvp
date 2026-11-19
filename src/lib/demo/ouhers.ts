@@ -7,6 +7,7 @@ import { recordSync, writeAdDays } from "@/lib/metrics";
 import { seedPhaseVRevenue, seedPhaseVSources } from "@/lib/demo/ouhers-phase-v";
 import { seedPhaseW } from "@/lib/demo/ouhers-phase-w";
 import { seedPhaseX } from "@/lib/demo/ouhers-phase-x";
+import { seedPhaseT2 } from "@/lib/demo/ouhers-phase-t2";
 import { projectUtmSlug } from "@/lib/utm";
 import { removeUploadsUnder, writeUploadAt } from "@/lib/uploads";
 import { PIPELINE_STAGE_ORDER } from "@/lib/labels";
@@ -834,6 +835,7 @@ export async function seedOuhers(opts: { dir?: string; shift?: boolean; log?: (s
   // Phase W: opportunities with their findings, results and what the client told us (Opps, OppDetail, InsightsLinked).
   say(`Phase W · opportunities · ${await seedPhaseW({ clientId: OUHERS_CLIENT_ID, now, teddyUserId: teddy?.userId ?? null, majaUserId: clientUserIds.get("ou-maja")!.userId })}`);
   say(`Phase X · insights · ${await seedPhaseX({ clientId: OUHERS_CLIENT_ID, now, teddyUserId: teddy?.userId ?? null })} numbers at the designs' scale`);
+  say(`Phase T2 · client page · ${(await seedPhaseT2({ clientId: OUHERS_CLIENT_ID, now })).notes} notes, the profile, check-ins and 6 months of credits`);
 
   // ─── Computed vs expected ───────────────────────────────────────────────
   const health = await loadBrandHealth(OUHERS_CLIENT_ID);

@@ -135,7 +135,7 @@ export async function loadTrendsTab(clientId: string, opts: { now?: Date; tier: 
   const [topics, brief, moments, plan, opps] = await Promise.all([
     prisma.trendTopic.findMany({ where: { clientId }, orderBy: [{ capturedAt: "desc" }, { sortOrder: "asc" }], take: 40 }),
     prisma.trendBrief.findUnique({ where: { clientId } }),
-    prisma.keyMoment.findMany({ where: { date: { gte: new Date(now.getTime() - DAY), lte: new Date(now.getTime() + 90 * DAY) } }, orderBy: { date: "asc" } }),
+    prisma.keyMoment.findMany({ where: { date: { gte: new Date(now.getTime() - DAY), lte: new Date(now.getTime() + 90 * DAY) }, OR: [{ clientId: null }, { clientId }] }, orderBy: { date: "asc" } }),
     prisma.clientCalendarItem.findMany({ where: { clientId, date: { gte: new Date(now.getTime() - 14 * DAY), lte: new Date(now.getTime() + 100 * DAY) } }, select: { title: true, date: true, status: true, briefBy: true, opportunityId: true } }),
     prisma.opportunity.findMany({ where: { ...clientVisible(clientId), status: { notIn: ["dismissed", "result"] } }, select: { id: true, title: true, combined: true, windowStart: true, windowEnd: true } }),
   ]);
