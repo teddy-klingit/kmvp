@@ -1,3 +1,4 @@
+import { checkInsDueFor, remindersFor } from "@/lib/client-notes";
 import { balanceSummary } from "@/lib/client-credits";
 import { prisma } from "@/lib/prisma";
 import { loadOpsProjects, rankExceptions, type OpsException, type OpsProject } from "@/lib/ops-exceptions";
@@ -19,7 +20,7 @@ import type { Scope } from "@/lib/staff-scope";
  */
 
 const DAY = 86400000;
-export type TaskKind = "ESTIMATE" | "MESSAGE" | "PLAN" | "STAFFING" | "QUALITY CHECK" | "REQUEST" | "DEADLINE" | "INVOICE" | "BRIEF" | "AGENT" | "CHANGES";
+export type TaskKind = "ESTIMATE" | "MESSAGE" | "PLAN" | "STAFFING" | "QUALITY CHECK" | "REQUEST" | "DEADLINE" | "INVOICE" | "BRIEF" | "AGENT" | "CHANGES" | "REMINDER" | "CHECK-IN";
 export type Due = { tone: "late" | "soon" | "ok"; label: string; at: Date };
 export type TaskAction = { label: string; href: string };
 export type Task = {
@@ -271,6 +272,26 @@ export async function loadToday(scope: Scope, now = new Date(), viewer?: { id: s
       primary: { label: "Reply", href: `/ops/clients/${clientId}/dashboard?message=1` },
       ref: { panelClientId: clientId },
     });
+  }
+
+  // Phase T2: "Remind me" notes on their day, and a booked check-in the day before it (staff notes stay staff-only:
+  // lib/client-notes checks the session; a creative viewing Today simply gets none).
+  try {
+    const [reminders, checkIns] = await Promise.all([
+      viewer ? remindersFor((await prisma.staffMember.findUnique({ where: { id: viewer.id }, select: { userId: true } }))?.userId ?? "", new Date(startOfDay(now).getTime() + DAY - 1)) : Promise.resolve([]),
+      checkInsDueFor(withPm, now),
+    ]);
+    for (const r of reminders.filter((x) => withPm.includes(x.clientId) && x.remindAt! >= new Date(startOfDay(now).getTime() - 2 * DAY))) {
+      const due = dueOn(r.remindAt!, now, "Remind");
+      tasks.push({ key: `REMINDER:${r.id}`, kind: "REMINDER", clientId: r.clientId, clientName: r.client.name, projectId: null, subject: "Your note", sentence: `Follow up: ${r.title}`, context: r.body ? (r.body.length > 110 ? `${r.body.slice(0, 107)}…` : r.body) : "You asked to be reminded today.", due, section: "now", minutes: mins("REMINDER"), primary: { label: "Open note", href: `/ops/clients/${r.clientId}/notes#note-${r.id}` }, ref: {} });
+    }
+    for (const c of checkIns) {
+      const tomorrow = startOfDay(c.at).getTime() - startOfDay(now).getTime() <= DAY;
+      if (!tomorrow) continue;
+      tasks.push({ key: `CHECK-IN:${c.id}`, kind: "CHECK-IN", clientId: c.clientId, clientName: c.client.name, projectId: null, subject: "Check-in", sentence: `Prepare the ${c.kind} with ${c.client.name}`, context: `${shortDay(c.at)} · read the account log and the pinned notes first.`, due: dueOn(c.at, now, "On"), section: "now", minutes: mins("CHECK-IN"), primary: { label: "Open notes", href: `/ops/clients/${c.clientId}/notes` }, ref: {} });
+    }
+  } catch {
+    // Not a PM or admin: no notes on this Today.
   }
 
   // Done today (ticked or acted): out of the list, into the bar.

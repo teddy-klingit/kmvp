@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 
 const pill = (primary: boolean) => cn("inline-flex h-9 items-center rounded-full px-4 font-brand-mono text-[12px] no-underline", primary ? "bg-brand-ink text-white" : "border border-[#CFC8B8] bg-white text-brand-ink hover:border-brand-ink");
 const select = "h-9 rounded-full border border-[#CFC8B8] bg-white px-3 text-[13px] outline-none focus:border-brand-ink";
-const KIND_WORD: Record<string, [string, string]> = { ESTIMATE: ["estimate", "estimates"], MESSAGE: ["message waiting", "messages waiting"], DEADLINE: ["late deadline", "late deadlines"], "QUALITY CHECK": ["quality check", "quality checks"], STAFFING: ["staffing choice", "staffing choices"], REQUEST: ["request", "requests"], PLAN: ["plan nudge", "plan nudges"], BRIEF: ["new brief", "new briefs"], AGENT: ["failed agent", "failed agents"], CHANGES: ["change request", "change requests"], INVOICE: ["invoice", "invoices"] };
+const KIND_WORD: Record<string, [string, string]> = { ESTIMATE: ["estimate", "estimates"], MESSAGE: ["message waiting", "messages waiting"], DEADLINE: ["late deadline", "late deadlines"], "QUALITY CHECK": ["quality check", "quality checks"], STAFFING: ["staffing choice", "staffing choices"], REQUEST: ["request", "requests"], PLAN: ["plan nudge", "plan nudges"], BRIEF: ["new brief", "new briefs"], AGENT: ["failed agent", "failed agents"], CHANGES: ["change request", "change requests"], INVOICE: ["invoice", "invoices"], REMINDER: ["reminder", "reminders"], "CHECK-IN": ["check-in to prepare", "check-ins to prepare"] };
 
 function Job({ kind, title, detail, children }: { kind: string; title: string; detail: React.ReactNode; children: React.ReactNode }) {
   return (

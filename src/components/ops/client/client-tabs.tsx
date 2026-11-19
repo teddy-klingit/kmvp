@@ -14,13 +14,14 @@ export const CLIENT_TABS = [
   { label: "Planner", path: "planner", sub: [{ label: "Planner", path: "planner" }, { label: "Content plan", path: "content-plan" }, { label: "Opportunities", path: "opportunities" }, { label: "Goals & budget", path: "goals" }] },
   // Phase T2: Credits replaces "Contract & billing"; the contract's prices, billing and set-up stay with admins.
   { label: "Credits", path: "credits", sub: [{ label: "Credits", path: "credits" }, { label: "Adjust balances", path: "balances" }, { label: "Contract (admin)", path: "contract" }, { label: "Billing (admin)", path: "billing" }, { label: "Setup (admin)", path: "admin" }] },
+  { label: "Notes", path: "notes", sub: [] },
   { label: "Brand", path: "brand-os", sub: [{ label: "Brand OS", path: "brand-os" }, { label: "Brand assets", path: "brand-assets" }, { label: "Custom apps", path: "custom-apps" }] },
 ];
 
 /** Views only Admin opens: invoices and payments (Billing) and the client's set-up (Setup). */
 export const ADMIN_ONLY_VIEWS = ["billing", "admin", "contract"];
 
-export function ClientTabs({ base, counts, admin }: { base: string; counts: { projects: number; plan: number }; admin: boolean }) {
+export function ClientTabs({ base, counts, admin }: { base: string; counts: { projects: number; plan: number; notes: number }; admin: boolean }) {
   const pathname = usePathname() ?? "";
   const tabs = CLIENT_TABS.map((t) => (admin ? t : { ...t, sub: t.sub.filter((s) => !ADMIN_ONLY_VIEWS.includes(s.path)) }));
   const seg = pathname.slice(base.length + 1).split("/")[0] || "dashboard";
@@ -30,9 +31,10 @@ export function ClientTabs({ base, counts, admin }: { base: string; counts: { pr
       <SegmentedNav
         label="Client"
         items={tabs.map((t) => ({
-          label: t.label === "Projects" && counts.projects ? `Projects ${counts.projects}` : t.label === "Planner" && counts.plan ? `Planner ${counts.plan}` : t.label,
+          label: t.label === "Projects" && counts.projects ? `Projects ${counts.projects}` : t.label === "Planner" && counts.plan ? `Planner ${counts.plan}` : t.label === "Notes" && counts.notes ? `Notes ${counts.notes}` : t.label,
           href: `${base}/${t.path}`,
           active: t === current,
+          tag: t.label === "Notes" ? "Staff" : undefined,
         }))}
       />
       {current.sub.length > 1 && <FilterChips label={`${current.label} views`} items={current.sub.map((s) => ({ label: s.label, href: `${base}/${s.path}`, active: s.path === seg }))} />}

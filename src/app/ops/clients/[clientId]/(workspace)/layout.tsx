@@ -1,4 +1,8 @@
+import Link from "next/link";
 import { Plus } from "lucide-react";
+import { noteCount } from "@/lib/client-notes";
+import { onboarding } from "@/lib/client-onboarding";
+import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/ds/page-header";
 import { PillLink } from "@/components/ds/pill-link";
 import { requireOpsPage } from "@/lib/authz";
@@ -11,9 +15,12 @@ import { hasAdmin } from "@/lib/role-tier";
 import { viewClientAction } from "@/lib/actions/cockpit-actions";
 import { MessagePmButton, PmPanelProvider } from "@/components/pm-panel/pm-panel-provider";
 
+const HEADER_BUTTON = "inline-flex h-10 items-center rounded-full border border-[#CFC8B8] bg-white px-4 font-brand-mono text-[12px] text-brand-ink no-underline hover:border-brand-ink";
+const STATUS_PILL = { Onboarding: "bg-[#EEF1FA] text-[#3E4E8C]", Active: "bg-[#EEF4DA] text-[#5E6B2A]", Paused: "bg-brand-chip text-brand-ink-2", Ending: "bg-[#FFF1E8] text-brand-orange-text" } as const;
+
 /**
- * One client (Phase T, design PMClient): the header read from the contract, then 5 tabs (Overview · Projects ·
- * Plan · Contract & billing · Brand). Every older view lives under one of them.
+ * One client (Phase T2, designs PMClient / PMClientNew): the header read from the contract with a status pill and
+ * + Note · Log a call · Message · + New project, then Overview · Projects · Planner · Credits · Notes (staff) · Brand.
  */
 export default async function ClientWorkspaceLayout({ children, params }: { children: React.ReactNode; params: Promise<{ clientId: string }> }) {
   // Client detail holds contracts, balances and billing: admins and PMs only.
@@ -21,9 +28,11 @@ export default async function ClientWorkspaceLayout({ children, params }: { chil
   const { clientId } = await params;
   const h = await clientHeader(clientId, viewer.id);
   const base = `/ops/clients/${clientId}`;
-  const [projects, plan] = await Promise.all([
+  const [projects, plan, notes, ob] = await Promise.all([
     prisma.project.count({ where: { clientId, status: { notIn: ["ARCHIVED", "DELIVERED", "DRAFT"] } } }),
     prisma.clientCalendarItem.count({ where: { clientId, archivedAt: null, date: { gte: new Date() } } }),
+    noteCount(clientId),
+    onboarding(clientId),
   ]);
   const line = [
     h.contact ? `${h.contact.name}${h.contact.admin ? " (admin)" : ""}` : null,
@@ -41,33 +50,44 @@ export default async function ClientWorkspaceLayout({ children, params }: { chil
           <PageHeader
             back={{ href: "/ops/clients", label: "Clients" }}
             eyebrow={h.eyebrow}
-            title={h.client.name}
+            title={
+              <span className="inline-flex flex-wrap items-center gap-3">
+                {h.client.name}
+                {ob.status && <span className={cn("rounded-full px-3 py-1 align-middle font-brand text-[13px] font-normal tracking-normal", STATUS_PILL[ob.status])}>{ob.status}</span>}
+              </span>
+            }
             actions={
               <>
+                <Link href={`${base}/notes#compose`} className={HEADER_BUTTON}>
+                  + Note
+                </Link>
+                <Link href={`${base}/notes?kind=call#compose`} className={HEADER_BUTTON}>
+                  Log a call
+                </Link>
                 {h.contact && (
-                  <MessagePmButton clientId={clientId} className="inline-flex h-10 items-center rounded-full border border-[#CFC8B8] bg-white px-4 font-brand-mono text-[12px] hover:border-brand-ink">
+                  <MessagePmButton clientId={clientId} className={HEADER_BUTTON}>
                     Message {h.contact.first}
                   </MessagePmButton>
-                )}
-                {h.client.isDemo && (
-                  <form action={viewClientAction}>
-                    <input type="hidden" name="clientId" value={clientId} />
-                    <button type="submit" className="inline-flex h-10 items-center rounded-full border border-[#CFC8B8] bg-white px-4 font-brand-mono text-[12px] hover:border-brand-ink">
-                      Open as client
-                    </button>
-                  </form>
                 )}
                 <PillLink href={`/ops/projects/new?clientId=${clientId}`} variant="primary">
                   <Plus className="size-3.5" strokeWidth={1.75} />
                   New project
                 </PillLink>
+                {h.client.isDemo && (
+                  <form action={viewClientAction}>
+                    <input type="hidden" name="clientId" value={clientId} />
+                    <button type="submit" className={HEADER_BUTTON}>
+                      Open as client
+                    </button>
+                  </form>
+                )}
                 {clientId === OUHERS_CLIENT_ID && <ResetDemoButton clientId={clientId} />}
               </>
             }
           />
           <span className="text-[14px] text-brand-ink-2">{line.join(" · ")}</span>
         </div>
-        <ClientTabs admin={hasAdmin(viewer)} base={base} counts={{ projects, plan }} />
+        <ClientTabs admin={hasAdmin(viewer)} base={base} counts={{ projects, plan, notes }} />
         {children}
       </div>
     </div>
