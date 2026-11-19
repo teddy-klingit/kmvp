@@ -107,7 +107,7 @@ export default async function WebsitePage({ searchParams }: { searchParams: Prom
                   <span className="flex h-24 items-end">
                     <span className="w-full rounded-t-[4px]" style={{ height: `${Math.max(4, (st.value / maxStep) * 100)}%`, background: worst ? "#FF5D02" : PURPLE }} />
                   </span>
-                  <span className="text-[22px] font-light tabular-nums">{count(st.value, { exactUnder: 10_000 })}</span>
+                  <span className="text-[22px] font-fw-medium tabular-nums">{count(st.value, { exactUnder: 10_000 })}</span>
                   <span className="text-[14px]">{st.label}</span>
                   {st.kept !== null && <span className={cn("text-[12px]", worst ? "text-brand-orange-text" : "text-brand-ink-2")}>{worst ? "only " : ""}{Math.round(st.kept * 100)}% continue</span>}
                   {i === 0 && <span className="text-[12px] text-transparent">.</span>}
@@ -133,7 +133,7 @@ export default async function WebsitePage({ searchParams }: { searchParams: Prom
                 <li key={s.group} className="grid grid-cols-[120px_minmax(0,1fr)_56px_72px] items-center gap-3 text-[14px]">
                   <span>{s.group}</span>
                   <span aria-hidden className="h-2.5 rounded-full" style={{ width: `${Math.max(2, (s.visits / maxSource) * 100)}%`, background: s.group === "AI assistants" ? "#1E1E1E" : PURPLE }} />
-                  <span className="text-right tabular-nums">{count(s.visits)}</span>
+                  <span className="text-right font-fw-medium tabular-nums">{count(s.visits)}</span>
                   <span className="text-right text-[13px] text-brand-ink-2">{s.buyRate !== null ? `${pct1(s.buyRate)} buy` : ""}</span>
                 </li>
               ))}
@@ -179,8 +179,8 @@ export default async function WebsitePage({ searchParams }: { searchParams: Prom
               <ul className="m-0 list-none p-0">
                 {t.pages.slice(0, 5).map((p) => (
                   <li key={p.page} className="grid grid-cols-[minmax(0,1fr)_80px_88px] items-center gap-3 border-b border-brand-line px-6 py-3.5 text-[14px] last:border-b-0">
-                    <span className="truncate">{p.page}</span>
-                    <span className="tabular-nums">{count(p.visits)}</span>
+                    <span className="truncate font-fw-medium">{p.page}</span>
+                    <span className="font-fw-medium tabular-nums">{count(p.visits)}</span>
                     <span>{p.buyRate !== null ? <StatusPill tone={t.overallBuyRate !== null && p.buyRate < t.overallBuyRate * 0.8 ? "bad" : t.overallBuyRate !== null && p.buyRate > t.overallBuyRate ? "good" : "neutral"}>{pct1(p.buyRate)}</StatusPill> : null}</span>
                   </li>
                 ))}
@@ -206,7 +206,7 @@ function RankRow({ keyword, position, previous }: { keyword: string; position: n
   return (
     <li className="grid grid-cols-[minmax(0,1fr)_96px_64px] items-center gap-3 border-b border-brand-line px-6 py-3.5 text-[14px] last:border-b-0">
       <span className="truncate">{keyword}</span>
-      <span className={cn("tabular-nums", position === null ? "text-[13px] text-brand-orange-text" : "text-[17px]")}>{position === null ? "Not in top 50" : `#${position}`}</span>
+      <span className={cn("tabular-nums", position === null ? "text-[13px] text-brand-orange-text" : "text-[17px] font-fw-medium")}>{position === null ? "Not in top 50" : `#${position}`}</span>
       <span>{moved ? <StatusPill tone={moved > 0 ? "good" : "bad"}>{Math.abs(moved)}</StatusPill> : null}</span>
     </li>
   );

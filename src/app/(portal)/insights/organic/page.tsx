@@ -122,7 +122,7 @@ export default async function OrganicSocialPage({ searchParams }: { searchParams
                   <span key={f.format} className="grid grid-cols-[96px_minmax(0,1fr)_44px_88px] items-center gap-3 text-[14px]">
                     <span>{f.format}</span>
                     <span aria-hidden className="h-2.5 rounded-full" style={{ width: `${Math.max(2, (f.avgReach / maxReach) * 100)}%`, background: PURPLE }} />
-                    <span className="text-right tabular-nums">{count(f.avgReach)}</span>
+                    <span className="text-right font-fw-medium tabular-nums">{count(f.avgReach)}</span>
                     <span className="text-right text-[12px] text-brand-ink-2">{f.postedBefore !== null && f.postedBefore !== f.posted ? `${f.postedBefore} → ${f.posted} posted` : `${f.posted} posted`}</span>
                   </span>
                 ))}
@@ -135,7 +135,7 @@ export default async function OrganicSocialPage({ searchParams }: { searchParams
                   <span key={x.theme} className="grid grid-cols-[120px_minmax(0,1fr)_44px] items-center gap-3 text-[14px]">
                     <span>{x.theme}</span>
                     <span aria-hidden className="h-2.5 rounded-full" style={{ width: `${Math.max(2, (x.savesPerPost / maxSaves) * 100)}%`, background: BLUE }} />
-                    <span className="text-right tabular-nums">{Math.round(x.savesPerPost)}</span>
+                    <span className="text-right font-fw-medium tabular-nums">{Math.round(x.savesPerPost)}</span>
                   </span>
                 ))}
               </div>
@@ -169,7 +169,7 @@ export default async function OrganicSocialPage({ searchParams }: { searchParams
                       <span className="text-[12px] text-brand-ink-2">{[p.platform, p.contentType ? (formatGroup(p.contentType)?.replace(/s$/, "") ?? p.contentType) : null, day(p.publishedDate!)].filter(Boolean).join(" · ")}</span>
                     </span>
                     <span className="flex shrink-0 flex-col text-right tabular-nums">
-                      <span className="text-[18px]">{p.reach ? count(p.reach) : p.videoViews ? count(p.videoViews) : "–"}</span>
+                      <span className="text-[18px] font-fw-medium">{p.reach ? count(p.reach) : p.videoViews ? count(p.videoViews) : "–"}</span>
                       <span className="text-[12px] text-brand-ink-2">{[p.reach ? "reach" : p.videoViews ? "views" : null, p.saves ? `${count(p.saves, { exactUnder: 10_000 })} saves` : null].filter(Boolean).join(" · ")}</span>
                     </span>
                   </li>
@@ -226,7 +226,7 @@ export default async function OrganicSocialPage({ searchParams }: { searchParams
                           <span aria-hidden className="h-2 rounded-full bg-[#ECE8DF]">
                             <span className="block h-full rounded-full" style={{ width: `${(q.count / maxQuestion) * 100}%`, background: PURPLE }} />
                           </span>
-                          <span className="text-right tabular-nums">{q.count}</span>
+                          <span className="text-right font-fw-medium tabular-nums">{q.count}</span>
                           <span className="col-span-3 -mt-1">
                             <AskIdeaButton asked={asked.has(q.question)} pm={pmFirst} about={{ question: `“${q.question}” asked ${q.count} times`, value: String(q.count), sources: t.platforms.slice(0, 2), href: "/insights/organic", kind: "community" }} />
                           </span>

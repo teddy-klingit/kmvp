@@ -33,7 +33,7 @@ export function InsightCard({ insight, used, ask, className, id }: { insight: In
       <span className="flex items-start gap-4">
         <span className="flex min-w-0 flex-1 flex-col gap-1">
           <span className="text-[15px]">{insight.title}</span>
-          <span className="text-[24px] font-light leading-tight tabular-nums">{insight.value}</span>
+          <span className="text-[24px] font-fw-medium leading-tight tabular-nums">{insight.value}</span>
         </span>
         <MiniBars insight={insight} />
       </span>

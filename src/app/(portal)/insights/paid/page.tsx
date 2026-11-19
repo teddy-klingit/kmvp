@@ -118,7 +118,7 @@ export default async function PaidAdsPage({ searchParams }: { searchParams: Prom
                 {t.channels.map((c) => (
                   <tr key={c.platform} className="border-t border-brand-line">
                     <td className="px-6 py-3.5">
-                      <span className="flex items-center gap-3 text-[15px]">
+                      <span className="flex items-center gap-3 text-[15px] font-fw-medium">
                         <ChannelIcon source={c.platform} />
                         {c.platform === "Google" ? "Google Ads" : c.platform}
                       </span>
@@ -129,8 +129,8 @@ export default async function PaidAdsPage({ searchParams }: { searchParams: Prom
                         <span className="h-2 rounded-full" style={{ width: `${Math.max(2, (c.sales / maxBar) * 100)}%`, background: PURPLE }} />
                       </span>
                     </td>
-                    <td className="px-3 py-3.5 tabular-nums">{money(c.spend, cur)}</td>
-                    <td className="px-3 py-3.5 tabular-nums">{c.sales ? money(c.sales, cur) : "–"}</td>
+                    <td className="px-3 py-3.5 font-fw-medium tabular-nums">{money(c.spend, cur)}</td>
+                    <td className="px-3 py-3.5 font-fw-medium tabular-nums">{c.sales ? money(c.sales, cur) : "–"}</td>
                     <td className="px-6 py-3.5">{c.return !== null ? <StatusPill tone={c.return >= 1 ? "good" : "bad"}>{`${times(c.return)}${c.retailOnly ? " retail" : ""}`}</StatusPill> : <span className="text-brand-ink-2">No sales yet</span>}</td>
                   </tr>
                 ))}
@@ -153,13 +153,13 @@ export default async function PaidAdsPage({ searchParams }: { searchParams: Prom
                       {a.thumbnail && <img src={a.thumbnail} alt="" className="size-full object-cover" />}
                     </span>
                     <span className="flex min-w-0 flex-col">
-                      <Link href={`/library/${a.id}?from=insights`} className="truncate text-[15px] text-brand-ink no-underline hover:underline">
+                      <Link href={`/library/${a.id}?from=insights`} className="truncate text-[15px] font-fw-medium text-brand-ink no-underline hover:underline">
                         {a.title}
                       </Link>
                       <span className="truncate text-[12px] text-brand-ink-2">{[a.platform, a.format?.split(" ")[0]].filter(Boolean).join(" · ")}</span>
                     </span>
                     <span className="flex flex-col tabular-nums">
-                      <span className="text-[16px]">{a.orderValue && a.tag !== "Weakest" ? money(a.orderValue, cur) : pct1(a.ctr)}</span>
+                      <span className="text-[16px] font-fw-medium">{a.orderValue && a.tag !== "Weakest" ? money(a.orderValue, cur) : pct1(a.ctr)}</span>
                       <span className="text-[12px] text-brand-ink-2">{a.orderValue && a.tag !== "Weakest" ? "per order" : "click rate"}</span>
                     </span>
                     <StatusPill tone={a.tag === "Winner" ? "good" : "bad"}>{a.tag === "Winner" ? "Best" : "Weakest"}</StatusPill>
@@ -188,7 +188,7 @@ export default async function PaidAdsPage({ searchParams }: { searchParams: Prom
                   ].map(([k, v]) => (
                     <div key={k} className="flex flex-col gap-0.5">
                       <dt className="text-[13px] text-brand-ink-2">{k}</dt>
-                      <dd className={cn("m-0 text-[26px] font-light tabular-nums", k === "Over" && "text-brand-orange-text")}>{v}</dd>
+                      <dd className={cn("m-0 text-[26px] font-fw-medium tabular-nums", k === "Over" && "text-brand-orange-text")}>{v}</dd>
                     </div>
                   ))}
                 </dl>

@@ -169,9 +169,9 @@ export default async function InsightsOverviewPage({ searchParams }: { searchPar
                       <span className={cn("flex size-8 items-center justify-center rounded-full", c.tone === "good" ? "bg-[#EEF4DA] text-[#6E7D2F]" : c.tone === "bad" ? "bg-[#FFF1E8] text-brand-orange" : "bg-[#EEF1FA] text-[#5B6FB0]")} aria-hidden>
                         <Icon className="size-4" strokeWidth={2} />
                       </span>
-                      <span className={cn("text-[20px] font-light tabular-nums", c.tone === "good" ? "text-[#6E7D2F]" : c.tone === "bad" ? "text-brand-orange-text" : "text-[#5B6FB0]")}>{c.value}</span>
+                      <span className={cn("text-[20px] font-fw-semibold tabular-nums", c.tone === "good" ? "text-[#6E7D2F]" : c.tone === "bad" ? "text-brand-orange-text" : "text-[#5B6FB0]")}>{c.value}</span>
                       <span className="flex min-w-0 flex-col gap-0.5">
-                        <span className="text-[15px]">{c.title}</span>
+                        <span className="text-[15px] font-fw-medium">{c.title}</span>
                         {c.detail && <span className="text-[13px] text-brand-ink-2">{c.detail}</span>}
                       </span>
                       <span className="hidden items-center gap-1.5 whitespace-nowrap text-[12px] text-brand-ink-2 min-[560px]:flex">
@@ -209,11 +209,11 @@ export default async function InsightsOverviewPage({ searchParams }: { searchPar
                       </span>
                     </td>
                     <td className="px-3 py-3.5">
-                      <Link href={r.href} className="text-brand-ink no-underline hover:underline">
+                      <Link href={r.href} className="font-fw-medium text-brand-ink no-underline hover:underline">
                         {r.tab}
                       </Link>
                     </td>
-                    <td className="px-3 py-3.5 text-[16px]">{r.headline}</td>
+                    <td className="px-3 py-3.5 text-[16px] font-fw-medium tabular-nums">{r.headline}</td>
                     <td className="px-3 py-3.5 text-brand-ink-2">{r.read}</td>
                     <td className="px-6 py-3.5">{r.change ? <StatusPill tone={r.change.tone === "neutral" ? "neutral" : r.change.tone}>{r.change.text}</StatusPill> : null}</td>
                   </tr>

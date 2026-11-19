@@ -85,7 +85,7 @@ export default async function RevenuePage({ searchParams }: { searchParams: Prom
             <li key={g.group} className="grid grid-cols-[120px_minmax(0,1fr)_64px_84px] items-center gap-4 py-1.5 text-[14px] min-[700px]:grid-cols-[150px_minmax(0,1fr)_72px_96px]">
               <span>{g.group}</span>
               <span aria-hidden className="h-2.5 rounded-full" style={{ width: `${Math.max(2, (g.sales / maxGroup) * 100)}%`, background: g.group === "Retail deals" ? "#8D9E47" : "#B455B6" }} />
-              <span className="text-right tabular-nums">{money(g.sales, cur)}</span>
+              <span className="text-right font-fw-medium tabular-nums">{money(g.sales, cur)}</span>
               <span className="text-right text-[13px] text-brand-ink-2 tabular-nums">{g.group === "Retail deals" ? `${Math.round(g.deals)} deal${Math.round(g.deals) === 1 ? "" : "s"}` : `${count(g.orders, { exactUnder: 10_000 })} orders`}</span>
             </li>
           ))}
@@ -351,7 +351,7 @@ function Empty({ admin }: { admin: boolean }) {
   return (
     <section aria-label="Revenue" className="flex flex-col gap-5 rounded-[12px] bg-white px-6 py-6">
       <div className="flex max-w-[640px] flex-col gap-2">
-        <h2 className="m-0 text-[22px] font-light">Follow a click all the way to revenue</h2>
+        <h2 className="m-0 text-[22px] font-fw-medium">Follow a click all the way to revenue</h2>
         <p className="m-0 text-[15px] leading-[1.55] text-brand-ink-2">
           Connect where your sales happen and this tab shows the revenue your marketing brought, the return on ad spend, the cost of a new customer and your open pipeline, the path from first click to order or deal, which channels, campaigns and markets sell, and which pieces of work brought revenue.
         </p>

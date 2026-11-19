@@ -62,7 +62,7 @@ export function InsightsMenu({ data }: { data: MenuData }) {
   return (
     <nav aria-label="Insights" className="flex min-h-full flex-col gap-3">
       <div className="flex flex-col gap-1 px-1.5 pb-2">
-        <span className="text-[24px] font-light leading-tight text-brand-ink">Insights</span>
+        <span className="text-[24px] font-fw-medium leading-tight text-brand-ink">Insights</span>
         {data.freshness.map((l) => (
           <span key={l} className="font-brand-mono text-[11px] uppercase tracking-[0.04em] text-brand-ink-2">
             {l}

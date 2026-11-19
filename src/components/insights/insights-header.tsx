@@ -83,8 +83,8 @@ export function ShareReport({ medium = false }: { medium?: boolean }) {
 export function InsightsHeader({ ask }: { ask: React.ReactNode }) {
   const tab = tabFor(usePathname() ?? "/insights");
   const seg = tab.segment ? SEGMENTS[tab.segment] : null;
-  // Three weights, as tokens (Competitors first): Medium for the title and the controls you act on.
-  const weighted = tab.key === "competitors";
+  // Three weights, as tokens: Medium for the title and the controls you act on.
+  const weighted = true;
   return (
     <header className="flex flex-wrap items-start gap-x-6 gap-y-4">
       <div className="flex min-w-0 flex-1 flex-col gap-2">

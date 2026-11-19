@@ -21,8 +21,8 @@ const SIGNAL: Record<SignalStatus, { label: string; tile: string; text: string; 
 };
 
 /** "The short answer": a headline of 12 words or fewer, and 3 signal tiles. Sources sit in a "Based on" row. */
-/** `weighted`: the three-weight hierarchy (Medium headline and labels, Semibold numbers), Competitors first. */
-export function ShortAnswer({ card, sources, weighted = false }: { card: AnswerCard; sources: string[]; weighted?: boolean }) {
+/** The three-weight hierarchy: Medium headline and labels, Semibold numbers. */
+export function ShortAnswer({ card, sources, weighted = true }: { card: AnswerCard; sources: string[]; weighted?: boolean }) {
   return (
     <section aria-label="The short answer" className="flex flex-col gap-4 rounded-2xl bg-white px-6 py-6">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
@@ -67,7 +67,7 @@ const PILL: Record<PillTone, string> = {
 export function StatusPill({ tone, children, icon = true, className }: { tone: PillTone; children: React.ReactNode; icon?: boolean; className?: string }) {
   const Icon = tone === "good" ? ArrowUp : tone === "bad" ? ArrowDown : tone === "watch" ? Eye : null;
   return (
-    <span className={cn("inline-flex h-6 shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2.5 text-[12px]", PILL[tone], className)}>
+    <span className={cn("inline-flex h-6 shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2.5 text-[12px] font-fw-medium tabular-nums", PILL[tone], className)}>
       {icon && Icon && <Icon className="size-3" strokeWidth={2.25} aria-hidden />}
       {children}
     </span>
@@ -82,7 +82,7 @@ export function WhatItMeans({ children, action, className }: { children: React.R
         <ArrowRight className="size-3.5" strokeWidth={2.25} />
       </span>
       <p className="m-0 min-w-0 flex-1 basis-[260px] text-[14px] leading-snug text-brand-ink">
-        <b className="font-semibold">What it means:</b> {children}
+        <b className="font-fw-semibold">What it means:</b> {children}
       </p>
       {action && <span className="shrink-0 print:hidden">{action}</span>}
     </div>
@@ -107,7 +107,7 @@ export function StatTiles({ items, className }: { items: StatTile[]; className?:
     <ul className={cn("m-0 grid list-none gap-2.5 p-0", items.length >= 4 ? "grid-cols-2 min-[700px]:grid-cols-4" : items.length === 3 ? "grid-cols-3" : "grid-cols-2", className)}>
       {items.map((t) => (
         <li key={t.label} className={cn("flex min-w-0 flex-col gap-0.5 rounded-xl px-4 py-3", TILE[t.tone ?? "neutral"])}>
-          <span className={cn("text-[24px] font-light leading-[1.2] tabular-nums", t.tone === "bad" ? "text-brand-orange-text" : "text-brand-ink")}>{t.value}</span>
+          <span className={cn("text-[24px] font-fw-medium leading-[1.2] tabular-nums", t.tone === "bad" ? "text-brand-orange-text" : "text-brand-ink")}>{t.value}</span>
           <span className="text-[13px] text-brand-ink-2">{t.label}</span>
           {t.sub && <span className="text-[12px] text-brand-mute">{t.sub}</span>}
         </li>
@@ -145,7 +145,7 @@ export function KeyNumbers({ items, color = "#B455B6" }: { items: KeyNumberData[
         <div key={k.label} className="flex min-w-0 flex-col gap-1.5 rounded-2xl bg-white px-5 py-5">
           <span className="truncate text-[14px] text-brand-ink-2">{k.label}</span>
           <span className="flex items-end justify-between gap-3">
-            <span className="whitespace-nowrap text-[28px] font-light leading-[1.15] tabular-nums">{k.value}</span>
+            <span className="whitespace-nowrap text-[28px] font-fw-medium leading-[1.15] tabular-nums">{k.value}</span>
             {k.spark && <Spark values={k.spark} color={k.change?.tone === "bad" ? ORANGE : color} />}
           </span>
           {k.change && <span className={cn("text-[13px]", TONE_TEXT[k.change.tone])}>{k.change.text}</span>}
@@ -173,7 +173,7 @@ export function WhatWeFound({ findings, pm, className }: { findings: TabFinding[
               <Sparkle className="size-3.5" strokeWidth={2} />
             </span>
             <span className="flex min-w-0 flex-1 basis-[240px] flex-col gap-2">
-              <span className="text-[15px] font-medium leading-snug">{findingLine(insight)}</span>
+              <span className="text-[15px] font-fw-medium leading-snug">{findingLine(insight)}</span>
               <Chips sources={insightSources(insight)} />
             </span>
             {used.length ? (

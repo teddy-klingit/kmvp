@@ -20,7 +20,7 @@ export function Findings({ data }: { data: Findings }) {
         <span className="min-w-0 flex-1 basis-[280px]">
           {feeding ? (
             <>
-              {feeding} of these findings feed <b className="font-semibold">{plural(open, "open opportunity", "open opportunities")}</b>.
+              {feeding} of these findings feed <b className="font-fw-semibold">{plural(open, "open opportunity", "open opportunities")}</b>.
             </>
           ) : (
             "None of these findings feeds an open opportunity yet."

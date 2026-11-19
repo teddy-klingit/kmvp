@@ -89,8 +89,8 @@ export default async function TrendsPage() {
               <tbody>
                 {t.rows.map((r) => (
                   <tr key={r.id} className="border-t border-brand-line align-middle">
-                    <td className="py-3.5 pl-6 pr-4 text-[15px]">{r.topic}</td>
-                    <td className={cn("px-4 py-3.5 text-[16px] tabular-nums", r.change >= 0 ? "text-[#6E7D2F]" : "text-brand-orange-text")}>{signedPct(r.change)}</td>
+                    <td className="py-3.5 pl-6 pr-4 text-[15px] font-fw-medium">{r.topic}</td>
+                    <td className={cn("px-4 py-3.5 text-[16px] font-fw-medium tabular-nums", r.change >= 0 ? "text-[#6E7D2F]" : "text-brand-orange-text")}>{signedPct(r.change)}</td>
                     <td className="px-4 py-3.5">
                       <Line values={r.series} />
                     </td>
@@ -141,7 +141,7 @@ export default async function TrendsPage() {
                     <li key={m.id} className="grid grid-cols-[52px_minmax(0,1fr)_auto_auto] items-center gap-3 border-b border-brand-line px-6 py-3.5 text-[14px] last:border-b-0">
                       <span className="text-[13px] text-brand-ink-2">{day(m.date)}</span>
                       <span className="flex min-w-0 flex-col">
-                        <span className="text-[15px]">{m.name}</span>
+                        <span className="text-[15px] font-fw-medium">{m.name}</span>
                         <span className="text-[12px] text-brand-ink-2">{m.planned ? (m.planned.briefed ? "Briefed" : "In your Planner") : m.opportunity ? "Opportunity open" : m.briefPassed ? "Brief now" : `Brief by ${day(m.briefBy)}`}</span>
                       </span>
                       <StatusPill tone={planned ? "good" : "bad"}>{planned ? "Planned" : "Not planned"}</StatusPill>
@@ -180,7 +180,7 @@ export default async function TrendsPage() {
               <div className="flex flex-col gap-2 px-6 pt-5">
                 {t.demand.change !== null && (
                   <p className="m-0 flex flex-wrap items-baseline gap-x-3">
-                    <span className={cn("text-[34px] font-light tabular-nums", t.demand.change >= 0 ? "text-[#6E7D2F]" : "text-brand-orange-text")}>{signedPct(t.demand.change)}</span>
+                    <span className={cn("text-[34px] font-fw-semibold tabular-nums", t.demand.change >= 0 ? "text-[#6E7D2F]" : "text-brand-orange-text")}>{signedPct(t.demand.change)}</span>
                     <span className="text-[14px] text-brand-ink-2">{t.demand.label ?? "searches for your category vs last year"}</span>
                   </p>
                 )}

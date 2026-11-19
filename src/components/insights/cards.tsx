@@ -45,7 +45,7 @@ export function StatTile({ icon, label, value, context, spark, delta }: { icon: 
         <span className="truncate">{label}</span>
       </span>
       <span className="flex flex-wrap items-baseline gap-2">
-        <span className="whitespace-nowrap text-[24px] font-semibold leading-[1.15] tabular-nums min-[480px]:text-[30px]">{value}</span>
+        <span className="whitespace-nowrap text-[24px] font-fw-semibold leading-[1.15] tabular-nums min-[480px]:text-[30px]">{value}</span>
         {delta && <span className={cn("text-[13px]", delta.tone === "bad" ? "text-brand-orange-text" : "text-brand-ink-2")}>{delta.text}</span>}
       </span>
       {context && <span className="truncate text-[13px] text-brand-mute">{context}</span>}
@@ -62,7 +62,7 @@ export function ChartCard({ title, subtitle, meta, action, table, children, clas
   return (
     <section id={id} aria-label={title} className={cn("flex min-w-0 scroll-mt-6 flex-col rounded-2xl bg-white", className)}>
       <header className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-brand-line px-6 py-[18px]">
-        <h2 className={cn("m-0 flex-1 text-[19px] font-normal", titleClassName)}>{title}</h2>
+        <h2 className={cn("m-0 flex-1 text-[19px] font-fw-medium", titleClassName)}>{title}</h2>
         {meta}
         {table && table.rows.length > 0 && (
           <button
@@ -179,7 +179,7 @@ export function Takeaway({ tag, number, headline, chart, action, why, primary }:
         {why && <WhySheet title={headline} reasoning={why} />}
       </div>
       <div className="flex flex-col gap-1">
-        {number && <span className="text-[34px] font-semibold leading-[1.1] tabular-nums">{number}</span>}
+        {number && <span className="text-[34px] font-fw-semibold leading-[1.1] tabular-nums">{number}</span>}
         <span className="text-[16px]">{headline}</span>
       </div>
       <div className="flex-1">{chart}</div>

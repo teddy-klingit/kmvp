@@ -20,7 +20,7 @@ const MONO: Record<string, string> = { Meta: "M", Google: "G", Klaviyo: "K", Sho
 export function SourceChip({ source }: { source: string }) {
   return (
     <span className={cn("inline-flex h-6 items-center gap-1.5 rounded-full px-2 text-[11px]", CHIP[source] ?? "bg-brand-chip text-brand-ink")}>
-      <span className="font-brand-mono text-[9px] font-semibold">{MONO[source] ?? source[0]}</span>
+      <span className="font-brand-mono text-[9px] font-fw-medium">{MONO[source] ?? source[0]}</span>
       {sourceLabel(source)}
     </span>
   );
@@ -37,7 +37,7 @@ export const Chips = ({ sources }: { sources: string[] }) => (
 /** Phase X 2b: a channel as an icon tile (Meta, Google Ads, LinkedIn…), for table rows. */
 export function ChannelIcon({ source, className }: { source: string; className?: string }) {
   return (
-    <span aria-hidden className={cn("inline-flex size-7 shrink-0 items-center justify-center rounded-md font-brand-mono text-[10px] font-semibold", CHIP[source] ?? "bg-brand-chip text-brand-ink", className)}>
+    <span aria-hidden className={cn("inline-flex size-7 shrink-0 items-center justify-center rounded-md font-brand-mono text-[10px] font-fw-medium", CHIP[source] ?? "bg-brand-chip text-brand-ink", className)}>
       {MONO[source] ?? source[0]}
     </span>
   );

@@ -117,7 +117,7 @@ export default async function CompetitorsPage({ searchParams }: { searchParams: 
 
   return (
     <div className="flex flex-col gap-6">
-      <ShortAnswer weighted card={card} sources={[...(ai && t.checksInRun ? ["AI answers"] : []), "Search Console", "Ad libraries"]} />
+      <ShortAnswer card={card} sources={[...(ai && t.checksInRun ? ["AI answers"] : []), "Search Console", "Ad libraries"]} />
 
       <Card title="You vs your competitors" titleClassName="font-fw-medium" flush action={<a href="?edit=1#edit" className="font-brand-mono text-[12px] font-fw-medium uppercase text-brand-ink underline underline-offset-4">Edit competitors</a>}>
         <div className="overflow-x-auto">
@@ -272,7 +272,7 @@ export default async function CompetitorsPage({ searchParams }: { searchParams: 
                           {a.tag}
                         </StatusPill>
                       </span>
-                      <span className="text-[17px] font-light">“{a.theme}”</span>
+                      <span className="text-[17px] font-fw-regular">“{a.theme}”</span>
                       <span className="flex flex-wrap items-center gap-1.5 text-[12px] text-brand-ink-2">
                         {a.ads !== null && <span className="rounded-full bg-brand-chip px-2 py-0.5">{a.ads} ads</span>}
                         <Chips sources={a.platforms} />

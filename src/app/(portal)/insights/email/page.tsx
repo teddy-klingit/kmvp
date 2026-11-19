@@ -94,12 +94,12 @@ export default async function EmailPage({ searchParams }: { searchParams: Promis
           <div className="grid grid-cols-1 gap-4 min-[700px]:grid-cols-2">
             <div className="flex flex-col gap-1 rounded-[12px] bg-[#F2F6E4] px-4 py-4">
               <span className="text-[13px] text-brand-ink-2">Automatic flows</span>
-              <span className="text-[26px] font-light tabular-nums">{money(t.flowSales, cur)}</span>
+              <span className="text-[26px] font-fw-medium tabular-nums">{money(t.flowSales, cur)}</span>
               <span className="text-[12px] text-brand-ink-2">{t.flows.length} flow{t.flows.length === 1 ? "" : "s"} · run by themselves</span>
             </div>
             <div className="flex flex-col gap-1 rounded-[12px] bg-[#F8F5EE] px-4 py-4">
               <span className="text-[13px] text-brand-ink-2">Newsletters</span>
-              <span className="text-[26px] font-light tabular-nums">{money(t.newsletterSales, cur)}</span>
+              <span className="text-[26px] font-fw-medium tabular-nums">{money(t.newsletterSales, cur)}</span>
               <span className="text-[12px] text-brand-ink-2">
                 {t.newsletters.length} send{t.newsletters.length === 1 ? "" : "s"}
                 {t.newsletters.length ? ` · ${money(t.newsletterSales / t.newsletters.length, cur)} per send` : ""}
@@ -113,7 +113,7 @@ export default async function EmailPage({ searchParams }: { searchParams: Promis
                 <li key={f.id} className="grid grid-cols-[130px_minmax(0,1fr)_64px] items-center gap-3 text-[14px]">
                   <span>{f.name}</span>
                   <span aria-hidden className="h-2.5 rounded-full" style={{ width: `${Math.max(2, (f.sales / maxFlow) * 100)}%`, background: PURPLE }} />
-                  <span className="text-right tabular-nums">{money(f.sales, cur)}</span>
+                  <span className="text-right font-fw-medium tabular-nums">{money(f.sales, cur)}</span>
                 </li>
               ))}
             </ul>
@@ -141,12 +141,12 @@ export default async function EmailPage({ searchParams }: { searchParams: Promis
                       <tr key={e.id} className="border-t border-brand-line">
                         <td className="px-6 py-3.5">
                           <span className="flex min-w-0 flex-col">
-                            <span className="text-[15px]">“{e.subject}”</span>
+                            <span className="text-[15px] font-fw-medium">“{e.subject}”</span>
                             <span className="text-[12px] text-brand-ink-2">Newsletter · {day(e.date)}</span>
                           </span>
                         </td>
-                        <td className="px-3 py-3.5 tabular-nums">{e.openRate !== null ? `${Math.round(e.openRate)}%` : "–"}</td>
-                        <td className="px-3 py-3.5 tabular-nums">{money(e.sales, cur)}</td>
+                        <td className="px-3 py-3.5 font-fw-medium tabular-nums">{e.openRate !== null ? `${Math.round(e.openRate)}%` : "–"}</td>
+                        <td className="px-3 py-3.5 font-fw-medium tabular-nums">{money(e.sales, cur)}</td>
                         <td className="px-6 py-3.5">
                           <StatusPill tone={e.tag === "Best" ? "good" : "bad"}>{e.tag}</StatusPill>
                         </td>

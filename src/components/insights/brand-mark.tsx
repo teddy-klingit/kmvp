@@ -18,7 +18,7 @@ export function BrandLogo({ name, logo, you, size = 24, className }: { name: str
     // eslint-disable-next-line @next/next/no-img-element -- a stored favicon, already small
     return <img src={logo} alt="" width={size} height={size} style={style} className={cn("shrink-0 rounded-full bg-white object-contain ring-1 ring-brand-line", className)} />;
   return (
-    <span aria-hidden style={{ ...style, background: you ? "#1E1E1E" : monogramColor(name) }} className={cn("inline-flex shrink-0 items-center justify-center rounded-full font-medium text-white", className)}>
+    <span aria-hidden style={{ ...style, background: you ? "#1E1E1E" : monogramColor(name) }} className={cn("inline-flex shrink-0 items-center justify-center rounded-full font-fw-medium text-white", className)}>
       {you ? (name.trim()[0] ?? "?") : (name.trim()[0] ?? "?").toUpperCase()}
     </span>
   );
@@ -28,7 +28,7 @@ export function BrandMark({ name, logo, you, size = 24, className, nameClassName
   return (
     <span className={cn("inline-flex min-w-0 items-center gap-2", className)}>
       <BrandLogo name={name} logo={logo} you={you} size={size} />
-      <span className={cn("truncate", you && !nameClassName && "font-medium", nameClassName)}>{name}</span>
+      <span className={cn("truncate", you && !nameClassName ? "font-fw-semibold" : !nameClassName && "font-fw-medium", nameClassName)}>{name}</span>
       {you && <span className="rounded-full bg-brand-ink px-2 py-0.5 text-[11px] text-white">You</span>}
     </span>
   );
