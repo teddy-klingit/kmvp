@@ -1,3 +1,4 @@
+import { balanceSummary } from "@/lib/client-credits";
 import { prisma } from "@/lib/prisma";
 import { loadOpsProjects, rankExceptions, type OpsException, type OpsProject } from "@/lib/ops-exceptions";
 import { teamBalances } from "@/lib/team-ledger";
@@ -315,9 +316,12 @@ async function keepAnEye(projects: OpsProject[], clientIds: string[], now: Date)
       if (at < monthEnd && (!soonest || at < soonest.at)) soonest = { name: c.name, pool, at, left: s.left, id: c.id };
     }
   }
+  // Phase T2: all three balances for that client, never just the one running out.
+  const three = soonest ? await balanceSummary(soonest.id, now) : [];
+  const short = (b: (typeof three)[number]) => `${b.key === "pm" ? "PM" : b.key === "creative" ? "Creative" : "AI"} ${b.state === "live" ? `${Math.round(b.left).toLocaleString("en-GB")} of ${b.of.toLocaleString("en-GB")}` : b.state === "pending" ? b.headline : "not in plan"}`;
   out.push(
     soonest
-      ? { title: soonest.name, line: `${soonest.pool === "pm" ? "PM" : "creative"} credits run out ~ ${dayMonth(soonest.at)}`, note: `${Math.round(soonest.left)} left · a pack suggestion is ready if they ask`, href: `/ops/clients/${soonest.id}/balances` }
+      ? { title: soonest.name, line: `${soonest.pool === "pm" ? "PM" : "creative"} credits run out ~ ${dayMonth(soonest.at)}`, note: three.map(short).join(" · "), href: `/ops/clients/${soonest.id}/credits` }
       : { title: "Balances", line: "every balance lasts the month", note: "At this month's pace" }
   );
 

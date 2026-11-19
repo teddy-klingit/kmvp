@@ -1,6 +1,5 @@
+import { balanceSummary } from "@/lib/client-credits";
 import { prisma } from "@/lib/prisma";
-import { aiCreditStatus } from "@/lib/ai-credits";
-import { poolOf, teamBalances } from "@/lib/team-ledger";
 import { PLAN_TIER_LABEL } from "@/lib/labels";
 import type { Scope } from "@/lib/staff-scope";
 
@@ -13,7 +12,8 @@ import type { Scope } from "@/lib/staff-scope";
 
 const DAY = 86400000;
 export type Way = 1 | 2 | 3;
-export type Bal = { left: number; of: number } | null;
+/** Phase T2: a balance as the Clients list shows it; pending ("10 from 1 Dec") and none ("Not in their plan") too. */
+export type Bal = { left: number; of: number; state?: "live" | "pending" | "none"; text?: string } | null;
 export type ClientRow = {
   id: string;
   name: string;
@@ -50,10 +50,10 @@ export async function loadClientRows(scope: Scope, now = new Date(), opts: { mon
   const rows: ClientRow[] = [];
   for (const c of clients) {
     const contract = contracts.find((x) => x.clientId === c.id) ?? null;
-    const [ai, team] = await Promise.all([aiCreditStatus(c.id, now), teamBalances(c.id, now)]);
-    const pool = (k: "pm" | "creative"): Bal => {
-      const p = team?.[k];
-      return p && (p.monthly > 0 || p.left !== 0) ? { left: p.left, of: poolOf(p) } : null;
+    const balances = await balanceSummary(c.id, now);
+    const pool = (k: "pm" | "creative" | "ai"): Bal => {
+      const b = balances.find((x) => x.key === k)!;
+      return b.state === "live" ? { left: b.left, of: b.of, state: "live" } : { left: 0, of: b.of, state: b.state, text: b.state === "pending" ? b.headline : b.headline === "Their own AI" ? "Own AI" : "Not in plan" };
     };
     const way: Way | null = contract ? (!contract.teamPackKey ? 1 : contract.creativeCreditsPerMonth > 0 ? 3 : 2) : null;
     const contactStaff = contract?.contact ?? c.accountLead ?? null;
@@ -64,7 +64,7 @@ export async function loadClientRows(scope: Scope, now = new Date(), opts: { mon
       way,
       plan: contract ? (plans.find((p) => p.key === contract.platformPlanKey)?.name ?? contract.platformPlanKey) : `${PLAN_TIER_LABEL[c.planTier] ?? c.planTier} (old)`,
       pack: contract?.teamPackKey ? (packs.find((p) => p.key === contract.teamPackKey)?.name ?? contract.teamPackKey) : null,
-      ai: ai.ownModel ? null : { left: ai.left, of: ai.used + ai.left },
+      ai: pool("ai"),
       pm: pool("pm"),
       creative: pool("creative"),
       contact: contactStaff ? { id: contactStaff.id, name: contactStaff.user.name } : null,
@@ -76,7 +76,7 @@ export async function loadClientRows(scope: Scope, now = new Date(), opts: { mon
       attention: [],
     };
     if (row.overdueInvoices) row.attention.push(`${row.overdueInvoices} overdue invoice${row.overdueInvoices === 1 ? "" : "s"}`);
-    for (const [label, b] of [["PM", row.pm], ["Creative", row.creative]] as const) if (b && b.of > 0 && b.left < b.of * 0.2) row.attention.push(`${label} credits low`);
+    for (const [label, b] of [["PM", row.pm], ["Creative", row.creative]] as const) if (b && b.state === "live" && b.of > 0 && b.left < b.of * 0.2) row.attention.push(`${label} credits low`);
     if (contract?.autoRenew && contract.noticeDeadline.getTime() - now.getTime() <= 30 * DAY && contract.noticeDeadline >= now) row.attention.push("Notice deadline within 30 days");
     if (row.pendingRequests) row.attention.push(`${row.pendingRequests} request${row.pendingRequests === 1 ? "" : "s"} waiting`);
     rows.push(row);

@@ -5,23 +5,24 @@ import { SegmentedNav } from "@/components/ds/segmented-control";
 import { FilterChips } from "@/components/ds/filter-chips";
 
 /**
- * The client page's 5 tabs (Phase T): Overview · Projects · Planner · Contract & billing · Brand. Every older view
+ * The client page's tabs (Phase T2): Overview · Projects · Planner · Credits · Notes · Brand. Every older view
  * lives under one of them as a chip, so nothing is lost and old links still land on the right tab.
  */
 export const CLIENT_TABS = [
   { label: "Overview", path: "dashboard", sub: [] as { label: string; path: string }[] },
   { label: "Projects", path: "projects", sub: [{ label: "Projects", path: "projects" }, { label: "Files", path: "project-files" }, { label: "Delivery", path: "delivery" }, { label: "Activity", path: "activity" }] },
   { label: "Planner", path: "planner", sub: [{ label: "Planner", path: "planner" }, { label: "Content plan", path: "content-plan" }, { label: "Opportunities", path: "opportunities" }, { label: "Goals & budget", path: "goals" }] },
-  { label: "Contract & billing", path: "contract", sub: [{ label: "Contract", path: "contract" }, { label: "Balances", path: "balances" }, { label: "Billing", path: "billing" }, { label: "Setup", path: "admin" }, { label: "Custom apps", path: "custom-apps" }] },
-  { label: "Brand", path: "brand-os", sub: [{ label: "Brand OS", path: "brand-os" }, { label: "Brand assets", path: "brand-assets" }] },
+  // Phase T2: Credits replaces "Contract & billing"; the contract's prices, billing and set-up stay with admins.
+  { label: "Credits", path: "credits", sub: [{ label: "Credits", path: "credits" }, { label: "Adjust balances", path: "balances" }, { label: "Contract (admin)", path: "contract" }, { label: "Billing (admin)", path: "billing" }, { label: "Setup (admin)", path: "admin" }] },
+  { label: "Brand", path: "brand-os", sub: [{ label: "Brand OS", path: "brand-os" }, { label: "Brand assets", path: "brand-assets" }, { label: "Custom apps", path: "custom-apps" }] },
 ];
 
 /** Views only Admin opens: invoices and payments (Billing) and the client's set-up (Setup). */
-export const ADMIN_ONLY_VIEWS = ["billing", "admin"];
+export const ADMIN_ONLY_VIEWS = ["billing", "admin", "contract"];
 
 export function ClientTabs({ base, counts, admin }: { base: string; counts: { projects: number; plan: number }; admin: boolean }) {
   const pathname = usePathname() ?? "";
-  const tabs = CLIENT_TABS.map((t) => (admin ? t : { ...t, label: t.label === "Contract & billing" ? "Contract" : t.label, sub: t.sub.filter((s) => !ADMIN_ONLY_VIEWS.includes(s.path)) }));
+  const tabs = CLIENT_TABS.map((t) => (admin ? t : { ...t, sub: t.sub.filter((s) => !ADMIN_ONLY_VIEWS.includes(s.path)) }));
   const seg = pathname.slice(base.length + 1).split("/")[0] || "dashboard";
   const current = tabs.find((t) => t.path === seg || t.sub.some((s) => s.path === seg)) ?? tabs[0];
   return (

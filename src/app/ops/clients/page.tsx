@@ -16,6 +16,14 @@ const WAY_LABEL: Record<string, string> = { "1": "1 · Platform", "2": "2 · + P
 
 function Bar({ label, b, purple }: { label: string; b: Bal; purple?: boolean }) {
   if (!b) return <span className="text-[12px] text-brand-mute">{label} —</span>;
+  if (b.state && b.state !== "live")
+    return (
+      <span className={cn("flex items-center gap-2 text-[12px]", b.state === "none" && "text-brand-mute")}>
+        <span className="w-14 text-brand-ink-2">{label}</span>
+        <span aria-hidden className="h-1.5 w-20 rounded-full" style={{ background: b.state === "pending" ? "repeating-linear-gradient(135deg, #E9E3D6 0 4px, #F6F2EA 4px 8px)" : "#F1EDE5" }} />
+        <span>{b.text}</span>
+      </span>
+    );
   const pct = b.of > 0 ? Math.max(0, Math.min(100, (b.left / b.of) * 100)) : 0;
   const low = b.of > 0 && b.left < b.of * 0.2;
   return (

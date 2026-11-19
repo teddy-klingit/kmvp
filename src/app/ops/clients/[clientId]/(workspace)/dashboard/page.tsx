@@ -4,14 +4,14 @@ import { getOpsViewer } from "@/lib/current-viewer";
 import { loadToday } from "@/lib/today";
 import { loadInline } from "@/lib/today-inline";
 import { clientOverview } from "@/lib/client-overview";
-import { hasAdmin } from "@/lib/role-tier";
+import { balanceSummary } from "@/lib/client-credits";
+import { BalanceMeter } from "@/components/ops/client/client-cards";
 import { internalStagePill } from "@/lib/ops-cockpit";
 import { TaskRow } from "@/components/ops/today/task-row";
 import { cn } from "@/lib/utils";
 
 const dayLabel = (d: Date) => new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short" }).format(d);
 const dayMonth = (d: Date) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(d);
-const METER = { ink: "bg-brand-ink", blue: "bg-[#5B6EB8]", purple: "bg-[#B455B6]" };
 
 function Card({ title, link, children }: { title: React.ReactNode; link?: { label: string; href: string }; children: React.ReactNode }) {
   return (
@@ -38,7 +38,8 @@ export default async function ClientOverviewPage({ params }: { params: Promise<{
   const viewer = await getOpsViewer();
   const now = new Date();
   const today = await loadToday({ mine: false, clientIds: [clientId] }, now, viewer);
-  const [inline, o] = await Promise.all([loadInline(today.tasks), clientOverview(clientId, today.projects, now, { money: Boolean(viewer && hasAdmin(viewer)) })]);
+  // Phase T2: no prices or invoices anywhere on the client page, admins included (they're in Admin).
+  const [inline, o, balances] = await Promise.all([loadInline(today.tasks), clientOverview(clientId, today.projects, now, { money: false }), balanceSummary(clientId, now)]);
   const attention = today.projects.filter((p) => p.exceptions.length > 0);
   const quiet = today.projects.filter((p) => p.exceptions.length === 0);
   const shown = [...attention, ...quiet].slice(0, Math.max(5, attention.length));
@@ -106,23 +107,12 @@ export default async function ClientOverviewPage({ params }: { params: Promise<{
       </div>
 
       <div className="flex min-w-0 flex-col gap-6">
-        <Card title={`Balances · ${new Intl.DateTimeFormat("en-GB", { month: "long" }).format(now)}`} link={{ label: "Details", href: `${base}/balances` }}>
+        <Card title={balances.some((b) => b.state === "pending") ? "Credits" : `Balances · ${new Intl.DateTimeFormat("en-GB", { month: "long" }).format(now)}`} link={{ label: "Credits", href: `${base}/credits` }}>
           <div className="flex flex-col gap-5 px-6 py-5">
-            {o.oldPlan && <p className="m-0 text-[13px] text-brand-ink-2">On an old plan with one combined balance until it moves to a contract (Admin → Migration).</p>}
-            {o.meters.map((m) => (
-              <div key={m.label} className="flex flex-col gap-1.5">
-                <span className="flex items-baseline gap-2">
-                  <span className="flex-1 text-[14px]">{m.label}</span>
-                  <span className="text-[22px] font-light tabular-nums">{Math.round(m.left).toLocaleString("en-GB")}</span>
-                  <span className="text-[13px] text-brand-ink-2">of {Math.round(m.of).toLocaleString("en-GB")} left</span>
-                </span>
-                <span className="h-1.5 overflow-hidden rounded-full bg-brand-track">
-                  <span className={cn("block h-full rounded-full", METER[m.tone])} style={{ width: `${m.of > 0 ? Math.max(0, Math.min(100, (m.left / m.of) * 100)) : 0}%` }} />
-                </span>
-                <span className={cn("text-[12px]", m.warn ? "text-brand-orange-text" : "text-brand-ink-2")}>{m.note}</span>
-              </div>
+            {balances.map((b) => (
+              <BalanceMeter key={b.key} b={b} />
             ))}
-            {o.rollover && <p className="m-0 border-t border-brand-line pt-3 text-[12px] text-brand-ink-2">{o.rollover}</p>}
+            {o.rollover && balances.some((b) => b.state === "live" && b.key !== "ai") && <p className="m-0 border-t border-brand-line pt-3 text-[12px] text-brand-ink-2">{o.rollover}</p>}
           </div>
         </Card>
 
@@ -149,7 +139,7 @@ export default async function ClientOverviewPage({ params }: { params: Promise<{
           </div>
         </Card>
 
-        <Card title="Contract" link={{ label: o.contract?.perMonth ? "Contract & billing" : "Contract", href: `${base}/contract` }}>
+        <Card title="Contract" link={{ label: "Credits", href: `${base}/credits` }}>
           {o.contract ? (
             <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 px-6 py-5 text-[13px]">
               {[
