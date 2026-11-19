@@ -11,6 +11,10 @@ export async function getPortalViewer() {
     include: { user: true, client: true },
   });
   if (!clientUser) redirect("/sign-in");
+  // Phase T2: "last seen" for the PM's onboarding checklist, written at most once an hour.
+  if (!clientUser.user.lastSeenAt || Date.now() - clientUser.user.lastSeenAt.getTime() > 3600_000) {
+    void prisma.user.update({ where: { id: clientUser.userId }, data: { lastSeenAt: new Date() } }).catch(() => undefined);
+  }
 
   return clientUser;
 }

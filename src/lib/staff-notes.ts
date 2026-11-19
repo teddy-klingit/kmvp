@@ -25,3 +25,14 @@ export async function createStaffNote(projectId: string, body: string) {
   if (!project) return null;
   return prisma.projectStaffNote.create({ data: { projectId, authorUserId: viewer.userId, body: text } });
 }
+
+/**
+ * Phase T2: a client note linked to a project also shows in that project's staff discussion. Called only from
+ * lib/client-notes.ts, after its staff check.
+ */
+export async function mirrorClientNoteToProject(projectId: string, authorUserId: string, body: string) {
+  await getOpsViewer();
+  const text = body.trim().slice(0, 4000);
+  if (!text) return null;
+  return prisma.projectStaffNote.create({ data: { projectId, authorUserId, body: text } });
+}

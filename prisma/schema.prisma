@@ -43,6 +43,8 @@ model User {
   status           UserStatus @default(INVITED)
   twoFactorEnabled Boolean    @default(false)
   invitedAt        DateTime?
+  /// Phase T2: the last time this user signed in or opened the app (onboarding: "logged in").
+  lastSeenAt       DateTime?
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
 
@@ -361,6 +363,9 @@ model Client {
   searchRankings               SearchRanking[]
   trendTopics                  TrendTopic[]
   clientGoals                  ClientGoal[]
+  clientNotes                  ClientNote[]
+  clientProfile                ClientProfile?
+  clientCheckIns               ClientCheckIn[]
 }
 
 // AI-synthesized read of the Market Intelligence signals (news, competitor
@@ -2347,9 +2352,12 @@ model KeyMoment {
   markets   Json
   /// "holiday" | "shopping"
   kind      String    @default("holiday")
+  /// Phase T2: a key date from one client's profile (shows in that client's Planner only); null = a market moment.
+  clientId  String?
   createdAt DateTime  @default(now())
 
   @@index([date])
+  @@index([clientId])
 }
 
 /// A private iCal feed of a user's plan (Plan → Subscribe). Revoking sets revokedAt; the URL stops working.
@@ -3013,4 +3021,88 @@ model ClientGoal {
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId, sortOrder])
+}
+
+// ─── Phase T2: what the PM knows about a client (staff only; only lib/client-notes.ts may query these) ─────────────
+
+/// A note in a client's account log: Note / Call / Meeting / Decision / Risk. Staff only.
+model ClientNote {
+  id           String    @id @default(cuid())
+  clientId     String
+  authorUserId String
+  /// "note" | "call" | "meeting" | "decision" | "risk"
+  kind         String    @default("note")
+  title        String
+  body         String    @default("")
+  /// ["2027 planning", "Upsell"]
+  tags         Json      @default("[]")
+  projectId    String?
+  /// staff user ids @mentioned (each gets a notification)
+  mentions     Json      @default("[]")
+  pinnedAt     DateTime?
+  /// "Remind me": a task on the author's Today on this day
+  remindAt     DateTime?
+  remindDoneAt DateTime?
+  /// a call's length in minutes
+  durationMin  Int?
+  /// a Call or Meeting that was the kick-off (ticks onboarding)
+  kickoff      Boolean   @default(false)
+  /// the check-in it was added to ("Add to next review")
+  checkInId    String?
+  archivedAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, createdAt])
+  @@index([authorUserId, remindAt])
+}
+
+/// The client profile and the relationship, kept by staff. Staff only.
+model ClientProfile {
+  clientId        String    @id
+  goal            String?
+  measures        String?
+  /// [{ name, date }] — also the client's own key moments in the Planner
+  keyDates        Json      @default("[]")
+  markets         String?
+  /// { tone, contact, decisionDay }
+  preferences     Json      @default("{}")
+  tools           String?
+  /// [{ label, url }]
+  links           Json      @default("[]")
+  cameFrom        String?
+  clientSince     DateTime?
+  /// the PM's read: "happy" | "neutral" | "at_risk"
+  read            String?
+  readAt          DateTime?
+  readByUserId    String?
+  readNoteId      String?
+  /// the last satisfaction rating, 1–10, when we have one
+  satisfaction    Int?
+  satisfactionAt  DateTime?
+  /// staff user ids marked as the client's favourite creatives
+  favourites      Json      @default("[]")
+  updatedByUserId String?
+  updatedAt       DateTime  @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+/// A booked check-in with the client (a Today task the day before). Staff only.
+model ClientCheckIn {
+  id             String    @id @default(cuid())
+  clientId       String
+  at             DateTime
+  /// "kick-off" | "monthly review" | "quarterly review" | "check-in"
+  kind           String    @default("monthly review")
+  /// "booked" | "done" | "cancelled"
+  status         String    @default("booked")
+  bookedByUserId String?
+  createdAt      DateTime  @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, at])
 }
