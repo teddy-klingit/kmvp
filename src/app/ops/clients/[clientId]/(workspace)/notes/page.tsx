@@ -136,7 +136,7 @@ export default async function NotesPage({ params, searchParams }: { params: Prom
           {editing ? <ProfileForm clientId={clientId} profile={profile} /> : <ProfileRows profile={profile} editHref={`${base}?edit=profile#profile`} />}
         </OpsCard>
 
-        <OpsCard title="Relationship">
+        <OpsCard title="Relationship" id="relationship">
           <dl className="m-0 flex flex-col gap-3 px-6 py-5 text-[13px]">
             <Row k="Last check-in" v={ci.last ? `${day(ci.last.at)} · ${ci.last.kind}` : "None yet"} />
             <div className="flex flex-col gap-2">
