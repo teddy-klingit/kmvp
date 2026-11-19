@@ -57,12 +57,12 @@ export function StatTile({ icon, label, value, context, spark, delta }: { icon: 
 export type TableData = { columns: string[]; rows: (string | number)[][] };
 
 /** One chart per question: the title is the question, and every chart can be read as a table. */
-export function ChartCard({ title, subtitle, meta, action, table, children, className, flush = false, id }: { title: string; subtitle?: string | null; meta?: React.ReactNode; action?: React.ReactNode; table?: TableData; children: React.ReactNode; className?: string; /** Rows that run edge to edge (lists, tables): no body padding. */ flush?: boolean; id?: string }) {
+export function ChartCard({ title, subtitle, meta, action, table, children, className, flush = false, id, titleClassName }: { title: string; titleClassName?: string; subtitle?: string | null; meta?: React.ReactNode; action?: React.ReactNode; table?: TableData; children: React.ReactNode; className?: string; /** Rows that run edge to edge (lists, tables): no body padding. */ flush?: boolean; id?: string }) {
   const [asTable, setAsTable] = useState(false);
   return (
     <section id={id} aria-label={title} className={cn("flex min-w-0 scroll-mt-6 flex-col rounded-2xl bg-white", className)}>
       <header className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-brand-line px-6 py-[18px]">
-        <h2 className="m-0 flex-1 text-[19px] font-normal">{title}</h2>
+        <h2 className={cn("m-0 flex-1 text-[19px] font-normal", titleClassName)}>{title}</h2>
         {meta}
         {table && table.rows.length > 0 && (
           <button

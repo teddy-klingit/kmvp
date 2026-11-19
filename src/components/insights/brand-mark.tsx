@@ -28,7 +28,7 @@ export function BrandMark({ name, logo, you, size = 24, className, nameClassName
   return (
     <span className={cn("inline-flex min-w-0 items-center gap-2", className)}>
       <BrandLogo name={name} logo={logo} you={you} size={size} />
-      <span className={cn("truncate", you && "font-medium", nameClassName)}>{name}</span>
+      <span className={cn("truncate", you && !nameClassName && "font-medium", nameClassName)}>{name}</span>
       {you && <span className="rounded-full bg-brand-ink px-2 py-0.5 text-[11px] text-white">You</span>}
     </span>
   );

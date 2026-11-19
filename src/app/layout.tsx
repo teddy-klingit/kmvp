@@ -3,8 +3,8 @@ import { Albert_Sans, Azeret_Mono } from "next/font/google";
 import "./globals.css";
 
 // Klingit brand fonts, app-wide: Albert Sans (stand-in for the licensed PolySans) for text, Azeret Mono for eyebrows, buttons and small labels.
-const albertSans = Albert_Sans({ variable: "--font-albert", subsets: ["latin"], weight: ["300", "400", "600"] });
-const azeretMono = Azeret_Mono({ variable: "--font-azeret", subsets: ["latin"], weight: ["400"] });
+const albertSans = Albert_Sans({ variable: "--font-albert", subsets: ["latin"], weight: ["300", "400", "500", "600"] });
+const azeretMono = Azeret_Mono({ variable: "--font-azeret", subsets: ["latin"], weight: ["400", "500"] });
 
 export const metadata: Metadata = {
   title: "Klingit",

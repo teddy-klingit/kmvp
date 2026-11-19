@@ -33,17 +33,17 @@ function moveSummary(kinds: string[]) {
 
 const MOVE_TONE = { "New product": "bg-[#F8EEF8] text-[#8E3A90]", "Price cut": "bg-[#FFF1E8] text-brand-orange-text", Campaign: "bg-[#EEF1FA] text-[#5B6FB0]" } as const;
 function MoveTag({ kind }: { kind: keyof typeof MOVE_TONE }) {
-  return <span className={cn("rounded-md px-2 py-0.5 text-[12px]", MOVE_TONE[kind])}>{kind}</span>;
+  return <span className={cn("rounded-md px-2 py-0.5 text-[12px] font-fw-medium", MOVE_TONE[kind])}>{kind}</span>;
 }
 
-/** A number in its own column with a small bar; the leader in the column is bold. */
-function Meter({ value, max, own, label, lead }: { value: number; max: number; own: boolean; label: string; lead: boolean }) {
+/** A number in its own column with a small bar: Medium on every row, Semibold on your own row. */
+function Meter({ value, max, own, label }: { value: number; max: number; own: boolean; label: string }) {
   return (
     <span className="flex items-center gap-2.5 tabular-nums">
       <span aria-hidden className="h-1.5 w-[72px] overflow-hidden rounded-full bg-[#ECE8DF]">
         <span className="block h-full rounded-full" style={{ width: `${Math.max(4, (value / max) * 100)}%`, background: own ? "#1E1E1E" : BLUE }} />
       </span>
-      <span className={cn(lead && "font-semibold")}>{label}</span>
+      <span className={own ? "font-fw-semibold" : "font-fw-medium"}>{label}</span>
     </span>
   );
 }
@@ -117,9 +117,9 @@ export default async function CompetitorsPage({ searchParams }: { searchParams: 
 
   return (
     <div className="flex flex-col gap-6">
-      <ShortAnswer card={card} sources={[...(ai && t.checksInRun ? ["AI answers"] : []), "Search Console", "Ad libraries"]} />
+      <ShortAnswer weighted card={card} sources={[...(ai && t.checksInRun ? ["AI answers"] : []), "Search Console", "Ad libraries"]} />
 
-      <Card title="You vs your competitors" flush action={<a href="?edit=1#edit" className="font-brand-mono text-[12px] uppercase text-brand-ink underline underline-offset-4">Edit competitors</a>}>
+      <Card title="You vs your competitors" titleClassName="font-fw-medium" flush action={<a href="?edit=1#edit" className="font-brand-mono text-[12px] font-fw-medium uppercase text-brand-ink underline underline-offset-4">Edit competitors</a>}>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[820px] border-collapse text-[14px]">
             <thead>
@@ -134,35 +134,35 @@ export default async function CompetitorsPage({ searchParams }: { searchParams: 
             <tbody>
               {t.table.map((r) => (
                 <tr key={r.brand} className={cn("border-t border-brand-line", r.own && "bg-[#F6F3EC] shadow-[inset_3px_0_0_#1E1E1E]")}>
-                  <td className="px-5 py-4 pl-6 tabular-nums text-brand-mute">#{r.rank}</td>
+                  <td className="px-5 py-4 pl-6 font-fw-regular tabular-nums text-brand-mute">#{r.rank}</td>
                   <td className="whitespace-nowrap px-5 py-4">
-                    <BrandMark name={brandLabel(r.brand)} logo={t.logos[r.brand]} you={r.own} />
+                    <BrandMark name={brandLabel(r.brand)} logo={t.logos[r.brand]} you={r.own} nameClassName={r.own ? "font-fw-semibold" : "font-fw-medium"} />
                   </td>
                   {ai && (
                     <td className="px-5 py-4">
                       {r.aiShare !== null ? (
                         <span className="flex flex-col gap-1">
-                          <Meter value={r.aiShare} max={1} own={r.own} label={`${Math.round(r.aiShare * 100)}%`} lead={r.aiShare === t.leaders.aiShare} />
-                          {r.vsYou !== null && r.vsYou !== 0 && <span className={cn("text-[12px]", r.vsYou > 0 ? "text-brand-orange-text" : "text-[#6E7D2F]")}>{r.vsYou > 0 ? "+" : "−"}{Math.abs(r.vsYou)} vs you</span>}
+                          <Meter value={r.aiShare} max={1} own={r.own} label={`${Math.round(r.aiShare * 100)}%`} />
+                          {r.vsYou !== null && r.vsYou !== 0 && <span className={cn("text-[12px] font-fw-regular", r.vsYou > 0 ? "text-brand-orange-text" : "text-[#6E7D2F]")}>{r.vsYou > 0 ? "+" : "−"}{Math.abs(r.vsYou)} vs you</span>}
                         </span>
                       ) : (
                         <span className="text-brand-ink-2">Not checked yet</span>
                       )}
                     </td>
                   )}
-                  <td className="px-5 py-4">{r.google !== null ? <Meter value={r.google} max={100} own={r.own} label={String(r.google)} lead={r.google === t.leaders.google} /> : <span className="text-brand-ink-2">Not audited</span>}</td>
-                  <td className={cn("whitespace-nowrap px-5 py-4 tabular-nums", r.ads !== null && r.ads === t.leaders.ads && "font-semibold")}>{r.ads ?? <span className="font-normal text-brand-ink-2">Not checked</span>}</td>
+                  <td className="px-5 py-4">{r.google !== null ? <Meter value={r.google} max={100} own={r.own} label={String(r.google)} /> : <span className="text-brand-ink-2">Not audited</span>}</td>
+                  <td className={cn("whitespace-nowrap px-5 py-4 tabular-nums", r.own ? "font-fw-semibold" : "font-fw-medium")}>{r.ads ?? <span className="font-fw-regular text-brand-ink-2">Not checked</span>}</td>
                   <td className="px-5 py-4">
                     {r.move ? (
                       <span className="flex flex-col gap-1">
                         <span className="flex items-center gap-2">
                           <MoveTag kind={r.move.kind} />
-                          <span className="text-[12px] text-brand-mute">{day(r.move.at)}</span>
+                          <span className="text-[12px] font-fw-regular text-brand-mute">{day(r.move.at)}</span>
                         </span>
-                        <span>{shortMove(r.move.title, r.brand)}</span>
+                        <span className="font-fw-regular">{shortMove(r.move.title, r.brand)}</span>
                       </span>
                     ) : (
-                      <span className="text-brand-mute">No change</span>
+                      <span className="font-fw-regular text-brand-mute">No change</span>
                     )}
                   </td>
                 </tr>
@@ -244,7 +244,7 @@ export default async function CompetitorsPage({ searchParams }: { searchParams: 
                       <span className="text-[15px]">{shortMove(m.title, m.brand!)}</span>
                       {(m.forYou || m.opportunity) && (
                         <span className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl bg-[#F4F1EA] px-3 py-2.5 text-[13px]">
-                          <b className="font-semibold">For you:</b>
+                          <b className="font-fw-semibold">For you:</b>
                           <span className="min-w-0 flex-1 basis-[140px]">{m.forYou ?? "It feeds an opportunity."}</span>
                           {m.opportunity && (
                             <Link href={`/opportunities/${m.opportunity.id}`} className="inline-flex items-center gap-1.5 rounded-full border border-[#F5C9B0] bg-[#FFF4EE] px-3 py-1 text-[12px] text-brand-ink no-underline hover:border-brand-orange">

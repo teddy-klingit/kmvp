@@ -15,6 +15,10 @@
 }
 
 :root {
+  /* Type weights (Insights typography): the only three weights text uses. Never 700 or heavier. */
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
   /* Klingit brand theme, app-wide (Phase J): cream page, white cards without borders, ink text.
      Orange (#FF5D02) only ever means "your action"; errors are red and warnings amber. */
   --background: #f9f5ec;
@@ -316,6 +320,10 @@
   --color-brand-lavender-pale: var(--brand-lavender-pale);
   --font-brand: var(--font-albert), "Helvetica Neue", Arial, sans-serif;
   --font-brand-mono: var(--font-azeret), ui-monospace, monospace;
+  /* font-fw-regular / font-fw-medium / font-fw-semibold */
+  --font-weight-fw-regular: var(--fw-regular);
+  --font-weight-fw-medium: var(--fw-medium);
+  --font-weight-fw-semibold: var(--fw-semibold);
   --radius-pill: 999px;
   --color-ds-note: var(--ds-note);
   --color-ds-watch-border: var(--ds-watch-border);

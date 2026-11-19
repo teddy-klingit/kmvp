@@ -15,7 +15,7 @@ const PERIODS = [
 ];
 
 /** The period for the whole tab, in the URL (?range=30|90|365, 30 by default). */
-export function PeriodSwitch() {
+export function PeriodSwitch({ medium = false }: { medium?: boolean }) {
   const pathname = usePathname() ?? "/insights";
   const params = useSearchParams();
   const current = params?.get("range") ?? "30";
@@ -32,7 +32,7 @@ export function PeriodSwitch() {
             href={`${pathname}${q.size ? `?${q}` : ""}`}
             scroll={false}
             aria-current={on ? "page" : undefined}
-            className={cn("inline-flex h-11 items-center whitespace-nowrap rounded-full px-[18px] text-[14px] no-underline transition-colors sm:h-10", on ? "bg-[var(--seg-active)] text-white" : "text-[var(--seg-text)] hover:bg-black/5")}
+            className={cn("inline-flex h-11 items-center whitespace-nowrap rounded-full px-[18px] text-[14px] no-underline transition-colors sm:h-10", on ? "bg-[var(--seg-active)] text-white" : "text-[var(--seg-text)] hover:bg-black/5", on && medium && "font-fw-medium")}
           >
             {p.label}
           </Link>
@@ -46,7 +46,7 @@ export function PeriodSwitch() {
  * "Share as report": the tab as it is now (same period) for anyone on the client's account, by link, or printed
  * to PDF. The print view hides the menus and controls (print: variants).
  */
-export function ShareReport() {
+export function ShareReport({ medium = false }: { medium?: boolean }) {
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     try {
@@ -60,7 +60,7 @@ export function ShareReport() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button type="button" className="text-[14px] text-brand-ink underline underline-offset-4 hover:text-brand-ink-2 print:hidden">
+        <button type="button" className={cn("text-[14px] text-brand-ink underline underline-offset-4 hover:text-brand-ink-2 print:hidden", medium && "font-fw-medium")}>
           Share as report
         </button>
       </DropdownMenuTrigger>
@@ -83,6 +83,8 @@ export function ShareReport() {
 export function InsightsHeader({ ask }: { ask: React.ReactNode }) {
   const tab = tabFor(usePathname() ?? "/insights");
   const seg = tab.segment ? SEGMENTS[tab.segment] : null;
+  // Three weights, as tokens (Competitors first): Medium for the title and the controls you act on.
+  const weighted = tab.key === "competitors";
   return (
     <header className="flex flex-wrap items-start gap-x-6 gap-y-4">
       <div className="flex min-w-0 flex-1 flex-col gap-2">
@@ -94,14 +96,14 @@ export function InsightsHeader({ ask }: { ask: React.ReactNode }) {
         ) : (
           <span className="font-brand-mono text-[12px] uppercase text-brand-ink-2">Insights</span>
         )}
-        <h1 className="m-0 text-[32px] font-light leading-[1.15] tracking-[0.01em] min-[700px]:text-[36px]">{tab.label}</h1>
+        <h1 className={cn("m-0 text-[32px] leading-[1.15] tracking-[0.01em] min-[700px]:text-[36px]", weighted ? "font-fw-medium" : "font-light")}>{tab.label}</h1>
         <p className="m-0 text-[15px] text-brand-ink-2">{tab.question}</p>
       </div>
       <div className="flex w-full flex-col items-stretch gap-3 min-[1100px]:w-auto min-[1100px]:items-end">
-        <div className="print:hidden">{ask}</div>
+        <div className={cn("print:hidden", weighted && "[&_button[type=submit]]:font-fw-medium")}>{ask}</div>
         <div className="flex flex-wrap items-center gap-4 min-[1100px]:justify-end">
-          <PeriodSwitch />
-          <ShareReport />
+          <PeriodSwitch medium={weighted} />
+          <ShareReport medium={weighted} />
         </div>
       </div>
     </header>

@@ -21,7 +21,8 @@ const SIGNAL: Record<SignalStatus, { label: string; tile: string; text: string; 
 };
 
 /** "The short answer": a headline of 12 words or fewer, and 3 signal tiles. Sources sit in a "Based on" row. */
-export function ShortAnswer({ card, sources }: { card: AnswerCard; sources: string[] }) {
+/** `weighted`: the three-weight hierarchy (Medium headline and labels, Semibold numbers), Competitors first. */
+export function ShortAnswer({ card, sources, weighted = false }: { card: AnswerCard; sources: string[]; weighted?: boolean }) {
   return (
     <section aria-label="The short answer" className="flex flex-col gap-4 rounded-2xl bg-white px-6 py-6">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
@@ -33,17 +34,17 @@ export function ShortAnswer({ card, sources }: { card: AnswerCard; sources: stri
           </span>
         )}
       </div>
-      <p className="m-0 text-balance text-[22px] font-light leading-[1.3] text-brand-ink min-[700px]:text-[26px]">{card.headline}</p>
+      <p className={cn("m-0 text-balance text-[22px] leading-[1.3] text-brand-ink min-[700px]:text-[26px]", weighted ? "font-fw-medium" : "font-light")}>{card.headline}</p>
       {card.tiles.length > 0 && (
         <ul className="m-0 grid list-none grid-cols-1 gap-3 p-0 min-[700px]:grid-cols-3">
           {card.tiles.map((t) => {
             const k = SIGNAL[t.status];
             return (
               <li key={t.id} className={cn("flex min-w-0 flex-col gap-1.5 rounded-xl px-4 py-4", k.tile)}>
-                <span className={cn("inline-flex items-center gap-1.5 font-brand-mono text-[11px] uppercase tracking-[0.04em]", k.text)}>
+                <span className={cn("inline-flex items-center gap-1.5 font-brand-mono text-[11px] uppercase tracking-[0.04em]", k.text, weighted && "font-fw-medium")}>
                   <k.Icon className="size-3.5" strokeWidth={2} aria-hidden /> {k.label}
                 </span>
-                <span className="text-[26px] font-light leading-[1.15] tabular-nums text-brand-ink">{t.value}</span>
+                <span className={cn("text-[26px] leading-[1.15] tabular-nums text-brand-ink", weighted ? "font-fw-semibold" : "font-light")}>{t.value}</span>
                 <span className="text-[14px] leading-snug text-brand-ink-2">{t.label}</span>
               </li>
             );
