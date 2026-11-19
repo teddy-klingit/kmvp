@@ -44,8 +44,11 @@ describe("Competitors", () => {
   it("share of AI answers, where you're named per question, Google visibility, ads live and the latest move", async () => {
     const t = await loadCompetitorsTab(fx.clientA.id, { days: 30, now: NOW });
     const row = (b: string) => t.table.find((r) => r.brand === b)!;
-    expect(t.table[0].own).toBe(true);
-    expect(t.table[0].aiShare).toBe(0.5);
+    // Phase X 2b: ranked by share of AI answers, each competitor with its gap to you.
+    expect(t.table.map((r) => r.brand)).toEqual(["Plume Skin", t.brand, "Dewlab"].filter((b) => t.table.some((r) => r.brand === b)).concat(t.table.map((r) => r.brand).filter((b) => !["Plume Skin", t.brand, "Dewlab"].includes(b))));
+    expect(t.table.find((r) => r.own)).toMatchObject({ aiShare: 0.5, rank: 2, vsYou: null });
+    expect(row("Plume Skin")).toMatchObject({ rank: 1, vsYou: 25 });
+    expect(t.answers).toMatchObject({ total: 4, win: t.questions.filter((q) => q.ownPosition === 1).length });
     expect(row("Plume Skin")).toMatchObject({ aiShare: 0.75, google: 41, ads: 3 });
     expect(row("Plume Skin").move?.title).toContain("tinted SPF");
     expect(row("Dewlab").aiShare).toBe(0.25);

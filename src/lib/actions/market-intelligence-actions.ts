@@ -1,5 +1,6 @@
 "use server";
 
+import { fetchSiteIcon, siteDomain, sitesOf } from "@/lib/competitor-logo";
 import { withAiCharge, assistantCharge, ASSISTANTS } from "@/lib/ai-context";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -112,6 +113,9 @@ export async function dismissSuggestedCompetitorAction(formData: FormData) {
 export async function trackCompetitorAction(formData: FormData) {
   const viewer = await getPortalViewer();
   const raw = String(formData.get("brand") ?? "").trim();
+  const website = String(formData.get("website") ?? "").trim();
+  // A name, or a website typed into the name field ("plumeskin.com" tracks "plumeskin.com" with that site).
+  const typedSite = !website && siteDomain(raw) && /\./.test(raw) ? raw : "";
   const name = raw.replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "").slice(0, 80);
   if (!name) return;
   const current = jsonArray<string>(viewer.client.competitorBrands);
@@ -120,7 +124,33 @@ export async function trackCompetitorAction(formData: FormData) {
   if (!current.some((b) => b.toLowerCase() === name.toLowerCase())) {
     await prisma.client.update({ where: { id: viewer.clientId }, data: { competitorBrands: [...current, name] } });
   }
+  if (website || typedSite) await saveCompetitorSite(viewer.clientId, name, website || typedSite);
   revalidateAllTabs();
+}
+
+/** Phase X 2b: a competitor's website, and its logo fetched once from the site. */
+export async function setCompetitorSiteAction(formData: FormData) {
+  const viewer = await getPortalViewer();
+  const brand = String(formData.get("brand") ?? "");
+  const current = jsonArray<string>(viewer.client.competitorBrands);
+  if (!current.some((b) => b.toLowerCase() === brand.toLowerCase())) return;
+  await saveCompetitorSite(viewer.clientId, brand, String(formData.get("website") ?? ""));
+  revalidateAllTabs();
+}
+
+async function saveCompetitorSite(clientId: string, brand: string, website: string) {
+  const domain = siteDomain(website);
+  const client = await prisma.client.findUniqueOrThrow({ where: { id: clientId }, select: { competitorSites: true } });
+  const sites = sitesOf(client.competitorSites);
+  const key = brand.toLowerCase();
+  if (!domain) {
+    if (!sites[key]) return;
+    delete sites[key];
+  } else {
+    if (sites[key]?.domain === domain && sites[key]?.logo) return;
+    sites[key] = { domain, logo: await fetchSiteIcon(domain) };
+  }
+  await prisma.client.update({ where: { id: clientId }, data: { competitorSites: sites } });
 }
 
 /** "Edit competitors": stop tracking a brand. Its stored checks stay (history), it just leaves the tab. */
@@ -130,7 +160,9 @@ export async function removeCompetitorAction(formData: FormData) {
   const current = jsonArray<string>(viewer.client.competitorBrands);
   const next = current.filter((b) => b.toLowerCase() !== name.toLowerCase());
   if (next.length === current.length) return;
-  await prisma.client.update({ where: { id: viewer.clientId }, data: { competitorBrands: next } });
+  const sites = sitesOf(viewer.client.competitorSites);
+  delete sites[name.toLowerCase()];
+  await prisma.client.update({ where: { id: viewer.clientId }, data: { competitorBrands: next, competitorSites: sites } });
   await prisma.auditLog.create({ data: { clientId: viewer.clientId, actorUserId: viewer.userId, area: "insights", action: `Stopped tracking ${name.slice(0, 80)}` } });
   revalidateAllTabs();
 }

@@ -254,6 +254,9 @@ model Client {
   industry               String?
   website                String? // e.g. "klarna.com" — powers SEO/AI-visibility audits
   competitorBrands       Json? // string[] — brand names to watch in Market Intelligence (e.g. Meta Ad Library search)
+  /// Phase X 2b: each competitor's website and logo, keyed by lower-case brand name: { [brand]: { domain, logo } }.
+  /// The logo is the site's icon, fetched once when the website is saved (a small data URL); none → a monogram.
+  competitorSites        Json?
   brandSummary           String? // short blurb for the Brand Intelligence rail
   planTier               PlanTier     @default(GROWTH)
   status                 ClientStatus @default(ONBOARDING)

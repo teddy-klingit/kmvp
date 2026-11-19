@@ -58,7 +58,7 @@ export default async function InsightsOverviewPage({ searchParams }: { searchPar
 
   // ─── Your channels this month: each tab's own headline numbers ──────────────
   const leader = [...competitors.table].filter((r) => !r.own && r.aiShare !== null).sort((a, b) => b.aiShare! - a.aiShare!)[0];
-  const own = competitors.table[0];
+  const own = competitors.table.find((r) => r.own)!;
   const rows: Row[] = [
     ...(spend ? [{ tab: "Paid ads", href: "/insights/paid", segment: "channels" as const, headline: `${money(spend, cur)} spent · ${money(paid.numbers.sales.value, cur)} sales`, read: paid.numbers.sales.value ? `${times(paid.numbers.sales.value / spend)} return` : "No sales linked yet", change: pctChange(paid.numbers.sales.change, "sales") }] : []),
     ...(organic.posts ? [{ tab: "Organic social", href: "/insights/organic", segment: "channels" as const, headline: `${count(reach.value)} reach${organic.numbers.followers.growth ? ` · ${organic.numbers.followers.growth >= 0 ? "+" : "−"}${count(Math.abs(organic.numbers.followers.growth))} followers` : ""}`, read: organic.numbers.engagement.value !== null ? `${pct1(organic.numbers.engagement.value)} engagement` : "", change: pctChange(reach.change, "reach") }] : []),

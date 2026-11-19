@@ -1,3 +1,4 @@
+import { sitesOf } from "@/lib/competitor-logo";
 import { prisma } from "@/lib/prisma";
 import { jsonArray } from "@/lib/utils";
 import { clientVisible } from "@/lib/opportunities";
@@ -12,6 +13,14 @@ const DAY = 86400000;
 
 /** How many competitors a plan tracks (Phase X: 3 on Pro and Basic, 4 on Enterprise). */
 /** A competitor move's type tag, from its wording: New product, Price cut or Campaign. */
+/** What an ad theme is about, as a tag: Launch, Discount, Sustainability or Brand. */
+export function adTag(theme: string): "Launch" | "Discount" | "Sustainability" | "Brand" {
+  if (/\d+\s*%|\boff\b|discount|sale|deal/i.test(theme)) return "Discount";
+  if (/refill|rebuy|recycl|eco|sustain|plastic/i.test(theme)) return "Sustainability";
+  if (/new|launch|spf|introduc|disappear/i.test(theme)) return "Launch";
+  return "Brand";
+}
+
 export type MoveKind = "New product" | "Price cut" | "Campaign";
 export function moveKind(title: string): MoveKind {
   if (/\d+\s*%|\bprice|discount|\boff\b|\bsale\b/i.test(title)) return "Price cut";
@@ -29,8 +38,10 @@ const mentionsBrand = (text: string, brand: string) => text.toLowerCase().includ
 
 export async function loadCompetitorsTab(clientId: string, opts: { days: number; now?: Date }) {
   const now = opts.now ?? new Date();
-  const client = await prisma.client.findUniqueOrThrow({ where: { id: clientId }, select: { name: true, competitorBrands: true } });
+  const client = await prisma.client.findUniqueOrThrow({ where: { id: clientId }, select: { name: true, competitorBrands: true, competitorSites: true } });
   const brands = jsonArray<string>(client.competitorBrands);
+  const sites = sitesOf(client.competitorSites);
+  const logos: Record<string, string | null> = Object.fromEntries(brands.map((b) => [b, sites[b.toLowerCase()]?.logo ?? null]));
   const isOwn = (b: string) => b.toLowerCase() === client.name.toLowerCase();
   const [checks, audits, snaps, profiles, signals] = await Promise.all([
     prisma.aiVisibilityCheck.findMany({ where: { clientId }, orderBy: { checkedAt: "desc" }, take: 400 }),
@@ -68,13 +79,21 @@ export async function loadCompetitorsTab(clientId: string, opts: { days: number;
   const latestMove = (brand: string) => signals.find((s) => mentionsBrand(s.title, brand)) ?? null;
   const seo = (subject: string) => audits.find((a) => a.subject.toLowerCase() === subject.toLowerCase())?.seoScore ?? null;
 
+  // Phase X 2b: ranked by share of AI answers (then Google visibility), each with its gap to you.
+  const ownShare = aiShare(client.name);
   const table = [
-    { brand: client.name, own: true, aiShare: aiShare(client.name), google: seo("Own site"), ads: ownAds || null, move: null as null | { title: string; at: Date } },
+    { brand: client.name, own: true, aiShare: ownShare, google: seo("Own site"), ads: ownAds || null, move: null as null | { title: string; at: Date; kind: MoveKind } },
     ...brands.map((b) => {
       const m = latestMove(b);
-      return { brand: b, own: false, aiShare: aiShare(b), google: seo(b), ads: adsLive(b), move: m ? { title: m.title, at: m.publishedAt } : null };
+      return { brand: b, own: false, aiShare: aiShare(b), google: seo(b), ads: adsLive(b), move: m ? { title: m.title, at: m.publishedAt, kind: moveKind(m.title) } : null };
     }),
-  ];
+  ]
+    .sort((a, b) => (b.aiShare ?? -1) - (a.aiShare ?? -1) || (b.google ?? -1) - (a.google ?? -1))
+    .map((r, i) => ({ ...r, rank: i + 1, vsYou: !r.own && r.aiShare !== null && ownShare !== null ? Math.round((r.aiShare - ownShare) * 100) : null }));
+  const leaders = { aiShare: Math.max(...table.map((r) => r.aiShare ?? -1)), google: Math.max(...table.map((r) => r.google ?? -1)), ads: Math.max(...table.map((r) => r.ads ?? -1)) };
+
+  // Who AI assistants recommend, in three numbers: questions you win, where you're top 3, where you're not named.
+  const answers = { win: questions.filter((x) => x.ownPosition === 1).length, top3: questions.filter((x) => x.ownPosition !== null && x.ownPosition <= 3).length, notNamed: questions.filter((x) => x.ownPosition === null).length, total: questions.length };
 
   const advertise = brands
     .map((b) => {
@@ -82,7 +101,7 @@ export async function loadCompetitorsTab(clientId: string, opts: { days: number;
       const theme = p ? jsonArray<{ theme: string; evidence?: string }>(p.themes)[0]?.theme : undefined;
       const platforms = [...new Set(snaps.filter((s) => s.brand.toLowerCase() === b.toLowerCase()).map((s) => s.platform))];
       const first = [...snaps].reverse().find((s) => s.brand.toLowerCase() === b.toLowerCase() && jsonArray(s.adIds).length);
-      return theme ? { brand: b, theme, ads: adsLive(b), since: first?.capturedAt ?? null, platforms } : null;
+      return theme ? { brand: b, theme, tag: adTag(theme), ads: adsLive(b), since: first?.capturedAt ?? null, platforms } : null;
     })
     .filter((x): x is NonNullable<typeof x> => x !== null);
 
@@ -93,7 +112,21 @@ export async function loadCompetitorsTab(clientId: string, opts: { days: number;
     .filter((m) => m.brand)
     .slice(0, 6);
 
-  return { brand: client.name, brands, table, questions, engines, advertise, moves, checksInRun: run.length };
+  // "For you": what a move means for the client, and the opportunity it feeds. Stored on the signal when staff or the
+  // weekly check wrote one; else the opportunity built from a finding about that brand.
+  const brandInsights = await prisma.insight.findMany({ where: { clientId, status: "active" }, select: { title: true, opportunities: { select: { opportunity: { select: { id: true, title: true, whyNow: true, status: true, hiddenAt: true, combined: true } } } } } });
+  const signalData = new Map(signals.map((x) => [x.id, (x.data ?? {}) as { forYou?: string; opportunityId?: string }]));
+  const oppIds = [...signalData.values()].map((d) => d.opportunityId).filter((x): x is string => Boolean(x));
+  const linkedOpps = oppIds.length ? await prisma.opportunity.findMany({ where: { clientId, id: { in: oppIds }, hiddenAt: null }, select: { id: true, title: true, whyNow: true, combined: true } }) : [];
+  const movesForYou = moves.map((m) => {
+    const d = signalData.get(m.id) ?? {};
+    const linked = linkedOpps.find((o) => o.id === d.opportunityId);
+    const viaInsight = linked ? null : brandInsights.find((i) => mentionsBrand(i.title, m.brand!) && i.opportunities.some((l) => !l.opportunity.hiddenAt && l.opportunity.status !== "dismissed"));
+    const opp = linked ?? viaInsight?.opportunities.find((l) => !l.opportunity.hiddenAt && l.opportunity.status !== "dismissed")?.opportunity ?? null;
+    return { ...m, forYou: d.forYou ?? opp?.whyNow ?? null, opportunity: opp ? { id: opp.id, title: shortTitle(opp) } : null };
+  });
+
+  return { brand: client.name, brands, logos, table, leaders, answers, questions, engines, advertise, moves: movesForYou, checksInRun: run.length };
 }
 export type CompetitorsTab = Awaited<ReturnType<typeof loadCompetitorsTab>>;
 

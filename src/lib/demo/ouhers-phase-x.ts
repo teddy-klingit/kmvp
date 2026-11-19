@@ -332,14 +332,29 @@ export async function seedPhaseX(ctx: Ctx) {
     ["tinted SPF for sensitive skin", "chatgpt", [P, N]],
     ["refill skincare Sweden", "claude", [O, N]],
   ];
-  // The other 97 answers: each brand named in exactly its remaining count, spread evenly.
-  const rest: Record<string, number> = { [O]: 18 - 2, [P]: 31 - 2, [D]: 22 - 1, [K]: 14, [N]: 9 - 2 };
+  // The other 97 answers. The first answer to each of the 37 other questions is the one the tab shows per question:
+  // you win 8 of the 40, are top 3 in 14 and aren't named in 22 (all 18 of your mentions are in those answers).
+  // The 60 answers after them name the competitors up to their totals.
+  const total: Record<string, number> = { [O]: 18, [P]: 31, [D]: 22, [K]: 14, [N]: 9 };
+  const used: Record<string, number> = { [O]: 2, [P]: 2, [D]: 1, [K]: 0, [N]: 2 };
+  const reps: string[][] = [
+    [O, P, D, K], // "gentle cleanser for dry skin"
+    ...Array.from({ length: 6 }, (_, j) => [O, [P, D, N][j % 3]]),
+    ...Array.from({ length: 5 }, (_, j) => (j % 2 ? [P, D, O] : [P, O])),
+    ...Array.from({ length: 4 }, () => [P, D, K, O]),
+    ...Array.from({ length: 21 }, (_, j) => [[P], [D], [P, K], [D, P], [K]][j % 5]),
+  ];
+  for (const r of reps) for (const b of r) used[b] += 1;
   const engines = ["chatgpt", "claude", "perplexity"];
   const checks: Prisma.AiVisibilityCheckCreateManyInput[] = shown.map(([question, engine, named], i) => ({ clientId, engine, grounded: true, question, answer: "", mentions: [...named.map((brand) => ({ brand, mentioned: true })), ...[O, ...COMPETITORS].filter((b) => !named.includes(b)).map((brand) => ({ brand, mentioned: false }))], checkedAt: new Date(ago(1).getTime() - i * 1000) }));
   const QUESTIONS = ["gentle cleanser for dry skin", "best serum under 400 kr", "hyaluronic serum Nordic brand", "moisturiser for sensitive skin", "vegan skincare Sweden", "skincare gift set Christmas", "lip balm with colour", "SPF that doesn't leave a white cast", "best niacinamide serum", "skincare for teenagers", "cleanser without fragrance", "ceramide moisturiser", "squalane cream", "skin barrier repair", "daily SPF for face", "refillable skincare", "clean beauty Scandinavia", "dewy skin products", "glass skin routine products", "moisturiser under makeup", "night cream for 20s", "skincare for men Sweden", "best cheap skincare", "skincare subscription Nordic", "eco skincare brands", "cruelty-free moisturiser", "toner for sensitive skin", "lightweight SPF", "tinted lip balm vegan", "serum for dull skin", "skin cycling products", "minimal skincare routine", "skincare for winter", "oily skin moisturiser", "skincare with oat", "best Swedish skincare", "SPF stick"];
   const EXTRA = 97;
-  const named: string[][] = Array.from({ length: EXTRA }, () => []);
-  for (const [k, [brand, n]] of Object.entries(rest).entries()) for (let i = 0; i < n; i++) named[(Math.floor((i * EXTRA) / n) + k * 7) % EXTRA].push(brand);
+  const named: string[][] = [...reps, ...Array.from({ length: EXTRA - reps.length }, () => [] as string[])];
+  const later = EXTRA - reps.length;
+  for (const [k, b] of [P, D, K, N].entries()) {
+    const left = total[b] - used[b];
+    for (let i = 0; i < left; i++) named[reps.length + ((Math.floor((i * later) / Math.max(1, left)) + k * 7) % later)].push(b);
+  }
   for (let i = 0; i < EXTRA; i++) {
     checks.push({ clientId, engine: engines[i % 3], grounded: true, question: QUESTIONS[i % QUESTIONS.length], answer: "", mentions: [...named[i].map((brand) => ({ brand, mentioned: true })), ...[O, ...COMPETITORS].filter((b) => !named[i].includes(b)).map((brand) => ({ brand, mentioned: false }))], checkedAt: new Date(ago(1).getTime() - (i + 5) * 1000) });
   }
@@ -380,6 +395,14 @@ export async function seedPhaseX(ctx: Ctx) {
     prisma.opportunity.findFirst({ where: { clientId, title: { startsWith: "Test a refill ritual" } }, select: { id: true } }),
     prisma.opportunity.findFirst({ where: { clientId, origin: "combined" }, select: { id: true } }),
   ]);
+  // "For you" on the three moves: what each means for ouhers, and the opportunity it feeds.
+  for (const [start, forYou, opp] of [
+    [`${N} launched refill pouches`, "Lead with what’s different in your refill.", refillOpp],
+    [`${D} put 20% off`, "Don’t match it. Push the gift set.", storiesOpp],
+    [`${P} launched a tinted SPF`, "You’re not named for tinted SPF.", spfOpp],
+  ] as const) {
+    await prisma.marketSignal.updateMany({ where: { clientId, type: "COMPETITOR", archivedAt: null, title: { startsWith: start } }, data: { data: { forYou, ...(opp ? { opportunityId: opp.id } : {}) } } });
+  }
   const pouch = await prisma.clientCalendarItem.findFirst({ where: { clientId, title: "Refill pouch launch" }, select: { date: true } });
   const dm = (d: Date) => new Intl.DateTimeFormat("en-GB", { timeZone: WORK_TZ, day: "numeric", month: "short" }).format(d);
   await prisma.trendTopic.deleteMany({ where: { clientId } });
