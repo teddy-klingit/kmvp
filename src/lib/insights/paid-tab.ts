@@ -84,23 +84,18 @@ export async function loadPaidTab(clientId: string, opts: { days: number; now?: 
   const formatOrders = [...byFormat].filter(([, x]) => x.orders >= 20).map(([format, x]) => ({ format, orderValue: x.revenue / x.orders })).sort((a, b) => b.orderValue - a.orderValue);
   const best = ads.length >= 3 ? [...ads.slice(0, 2).map((a) => ({ ...a, tag: "Winner" as const })), { ...ads[ads.length - 1], tag: "Weakest" as const }] : [];
 
-  // ─── Budget this month: spent so far against the plan, and where the month will end at this pace ────────────
+  // ─── Budget this month: the last 30 days' spend against the monthly plan (Phase X 2b: the same 30 days as the rest
+  // of Insights), what's left, and which channel is furthest under its own plan.
   const month = monthKey(now);
   const budgets = await prisma.adBudget.findMany({ where: { clientId, month } });
   const plan = budgets.find((b) => b.channel === "")?.amount ?? (budgets.length ? budgets.reduce((a, b) => a + b.amount, 0) : null);
-  const monthStart = `${month}-01`;
-  const monthRows = await prisma.metricDaily.findMany({ where: { clientId, date: { gte: monthStart }, metric: "spend", source: { in: [...AD_PLATFORMS] } }, select: { source: true, value: true } });
-  const spentMonth = monthRows.reduce((a, r) => a + r.value, 0);
-  const dayOfMonth = Number(new Intl.DateTimeFormat("en-GB", { timeZone: WORK_TZ, day: "numeric" }).format(now));
-  const [y, m] = month.split("-").map(Number);
-  const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
-  const projected = dayOfMonth ? (spentMonth / dayOfMonth) * daysInMonth : spentMonth;
-  // Which channel is furthest under its own plan, when the plan is split by channel.
+  const spent30 = opts.days === 30 ? spend : sum(cur.filter((r) => r.date >= new Date(now.getTime() - 30 * DAY).toISOString().slice(0, 10)), "spend", isAd);
   const under = budgets
     .filter((b) => b.channel)
-    .map((b) => ({ channel: b.channel, gap: b.amount - (monthRows.filter((r) => r.source === b.channel).reduce((a, r) => a + r.value, 0) / Math.max(1, dayOfMonth)) * daysInMonth }))
+    .map((b) => ({ channel: b.channel, gap: b.amount - sum(cur.filter((r) => r.date >= new Date(now.getTime() - 30 * DAY).toISOString().slice(0, 10)), "spend", (r) => r.source === b.channel) }))
     .sort((a, b) => b.gap - a.gap)[0];
-  const budget = plan ? { plan, spent: spentMonth, share: spentMonth / plan, projected, unspent: plan - projected, under: under && under.gap > 0 ? under.channel : null, day: dayOfMonth, days: daysInMonth } : null;
+  const bestFormatPlatform = cur.some((r) => r.source === "Meta" && r.metric === "spend") ? "Meta" : null;
+  const budget = plan ? { plan, spent: spent30, share: spent30 / plan, left: plan - spent30, under: under && under.gap > plan * 0.03 ? under.channel : null, bestPlatform: bestFormatPlatform } : null;
 
   // ─── Ads getting tired: seen more than 4 times per person while their click rate falls by a third ───────────
   const since = (d: number) => new Date(now.getTime() - d * DAY).toISOString().slice(0, 10);

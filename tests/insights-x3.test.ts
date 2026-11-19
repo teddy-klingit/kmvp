@@ -115,7 +115,8 @@ describe("ad budget", () => {
     expect(await prisma.auditLog.count({ where: { clientId: fx.clientA.id, area: "insights", action: { contains: "Ad budget 2026-11" } } })).toBe(1);
     const t = await loadPaidTab(fx.clientA.id, { days: 30, now: NOW });
     expect(t.budget?.plan).toBe(3000);
-    expect(t.budget?.day).toBe(17);
-    expect(t.budget?.days).toBe(30);
+    // Phase X 2b: the last 30 days' spend against the month's plan.
+    expect(t.budget?.spent).toBeCloseTo(t.numbers.spend.value, 6);
+    expect(t.budget?.left).toBeCloseTo(3000 - t.numbers.spend.value, 6);
   });
 });

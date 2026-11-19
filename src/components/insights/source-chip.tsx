@@ -33,3 +33,12 @@ export const Chips = ({ sources }: { sources: string[] }) => (
   </span>
 );
 
+
+/** Phase X 2b: a channel as an icon tile (Meta, Google Ads, LinkedIn…), for table rows. */
+export function ChannelIcon({ source, className }: { source: string; className?: string }) {
+  return (
+    <span aria-hidden className={cn("inline-flex size-7 shrink-0 items-center justify-center rounded-md font-brand-mono text-[10px] font-semibold", CHIP[source] ?? "bg-brand-chip text-brand-ink", className)}>
+      {MONO[source] ?? source[0]}
+    </span>
+  );
+}

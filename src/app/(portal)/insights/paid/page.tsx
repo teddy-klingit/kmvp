@@ -12,7 +12,9 @@ import { adDataStatus } from "@/lib/integrations/live-ads-owner";
 import { isClientAdmin } from "@/lib/client-roles";
 import { NoAdAccount } from "@/components/portal/insights/no-ad-account";
 import { AllCampaigns } from "@/components/insights/paid-all-campaigns";
-import { BlindSpots, Card, KeyNumbers, ShortAnswer, WhatWeFound, type BlindSpot } from "@/components/insights/tab-parts";
+import { BlindSpots, Card, KeyNumbers, MeansButton, ShortAnswer, StatusPill, WhatItMeans, WhatWeFound, type BlindSpot } from "@/components/insights/tab-parts";
+import { ChannelIcon } from "@/components/insights/source-chip";
+import { MessagePmButton } from "@/components/pm-panel/pm-panel-provider";
 import { WORK_TZ } from "@/lib/working-hours";
 import { cn } from "@/lib/utils";
 
@@ -69,6 +71,21 @@ export default async function PaidAdsPage({ searchParams }: { searchParams: Prom
     ...(t.budget ? [] : [{ text: `No monthly ad budget on file, so we can't show how spend is pacing. ${pmFirst} can add it.`, action: { label: `Ask ${pmFirst}`, href: "/dashboard?message=1" } }]),
     ...(t.sources.sales.length ? [] : [{ text: "What the ads sold: connect your shop or CRM to follow clicks to orders and deals.", action: { label: "Connect", href: "/settings/connections" } }]),
   ];
+  const paying = t.channels.filter((c) => c.return !== null);
+  const topSales = [...paying].sort((a, b) => b.sales - a.sales)[0];
+  const topReturn = [...paying].sort((a, b) => (b.return ?? 0) - (a.return ?? 0))[0];
+  const label = (p: string) => (p === "Google" ? "Google Ads" : p);
+  const moneyMeans = paying.length
+    ? `${paying.every((c) => c.return! >= 1) ? "Every channel pays back." : `${paying.filter((c) => c.return! < 1).map((c) => label(c.platform)).join(" and ")} doesn't pay back yet.`} ${label(topSales.platform)} brings the most sales${topReturn && topReturn !== topSales ? `, ${label(topReturn.platform)} the best return${topReturn.retailOnly ? " (retail deals)" : ""}` : ""}.`
+    : null;
+  const b = t.budget;
+  const budgetMeans = b
+    ? b.left > b.plan * 0.03
+      ? `${money(b.left, cur)} unspent${b.under ? `, mostly ${label(b.under)}` : ""}.${topFormat && formatGap !== null && formatGap >= 0.1 ? ` Move it to ${b.bestPlatform ? `${b.bestPlatform} ` : ""}${topFormat.format} ads next month?` : ""}`
+      : b.left < -b.plan * 0.03
+        ? `${money(-b.left, cur)} over plan in the last 30 days.`
+        : "Spend is on plan."
+    : "";
   const maxBar = Math.max(1, ...t.channels.flatMap((c) => [c.spend, c.sales]));
 
   return (
@@ -77,7 +94,7 @@ export default async function PaidAdsPage({ searchParams }: { searchParams: Prom
 
       <KeyNumbers
         items={[
-          { label: "Ad spend", value: money(n.spend.value, cur), change: t.budget && days === 30 ? { text: `${Math.round(t.budget.share * 100)}% of plan`, tone: "neutral" } : delta(n.spend.change), sub: t.budget && days === 30 ? `${money(t.budget.plan, cur)} planned` : null, spark: n.spend.spark },
+          { label: "Ad spend", value: money(n.spend.value, cur), change: t.budget && days === 30 ? { text: `${Math.round(t.budget.share * 100)}% of plan`, tone: t.budget.share > 1 ? "bad" : "neutral" } : delta(n.spend.change), sub: t.budget && days === 30 ? `${money(t.budget.plan, cur)} planned` : null, spark: n.spend.spark },
           { label: "Sales from ads", value: money(n.sales.value, cur), change: delta(n.sales.change), spark: n.sales.spark },
           { label: "Cost per order", value: n.costPerOrder.value !== null ? money(n.costPerOrder.value, cur) : "No orders yet", change: cpoDiff !== null ? { text: `${cpoDiff <= 0 ? "−" : "+"}${money(Math.abs(cpoDiff), cur)} ${vs}`, tone: cpoDiff <= 0 ? "good" : "bad" } : null, spark: n.costPerOrder.spark },
           { label: "Click rate", value: n.ctr.value !== null ? pct1(n.ctr.value) : "No clicks yet", change: ctrDiff !== null ? { text: `${pts(ctrDiff)} ${vs}`, tone: ctrDiff >= 0 ? "good" : "bad" } : null, spark: n.ctr.spark },
@@ -86,38 +103,41 @@ export default async function PaidAdsPage({ searchParams }: { searchParams: Prom
 
       {t.channels.length > 0 && (
         <Card title="Where your money went, and what came back" flush>
-          <div className="@container/money overflow-x-auto">
-            <div className="grid min-w-[560px] grid-cols-[110px_minmax(0,1fr)_72px_72px_84px] gap-x-4 border-b border-brand-line px-6 py-3 font-brand-mono text-[11px] uppercase tracking-[0.04em] text-brand-ink-2">
-              <span>Channel</span>
-              <span>Spend vs sales</span>
-              <span>Spend</span>
-              <span>Sales</span>
-              <span>Return</span>
-            </div>
-            <ul className="m-0 min-w-[560px] list-none p-0">
-              {t.channels.map((c) => (
-                <li key={c.platform} className="grid grid-cols-[110px_minmax(0,1fr)_72px_72px_84px] items-center gap-x-4 border-b border-brand-line px-6 py-3.5 last:border-b-0">
-                  <span className="text-[15px]">{c.platform === "Google" ? "Google Ads" : c.platform}</span>
-                  <span className="flex flex-col gap-1">
-                    <span className="h-2 rounded-full bg-[#C2C3C5]" style={{ width: `${Math.max(2, (c.spend / maxBar) * 100)}%` }} />
-                    <span className="h-2 rounded-full" style={{ width: `${Math.max(2, (c.sales / maxBar) * 100)}%`, background: PURPLE }} />
-                  </span>
-                  <span className="text-[14px] tabular-nums">{money(c.spend, cur)}</span>
-                  <span className="text-[14px] tabular-nums">{c.sales ? money(c.sales, cur) : "—"}</span>
-                  <span className="text-[14px] tabular-nums">{c.return !== null ? `${times(c.return)}${c.retailOnly ? " retail" : ""}` : "No sales yet"}</span>
-                </li>
-              ))}
-            </ul>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[620px] border-collapse text-[14px]">
+              <thead>
+                <tr className="bg-[#FAF8F3] text-left font-brand-mono text-[11px] uppercase tracking-[0.04em] text-brand-ink-2">
+                  <th className="px-6 py-3 font-normal">Channel</th>
+                  <th className="w-[42%] px-3 py-3 font-normal">Spend (grey) vs sales (purple)</th>
+                  <th className="px-3 py-3 font-normal">Spend</th>
+                  <th className="px-3 py-3 font-normal">Sales</th>
+                  <th className="px-6 py-3 font-normal">Return</th>
+                </tr>
+              </thead>
+              <tbody>
+                {t.channels.map((c) => (
+                  <tr key={c.platform} className="border-t border-brand-line">
+                    <td className="px-6 py-3.5">
+                      <span className="flex items-center gap-3 text-[15px]">
+                        <ChannelIcon source={c.platform} />
+                        {c.platform === "Google" ? "Google Ads" : c.platform}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3.5">
+                      <span className="flex flex-col gap-1">
+                        <span className="h-2 rounded-full bg-[#C2C3C5]" style={{ width: `${Math.max(2, (c.spend / maxBar) * 100)}%` }} />
+                        <span className="h-2 rounded-full" style={{ width: `${Math.max(2, (c.sales / maxBar) * 100)}%`, background: PURPLE }} />
+                      </span>
+                    </td>
+                    <td className="px-3 py-3.5 tabular-nums">{money(c.spend, cur)}</td>
+                    <td className="px-3 py-3.5 tabular-nums">{c.sales ? money(c.sales, cur) : "–"}</td>
+                    <td className="px-6 py-3.5">{c.return !== null ? <StatusPill tone={c.return >= 1 ? "good" : "bad"}>{`${times(c.return)}${c.retailOnly ? " retail" : ""}`}</StatusPill> : <span className="text-brand-ink-2">No sales yet</span>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          <p className="m-0 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-brand-line px-6 py-3 text-[12px] text-brand-ink-2">
-            <span className="flex items-center gap-1.5">
-              <span className="h-1.5 w-4 rounded-full bg-[#C2C3C5]" /> Spend
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="h-1.5 w-4 rounded-full" style={{ background: PURPLE }} /> Sales it brought
-            </span>
-            <span>Sales from {t.sources.sales.join(" and ") || "your shop and CRM"}, shared credit</span>
-          </p>
+          {moneyMeans && <WhatItMeans className="mt-2">{moneyMeans}</WhatItMeans>}
         </Card>
       )}
 
@@ -127,19 +147,22 @@ export default async function PaidAdsPage({ searchParams }: { searchParams: Prom
             <Card title="Best and worst ads" flush>
               <ul className="m-0 list-none p-0">
                 {t.best.map((a) => (
-                  <li key={a.id} className="flex items-center gap-4 border-b border-brand-line px-6 py-3.5 last:border-b-0">
+                  <li key={a.id} className="grid grid-cols-[56px_minmax(0,1fr)_88px_96px] items-center gap-4 border-b border-brand-line px-6 py-3.5 last:border-b-0">
                     <span className="size-14 shrink-0 overflow-hidden rounded-[10px]" style={{ background: a.color ?? "#F3EEE3" }}>
                       {/* eslint-disable-next-line @next/next/no-img-element -- an access-checked asset file */}
                       {a.thumbnail && <img src={a.thumbnail} alt="" className="size-full object-cover" />}
                     </span>
-                    <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="flex min-w-0 flex-col">
                       <Link href={`/library/${a.id}?from=insights`} className="truncate text-[15px] text-brand-ink no-underline hover:underline">
                         {a.title}
                       </Link>
-                      <span className="truncate text-[12px] text-brand-ink-2">{[a.platform, a.format].filter(Boolean).join(" · ")}</span>
+                      <span className="truncate text-[12px] text-brand-ink-2">{[a.platform, a.format?.split(" ")[0]].filter(Boolean).join(" · ")}</span>
                     </span>
-                    <span className="shrink-0 text-right text-[13px] tabular-nums">{[a.orderValue ? `${money(a.orderValue, cur)} order` : null, `CTR ${pct1(a.ctr)}`].filter(Boolean).join(" · ")}</span>
-                    <span className={cn("shrink-0 rounded-full px-2.5 py-0.5 text-[12px]", a.tag === "Winner" ? "bg-[#EEF3D6] text-brand-ink" : "bg-[#FDE7DC] text-brand-ink")}>{a.tag}</span>
+                    <span className="flex flex-col tabular-nums">
+                      <span className="text-[16px]">{a.orderValue && a.tag !== "Weakest" ? money(a.orderValue, cur) : pct1(a.ctr)}</span>
+                      <span className="text-[12px] text-brand-ink-2">{a.orderValue && a.tag !== "Weakest" ? "per order" : "click rate"}</span>
+                    </span>
+                    <StatusPill tone={a.tag === "Winner" ? "good" : "bad"}>{a.tag === "Winner" ? "Best" : "Weakest"}</StatusPill>
                   </li>
                 ))}
               </ul>
@@ -155,41 +178,64 @@ export default async function PaidAdsPage({ searchParams }: { searchParams: Prom
 
         <div className="flex min-w-0 flex-col gap-6">
           {t.budget && (
-            <Card title="Budget this month">
-              <p className="m-0 flex flex-wrap items-baseline gap-x-2 text-[14px] text-brand-ink-2">
-                <span className="text-[28px] font-light tabular-nums text-brand-ink">{money(t.budget.spent, cur)}</span>
-                of {money(t.budget.plan, cur)} planned · day {t.budget.day} of {t.budget.days}
-              </p>
-              <span aria-hidden className="mt-3 block h-2.5 rounded-full bg-[#EFEBE2]">
-                <span className="block h-full rounded-full" style={{ width: `${Math.min(100, t.budget.share * 100)}%`, background: PURPLE }} />
-              </span>
-              <p className="m-0 mt-3 text-[14px] leading-[1.5]">
-                {t.budget.unspent > t.budget.plan * 0.03
-                  ? `At this pace you'll spend ${money(t.budget.projected, cur)}: ${money(t.budget.unspent, cur)} unspent${t.budget.under ? `, mostly ${t.budget.under}` : ""}.`
-                  : t.budget.unspent < -t.budget.plan * 0.03
-                    ? `At this pace you'll spend ${money(t.budget.projected, cur)}, ${money(-t.budget.unspent, cur)} over plan.`
-                    : "Spend is on pace for the plan."}
-              </p>
+            <Card title="Budget this month" flush>
+              <div className="flex flex-col gap-3 px-6 pt-5">
+                <dl className="m-0 grid grid-cols-3 gap-3">
+                  {[
+                    ["Planned", money(t.budget.plan, cur)],
+                    [days === 30 ? "Spent" : "Spent, last 30 days", money(t.budget.spent, cur)],
+                    [t.budget.left >= 0 ? "Left" : "Over", money(Math.abs(t.budget.left), cur)],
+                  ].map(([k, v]) => (
+                    <div key={k} className="flex flex-col gap-0.5">
+                      <dt className="text-[13px] text-brand-ink-2">{k}</dt>
+                      <dd className={cn("m-0 text-[26px] font-light tabular-nums", k === "Over" && "text-brand-orange-text")}>{v}</dd>
+                    </div>
+                  ))}
+                </dl>
+                <span aria-hidden className="block h-2.5 rounded-full bg-[#EFEBE2]">
+                  <span className="block h-full rounded-full" style={{ width: `${Math.min(100, t.budget.share * 100)}%`, background: t.budget.share > 1 ? "#FF5D02" : PURPLE }} />
+                </span>
+              </div>
+              <WhatItMeans className="mt-4" action={
+                  <MessagePmButton dot={false} className="inline-flex h-9 items-center rounded-full bg-brand-ink px-4 font-brand-mono text-[12px] text-white hover:opacity-90">
+                    Suggest to {pmFirst}
+                  </MessagePmButton>
+                }>
+                {budgetMeans}
+              </WhatItMeans>
             </Card>
           )}
           {t.tired.length > 0 && (
             <Card title="Ads getting tired" flush>
               <ul className="m-0 list-none p-0">
                 {t.tired.map((a) => (
-                  <li key={a.id} className="flex items-center gap-4 border-b border-brand-line px-6 py-4 last:border-b-0">
-                    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                      <span className="text-[15px]">{[a.title, a.format?.split(" ")[0]].filter(Boolean).join(" · ")}</span>
-                      <span className="text-[13px] text-brand-ink-2">
-                        Seen {a.frequency.toFixed(1)} times per person · CTR down from {pct1(a.ctrBefore)} to {pct1(a.ctrNow)} in 3 weeks
-                      </span>
+                  <li key={a.id} className="grid grid-cols-[44px_minmax(0,1fr)_auto_auto] items-center gap-3 border-b border-brand-line px-6 py-4 last:border-b-0">
+                    <span className="size-11 rounded-lg bg-[#F3E6DC]" aria-hidden />
+                    <span className="flex min-w-0 flex-col">
+                      <span className="truncate text-[15px]">{a.title}</span>
+                      <span className="text-[12px] text-brand-ink-2">{["Meta", a.format?.split(" ")[0]].filter(Boolean).join(" · ")}</span>
                     </span>
-                    <Link href={`/brief/new?${new URLSearchParams({ q: `Refresh “${a.title}”: people see it ${a.frequency.toFixed(1)} times and its click rate fell from ${pct1(a.ctrBefore)} to ${pct1(a.ctrNow)}.` })}`} className="inline-flex h-9 shrink-0 items-center rounded-full border border-brand-ink px-4 font-brand-mono text-[12px] text-brand-ink no-underline hover:bg-brand-ink hover:text-white">
-                      Refresh it
-                    </Link>
+                    <span className="flex flex-col text-right tabular-nums">
+                      <span className="text-[16px]">{a.frequency.toFixed(1)}×</span>
+                      <span className="text-[12px] text-brand-ink-2">seen per person</span>
+                    </span>
+                    <span className="flex flex-col text-right tabular-nums">
+                      <span className="text-[16px] text-brand-orange-text">
+                        {a.ctrBefore.toFixed(1)} → {pct1(a.ctrNow)}
+                      </span>
+                      <span className="text-[12px] text-brand-ink-2">click rate, 3 weeks</span>
+                    </span>
                   </li>
                 ))}
               </ul>
-              <p className="m-0 border-t border-brand-line px-6 py-3 text-[13px] text-brand-ink-2">We flag an ad when people see it more than 4 times and clicks drop by a third.</p>
+              <WhatItMeans
+                className="mt-2"
+                action={
+                  <MeansButton href={`/brief/new?${new URLSearchParams({ q: `Refresh “${t.tired[0].title}”: people see it ${t.tired[0].frequency.toFixed(1)} times and its click rate fell from ${pct1(t.tired[0].ctrBefore)} to ${pct1(t.tired[0].ctrNow)}.` })}`}>Refresh it</MeansButton>
+                }
+              >
+                People have seen {t.tired.length === 1 ? "it" : "them"} too often. A new version usually brings clicks back.
+              </WhatItMeans>
             </Card>
           )}
           <BlindSpots items={blind} />

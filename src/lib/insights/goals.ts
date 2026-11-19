@@ -18,7 +18,7 @@ async function onlineSales(clientId: string, from: Date, to: Date) {
   return rows.reduce((a, r) => a + r.value * (r.model === "" ? 1 : lastOnly.has(r.source) ? (r.model === "last" ? 1 : 0) : 0.5), 0);
 }
 
-export type GoalView = { id: string; title: string; progress: number | null; expected: number | null; status: "On track" | "Behind" | null; line: string | null };
+export type GoalView = { id: string; title: string; progress: number | null; expected: number | null; status: "On track" | "Behind" | null; line: string | null; left: string | null; right: string | null };
 
 export async function goalViews(clientId: string, now = new Date()): Promise<GoalView[]> {
   const goals = await prisma.clientGoal.findMany({ where: { clientId }, orderBy: { sortOrder: "asc" } });
@@ -45,5 +45,21 @@ export async function goalView(clientId: string, g: ClientGoal, now = new Date()
     line = [amount, g.note].filter(Boolean).join(" · ") || null;
   }
   const status = progress === null ? null : expected === null ? (progress >= 1 ? "On track" : null) : progress >= expected - SLACK ? "On track" : "Behind";
-  return { id: g.id, title: g.title, progress: progress === null ? null : Math.max(0, progress), expected, status, line };
+  // Phase X 2b: two short labels under the bar: where it is now (left) and the goal, or where it should be (right).
+  const by = g.dueAt ? ` by ${new Intl.DateTimeFormat("en-GB", { month: "short" }).format(g.dueAt)}` : "";
+  const fmt = (n: number) => `${g.unit?.startsWith("%") && g.title.startsWith("+") ? "+" : ""}${Math.round(n).toLocaleString("en-GB")}${g.unit?.startsWith("%") ? "%" : ""}`;
+  let left: string | null = null;
+  let right: string | null = null;
+  if (g.measure === "online_sales_yoy" && line && /so far/.test(line)) {
+    left = `Now: ${line.split(" so far")[0]}`;
+    right = g.target !== null ? `Goal: +${Math.round(g.target)}%${by}` : null;
+  } else if (g.current !== null && g.unit) {
+    left = `Now: ${fmt(g.current)}`;
+    right = status === "Behind" && expected !== null && g.target ? `Should be ~${(Math.round((g.target * expected) / 1000) * 1000 || Math.round(g.target * expected)).toLocaleString("en-GB")} by now` : g.target ? `Goal: ${fmt(g.target)}${by}` : null;
+  } else if (g.note) {
+    const [a, b] = g.note.split(" · ");
+    left = a ?? null;
+    right = b ? b.replace(/^./, (c) => c.toUpperCase()) : null;
+  }
+  return { id: g.id, title: g.title, progress: progress === null ? null : Math.max(0, progress), expected, status, line, left, right };
 }

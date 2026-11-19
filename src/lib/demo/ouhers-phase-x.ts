@@ -34,7 +34,8 @@ export async function seedPhaseX(ctx: Ctx) {
   /** Spread `total` over the days [from, to) ago (a gentle rise towards today), whole numbers unless `money`. */
   const spread = (total: number, from: number, to: number, opts: { money?: boolean; tilt?: number } = {}) => {
     const n = to - from;
-    const w = Array.from({ length: n }, (_, i) => 1 + (opts.tilt ?? 0.15) * ((n - 1 - i) / Math.max(1, n - 1) - 0.5) * -2);
+    // i = 0 is the newest day: it gets the most (1 + tilt), the oldest the least (1 − tilt).
+    const w = Array.from({ length: n }, (_, i) => 1 + (opts.tilt ?? 0.15) * ((n - 1 - i) / Math.max(1, n - 1) - 0.5) * 2);
     const sum = w.reduce((a, b) => a + b, 0);
     const raw = w.map((x) => (x / sum) * total);
     const out = opts.money ? raw.map((x) => Math.round(x * 100) / 100) : raw.map(Math.floor);
@@ -430,9 +431,9 @@ export async function seedPhaseX(ctx: Ctx) {
   const yearEnd = new Date(Date.UTC(now.getUTCFullYear(), 11, 31, 12));
   await prisma.clientGoal.createMany({
     data: [
-      { clientId, title: `+40% online sales vs ${now.getUTCFullYear() - 1}`, measure: "manual", target: 40, current: 34, unit: "% so far", startAt: yearStart, dueAt: yearEnd, note: "line = where you should be by now", sortOrder: 0, setByUserId: ctx.teddyUserId },
+      { clientId, title: `+40% online sales vs ${now.getUTCFullYear() - 1}`, measure: "manual", target: 40, current: 34, unit: "%", startAt: yearStart, dueAt: yearEnd, note: null, sortOrder: 0, setByUserId: ctx.teddyUserId },
       { clientId, title: "10,000 community members", measure: "manual", target: 10000, current: 6100, unit: "members", startAt: yearStart, dueAt: yearEnd, note: "sign-ups slowed since August", sortOrder: 1, setByUserId: ctx.teddyUserId },
-      { clientId, title: "Launch in Finland by March", measure: "manual", target: 1, current: 0.3, startAt: new Date(now.getTime() - 77 * DAY), dueAt: new Date(Date.UTC(now.getUTCFullYear() + 1, 2, 31, 12)), note: "Brand OS ready · first FI campaign in the Planner for February", sortOrder: 2, setByUserId: ctx.teddyUserId },
+      { clientId, title: "Launch in Finland by March", measure: "manual", target: 1, current: 0.3, startAt: new Date(now.getTime() - 77 * DAY), dueAt: new Date(Date.UTC(now.getUTCFullYear() + 1, 2, 31, 12)), note: "Brand OS ready · First campaign: Feb", sortOrder: 2, setByUserId: ctx.teddyUserId },
     ],
   });
 

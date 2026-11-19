@@ -8,7 +8,7 @@ import { SALES_SOURCES } from "@/lib/sales-sources";
 import { uploadStoreSalesAction } from "@/lib/actions/revenue-actions";
 import { cn } from "@/lib/utils";
 import { SourceChip } from "@/components/insights/source-chip";
-import { Card, KeyNumbers, ShortAnswer } from "@/components/insights/tab-parts";
+import { Card, KeyNumbers, ShortAnswer, StatTiles, WhatItMeans } from "@/components/insights/tab-parts";
 import { loadSalesTab } from "@/lib/insights/sales-tab";
 import { answerCard, type Signal } from "@/lib/insights/short-answer";
 import { count, money, signedPct, vsLabel } from "@/lib/insights/format";
@@ -112,46 +112,53 @@ export default async function RevenuePage({ searchParams }: { searchParams: Prom
       </Card>
 
       <div className="grid grid-cols-1 items-start gap-6 min-[1000px]:grid-cols-2">
-        <Card title="New and returning customers">
+        <Card title="New and returning customers" flush>
           {c.fresh ? (
-            <div className="flex flex-col gap-4">
-              <span aria-hidden className="flex h-2.5 overflow-hidden rounded-full">
-                <span style={{ width: `${(c.fresh / Math.max(1, c.fresh + c.returning)) * 100}%`, background: "#8D9E47" }} />
-                <span className="flex-1 bg-[#D7DFB0]" />
-              </span>
-              <div className="grid grid-cols-2 gap-4">
-                <span className="flex flex-col gap-1">
-                  <span className="text-[22px] font-light">{count(c.fresh, { exactUnder: 10_000 })} new</span>
-                  <span className="text-[13px] text-brand-ink-2">{[c.costToWin ? `${money(c.costToWin, cur)} to win each one` : null, c.firstOrder ? `first order ${money(c.firstOrder, cur)}` : null].filter(Boolean).join(" · ")}</span>
-                </span>
-                <span className="flex flex-col gap-1">
-                  <span className="text-[22px] font-light">{count(c.returning, { exactUnder: 10_000 })} returning</span>
-                  <span className="text-[13px] text-brand-ink-2">{[c.returningOrder ? `Spend ${money(c.returningOrder, cur)} per order` : null, c.returningFromEmail ? `${oneIn(c.returningFromEmail)} from email` : null].filter(Boolean).join(" · ")}</span>
-                </span>
+            <>
+              <div className="px-6 pt-5">
+                <StatTiles
+                  items={[
+                    { value: count(c.fresh, { exactUnder: 10_000 }), label: "New customers", sub: [c.costToWin ? `${money(c.costToWin, cur)} to win` : null, c.firstOrder ? `first order ${money(c.firstOrder, cur)}` : null].filter(Boolean).join(" · ") || null, tone: "good" },
+                    { value: count(c.returning, { exactUnder: 10_000 }), label: "Returning", sub: [c.returningOrder ? `${money(c.returningOrder, cur)} per order` : null, c.returningFromEmail ? `${oneIn(c.returningFromEmail)} via email` : null].filter(Boolean).join(" · ") || null, tone: "neutral" },
+                  ]}
+                />
               </div>
-              {c.firstYearValue && c.costToWin && <p className="m-0 text-[14px] leading-[1.5]">A new customer is worth {money(c.firstYearValue, cur)} in their first year. You earn back the {money(c.costToWin, cur)} to win them {c.firstOrder && c.firstOrder >= c.costToWin ? "on the first order" : "over the year"}.</p>}
-            </div>
+              {c.firstYearValue && c.costToWin ? (
+                <WhatItMeans className="mt-4">
+                  A new customer is worth {money(c.firstYearValue, cur)} in year one. You earn back the {money(c.costToWin, cur)} {c.firstOrder && c.firstOrder >= c.costToWin ? "on their first order" : "over the year"}.
+                </WhatItMeans>
+              ) : (
+                <div className="h-6" />
+              )}
+            </>
           ) : (
-            <p className="m-0 text-[14px] text-brand-ink-2">Connect your shop to see new and returning customers.</p>
+            <p className="m-0 px-6 py-5 text-[14px] text-brand-ink-2">Connect your shop to see new and returning customers.</p>
           )}
         </Card>
 
-        <Card title={`Retail pipeline${r.funnels.retail.sources.length ? ` · ${r.funnels.retail.sources.map(sourceLabel).join(", ")}` : ""}`}>
+        <Card title={`Retail pipeline${r.funnels.retail.sources.length ? ` · ${r.funnels.retail.sources.map(sourceLabel).join(", ")}` : ""}`} flush>
           {r.funnels.retail.has ? (
-            <div className="flex flex-col gap-4">
-              <div className="grid grid-cols-2 gap-2 min-[560px]:grid-cols-4">
-                {retailSteps.map((s, i) => (
-                  <span key={s.label} className="flex flex-col gap-1 rounded-[10px] bg-[#EEF1FA] px-3.5 py-3">
-                    <span className="text-[12px] text-brand-ink-2">{s.label === "Deals" ? "Proposal" : s.label}</span>
-                    <span className="text-[22px] font-light tabular-nums">{Math.round(s.value)}</span>
-                    <span className="text-[11px] text-brand-ink-2">{i === 0 ? `last ${label}` : i === retailSteps.length - 1 ? money(r.funnels.retail.revenue, cur) : s.kept !== null ? `${Math.round(s.kept)}%` : ""}</span>
-                  </span>
-                ))}
+            <>
+              <div className="px-6 pt-5">
+                <StatTiles
+                  items={retailSteps.map((st2, i) => ({
+                    value: String(Math.round(st2.value)),
+                    label: st2.label === "Deals" ? "Proposal" : st2.label,
+                    sub: i === 0 ? (days === 30 ? "this month" : `last ${label}`) : i === retailSteps.length - 1 ? money(r.funnels.retail.revenue, cur) : st2.kept !== null ? `${Math.round(st2.kept)}% of ${i === 1 ? "leads" : "qualified"}` : null,
+                    tone: i === retailSteps.length - 1 ? ("good" as const) : ("watch" as const),
+                  }))}
+                />
               </div>
-              {r.mover && <p className="m-0 text-[14px] leading-[1.5]">Buyers who got {r.mover.title} closed {r.mover.times.toFixed(1)}× as often ({r.mover.won} of {r.mover.deals}).</p>}
-            </div>
+              {r.mover ? (
+                <WhatItMeans className="mt-4">
+                  Buyers who got {r.mover.title} {r.mover.times >= 1.8 && r.mover.times <= 2.2 ? "closed twice as often" : `closed ${r.mover.times.toFixed(1)}× as often`} ({r.mover.won} of {r.mover.deals}).
+                </WhatItMeans>
+              ) : (
+                <div className="h-6" />
+              )}
+            </>
           ) : (
-            <p className="m-0 text-[14px] text-brand-ink-2">Connect your CRM to follow leads to deals.</p>
+            <p className="m-0 px-6 py-5 text-[14px] text-brand-ink-2">Connect your CRM to follow leads to deals.</p>
           )}
         </Card>
       </div>
