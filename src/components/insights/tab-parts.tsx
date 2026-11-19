@@ -185,7 +185,7 @@ export function WhatWeFound({ findings, pm, className }: { findings: TabFinding[
                 ))}
               </span>
             ) : (
-              <AskIdeaButton insightId={insight.id} asked={Boolean(askedAt)} pm={pm} />
+              <AskIdeaButton insightId={insight.id} asked={Boolean(askedAt)} pm={pm} variant="outline" />
             )}
           </li>
         ))}

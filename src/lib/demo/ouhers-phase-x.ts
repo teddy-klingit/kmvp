@@ -292,6 +292,8 @@ export async function seedPhaseX(ctx: Ctx) {
   await prisma.audienceActivity.create({
     data: { clientId, platform: "Instagram", capturedAt: ago(1), grid: [[30, 45, 60], [32, 55, 72], [40, 58, 75], [42, 70, 100], [38, 66, 80], [18, 40, 55], [15, 35, 50]] },
   });
+  // This month's read replaces the pack's (one snapshot for the period, so the tab shows the design's numbers).
+  await prisma.communityManagementSnapshot.deleteMany({ where: { clientId, periodEnd: { gte: ago(31) } } });
   await prisma.communityManagementSnapshot.create({
     data: { clientId, periodStart: ago(30), periodEnd: ago(0), commentVolume: 1500, dmVolume: 360, sentimentPositivePct: 71, sentimentNeutralPct: 22, sentimentNegativePct: 7, themes: [{ theme: "sensitive skin", count: 120 }, { theme: "refills", count: 80 }], questions: [{ question: "Is it safe for sensitive skin?", count: 94 }, { question: "When is the refill back?", count: 61 }, { question: "Do you ship to Finland?", count: 38 }] },
   });

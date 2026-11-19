@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getPortalViewer } from "@/lib/current-viewer";
 import { parseRange } from "@/lib/insights/daily";
 import { loadWebsiteTab } from "@/lib/insights/website-tab";
-import { tabFindings } from "@/lib/insight-records";
+import { askedAbout, tabFindings } from "@/lib/insight-records";
 import { hrefAliases } from "@/lib/insights/tabs";
 import { answerCard, type Signal, type SignalStatus } from "@/lib/insights/short-answer";
 import { count, pct1, pts, signedPct, vsLabel } from "@/lib/insights/format";
@@ -10,7 +10,8 @@ import { connectHref } from "@/lib/insights-data";
 import { marketingPm } from "@/lib/contact-person";
 import { generateSeoReportAction } from "@/lib/actions/seo-actions";
 import { AgentButton } from "@/components/portal/insights/agent-button";
-import { BlindSpots, Blurred, Card, KeyNumbers, ShortAnswer, WhatWeFound, type BlindSpot } from "@/components/insights/tab-parts";
+import { BlindSpots, Blurred, Card, KeyNumbers, ShortAnswer, StatusPill, WhatItMeans, WhatWeFound, type BlindSpot } from "@/components/insights/tab-parts";
+import { AskIdeaButton } from "@/components/insights/ask-idea-button";
 import { WORK_TZ } from "@/lib/working-hours";
 import { cn } from "@/lib/utils";
 
@@ -75,7 +76,13 @@ export default async function WebsitePage({ searchParams }: { searchParams: Prom
   const delta = (ch: number | null) => (ch === null ? null : { text: `${signedPct(ch)} ${vs}`, tone: ch >= 0 ? ("good" as const) : ("bad" as const) });
   const maxStep = t.funnel ? Math.max(1, t.funnel[0].value) : 1;
   const maxSource = Math.max(1, ...t.sources.map((s) => s.visits));
+  const dropText = t.biggestDrop
+    ? `The biggest leak is ${t.biggestDrop.from.toLowerCase().replace("viewed a product", "product page").replace("visited", "arriving")} → ${t.biggestDrop.to.toLowerCase().replace("added to cart", "cart").replace("viewed a product", "product page")}.`
+    : "";
   const lowPage = t.overallBuyRate !== null ? t.pages.find((p) => p.buyRate !== null && p.buyRate < t.overallBuyRate! * 0.6) : undefined;
+
+  const lowText = lowPage && t.overallBuyRate ? ` The ${lowPage.page.replace(/^\//, "").replace(/-/g, " ")} page sells at ${lowPage.buyRate! / t.overallBuyRate < 0.55 && lowPage.buyRate! / t.overallBuyRate > 0.45 ? "half" : `${Math.round((lowPage.buyRate! / t.overallBuyRate) * 100)}% of`} your average.` : "";
+  const dropAsked = dropText ? await askedAbout(clientId, "community", [dropText + lowText]) : new Set<string>();
 
   return (
     <div className="flex flex-col gap-6">
@@ -91,35 +98,37 @@ export default async function WebsitePage({ searchParams }: { searchParams: Prom
       />
 
       {t.funnel && (
-        <Card title="Where visitors drop off">
-          <div className="grid grid-cols-2 gap-3 min-[700px]:grid-cols-4">
-            {t.funnel.map((s, i) => {
-              const worst = t.biggestDrop?.to === s.label;
+        <Card title="Where visitors drop off" flush>
+          <div className="grid grid-cols-2 gap-3 px-6 pt-5 min-[700px]:grid-cols-4">
+            {t.funnel.map((st, i) => {
+              const worst = t.biggestDrop?.to === st.label;
               return (
-                <div key={s.label} className="flex flex-col gap-2">
+                <div key={st.label} className={cn("flex flex-col gap-1.5 rounded-xl p-2.5", worst && "bg-[#FFF1E8]")}>
                   <span className="flex h-24 items-end">
-                    <span className="w-full rounded-t-[4px]" style={{ height: `${Math.max(4, (s.value / maxStep) * 100)}%`, background: PURPLE }} />
+                    <span className="w-full rounded-t-[4px]" style={{ height: `${Math.max(4, (st.value / maxStep) * 100)}%`, background: worst ? "#FF5D02" : PURPLE }} />
                   </span>
-                  <span className="text-[14px]">{s.label}</span>
-                  <span className="text-[20px] font-light tabular-nums">{count(s.value, { exactUnder: 10_000 })}</span>
-                  {s.kept !== null && <span className={cn("text-[12px]", worst ? "text-brand-orange-text" : "text-brand-ink-2")}>{Math.round(s.kept * 100)}% of {i === 1 ? "visitors" : i === 2 ? "product views" : "carts"}</span>}
+                  <span className="text-[22px] font-light tabular-nums">{count(st.value, { exactUnder: 10_000 })}</span>
+                  <span className="text-[14px]">{st.label}</span>
+                  {st.kept !== null && <span className={cn("text-[12px]", worst ? "text-brand-orange-text" : "text-brand-ink-2")}>{worst ? "only " : ""}{Math.round(st.kept * 100)}% continue</span>}
+                  {i === 0 && <span className="text-[12px] text-transparent">.</span>}
                 </div>
               );
             })}
           </div>
-          {t.biggestDrop && (
-            <p className="m-0 mt-4 text-[14px] leading-[1.5]">
-              The big drop is {t.biggestDrop.from.toLowerCase().replace("viewed a product", "product page")} → {t.biggestDrop.to.toLowerCase().replace("added to cart", "cart")}.
-              {lowPage && t.overallBuyRate ? ` The ${lowPage.page} page converts at ${Math.round((lowPage.buyRate! / t.overallBuyRate) * 100)}% of your average.` : ""}
-            </p>
+          {t.biggestDrop ? (
+            <WhatItMeans className="mt-4" action={<AskIdeaButton variant="dark" asked={dropAsked.has(dropText + lowText)} pm={pmFirst} about={{ question: dropText + lowText, value: `${Math.round((t.biggestDrop.kept ?? 0) * 100)}%`, sources: ["GA4", "Shopify"], href: "/insights/website", kind: "community" }} />}>
+              {dropText + lowText}
+            </WhatItMeans>
+          ) : (
+            <div className="h-6" />
           )}
         </Card>
       )}
 
       <div className="grid grid-cols-1 items-start gap-6 min-[1100px]:grid-cols-2">
         <div className="flex min-w-0 flex-col gap-6">
-          <Card title="Where visitors come from">
-            <ul className="m-0 flex list-none flex-col gap-2 p-0">
+          <Card title="Where visitors come from" flush>
+            <ul className="m-0 flex list-none flex-col gap-2 px-6 pt-5">
               {t.sources.map((s) => (
                 <li key={s.group} className="grid grid-cols-[120px_minmax(0,1fr)_56px_72px] items-center gap-3 text-[14px]">
                   <span>{s.group}</span>
@@ -129,7 +138,7 @@ export default async function WebsitePage({ searchParams }: { searchParams: Prom
                 </li>
               ))}
             </ul>
-            {ai && ai.buyRate !== null && t.overallBuyRate !== null && ai.buyRate > t.overallBuyRate && <p className="m-0 mt-4 text-[13px] text-brand-ink-2">Visitors from AI assistants are few but buy more than most.</p>}
+            {ai && ai.buyRate !== null && t.overallBuyRate !== null && ai.buyRate > t.overallBuyRate ? <WhatItMeans className="mt-4">AI assistants send few visitors, but they buy well{n.ai.change !== null && n.ai.change > 0.3 ? `, and they’re up ${signedPct(n.ai.change)}` : ""}.</WhatItMeans> : <div className="h-6" />}
           </Card>
           <WhatWeFound findings={findings} pm={pmFirst} />
           <BlindSpots items={blind} />
@@ -138,6 +147,11 @@ export default async function WebsitePage({ searchParams }: { searchParams: Prom
         <div className="flex min-w-0 flex-col gap-6">
           {t.rankings.length > 0 && (
             <Card title="How you rank on Google" flush>
+              <div className="grid grid-cols-[minmax(0,1fr)_96px_64px] gap-3 bg-[#FAF8F3] px-6 py-3 font-brand-mono text-[11px] uppercase tracking-[0.04em] text-brand-ink-2">
+                <span>Search</span>
+                <span>Position</span>
+                <span>Change</span>
+              </div>
               <ul className="m-0 list-none p-0">
                 {t.rankings.slice(0, RANKINGS_SHOWN).map((r) => (
                   <RankRow key={r.id} keyword={r.keyword} position={r.position} previous={r.previousPosition} />
@@ -157,12 +171,17 @@ export default async function WebsitePage({ searchParams }: { searchParams: Prom
           )}
           {t.pages.length > 0 && (
             <Card title="Pages that sell, and pages that don't" flush>
+              <div className="grid grid-cols-[minmax(0,1fr)_80px_88px] gap-3 bg-[#FAF8F3] px-6 py-3 font-brand-mono text-[11px] uppercase tracking-[0.04em] text-brand-ink-2">
+                <span>Page</span>
+                <span>Visits</span>
+                <span>Buy rate</span>
+              </div>
               <ul className="m-0 list-none p-0">
                 {t.pages.slice(0, 5).map((p) => (
-                  <li key={p.page} className="grid grid-cols-[minmax(0,1fr)_96px_72px] items-center gap-3 border-b border-brand-line px-6 py-3.5 text-[14px] last:border-b-0">
+                  <li key={p.page} className="grid grid-cols-[minmax(0,1fr)_80px_88px] items-center gap-3 border-b border-brand-line px-6 py-3.5 text-[14px] last:border-b-0">
                     <span className="truncate">{p.page}</span>
-                    <span className="text-right tabular-nums">{count(p.visits)} visits</span>
-                    <span className={cn("text-right tabular-nums", p === lowPage && "text-brand-orange-text")}>{p.buyRate !== null ? `${pct1(p.buyRate)} buy` : ""}</span>
+                    <span className="tabular-nums">{count(p.visits)}</span>
+                    <span>{p.buyRate !== null ? <StatusPill tone={t.overallBuyRate !== null && p.buyRate < t.overallBuyRate * 0.8 ? "bad" : t.overallBuyRate !== null && p.buyRate > t.overallBuyRate ? "good" : "neutral"}>{pct1(p.buyRate)}</StatusPill> : null}</span>
                   </li>
                 ))}
               </ul>
@@ -185,10 +204,10 @@ export default async function WebsitePage({ searchParams }: { searchParams: Prom
 function RankRow({ keyword, position, previous }: { keyword: string; position: number | null; previous: number | null }) {
   const moved = position !== null && previous !== null ? previous - position : null;
   return (
-    <li className="grid grid-cols-[minmax(0,1fr)_96px_40px] items-center gap-3 border-b border-brand-line px-6 py-3.5 text-[14px] last:border-b-0">
+    <li className="grid grid-cols-[minmax(0,1fr)_96px_64px] items-center gap-3 border-b border-brand-line px-6 py-3.5 text-[14px] last:border-b-0">
       <span className="truncate">{keyword}</span>
-      <span className={cn("tabular-nums", position === null && "text-brand-orange-text")}>{position === null ? "not in top 50" : `#${position}`}</span>
-      <span className={cn("text-right text-[13px]", moved && moved > 0 ? "text-[#6E7D2F]" : moved && moved < 0 ? "text-brand-orange-text" : "text-brand-ink-2")}>{moved ? `${moved > 0 ? "↑" : "↓"} ${Math.abs(moved)}` : position !== null ? "–" : ""}</span>
+      <span className={cn("tabular-nums", position === null ? "text-[13px] text-brand-orange-text" : "text-[17px]")}>{position === null ? "Not in top 50" : `#${position}`}</span>
+      <span>{moved ? <StatusPill tone={moved > 0 ? "good" : "bad"}>{Math.abs(moved)}</StatusPill> : null}</span>
     </li>
   );
 }

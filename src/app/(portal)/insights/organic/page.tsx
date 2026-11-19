@@ -13,7 +13,8 @@ import { marketingPm } from "@/lib/contact-person";
 import { resolveCommunityEscalationAction } from "@/lib/actions/community-actions";
 import { pillClass } from "@/components/ds/button";
 import { AskIdeaButton } from "@/components/insights/ask-idea-button";
-import { BlindSpots, Blurred, Card, KeyNumbers, ShortAnswer, WhatWeFound, type BlindSpot } from "@/components/insights/tab-parts";
+import { BlindSpots, Blurred, Card, KeyNumbers, MeansButton, ShortAnswer, StatTiles, WhatItMeans, WhatWeFound, type BlindSpot } from "@/components/insights/tab-parts";
+import { cn } from "@/lib/utils";
 import { WORK_TZ } from "@/lib/working-hours";
 
 const PURPLE = "#B455B6";
@@ -63,7 +64,6 @@ export default async function OrganicSocialPage({ searchParams }: { searchParams
 
   // ─── The short answer: computed from the numbers below ───────────────────────
   const reels = t.formats.find((f) => f.format === "Reels");
-  const fewerReels = reels && reels.postedBefore && reels.posted <= reels.postedBefore / 2;
   const topTheme = t.themes[0];
   const best = t.activity?.best;
   const reelsDown = reels && reels.postedBefore !== null && reels.posted < reels.postedBefore;
@@ -93,8 +93,11 @@ export default async function OrganicSocialPage({ searchParams }: { searchParams
     reels && single && single.avgReach ? `Reels reach ${times(reels.avgReach / single.avgReach).replace(".0×", "×")} more than single images` : null,
     topTheme ? `“${topTheme.theme.toLowerCase()}” content gets saved most` : null,
   ].filter(Boolean);
+  const contentAsk = read.length ? `${read.join(", and ").replace(/^./, (c) => c.toUpperCase())}` : "";
+  const contentAsked = contentAsk ? await askedAbout(clientId, "community", [contentAsk]) : new Set<string>();
   const maxCell = t.activity ? Math.max(1, ...t.activity.grid.flat()) : 1;
   const topQuestion = t.community?.questions[0];
+  const maxQuestion = Math.max(1, ...(t.community?.questions.map((q) => q.count) ?? [1]));
 
   return (
     <div className="flex flex-col gap-6">
@@ -110,8 +113,8 @@ export default async function OrganicSocialPage({ searchParams }: { searchParams
       />
 
       {t.posts > 0 && (t.formats.length > 0 || t.themes.length > 0) && (
-        <Card title="What content works for you">
-          <div className="grid grid-cols-1 gap-8 min-[900px]:grid-cols-2">
+        <Card title="What content works for you" flush>
+          <div className="grid grid-cols-1 gap-8 px-6 pt-5 min-[900px]:grid-cols-2">
             {t.formats.length > 0 && (
               <div className="flex flex-col gap-2">
                 <span className="text-[13px] text-brand-ink-2">By format · average reach per post</span>
@@ -138,10 +141,15 @@ export default async function OrganicSocialPage({ searchParams }: { searchParams
               </div>
             )}
           </div>
-          {read.length > 0 && (
-            <p className="m-0 mt-5 border-t border-brand-line pt-4 text-[14px] leading-[1.5]">
-              {read.join(", and ")}.{fewerReels && reels ? ` You posted ${reels.posted} Reels against ${reels.postedBefore} the period before, which explains most of the drop.` : ""}
-            </p>
+          {read.length > 0 ? (
+            <WhatItMeans
+              className="mt-5"
+              action={<AskIdeaButton variant="dark" asked={contentAsked.has(contentAsk)} pm={pmFirst} about={{ question: contentAsk, value: reels && single && single.avgReach ? times(reels.avgReach / single.avgReach) : "", sources: t.platforms.slice(0, 2), href: "/insights/organic", kind: "community" }} />}
+            >
+              {read.join(", and ").replace(/^./, (c) => c.toUpperCase())}.{topTheme && reels ? ` Post more ${topTheme.theme.split(/[ &]/)[0].toLowerCase().replace(/s$/, "")} Reels.` : ""}
+            </WhatItMeans>
+          ) : (
+            <div className="h-6" />
           )}
         </Card>
       )}
@@ -157,13 +165,13 @@ export default async function OrganicSocialPage({ searchParams }: { searchParams
                     <span className="flex min-w-0 flex-1 flex-col">
                       <span className="truncate text-[15px]">
                         {p.title}
-                        {p.contentType ? ` · ${formatGroup(p.contentType)?.replace(/s$/, "") ?? p.contentType}` : ""}
                       </span>
-                      <span className="text-[12px] text-brand-ink-2">
-                        {p.platform} · {day(p.publishedDate!)}
-                      </span>
+                      <span className="text-[12px] text-brand-ink-2">{[p.platform, p.contentType ? (formatGroup(p.contentType)?.replace(/s$/, "") ?? p.contentType) : null, day(p.publishedDate!)].filter(Boolean).join(" · ")}</span>
                     </span>
-                    <span className="shrink-0 text-right text-[13px] tabular-nums">{[p.reach ? `${count(p.reach)} reach` : p.videoViews ? `${count(p.videoViews)} views` : null, p.saves ? `${count(p.saves, { exactUnder: 10_000 })} saves` : null].filter(Boolean).join(" · ")}</span>
+                    <span className="flex shrink-0 flex-col text-right tabular-nums">
+                      <span className="text-[18px]">{p.reach ? count(p.reach) : p.videoViews ? count(p.videoViews) : "–"}</span>
+                      <span className="text-[12px] text-brand-ink-2">{[p.reach ? "reach" : p.videoViews ? "views" : null, p.saves ? `${count(p.saves, { exactUnder: 10_000 })} saves` : null].filter(Boolean).join(" · ")}</span>
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -174,62 +182,69 @@ export default async function OrganicSocialPage({ searchParams }: { searchParams
 
         <div className="flex min-w-0 flex-col gap-6">
           {t.activity && (
-            <Card title="When your audience is active">
-              <div className="grid grid-cols-[64px_repeat(7,minmax(0,1fr))] gap-1.5 text-[11px] text-brand-ink-2">
+            <Card title="When your audience is active" flush>
+              <div className="grid grid-cols-[64px_repeat(7,minmax(0,1fr))] gap-1.5 px-6 pt-5 text-[11px] text-brand-ink-2">
                 <span />
                 {DAYS.map((d) => (
                   <span key={d} className="text-center">
-                    {d[0]}
+                    {d.slice(0, 3)}
                   </span>
                 ))}
-                {SLOTS.map((s, slot) => (
-                  <span key={s} className="contents">
-                    <span className="self-center">{s}</span>
+                {SLOTS.map((s2, slot) => (
+                  <span key={s2} className="contents">
+                    <span className="self-center">{s2}</span>
                     {t.activity!.grid.map((row, d) => (
-                      <span key={d} title={`${DAYS[d]} ${s.toLowerCase()}`} className="h-6 rounded-[4px]" style={{ background: PURPLE, opacity: 0.15 + 0.85 * (row[slot] / maxCell) }} />
+                      <span key={d} title={`${DAYS[d]} ${s2.toLowerCase()}`} className={cn("h-6 rounded-[4px]", t.activity!.best.day === d && t.activity!.best.slot === slot && "ring-2 ring-brand-ink ring-offset-1")} style={{ background: PURPLE, opacity: 0.15 + 0.85 * (row[slot] / maxCell) }} />
                     ))}
                   </span>
                 ))}
               </div>
-              <p className="m-0 mt-4 text-[14px] leading-[1.5]">
-                Best: {DAYS[t.activity.best.day]} {SLOTS[t.activity.best.slot].toLowerCase()}s.
+              <WhatItMeans className="mt-4">
+                {DAYS[t.activity.best.day]} {SLOTS[t.activity.best.slot].toLowerCase()} is your best slot.
                 {t.activity.quietPosts ? ` ${t.activity.quietPosts} of ${plural(t.activity.total, "post")} went out at your quietest times.` : ""}
-              </p>
+              </WhatItMeans>
             </Card>
           )}
 
           {t.community && (
-            <Card title="What your community says" id="community">
-              <span aria-hidden className="flex h-2.5 overflow-hidden rounded-full">
-                <span style={{ width: `${t.community.positive}%`, background: "#8D9E47" }} />
-                <span style={{ width: `${t.community.neutral}%`, background: "#C2C3C5" }} />
-                <span style={{ width: `${t.community.negative}%`, background: "#FF5D02" }} />
-              </span>
-              <p className="m-0 mt-2 text-[13px] text-brand-ink-2">
-                {t.community.positive}% positive · {t.community.neutral}% neutral · {t.community.negative}% negative, out of {count(t.community.comments, { exactUnder: 10_000 })} comments and DMs
-              </p>
-              {t.community.questions.length > 0 && (
-                <div className="mt-4 flex flex-col gap-2">
-                  <span className="text-[13px] text-brand-ink-2">Most asked</span>
-                  <ul className="m-0 flex list-none flex-col gap-2 p-0">
-                    {t.community.questions.map((q) => (
-                      <li key={q.question} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[14px]">
-                        <span className="min-w-0 flex-1">
-                          “{q.question}” · {plural(q.count, "time")}
-                        </span>
-                        <AskIdeaButton asked={asked.has(q.question)} pm={pmFirst} about={{ question: `“${q.question}” asked ${q.count} times`, value: String(q.count), sources: t.platforms.slice(0, 2), href: "/insights/organic", kind: "community" }} />
-                      </li>
-                    ))}
-                  </ul>
-                  {topQuestion && (
-                    <Link href={`/brief/new?${new URLSearchParams({ q: `A post that answers “${topQuestion.question}” (asked ${topQuestion.count} times in comments and DMs).` })}`} className="text-[13px] text-brand-ink underline underline-offset-4">
-                      Turn the top question into a post ›
-                    </Link>
-                  )}
-                </div>
+            <Card title="What your community says" id="community" flush>
+              <div className="flex flex-col gap-4 px-6 pt-5">
+                <StatTiles
+                  items={[
+                    { value: `${t.community.positive}%`, label: "Positive", tone: "good" },
+                    { value: `${t.community.neutral}%`, label: "Neutral", tone: "neutral" },
+                    { value: `${t.community.negative}%`, label: "Negative", tone: "bad" },
+                  ]}
+                />
+                {t.community.questions.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    <span className="font-brand-mono text-[11px] uppercase tracking-[0.04em] text-brand-ink-2">Most asked · {count(t.community.comments, { exactUnder: 10_000 })} comments</span>
+                    <ul className="m-0 flex list-none flex-col gap-2 p-0">
+                      {t.community.questions.map((q) => (
+                        <li key={q.question} className="grid grid-cols-[minmax(0,1fr)_120px_32px] items-center gap-3 text-[14px]">
+                          <span className="min-w-0">“{q.question}”</span>
+                          <span aria-hidden className="h-2 rounded-full bg-[#ECE8DF]">
+                            <span className="block h-full rounded-full" style={{ width: `${(q.count / maxQuestion) * 100}%`, background: PURPLE }} />
+                          </span>
+                          <span className="text-right tabular-nums">{q.count}</span>
+                          <span className="col-span-3 -mt-1">
+                            <AskIdeaButton asked={asked.has(q.question)} pm={pmFirst} about={{ question: `“${q.question}” asked ${q.count} times`, value: String(q.count), sources: t.platforms.slice(0, 2), href: "/insights/organic", kind: "community" }} />
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+              {topQuestion ? (
+                <WhatItMeans className="mt-4" action={<MeansButton href={`/brief/new?${new URLSearchParams({ q: `A post that answers “${topQuestion.question}” (asked ${topQuestion.count} times in comments and DMs).` })}`}>Turn into a post</MeansButton>}>
+                  These questions are ready-made posts.
+                </WhatItMeans>
+              ) : (
+                <div className="h-6" />
               )}
               {t.escalations.length > 0 && (
-                <div className="mt-4 flex flex-col gap-2 border-t border-brand-line pt-4">
+                <div className="flex flex-col gap-2 border-t border-brand-line px-6 py-4">
                   <span className="text-[13px] text-brand-ink-2">Needs a response ({t.escalations.length})</span>
                   <ul className="m-0 flex list-none flex-col gap-2 p-0">
                     {t.escalations.map((e) => (

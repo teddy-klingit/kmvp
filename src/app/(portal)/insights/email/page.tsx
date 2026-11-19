@@ -2,15 +2,17 @@ import Link from "next/link";
 import { getPortalViewer } from "@/lib/current-viewer";
 import { parseRange } from "@/lib/insights/daily";
 import { loadEmailTab } from "@/lib/insights/email-tab";
-import { tabFindings } from "@/lib/insight-records";
+import { askedAbout, tabFindings } from "@/lib/insight-records";
+import { prisma } from "@/lib/prisma";
 import { hrefAliases } from "@/lib/insights/tabs";
 import { answerCard, type Signal, type SignalStatus } from "@/lib/insights/short-answer";
 import { count, money, pct1, pts, signedPct, vsLabel } from "@/lib/insights/format";
 import { connectHref } from "@/lib/insights-data";
 import { marketingPm } from "@/lib/contact-person";
-import { BlindSpots, Blurred, Card, KeyNumbers, ShortAnswer, WhatWeFound, type BlindSpot } from "@/components/insights/tab-parts";
+import { BlindSpots, Blurred, Card, KeyNumbers, ShortAnswer, StatTiles, StatusPill, WhatItMeans, WhatWeFound, type BlindSpot } from "@/components/insights/tab-parts";
+import { AskIdeaButton } from "@/components/insights/ask-idea-button";
+import { MessagePmButton } from "@/components/pm-panel/pm-panel-provider";
 import { WORK_TZ } from "@/lib/working-hours";
-import { cn } from "@/lib/utils";
 
 const PURPLE = "#B455B6";
 const day = (d: Date | string) => new Intl.DateTimeFormat("en-GB", { timeZone: WORK_TZ, day: "numeric", month: "short" }).format(typeof d === "string" ? new Date(`${d}T12:00:00Z`) : d);
@@ -69,6 +71,9 @@ export default async function EmailPage({ searchParams }: { searchParams: Promis
   });
   const openDiff = n.open.value !== null && n.open.previous !== null ? n.open.value - n.open.previous : null;
   const clickDiff = n.click.value !== null && n.click.previous !== null ? n.click.value - n.click.previous : null;
+  const nextMoment = await prisma.keyMoment.findFirst({ where: { date: { gte: new Date() }, kind: "shopping" }, orderBy: { date: "asc" }, select: { name: true } });
+  const sleepText = t.list.inactive !== null ? `Win back the ${count(t.list.inactive)} sleepers${nextMoment ? ` before ${nextMoment.name}` : ""}.` : "";
+  const sleepAsked = sleepText ? await askedAbout(clientId, "community", [sleepText]) : new Set<string>();
   const maxFlow = Math.max(1, ...t.flows.map((f) => f.sales));
 
   return (
@@ -87,10 +92,10 @@ export default async function EmailPage({ searchParams }: { searchParams: Promis
       {(t.flows.length > 0 || t.newsletters.length > 0) && (
         <Card title="Automatic flows vs newsletters">
           <div className="grid grid-cols-1 gap-4 min-[700px]:grid-cols-2">
-            <div className="flex flex-col gap-1 rounded-[12px] bg-[#F8F5EE] px-4 py-4">
+            <div className="flex flex-col gap-1 rounded-[12px] bg-[#F2F6E4] px-4 py-4">
               <span className="text-[13px] text-brand-ink-2">Automatic flows</span>
               <span className="text-[26px] font-light tabular-nums">{money(t.flowSales, cur)}</span>
-              <span className="text-[12px] text-brand-ink-2">{t.flows.length} flow{t.flows.length === 1 ? "" : "s"} running · no work each month</span>
+              <span className="text-[12px] text-brand-ink-2">{t.flows.length} flow{t.flows.length === 1 ? "" : "s"} · run by themselves</span>
             </div>
             <div className="flex flex-col gap-1 rounded-[12px] bg-[#F8F5EE] px-4 py-4">
               <span className="text-[13px] text-brand-ink-2">Newsletters</span>
@@ -103,6 +108,7 @@ export default async function EmailPage({ searchParams }: { searchParams: Promis
           </div>
           {t.flows.length > 0 && (
             <ul className="m-0 mt-5 flex list-none flex-col gap-2 p-0">
+              <li className="font-brand-mono text-[11px] uppercase tracking-[0.04em] text-brand-ink-2">Sales per flow</li>
               {t.flows.map((f) => (
                 <li key={f.id} className="grid grid-cols-[130px_minmax(0,1fr)_64px] items-center gap-3 text-[14px]">
                   <span>{f.name}</span>
@@ -120,59 +126,68 @@ export default async function EmailPage({ searchParams }: { searchParams: Promis
         <div className="flex min-w-0 flex-col gap-6">
           {t.best.length > 0 && (
             <Card title="Your best and worst emails" flush>
-              <ul className="m-0 list-none p-0">
-                {t.best.map((e) => (
-                  <li key={e.id} className="flex items-center gap-4 border-b border-brand-line px-6 py-3.5 last:border-b-0">
-                    <span className="flex min-w-0 flex-1 flex-col">
-                      <span className="truncate text-[15px]">“{e.subject}”</span>
-                      <span className="text-[12px] text-brand-ink-2">Newsletter · {day(e.date)}</span>
-                    </span>
-                    <span className="shrink-0 text-right text-[13px] tabular-nums">{[e.openRate !== null ? `${Math.round(e.openRate)}% open` : null, money(e.sales, cur)].filter(Boolean).join(" · ")}</span>
-                    <span className={cn("shrink-0 rounded-full px-2.5 py-0.5 text-[12px]", e.tag === "Best" ? "bg-[#EEF3D6]" : "bg-[#FDE7DC]")}>{e.tag}</span>
-                  </li>
-                ))}
-              </ul>
-              {t.discountRead && <p className="m-0 border-t border-brand-line px-6 py-3 text-[13px] text-brand-ink-2">Discount subject lines get fewer opens from your list than calm ones ({Math.round(t.discountRead.discount)}% vs {Math.round(t.discountRead.calm)}%).</p>}
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[440px] border-collapse text-[14px]">
+                  <thead>
+                    <tr className="bg-[#FAF8F3] text-left font-brand-mono text-[11px] uppercase tracking-[0.04em] text-brand-ink-2">
+                      <th className="px-6 py-3 font-normal">Email</th>
+                      <th className="px-3 py-3 font-normal">Open</th>
+                      <th className="px-3 py-3 font-normal">Sales</th>
+                      <th className="px-6 py-3 font-normal" aria-label="Status" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {t.best.map((e) => (
+                      <tr key={e.id} className="border-t border-brand-line">
+                        <td className="px-6 py-3.5">
+                          <span className="flex min-w-0 flex-col">
+                            <span className="text-[15px]">“{e.subject}”</span>
+                            <span className="text-[12px] text-brand-ink-2">Newsletter · {day(e.date)}</span>
+                          </span>
+                        </td>
+                        <td className="px-3 py-3.5 tabular-nums">{e.openRate !== null ? `${Math.round(e.openRate)}%` : "–"}</td>
+                        <td className="px-3 py-3.5 tabular-nums">{money(e.sales, cur)}</td>
+                        <td className="px-6 py-3.5">
+                          <StatusPill tone={e.tag === "Best" ? "good" : "bad"}>{e.tag}</StatusPill>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {t.discountRead ? <WhatItMeans className="mt-2">Calm subject lines beat discount ones with your list ({Math.round(t.discountRead.calm)}% vs {Math.round(t.discountRead.discount)}% opens).</WhatItMeans> : <div className="h-6" />}
             </Card>
           )}
           <WhatWeFound findings={findings} pm={pmFirst} />
         </div>
         <div className="flex min-w-0 flex-col gap-6">
           {t.list.subscribers !== null && (
-            <Card title="List health">
-              <dl className="m-0 flex flex-col gap-3 text-[14px]">
-                <span className="flex justify-between gap-3">
-                  <dt>Subscribers</dt>
-                  <dd className="m-0 tabular-nums">
-                    {count(t.list.subscribers)}
-                    {t.list.growth !== null ? ` · ${t.list.growth >= 0 ? "+" : "−"}${count(Math.abs(t.list.growth))} in the period` : ""}
-                  </dd>
-                </span>
-                {t.list.unsubscribeRate !== null && (
-                  <span className="flex justify-between gap-3">
-                    <dt>Unsubscribes</dt>
-                    <dd className="m-0 tabular-nums">{pct1(t.list.unsubscribeRate)} per send</dd>
-                  </span>
-                )}
-                {t.list.inactive !== null && (
-                  <span className="flex justify-between gap-3">
-                    <dt>Not opened in 90 days</dt>
-                    <dd className={cn("m-0 tabular-nums", (t.list.inactiveShare ?? 0) >= 0.2 && "text-brand-orange-text")}>
-                      {count(t.list.inactive)}
-                      {t.list.inactiveShare !== null ? ` (${Math.round(t.list.inactiveShare * 100)}%)` : ""}
-                    </dd>
-                  </span>
-                )}
-              </dl>
-              {t.list.inactive !== null && (t.list.inactiveShare ?? 0) >= 0.1 && (
-                <div className="mt-4 flex flex-wrap gap-2 border-t border-brand-line pt-4">
-                  <Link href={`/brief/new?${new URLSearchParams({ q: `A win-back email for the ${count(t.list.inactive)} subscribers who haven't opened in 90 days.` })}`} className="inline-flex h-9 items-center rounded-full border border-brand-ink px-4 font-brand-mono text-[12px] text-brand-ink no-underline hover:bg-brand-ink hover:text-white">
-                    Re-engage
-                  </Link>
-                  <Link href="/dashboard?message=1" className="inline-flex h-9 items-center rounded-full border border-brand-outline px-4 font-brand-mono text-[12px] text-brand-ink no-underline hover:border-brand-ink">
-                    Clean up with {pmFirst}
-                  </Link>
-                </div>
+            <Card title="List health" flush>
+              <div className="px-6 pt-5">
+                <StatTiles
+                  items={[
+                    { value: count(t.list.subscribers), label: `subscribers${t.list.growth !== null ? `, ${t.list.growth >= 0 ? "+" : "−"}${count(Math.abs(t.list.growth))}` : ""}`, tone: "neutral" },
+                    ...(t.list.unsubscribeRate !== null ? [{ value: pct1(t.list.unsubscribeRate), label: "unsubscribe per send", tone: "neutral" as const }] : []),
+                    ...(t.list.inactive !== null ? [{ value: count(t.list.inactive), label: `inactive 90 days${t.list.inactiveShare !== null ? ` (${Math.round(t.list.inactiveShare * 100)}%)` : ""}`, tone: (t.list.inactiveShare ?? 0) >= 0.2 ? ("bad" as const) : ("neutral" as const) }] : []),
+                  ]}
+                />
+              </div>
+              {t.list.inactive !== null && (t.list.inactiveShare ?? 0) >= 0.1 ? (
+                <>
+                  <WhatItMeans className="mb-4 mt-4" action={<AskIdeaButton variant="dark" asked={sleepAsked.has(sleepText)} pm={pmFirst} about={{ question: sleepText, value: count(t.list.inactive), sources: ["Klaviyo"], href: "/insights/email", kind: "community" }} />}>
+                    {sleepText}
+                  </WhatItMeans>
+                  <div className="flex flex-wrap gap-2 px-6 pb-6">
+                    <Link href={`/brief/new?${new URLSearchParams({ q: `A win-back email for the ${count(t.list.inactive)} subscribers who haven't opened in 90 days.` })}`} className="inline-flex h-9 items-center rounded-full border border-brand-ink px-4 font-brand-mono text-[12px] text-brand-ink no-underline hover:bg-brand-ink hover:text-white">
+                      Re-engage
+                    </Link>
+                    <MessagePmButton dot={false} className="inline-flex h-9 items-center rounded-full border border-brand-outline px-4 font-brand-mono text-[12px] text-brand-ink hover:border-brand-ink">
+                      Clean up with {pmFirst}
+                    </MessagePmButton>
+                  </div>
+                </>
+              ) : (
+                <div className="h-6" />
               )}
             </Card>
           )}
