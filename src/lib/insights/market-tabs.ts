@@ -154,7 +154,7 @@ export async function loadTrendsTab(clientId: string, opts: { now?: Date; tier: 
     return { id: m.id, name: m.name, date: m.date, planned: item ? { status: item.status, briefed: Boolean(item.briefBy) } : null, opportunity: !item && opp ? { id: opp.id } : null, briefBy: new Date(m.date.getTime() - 28 * DAY), briefPassed: m.date.getTime() - 28 * DAY < now.getTime() };
   });
 
-  const demand = brief?.categoryDemand as { series?: { label: string; value: number }[]; change?: number; note?: string } | null;
-  return { rows, hidden: Math.max(0, batch.length - shown.length), moments: momentRows, demand: demand?.series?.length ? { series: demand.series, change: demand.change ?? null, note: demand.note ?? null } : null };
+  const demand = brief?.categoryDemand as { series?: { label: string; value: number }[]; change?: number; label?: string; note?: string } | null;
+  return { rows, hidden: Math.max(0, batch.length - shown.length), moments: momentRows, demand: demand?.series?.length ? { series: demand.series, change: demand.change ?? null, label: demand.label ?? null, note: demand.note ?? null } : null };
 }
 export type TrendsTab = Awaited<ReturnType<typeof loadTrendsTab>>;

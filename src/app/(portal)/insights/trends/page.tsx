@@ -10,7 +10,7 @@ import { answerCard, type Signal, type SignalStatus } from "@/lib/insights/short
 import { entitlements } from "@/lib/entitlements";
 import { marketingPm } from "@/lib/contact-person";
 import { AskIdeaButton } from "@/components/insights/ask-idea-button";
-import { BlindSpots, Card, ShortAnswer, WhatWeFound, type BlindSpot } from "@/components/insights/tab-parts";
+import { BlindSpots, Card, ShortAnswer, StatusPill, WhatItMeans, WhatWeFound, type BlindSpot } from "@/components/insights/tab-parts";
 import { WORK_TZ } from "@/lib/working-hours";
 import { cn } from "@/lib/utils";
 
@@ -76,11 +76,11 @@ export default async function TrendsPage() {
       {t.rows.length > 0 && (
         <Card title={`What's rising in ${category}`} flush>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] border-collapse text-[14px]">
+            <table className="w-full min-w-[820px] border-collapse text-[14px]">
               <thead>
-                <tr className="text-left font-brand-mono text-[11px] uppercase tracking-[0.04em] text-brand-ink-2">
-                  {["Trend", "Last 12 weeks", "Stage", "Fit for you", ""].map((h, i) => (
-                    <th key={i} className="px-6 py-3 font-normal">
+                <tr className="bg-[#FAF8F3] text-left font-brand-mono text-[11px] uppercase tracking-[0.04em] text-brand-ink-2">
+                  {["Trend", "Change", "Last 12 weeks", "Stage", "Fit for you", ""].map((h, i) => (
+                    <th key={i} className="px-4 py-3 font-normal first:pl-6 last:pr-6">
                       {h}
                     </th>
                   ))}
@@ -89,39 +89,31 @@ export default async function TrendsPage() {
               <tbody>
                 {t.rows.map((r) => (
                   <tr key={r.id} className="border-t border-brand-line align-middle">
-                    <td className="px-6 py-3.5">
-                      <span className="flex flex-col">
-                        <span className="text-[15px]">{r.topic}</span>
-                        <span className={cn("text-[12px]", r.change >= 0 ? "text-[#6E7D2F]" : "text-brand-orange-text")}>
-                          {signedPct(r.change)} {r.measure}
-                        </span>
-                      </span>
-                    </td>
-                    <td className="px-6 py-3.5">
+                    <td className="py-3.5 pl-6 pr-4 text-[15px]">{r.topic}</td>
+                    <td className={cn("px-4 py-3.5 text-[16px] tabular-nums", r.change >= 0 ? "text-[#6E7D2F]" : "text-brand-orange-text")}>{signedPct(r.change)}</td>
+                    <td className="px-4 py-3.5">
                       <Line values={r.series} />
                     </td>
-                    <td className="px-6 py-3.5">
-                      <span className={cn("rounded-full px-2.5 py-0.5 text-[12px]", STAGE[r.stage] ?? "bg-[#EFEBE2]")}>{r.stage}</span>
+                    <td className="px-4 py-3.5">
+                      <span className={cn("rounded-md px-2 py-0.5 text-[12px]", STAGE[r.stage] ?? "bg-[#EFEBE2]")}>{r.stage}</span>
                     </td>
-                    <td className="px-6 py-3.5">
-                      <span className="flex flex-col">
-                        <span className="text-[13px]">
-                          <span aria-label={`Fit ${r.fit} of 3`} className="tracking-[0.1em]">
-                            {"●".repeat(Math.max(0, Math.min(3, r.fit)))}
-                            {"○".repeat(3 - Math.max(0, Math.min(3, r.fit)))}
-                          </span>{" "}
-                          fit for {viewer.client.name}
+                    <td className="px-4 py-3.5">
+                      <span className="flex flex-col gap-1">
+                        <span aria-label={`Fit ${r.fit} of 3`} className="flex gap-1">
+                          {[0, 1, 2].map((i) => (
+                            <span key={i} className={cn("size-2.5 rounded-full", i < r.fit ? "bg-[#8D9E47]" : "bg-[#E6E2D8]")} />
+                          ))}
                         </span>
                         {r.fitNote && <span className="text-[12px] text-brand-ink-2">{r.fitNote}</span>}
                       </span>
                     </td>
-                    <td className="px-6 py-3.5 text-right">
+                    <td className="py-3.5 pl-4 pr-6 text-right">
                       {r.opportunity ? (
                         <Link href={`/opportunities/${r.opportunity.id}`} className="inline-flex items-center gap-1.5 rounded-full border border-[#F5C9B0] bg-[#FFF4EE] px-3 py-1 text-[12px] text-brand-ink no-underline hover:border-brand-orange">
                           <Crosshair className="size-3" strokeWidth={2} /> {r.opportunity.title} <ChevronRight className="size-3" />
                         </Link>
                       ) : (
-                        <AskIdeaButton asked={asked.has(r.topic)} pm={pmFirst} about={{ question: r.topic, value: signedPct(r.change), sources: ["Search trends"], href: "/insights/trends", kind: "trend" }} />
+                        <AskIdeaButton variant="outline" asked={asked.has(r.topic)} pm={pmFirst} about={{ question: r.topic, value: signedPct(r.change), sources: ["Search trends"], href: "/insights/trends", kind: "trend" }} />
                       )}
                     </td>
                   </tr>
@@ -129,6 +121,12 @@ export default async function TrendsPage() {
               </tbody>
             </table>
           </div>
+          <p className="m-0 flex flex-wrap gap-x-4 gap-y-1 border-t border-brand-line px-6 py-3 text-[12px] text-brand-ink-2">
+            <span>Early: just starting</span>
+            <span>Rising: best time to act</span>
+            <span>Peaking: crowded</span>
+            <span>Fading: skip</span>
+          </p>
         </Card>
       )}
 
@@ -137,13 +135,26 @@ export default async function TrendsPage() {
           {t.moments.length > 0 && (
             <Card title="Moments coming up" flush action={<Link href="/planner" className="font-brand-mono text-[12px] uppercase text-brand-ink underline underline-offset-4">Open Planner</Link>}>
               <ul className="m-0 list-none p-0">
-                {t.moments.map((m) => (
-                  <li key={m.id} className="grid grid-cols-[56px_minmax(0,1fr)_minmax(0,1.2fr)] gap-3 border-b border-brand-line px-6 py-3.5 text-[14px] last:border-b-0">
-                    <span className="text-brand-ink-2">{day(m.date)}</span>
-                    <span>{m.name}</span>
-                    <span className={cn(!m.planned && !m.opportunity && "text-brand-orange-text")}>{m.planned ? `In your Planner${m.planned.briefed ? " · briefed" : ""}` : m.opportunity ? "In your Planner · opportunity open" : m.briefPassed ? "Not planned · brief now" : `Not planned · brief by ${day(m.briefBy)}`}</span>
-                  </li>
-                ))}
+                {t.moments.map((m) => {
+                  const planned = Boolean(m.planned || m.opportunity);
+                  return (
+                    <li key={m.id} className="grid grid-cols-[52px_minmax(0,1fr)_auto_auto] items-center gap-3 border-b border-brand-line px-6 py-3.5 text-[14px] last:border-b-0">
+                      <span className="text-[13px] text-brand-ink-2">{day(m.date)}</span>
+                      <span className="flex min-w-0 flex-col">
+                        <span className="text-[15px]">{m.name}</span>
+                        <span className="text-[12px] text-brand-ink-2">{m.planned ? (m.planned.briefed ? "Briefed" : "In your Planner") : m.opportunity ? "Opportunity open" : m.briefPassed ? "Brief now" : `Brief by ${day(m.briefBy)}`}</span>
+                      </span>
+                      <StatusPill tone={planned ? "good" : "bad"}>{planned ? "Planned" : "Not planned"}</StatusPill>
+                      {planned ? (
+                        <span className="w-[84px]" />
+                      ) : (
+                        <Link href={`/brief/new?${new URLSearchParams({ q: `A post or campaign for ${m.name} (${day(m.date)}).` })}`} className="inline-flex h-8 w-[84px] items-center justify-center rounded-full border border-brand-ink font-brand-mono text-[12px] text-brand-ink no-underline hover:bg-brand-ink hover:text-white">
+                          Brief it
+                        </Link>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </Card>
           )}
@@ -165,21 +176,29 @@ export default async function TrendsPage() {
         </div>
         <div className="flex min-w-0 flex-col gap-6">
           {t.demand && (
-            <Card title="Demand for your category">
-              <svg viewBox="0 0 300 90" className="h-24 w-full" preserveAspectRatio="none" aria-hidden>
-                <polyline
-                  points={t.demand.series.map((s, i) => `${((i / Math.max(1, t.demand!.series.length - 1)) * 296 + 2).toFixed(1)},${(84 - ((s.value - minDemand) / Math.max(1, maxDemand - minDemand)) * 76).toFixed(1)}`).join(" ")}
-                  fill="none"
-                  stroke={BLUE}
-                  strokeWidth={2}
-                  vectorEffect="non-scaling-stroke"
-                />
-              </svg>
-              <span className="flex justify-between text-[12px] text-brand-ink-2">
-                <span>{t.demand.series[0].label}</span>
-                <span>{t.demand.series[t.demand.series.length - 1].label}</span>
-              </span>
-              {t.demand.note && <p className="m-0 mt-3 text-[14px] leading-[1.5]">{t.demand.note}</p>}
+            <Card title="Demand for your category" flush>
+              <div className="flex flex-col gap-2 px-6 pt-5">
+                {t.demand.change !== null && (
+                  <p className="m-0 flex flex-wrap items-baseline gap-x-3">
+                    <span className={cn("text-[34px] font-light tabular-nums", t.demand.change >= 0 ? "text-[#6E7D2F]" : "text-brand-orange-text")}>{signedPct(t.demand.change)}</span>
+                    <span className="text-[14px] text-brand-ink-2">{t.demand.label ?? "searches for your category vs last year"}</span>
+                  </p>
+                )}
+                <svg viewBox="0 0 300 90" className="h-24 w-full" preserveAspectRatio="none" aria-hidden>
+                  <polyline
+                    points={t.demand.series.map((s, i) => `${((i / Math.max(1, t.demand!.series.length - 1)) * 296 + 2).toFixed(1)},${(84 - ((s.value - minDemand) / Math.max(1, maxDemand - minDemand)) * 76).toFixed(1)}`).join(" ")}
+                    fill="none"
+                    stroke={BLUE}
+                    strokeWidth={2}
+                    vectorEffect="non-scaling-stroke"
+                  />
+                </svg>
+                <span className="flex justify-between text-[12px] text-brand-ink-2">
+                  <span>{t.demand.series[0].label}</span>
+                  <span>{t.demand.series[t.demand.series.length - 1].label}</span>
+                </span>
+              </div>
+              {t.demand.note ? <WhatItMeans className="mt-4">{t.demand.note}</WhatItMeans> : <div className="h-6" />}
             </Card>
           )}
           <BlindSpots items={blind} />

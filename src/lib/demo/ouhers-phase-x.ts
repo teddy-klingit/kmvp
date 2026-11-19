@@ -423,8 +423,8 @@ export async function seedPhaseX(ctx: Ctx) {
   const monthLabel = (d: Date) => new Intl.DateTimeFormat("en-GB", { month: "short", year: "numeric", timeZone: "UTC" }).format(d);
   await prisma.trendBrief.upsert({
     where: { clientId },
-    update: { categoryDemand: { series: months.map((d, i) => ({ label: monthLabel(d), value: Math.round(100 + i * 2 * (i > 6 ? 1.4 : 0.8)) })), change: 0.22, note: "Searches for moisturisers in the Nordics are up 22% on last year and usually peak in December. More people are looking, so it's a good month to be visible." } },
-    create: { clientId, takeaway: "Refills and barrier care are rising in Nordic beauty.", themes: [], categoryDemand: { series: months.map((d, i) => ({ label: monthLabel(d), value: Math.round(100 + i * 2 * (i > 6 ? 1.4 : 0.8)) })), change: 0.22, note: "Searches for moisturisers in the Nordics are up 22% on last year and usually peak in December. More people are looking, so it's a good month to be visible." } },
+    update: { categoryDemand: { series: months.map((d, i) => ({ label: monthLabel(d), value: Math.round(100 + i * 2 * (i > 6 ? 1.4 : 0.8)) })), change: 0.22, label: "moisturiser searches in the Nordics vs last year", note: "Searches peak in December. More people are looking, so it's a good month to be visible." } },
+    create: { clientId, takeaway: "Refills and barrier care are rising in Nordic beauty.", themes: [], categoryDemand: { series: months.map((d, i) => ({ label: monthLabel(d), value: Math.round(100 + i * 2 * (i > 6 ? 1.4 : 0.8)) })), change: 0.22, label: "moisturiser searches in the Nordics vs last year", note: "Searches peak in December. More people are looking, so it's a good month to be visible." } },
   });
 
   // ─── Goals for the year (set with Teddy) ─────────────────────────────────────────────────────────────────
