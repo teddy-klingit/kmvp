@@ -87,13 +87,13 @@ export function SkillRunForm({
       )}
 
       <label className="flex flex-col gap-2">
-        <span className="text-[14px] font-semibold">{form.say}</span>
+        <span className="text-[14px] font-fw-semibold">{form.say}</span>
         <textarea name="say" required rows={3} defaultValue={initial.say} placeholder={form.sayPlaceholder} className="min-h-20 rounded-[14px] border border-brand-outline px-4 py-3 text-[15px] leading-[1.5] outline-none focus:border-brand-ink" data-gramm="false" />
       </label>
 
       {form.startFrom && starts.length > 0 && (
         <div className="flex flex-col gap-2">
-          <span className="text-[14px] font-semibold">Start from</span>
+          <span className="text-[14px] font-fw-semibold">Start from</span>
           <div className="grid grid-cols-3 gap-2">
             {starts.map((s) => (
               <button key={s.value} type="button" onClick={() => setStart(s.value)} aria-pressed={start === s.value} className={cn("flex flex-col gap-2 rounded-[10px] border p-2 text-left text-[12px] leading-[1.35]", start === s.value ? "border-2 border-brand-ink" : "border-brand-outline hover:border-brand-ink")}>
@@ -107,7 +107,7 @@ export function SkillRunForm({
 
       {form.versions && (
         <div className="flex flex-col gap-2">
-          <span className="text-[14px] font-semibold">Versions</span>
+          <span className="text-[14px] font-fw-semibold">Versions</span>
           <div className="flex gap-2">
             {[1, 2, 3, 4].map((v) => (
               <button key={v} type="button" onClick={() => setVersions(v)} aria-pressed={versions === v} className={cn("flex size-9 items-center justify-center rounded-full border text-[14px]", versions === v ? "border-brand-ink bg-brand-ink text-white" : "border-brand-outline hover:border-brand-ink")}>
@@ -120,7 +120,7 @@ export function SkillRunForm({
 
       {projects.length > 0 && (
         <label className="flex flex-col gap-2">
-          <span className="text-[14px] font-semibold">Link to a project</span>
+          <span className="text-[14px] font-fw-semibold">Link to a project</span>
           <select name="projectId" defaultValue="" className="h-11 rounded-full border border-brand-outline bg-white px-4 text-[15px]">
             <option value="">None · keep it as a one-off</option>
             {projects.map((p) => (
@@ -153,7 +153,7 @@ export function SkillRunForm({
 function Field({ label, note, children }: { label: string; note?: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-2" role="group" aria-label={label}>
-      <span className="text-[14px] font-semibold">{label}</span>
+      <span className="text-[14px] font-fw-semibold">{label}</span>
       <div className="flex flex-wrap gap-2">{children}</div>
       {note && <span className="text-[12px] text-brand-ink-2">{note}</span>}
     </div>

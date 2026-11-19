@@ -95,7 +95,7 @@ export default async function DashboardPage() {
       <header aria-label="Welcome" className="flex flex-wrap items-end gap-4">
         <div className="flex min-w-0 flex-1 flex-col gap-2">
           <span className="font-brand-mono text-[12px] text-brand-ink">{dateEyebrow}</span>
-          <h1 className="m-0 text-[30px] font-light leading-[1.15] @min-[640px]/dash:text-[36px]">
+          <h1 className="m-0 text-[30px] font-fw-medium leading-[1.15] @min-[640px]/dash:text-[36px]">
             {greeting(now)}, {viewer.user.name.split(" ")[0]}
           </h1>
         </div>
@@ -119,12 +119,12 @@ export default async function DashboardPage() {
                   <li key={t.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-brand-line px-6 py-4 first:border-t-0">
                     <span aria-hidden className="size-2 shrink-0 rounded-full bg-brand-orange" />
                     <div className="flex min-w-0 flex-1 basis-[calc(100%-40px)] flex-col gap-0.5 @min-[600px]/col:basis-0">
-                      <span className="text-[16px] leading-[1.45]">{t.title}</span>
+                      <span className="text-[16px] font-fw-medium leading-[1.45]">{t.title}</span>
                       <span className="line-clamp-2 text-[14px] text-brand-ink-2 @min-[600px]/col:line-clamp-1" title={t.context}>
                         {t.context}
                       </span>
                     </div>
-                    <span className={cn("flex-1 whitespace-nowrap font-brand-mono text-[12px] uppercase text-brand-ink @min-[600px]/col:w-[120px] @min-[600px]/col:flex-none @min-[600px]/col:text-right", t.due?.tone === "danger" && "font-semibold")}>{dueText(t)}</span>
+                    <span className={cn("flex-1 whitespace-nowrap font-brand-mono text-[12px] uppercase text-brand-ink @min-[600px]/col:w-[120px] @min-[600px]/col:flex-none @min-[600px]/col:text-right", t.due?.tone === "danger" && "font-fw-semibold")}>{dueText(t)}</span>
                     <Link href={t.href} className="inline-flex h-10 shrink-0 items-center justify-center rounded-full bg-brand-ink px-5 font-brand-mono text-[12px] text-white no-underline hover:bg-black">
                       Open
                     </Link>
@@ -155,7 +155,7 @@ export default async function DashboardPage() {
                 <li key={l.stage} className={cn("flex flex-col gap-2 border-brand-line px-6 py-5", i > 0 && "@min-[600px]/col:border-l", i % 2 === 1 && "border-l", i > 1 && "border-t @min-[600px]/col:border-t-0")}>
                   <Link href="/projects" className="flex flex-col gap-2 text-brand-ink no-underline hover:underline">
                     <span className="text-[14px] text-brand-ink-2">{l.title}</span>
-                    <span className="text-[30px] font-light leading-none tabular-nums">{count(l.stage)}</span>
+                    <span className="text-[30px] font-fw-medium leading-none tabular-nums">{count(l.stage)}</span>
                   </Link>
                 </li>
               ))}

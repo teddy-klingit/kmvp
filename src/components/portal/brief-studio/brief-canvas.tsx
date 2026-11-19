@@ -86,7 +86,7 @@ function QualityBlock({ view, onAsk, disabled }: { view: StudioView; onAsk: (k: 
   return (
     <div className="flex flex-col gap-2.5 border-b border-brand-line px-7 pb-4 pt-3.5 max-[699px]:px-5">
       <div className="flex flex-wrap items-baseline gap-2 text-[14px]">
-        <span className="font-semibold">Brief quality {q.score}</span>
+        <span className="font-fw-semibold">Brief quality {q.score}</span>
         <span className="text-brand-mute">{q.status}</span>
       </div>
       <QualityBar score={q.score} />
@@ -114,7 +114,7 @@ function SectionCard({ title, tag, state, editing, onEdit, disabled, justAdded, 
   return (
     <div ref={innerRef} className={cn("flex flex-col gap-1.5 rounded-[10px] border px-4 py-3.5 transition-colors duration-500 motion-reduce:transition-none", peach ? "border-brand-peach-line bg-brand-peach-active" : "border-transparent")}>
       <div className="flex items-center gap-2">
-        <span className="flex-1 text-[13px] font-semibold">{title}</span>
+        <span className="flex-1 text-[13px] font-fw-semibold">{title}</span>
         {justAdded && state === "idle" && <span className="studio-rise text-[12px] text-brand-lime-text">Just added</span>}
         {!peach && tag}
         {!editing && (
@@ -300,11 +300,11 @@ export function BriefCanvas({ view, pending, h }: { view: StudioView; pending: b
       <div className="flex flex-wrap items-end gap-x-5 gap-y-2 border-b border-brand-line px-7 py-5 max-[699px]:px-5">
         <div className="flex min-w-[min(100%,240px)] flex-1 flex-col gap-1">
           <span className="text-[12px] text-brand-mute">Your brief</span>
-          <h2 className="m-0 text-[22px] font-light leading-[1.2] min-[700px]:truncate min-[700px]:text-[24px]">{view.title}</h2>
+          <h2 className="m-0 text-[22px] font-fw-medium leading-[1.2] min-[700px]:truncate min-[700px]:text-[24px]">{view.title}</h2>
         </div>
         <div className="flex shrink-0 flex-col items-end max-[699px]:items-start">
           <span className="text-[12px] text-brand-mute">Estimate preview</span>
-          <span className="whitespace-nowrap text-[18px] font-light">{view.estimate ? `≈ ${view.estimate.low}–${view.estimate.high} credits` : "Pick formats"}</span>
+          <span className="whitespace-nowrap text-[18px] font-fw-medium">{view.estimate ? `≈ ${view.estimate.low}–${view.estimate.high} credits` : "Pick formats"}</span>
           {view.estimate && view.estimate.unpriced.length > 0 && <span className="text-[12px] text-brand-mute">+ {and(view.estimate.unpriced.map((u) => u.toLowerCase()))}, priced by Klingit</span>}
         </div>
       </div>
@@ -325,7 +325,7 @@ export function BriefCanvas({ view, pending, h }: { view: StudioView; pending: b
       <Dialog open={confirm} onOpenChange={setConfirm}>
         <DialogContent className="w-[calc(100%-32px)] max-w-[420px] rounded-[16px] border-none font-brand">
           <DialogHeader>
-            <DialogTitle className="text-[18px] font-normal">Send it now?</DialogTitle>
+            <DialogTitle className="text-[18px] font-fw-regular">Send it now?</DialogTitle>
             <DialogDescription className="text-[15px] text-brand-ink-2">Klingit may come back with questions. Send anyway?</DialogDescription>
           </DialogHeader>
           <p className="m-0 text-[13px] text-brand-mute">

@@ -78,7 +78,7 @@ export default async function SkillPage({ params, searchParams }: { params: Prom
           <header className="flex items-start gap-4">
             <SkillIcon category={agent.skillCategory} custom={Boolean(agent.clientId)} size={48} />
             <span className="flex min-w-0 flex-1 flex-col gap-1">
-              <h1 className="m-0 text-[24px] font-normal leading-[1.2]">{agent.name}</h1>
+              <h1 className="m-0 text-[24px] font-fw-regular leading-[1.2]">{agent.name}</h1>
               <span className="text-[14px] leading-[1.45] text-brand-ink-2">{agent.summary ?? agent.description}</span>
             </span>
             <span className={cn("shrink-0 rounded-[6px] px-2 py-0.5 text-[12px]", LABEL[availability].tint)}>{LABEL[availability].text}</span>
@@ -120,7 +120,7 @@ export default async function SkillPage({ params, searchParams }: { params: Prom
           {batch && versions.length > 0 ? (
             <>
               <div className="flex flex-wrap items-baseline gap-3">
-                <h2 className="m-0 flex-1 text-[22px] font-normal">
+                <h2 className="m-0 flex-1 text-[22px] font-fw-medium">
                   {versions.length} version{versions.length === 1 ? "" : "s"}
                 </h2>
                 <span className="text-[13px] text-brand-ink-2">

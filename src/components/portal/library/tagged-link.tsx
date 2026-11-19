@@ -26,7 +26,7 @@ export function TaggedLink({ link, kind, id, admin }: { link: Link; kind: "asset
   return (
     <section aria-label="Tagged link" className="flex flex-col gap-3 rounded-[12px] bg-white px-6 py-5">
       <header className="flex items-center gap-3">
-        <h2 className="m-0 flex-1 text-[16px] font-normal">Tagged link</h2>
+        <h2 className="m-0 flex-1 text-[16px] font-fw-medium">Tagged link</h2>
         <span className="font-brand-mono text-[11px] uppercase text-brand-ink-2">UTM · automatic</span>
       </header>
       {link.url ? (

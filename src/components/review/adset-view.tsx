@@ -126,9 +126,9 @@ export function AdSetView({
           <table className="w-full min-w-[720px] border-collapse">
             <thead>
               <tr className="text-[13px] text-brand-mute">
-                <th className="w-[200px] px-6 py-4 text-left font-normal">Concept</th>
+                <th className="w-[200px] px-6 py-4 text-left font-fw-regular">Concept</th>
                 {columns.map((c) => (
-                  <th key={c} className="px-2 py-4 font-normal">
+                  <th key={c} className="px-2 py-4 font-fw-regular">
                     {c}
                   </th>
                 ))}
@@ -159,7 +159,7 @@ export function AdSetView({
                             <span className="relative block overflow-hidden rounded-[8px] bg-brand-chip shadow-sm transition-transform hover:scale-[1.03]" style={{ width: w, height: Math.round(w / cell.ratio) }}>
                               {/* eslint-disable-next-line @next/next/no-img-element -- the access-checked file the client was sent */}
                               {cell.fileUrl && <img src={cell.fileUrl} alt={`${concept} ${col}`} loading="lazy" className="size-full object-cover" />}
-                              {pins > 0 && <span className="absolute right-1 top-1 flex size-5 items-center justify-center rounded-full bg-brand-orange text-[11px] font-semibold text-white">{pins}</span>}
+                              {pins > 0 && <span className="absolute right-1 top-1 flex size-5 items-center justify-center rounded-full bg-brand-orange text-[11px] font-fw-semibold text-white">{pins}</span>}
                             </span>
                             <span className="text-[13px] text-brand-mute">{ci === 0 ? "Master" : ""}</span>
                           </Link>
@@ -189,7 +189,7 @@ export function AdSetView({
           </label>
           {concepts.map((concept) => (
             <section key={concept} aria-label={concept} className="flex flex-col gap-3">
-              <h2 className="m-0 text-[17px] font-normal">{concept}</h2>
+              <h2 className="m-0 text-[17px] font-fw-medium">{concept}</h2>
               <div className="flex flex-wrap items-end gap-6">
                 {items
                   .filter((i) => i.concept === concept)

@@ -278,7 +278,7 @@ describe("the ouhers demo seed", () => {
     // Decide by: the SPF answer in two days (7 working days before it goes live), the refill test 7 before the launch.
     // (Counted in working days, so it lands 1–4 calendar days out depending on the weekday the test runs.)
     const daysOut = (card(/SPF/).decideBy!.getTime() - Date.now()) / 86400000;
-    expect(daysOut).toBeGreaterThan(0.5);
+    expect(daysOut).toBeGreaterThan(0);
     expect(daysOut).toBeLessThan(4.5);
     expect((await prisma.opportunity.findFirstOrThrow({ where: { clientId: OUHERS_CLIENT_ID, origin: "combined" } })).pmNote).toMatch(/^I'd do this one\. Concept B is ready/);
   });

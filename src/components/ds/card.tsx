@@ -23,7 +23,7 @@ export function Card({
   );
 }
 
-/** The one title row: 18px weight 400, 20px 24px padding, a #EFEBE2 rule, optional meta next to the title and an action on the right. */
+/** The one title row: 18px Medium (--fw-medium), 20px 24px padding, a #EFEBE2 rule, optional meta next to the title and an action on the right. */
 export function CardHeader({
   title,
   meta,
@@ -39,7 +39,7 @@ export function CardHeader({
 }) {
   return (
     <div className={cn("flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-brand-line px-6 py-5", className)}>
-      <H className="m-0 min-w-0 text-[18px] font-normal leading-[1.45] text-brand-ink">{title}</H>
+      <H className="m-0 min-w-0 text-[18px] font-fw-medium leading-[1.45] text-brand-ink">{title}</H>
       {meta}
       <span className="flex-1" />
       {action}

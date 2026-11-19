@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 /** The dead areas shaded on top of an ad: what the platform's UI covers, so it's clear what would be hidden. */
 export function SafeZoneOverlay({ zone }: { zone: SafeZone }) {
-  const band = "absolute inset-x-0 flex justify-center bg-[repeating-linear-gradient(135deg,rgba(220,38,38,0.28)_0_6px,rgba(220,38,38,0.12)_6px_12px)] text-[10px] font-semibold uppercase tracking-[0.06em] text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.6)]";
+  const band = "absolute inset-x-0 flex justify-center bg-[repeating-linear-gradient(135deg,rgba(220,38,38,0.28)_0_6px,rgba(220,38,38,0.12)_6px_12px)] text-[10px] font-fw-semibold uppercase tracking-[0.06em] text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.6)]";
   return (
     <span aria-label={`Safe zone: ${zone.label}`} className="pointer-events-none absolute inset-0 z-10">
       <span className={`${band} items-end pb-1`} style={{ top: 0, height: `${zone.top * 100}%` }}>
@@ -33,7 +33,7 @@ export function InContext({ src, alt, ratio, brand, domain, caption, safeZones =
     // eslint-disable-next-line @next/next/no-img-element -- an access-checked file or a generated image
     <img src={src} alt={alt} className="size-full object-cover" />
   ) : null;
-  const avatar = <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-brand-peach-pale text-[11px] font-semibold text-brand-ink">{brand.charAt(0)}</span>;
+  const avatar = <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-brand-peach-pale text-[11px] font-fw-semibold text-brand-ink">{brand.charAt(0)}</span>;
   const zone = safeZones ? safeZoneFor(format ?? ratio) : null;
   if (ratio < 0.7) {
     const w = width ?? 236;
@@ -46,11 +46,11 @@ export function InContext({ src, alt, ratio, brand, domain, caption, safeZones =
             <span key={i} className={cn("h-0.5 flex-1 rounded-full", i === 0 ? "bg-white" : "bg-white/40")} />
           ))}
         </span>
-        <span className="absolute left-3 top-5 z-20 flex items-center gap-2 text-[12px] font-semibold text-white drop-shadow">
+        <span className="absolute left-3 top-5 z-20 flex items-center gap-2 text-[12px] font-fw-semibold text-white drop-shadow">
           {avatar}
-          {handle} <span className="font-normal opacity-80">Sponsored</span>
+          {handle} <span className="font-fw-regular opacity-80">Sponsored</span>
         </span>
-        <span className="absolute inset-x-3 bottom-12 z-20 flex items-center justify-center rounded-full bg-white/90 py-1.5 text-[12px] font-semibold text-brand-ink">Shop now ›</span>
+        <span className="absolute inset-x-3 bottom-12 z-20 flex items-center justify-center rounded-full bg-white/90 py-1.5 text-[12px] font-fw-semibold text-brand-ink">Shop now ›</span>
         <span className="absolute inset-x-3 bottom-3 z-20 flex h-7 items-center rounded-full border border-white/60 px-3 text-[11px] text-white/80">Send message</span>
       </span>
     );
@@ -61,7 +61,7 @@ export function InContext({ src, alt, ratio, brand, domain, caption, safeZones =
         <span className="flex items-center gap-2 px-3 py-2 text-[12px]">
           {avatar}
           <span className="flex flex-col">
-            <span className="font-semibold">{brand}</span>
+            <span className="font-fw-semibold">{brand}</span>
             <span className="text-brand-mute">Sponsored</span>
           </span>
         </span>
@@ -69,9 +69,9 @@ export function InContext({ src, alt, ratio, brand, domain, caption, safeZones =
         <span className="flex items-center gap-2 bg-[#F4F4F2] px-3 py-2">
           <span className="flex min-w-0 flex-1 flex-col">
             {domain && <span className="text-[11px] uppercase text-brand-mute">{domain}</span>}
-            <span className="truncate text-[13px] font-semibold">{caption}</span>
+            <span className="truncate text-[13px] font-fw-semibold">{caption}</span>
           </span>
-          <span className="rounded-[6px] bg-brand-chip px-3 py-1.5 text-[12px] font-semibold">Shop now</span>
+          <span className="rounded-[6px] bg-brand-chip px-3 py-1.5 text-[12px] font-fw-semibold">Shop now</span>
         </span>
       </span>
     );
@@ -81,7 +81,7 @@ export function InContext({ src, alt, ratio, brand, domain, caption, safeZones =
       <span className="flex items-center gap-2 px-3 py-2 text-[12px]">
         {avatar}
         <span className="flex flex-1 flex-col">
-          <span className="font-semibold">{handle}</span>
+          <span className="font-fw-semibold">{handle}</span>
           <span className="text-brand-mute">Sponsored</span>
         </span>
         <MoreHorizontal className="size-4" />
@@ -89,7 +89,7 @@ export function InContext({ src, alt, ratio, brand, domain, caption, safeZones =
       <span className="block" style={{ aspectRatio: String(ratio) }}>
         {img}
       </span>
-      <span className="flex items-center justify-between bg-brand-chip px-3 py-2 text-[12px] font-semibold">
+      <span className="flex items-center justify-between bg-brand-chip px-3 py-2 text-[12px] font-fw-semibold">
         Shop now <ChevronRight className="size-4" />
       </span>
       <span className="flex items-center gap-3 px-3 py-2">
@@ -98,7 +98,7 @@ export function InContext({ src, alt, ratio, brand, domain, caption, safeZones =
         <Bookmark className="size-4" />
       </span>
       <span className="block px-3 pb-3 text-[12px]">
-        <span className="font-semibold">{handle}</span> {caption}
+        <span className="font-fw-semibold">{handle}</span> {caption}
       </span>
     </span>
   );

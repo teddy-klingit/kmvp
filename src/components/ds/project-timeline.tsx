@@ -43,7 +43,7 @@ export function ProjectTimeline({
                   <span
                     className={cn(
                       "whitespace-nowrap text-[13px]",
-                      s.status === "current" ? "font-semibold text-ds-text" : s.status === "done" ? "font-medium text-ds-text" : "font-medium text-ds-text-2"
+                      s.status === "current" ? "font-fw-semibold text-ds-text" : s.status === "done" ? "font-fw-medium text-ds-text" : "font-fw-medium text-ds-text-2"
                     )}
                   >
                     {s.label}
@@ -53,7 +53,7 @@ export function ProjectTimeline({
                       title={s.caption}
                       className={cn(
                         "truncate whitespace-nowrap text-[12px] tabular-nums",
-                        s.status === "current" ? "font-medium text-[var(--tl-text)]" : s.status === "done" ? "text-ds-text-2" : "text-ds-text-3"
+                        s.status === "current" ? "font-fw-medium text-[var(--tl-text)]" : s.status === "done" ? "text-ds-text-2" : "text-ds-text-3"
                       )}
                     >
                       {s.caption}
@@ -99,14 +99,14 @@ function VerticalTimeline({ steps, label, dot }: { steps: TimelineMilestone[]; l
               {!last && <span className={cn("my-1 w-0.5 flex-1", s.status === "done" ? "bg-ds-text" : "bg-ds-border")} />}
             </div>
             <div className={cn("flex min-w-0 flex-1 flex-wrap items-baseline justify-between gap-x-3 pt-0.5", !last && "pb-4")}>
-              <span className={cn("text-[14px]", s.status === "current" ? "font-semibold text-ds-text" : s.status === "done" ? "font-medium text-ds-text" : "font-medium text-ds-text-2")}>
+              <span className={cn("text-[14px]", s.status === "current" ? "font-fw-semibold text-ds-text" : s.status === "done" ? "font-fw-medium text-ds-text" : "font-fw-medium text-ds-text-2")}>
                 {s.label}
               </span>
               {s.caption && (
                 <span
                   className={cn(
                     "text-[12px] tabular-nums",
-                    s.status === "current" ? "font-medium text-[var(--tl-text)]" : s.status === "done" ? "text-ds-text-2" : "text-ds-text-3"
+                    s.status === "current" ? "font-fw-medium text-[var(--tl-text)]" : s.status === "done" ? "text-ds-text-2" : "text-ds-text-3"
                   )}
                 >
                   {s.caption}

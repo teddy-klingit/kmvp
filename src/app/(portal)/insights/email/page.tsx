@@ -130,10 +130,10 @@ export default async function EmailPage({ searchParams }: { searchParams: Promis
                 <table className="w-full min-w-[440px] border-collapse text-[14px]">
                   <thead>
                     <tr className="bg-[#FAF8F3] text-left font-brand-mono text-[11px] uppercase tracking-[0.04em] text-brand-ink-2">
-                      <th className="px-6 py-3 font-normal">Email</th>
-                      <th className="px-3 py-3 font-normal">Open</th>
-                      <th className="px-3 py-3 font-normal">Sales</th>
-                      <th className="px-6 py-3 font-normal" aria-label="Status" />
+                      <th className="px-6 py-3 font-fw-regular">Email</th>
+                      <th className="px-3 py-3 font-fw-regular">Open</th>
+                      <th className="px-3 py-3 font-fw-regular">Sales</th>
+                      <th className="px-6 py-3 font-fw-regular" aria-label="Status" />
                     </tr>
                   </thead>
                   <tbody>

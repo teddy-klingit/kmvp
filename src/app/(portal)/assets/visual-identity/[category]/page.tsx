@@ -118,7 +118,7 @@ export default async function VisualIdentityFolderPage({
           <CardBody className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {fonts.map((font) => (
               <div key={font.text} className="flex flex-col gap-1 rounded-[10px] bg-brand-chip p-5">
-                <p className="m-0 text-[28px] font-light leading-[1.2] text-brand-ink" style={{ fontFamily: font.family }}>
+                <p className="m-0 text-[28px] font-fw-medium leading-[1.2] text-brand-ink" style={{ fontFamily: font.family }}>
                   Aa Bb Cc
                 </p>
                 <p className="m-0 text-[15px] text-brand-ink">{font.family}</p>

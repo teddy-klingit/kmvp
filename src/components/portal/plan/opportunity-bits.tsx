@@ -52,7 +52,7 @@ export function DismissMenu({ id, label = "Dismiss", back = false, reasons }: { 
 export function OpportunitiesSideCard({ count, newest }: { count: number; newest: { id: string; title: string; sources: unknown }[] }) {
   return (
     <section aria-label="Opportunities" className="overflow-hidden rounded-[12px] bg-white">
-      <h2 className="m-0 flex items-baseline gap-2 border-b border-brand-line px-6 py-5 text-[18px] font-normal">
+      <h2 className="m-0 flex items-baseline gap-2 border-b border-brand-line px-6 py-5 text-[18px] font-fw-medium">
         Opportunities {count > 0 && <span className="text-[14px] text-brand-ink-2">{count} new</span>}
         <Link href="/opportunities" className="ml-auto font-brand-mono text-[12px] uppercase text-brand-ink underline underline-offset-4">
           All

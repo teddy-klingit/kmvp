@@ -121,7 +121,7 @@ export function AcceptedBriefView({
 
             {FIELD_META.map((f) => (
               <div key={f.key} className="flex flex-col gap-1">
-                <label className="text-[12px] font-medium text-ds-text-2">{f.label}</label>
+                <label className="text-[12px] font-fw-medium text-ds-text-2">{f.label}</label>
                 <Textarea
                   name={f.key}
                   defaultValue={brief[f.key] ?? ""}
@@ -166,7 +166,7 @@ export function AcceptedBriefView({
           <button
             type="button"
             onClick={() => setHistoryOpen((v) => !v)}
-            className="flex items-center gap-1.5 self-start text-[13px] font-medium text-ds-text-2 hover:text-ds-text"
+            className="flex items-center gap-1.5 self-start text-[13px] font-fw-medium text-ds-text-2 hover:text-ds-text"
           >
             <History className="size-3.5" />
             {revisions.length} earlier version{revisions.length === 1 ? "" : "s"}
@@ -181,7 +181,7 @@ export function AcceptedBriefView({
                     onClick={() => setExpandedRevision(expandedRevision === r.id ? null : r.id)}
                     className="flex w-full items-center justify-between text-left"
                   >
-                    <p className="text-[13px] font-medium text-ds-text">
+                    <p className="text-[13px] font-fw-medium text-ds-text">
                       Edited by {r.changedByName} · {new Date(r.createdAt).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                     </p>
                     <ChevronDown className={cn("size-3.5 shrink-0 transition-transform", expandedRevision === r.id && "rotate-180")} />

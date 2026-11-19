@@ -27,7 +27,7 @@ export function RequestForm({ kind, title, rule, options, note, admin, cta }: { 
           ))}
         </select>
       )}
-      {options && options.length === 1 && <span className="text-[14px]">{options[0].label} · <b className="font-semibold">{options[0].price}</b></span>}
+      {options && options.length === 1 && <span className="text-[14px]">{options[0].label} · <b className="font-fw-semibold">{options[0].price}</b></span>}
       {note && <textarea name="note" rows={2} placeholder={note} disabled={!admin} className="rounded-[10px] border border-brand-outline bg-white px-3 py-2 text-[14px]" />}
       {admin && (
         <button type="submit" disabled={pending} className={pillClass("secondary", "sm") + " self-start"}>

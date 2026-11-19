@@ -107,7 +107,7 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
         <div className="flex min-w-0 flex-col gap-4">
           <section aria-label="Calendar" className="overflow-hidden rounded-[12px] bg-white">
             <div className="flex items-center gap-3 border-b border-brand-line px-5 py-4">
-              <h2 className="m-0 flex-1 text-[20px] font-normal">{title}</h2>
+              <h2 className="m-0 flex-1 text-[20px] font-fw-medium">{title}</h2>
               <Link href={keep({ start: isoDay(step.prev) })} aria-label="Earlier" className="px-2 text-brand-ink no-underline">
                 ‹
               </Link>
@@ -139,7 +139,7 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
         <aside className="flex min-w-0 flex-col gap-6">
           {detail && <ItemCard item={detail} keep={keep} leadTimes={leadTimes} now={now} />}
           <section aria-label="Needs a brief soon" className="overflow-hidden rounded-[12px] bg-white">
-            <h2 className="m-0 border-b border-brand-line px-6 py-5 text-[18px] font-normal">Needs a brief soon</h2>
+            <h2 className="m-0 border-b border-brand-line px-6 py-5 text-[18px] font-fw-medium">Needs a brief soon</h2>
             {soon.length === 0 ? (
               <p className="m-0 px-6 py-5 text-[14px] text-brand-ink-2">Nothing Klingit helps with needs a brief in the next three weeks.</p>
             ) : (
@@ -158,11 +158,11 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
                       <span className="text-[13px] text-brand-ink-2">{[formats.join(" + "), channels.join(" + "), `live ${wday(item.date)}`].filter(Boolean).join(" · ")}</span>
                       {late ? (
                         <span className="text-[13px]">
-                          <b className="font-semibold">Late, talk to Klingit.</b> The earliest Klingit can make it is about {wday(addWorkingDays(now, briefByFor(item.date, formats, leadTimes).days))}: move the live date, or ask.
+                          <b className="font-fw-semibold">Late, talk to Klingit.</b> The earliest Klingit can make it is about {wday(addWorkingDays(now, briefByFor(item.date, formats, leadTimes).days))}: move the live date, or ask.
                         </span>
                       ) : null}
                       <span className="flex items-center gap-3">
-                        <b className="flex-1 text-[14px] font-semibold">Brief by {wday(item.briefBy!)}</b>
+                        <b className="flex-1 text-[14px] font-fw-semibold">Brief by {wday(item.briefBy!)}</b>
                         <form action={startPlanBriefAction}>
                           <input type="hidden" name="itemId" value={item.id} />
                           <button type="submit" className={pillClass(urgent ? "primary" : "secondary", "sm")}>
@@ -184,7 +184,7 @@ export default async function PlanPage({ searchParams }: { searchParams: Promise
           <OpportunitiesSideCard count={fresh.count} newest={fresh.newest} />
 
           <section aria-label="Coverage this month" className="overflow-hidden rounded-[12px] bg-white">
-            <h2 className="m-0 border-b border-brand-line px-6 py-5 text-[18px] font-normal">Coverage this month</h2>
+            <h2 className="m-0 border-b border-brand-line px-6 py-5 text-[18px] font-fw-medium">Coverage this month</h2>
             {coverage.length === 0 ? (
               <p className="m-0 px-6 py-5 text-[14px] text-brand-ink-2">No posting agreement with Klingit yet.</p>
             ) : (

@@ -61,7 +61,7 @@ export function ConnectModal({
           <div className="flex items-center gap-3 border-b border-ds-divider px-6 py-[18px]">
             <AppIcon app={app} size={18} tile />
             <div className="flex min-w-0 flex-1 flex-col">
-              <DialogPrimitive.Title className="m-0 text-[15px] font-semibold text-ds-text">Connect {meta.name}</DialogPrimitive.Title>
+              <DialogPrimitive.Title className="m-0 text-[15px] font-fw-semibold text-ds-text">Connect {meta.name}</DialogPrimitive.Title>
               <DialogPrimitive.Description className="m-0 text-[12px] text-ds-text-2">Step {step} of 3 · {["Sign in", "Choose what Klingit can see", "Connected"][step - 1]}</DialogPrimitive.Description>
             </div>
             <DialogPrimitive.Close aria-label="Close" className="flex size-8 items-center justify-center rounded-[8px] text-ds-text-2 hover:bg-ds-subtle">
@@ -81,14 +81,14 @@ export function ConnectModal({
               <div className="flex flex-1 flex-col items-center justify-center gap-4 text-center">
                 <AppIcon app={app} size={28} tile />
                 <div className="flex flex-col gap-1">
-                  <span className="text-[16px] font-semibold text-ds-text">Sign in to {meta.name}</span>
+                  <span className="text-[16px] font-fw-semibold text-ds-text">Sign in to {meta.name}</span>
                   <span className="max-w-[340px] text-[14px] text-ds-text-2">Klingit gets read-only access to the files you choose next. You can disconnect at any time.</span>
                 </div>
                 <button
                   type="button"
                   disabled={signingIn}
                   onClick={() => startSignIn(() => new Promise<void>((r) => setTimeout(() => (setStep(2), r()), 700)))}
-                  className="inline-flex h-11 items-center gap-2.5 rounded-[8px] border border-ds-control-border bg-white px-5 text-[14px] font-medium text-ds-text hover:border-ds-text-3"
+                  className="inline-flex h-11 items-center gap-2.5 rounded-[8px] border border-ds-control-border bg-white px-5 text-[14px] font-fw-medium text-ds-text hover:border-ds-text-3"
                 >
                   {signingIn ? <Loader2 className="size-4 animate-spin" /> : <AppIcon app={app} size={16} />}
                   Sign in with {meta.name}
@@ -141,7 +141,7 @@ export function ConnectModal({
                   <Check className="size-6" strokeWidth={2.25} />
                 </span>
                 <div className="flex flex-col items-center gap-1.5">
-                  <span className="text-[16px] font-semibold text-ds-text">{meta.name} is connected</span>
+                  <span className="text-[16px] font-fw-semibold text-ds-text">{meta.name} is connected</span>
                   <StatusPill tone="success">Connected</StatusPill>
                   <span className="max-w-[340px] text-[14px] text-ds-text-2">
                     {state.ok ?? `${linkedCount} items linked`}. Pin them to any Brand OS section with “Add source”.

@@ -130,7 +130,7 @@ export function PlanBuilder({ plans, packs, prices, current, currency, admin, to
             <span className="tabular-nums">{price?.team != null ? fmt(price.team) : "—"}</span>
           </span>
         )}
-        <span className="border-t border-white/25 pt-3 text-[34px] font-light tabular-nums">{price?.total != null ? fmt(price.total) : "—"}</span>
+        <span className="border-t border-white/25 pt-3 text-[34px] font-fw-medium tabular-nums">{price?.total != null ? fmt(price.total) : "—"}</span>
         <span className="text-[12px] opacity-70">
           per month · {term} months{today != null && price?.total != null ? ` · today ${fmt(today)}` : ""}
         </span>

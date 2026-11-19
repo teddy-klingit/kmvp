@@ -168,7 +168,7 @@ export default async function RevenuePage({ searchParams }: { searchParams: Prom
         {ent.has("revenueWork") ? (
           <section aria-label="Klingit work that brought sales" className="overflow-hidden rounded-[12px] bg-white">
             <header className="flex items-center gap-3 border-b border-brand-line px-6 py-4">
-              <h2 className="m-0 flex-1 text-[18px] font-normal">Klingit work that brought sales</h2>
+              <h2 className="m-0 flex-1 text-[18px] font-fw-medium">Klingit work that brought sales</h2>
               <Link href="/library" className="font-brand-mono text-[12px] uppercase text-brand-ink underline underline-offset-4">
                 Output library
               </Link>
@@ -205,7 +205,7 @@ export default async function RevenuePage({ searchParams }: { searchParams: Prom
         )}
 
         <section id="cant-see" aria-label="What we can't see yet" className="overflow-hidden rounded-[12px] bg-white">
-          <h2 className="m-0 border-b border-brand-line px-6 py-4 text-[18px] font-normal">What we can&apos;t see yet</h2>
+          <h2 className="m-0 border-b border-brand-line px-6 py-4 text-[18px] font-fw-medium">What we can&apos;t see yet</h2>
           {q.upload && <p className="m-0 border-b border-brand-line px-6 py-3 text-[13px]">{q.upload}</p>}
           {r.blind.length === 0 ? (
             <p className="m-0 px-6 py-5 text-[14px] text-brand-ink-2">Nothing we know of: every connected source is syncing.</p>
@@ -249,7 +249,7 @@ export default async function RevenuePage({ searchParams }: { searchParams: Prom
       {ent.has("revenueTable") ? (
         <section aria-label="Revenue by channel" className="overflow-hidden rounded-[12px] bg-white">
           <header className="flex flex-wrap items-center gap-3 border-b border-brand-line px-6 py-4">
-            <h2 className="m-0 flex-1 text-[18px] font-normal">By {by}</h2>
+            <h2 className="m-0 flex-1 text-[18px] font-fw-medium">By {by}</h2>
             {(["channel", "campaign", "market"] as const).map((b) => (
               <Link key={b} href={href({ by: b })} aria-current={b === by ? "true" : undefined} className={cn("rounded-full border px-3.5 py-1.5 text-[14px] no-underline", b === by ? "border-brand-ink bg-brand-ink text-white" : "border-[#DCD6C8] bg-white text-brand-ink")}>
                 {b[0].toUpperCase() + b.slice(1)}
@@ -261,7 +261,7 @@ export default async function RevenuePage({ searchParams }: { searchParams: Prom
               <thead>
                 <tr className="text-left font-brand-mono text-[11px] uppercase tracking-[0.06em] text-brand-ink-2">
                   {[by === "market" ? "Market" : by === "campaign" ? "Campaign" : "Channel", "Spend", "Orders", "Retail deals", "Revenue", "Return", "Per customer"].map((h) => (
-                    <th key={h} className="px-6 py-3 font-normal first:pl-6">
+                    <th key={h} className="px-6 py-3 font-fw-regular first:pl-6">
                       {h}
                     </th>
                   ))}
@@ -303,7 +303,7 @@ const fmtDay = (d: string | Date) => new Intl.DateTimeFormat("en-GB", { day: "nu
 function Locked({ title, plan }: { title: string; plan: string }) {
   return (
     <section aria-label={title} className="flex flex-col gap-2 rounded-[12px] border border-dashed border-[#DCD6C8] px-6 py-5">
-      <h2 className="m-0 text-[18px] font-normal">{title}</h2>
+      <h2 className="m-0 text-[18px] font-fw-medium">{title}</h2>
       <p className="m-0 text-[14px] text-brand-ink-2">
         On {plan} and up. <Link href="/settings/plan">See plans</Link>
       </p>
@@ -315,13 +315,13 @@ function DataHealth({ r }: { r: Revenue }) {
   const STATUS: Record<string, string> = { connected: "Syncing", needs_reconnect: "Needs reconnecting", error: "Failed last sync", setting_up: "Setting up", requested: "Requested", disconnected: "Disconnected", waitlist: "Coming soon" };
   return (
     <section id="data-health" aria-label="Data health" className="overflow-hidden rounded-[12px] bg-white">
-      <h2 className="m-0 border-b border-brand-line px-6 py-4 text-[18px] font-normal">Data health</h2>
+      <h2 className="m-0 border-b border-brand-line px-6 py-4 text-[18px] font-fw-medium">Data health</h2>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[620px] border-collapse text-[14px]">
           <thead>
             <tr className="text-left font-brand-mono text-[11px] uppercase tracking-[0.06em] text-brand-ink-2">
               {["Source", "State", "Last sync", "With a source", "Numbers in period"].map((h) => (
-                <th key={h} className="px-6 py-3 font-normal">
+                <th key={h} className="px-6 py-3 font-fw-regular">
                   {h}
                 </th>
               ))}

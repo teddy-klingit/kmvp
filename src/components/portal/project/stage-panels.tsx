@@ -177,7 +177,7 @@ export async function EstimateCard({ projectId, viewer, revision = false }: Omit
       />
       {base && (
         <div className="flex flex-col gap-0.5 border-b border-ds-divider bg-ds-watch-tint px-6 py-3 text-[13px] text-ds-watch-text">
-          <span className="font-medium">Changed since v{base.version}{estimate.revisionReason ? `: ${estimate.revisionReason}` : ""}</span>
+          <span className="font-fw-medium">Changed since v{base.version}{estimate.revisionReason ? `: ${estimate.revisionReason}` : ""}</span>
           {diff && diff.removed.length > 0 && <span>Removed: {diff.removed.map((r) => r.deliverable).join(", ")}</span>}
           {estimate.approvedVersion && revision && <span>If you decline, v{estimate.approvedVersion} ({base.total} credits) stays in force and the work carries on.</span>}
         </div>
@@ -237,10 +237,10 @@ export function EstimateTable({
     <table className="w-full border-collapse text-[14px]">
       <thead>
         <tr className="text-left text-[12px] text-ds-text-2">
-          <th scope="col" className="px-6 py-2.5 font-medium">Deliverable</th>
-          <th scope="col" className="hidden px-3 py-2.5 font-medium sm:table-cell">Details</th>
-          <th scope="col" className="hidden px-3 py-2.5 font-medium sm:table-cell">Balance</th>
-          <th scope="col" className="px-6 py-2.5 text-right font-medium">Credits</th>
+          <th scope="col" className="px-6 py-2.5 font-fw-medium">Deliverable</th>
+          <th scope="col" className="hidden px-3 py-2.5 font-fw-medium sm:table-cell">Details</th>
+          <th scope="col" className="hidden px-3 py-2.5 font-fw-medium sm:table-cell">Balance</th>
+          <th scope="col" className="px-6 py-2.5 text-right font-fw-medium">Credits</th>
         </tr>
       </thead>
       <tbody>
@@ -248,10 +248,10 @@ export function EstimateTable({
           const change = changes?.[i];
           return (
           <tr key={li.id} id={`line-${li.id}`} className={cn("border-t border-ds-divider", change && "bg-ds-watch-tint/60")}>
-            <td className="px-6 py-3.5 font-medium text-ds-text">
+            <td className="px-6 py-3.5 font-fw-medium text-ds-text">
               {lineName(li)}
               {change && (
-                <span className="mt-0.5 block text-[12px] font-normal text-ds-watch-text">
+                <span className="mt-0.5 block text-[12px] font-fw-regular text-ds-watch-text">
                   {change.isNew
                     ? "New in this version"
                     : [
@@ -265,7 +265,7 @@ export function EstimateTable({
                 </span>
               )}
               {/* Phones: details and complexity move under the name. */}
-              <span className="mt-1 flex flex-wrap items-center gap-2 font-normal text-ds-text-2 sm:hidden">
+              <span className="mt-1 flex flex-wrap items-center gap-2 font-fw-regular text-ds-text-2 sm:hidden">
                 {li.detail}
                 <StatusPill>{li.complexityTier ? COMPLEXITY_LABEL[li.complexityTier] : balanceLabel(li.balance)}</StatusPill>
               </span>
@@ -284,18 +284,18 @@ export function EstimateTable({
           );
         })}
         <tr className="border-t border-ds-border bg-ds-subtle-2">
-          <td className="px-6 py-3.5 font-semibold text-ds-text">
+          <td className="px-6 py-3.5 font-fw-semibold text-ds-text">
             Total
             {lines.some((l) => l.balance === "pm" && l.credits > 0) && (
-              <span className="block text-[12px] font-normal text-ds-text-2">
+              <span className="block text-[12px] font-fw-regular text-ds-text-2">
                 PM {fmt(lines.filter((l) => l.balance === "pm").reduce((n, l) => n + l.credits, 0))} · Creative {fmt(lines.filter((l) => l.balance !== "pm").reduce((n, l) => n + l.credits, 0))}
               </span>
             )}
           </td>
           <td className="hidden sm:table-cell" />
           <td className="hidden sm:table-cell" />
-          <td className="whitespace-nowrap px-6 py-3.5 text-right font-semibold tabular-nums text-ds-text">
-            {prevTotal !== undefined && prevTotal !== total && <span className="mr-1.5 font-medium text-ds-text-3 line-through">{prevTotal}</span>}
+          <td className="whitespace-nowrap px-6 py-3.5 text-right font-fw-semibold tabular-nums text-ds-text">
+            {prevTotal !== undefined && prevTotal !== total && <span className="mr-1.5 font-fw-medium text-ds-text-3 line-through">{prevTotal}</span>}
             {fmt(total)} credits
           </td>
         </tr>
@@ -332,7 +332,7 @@ export async function BriefAndNextStepsRow({ projectId, viewer }: Omit<PanelProp
         <CardHeader
           title="Brief"
           action={
-            <Link href={`/projects/${projectId}/scope`} className="text-[13px] font-medium text-ds-text no-underline hover:underline">
+            <Link href={`/projects/${projectId}/scope`} className="text-[13px] font-fw-medium text-ds-text no-underline hover:underline">
               View full brief
             </Link>
           }
@@ -359,7 +359,7 @@ export async function BriefAndNextStepsRow({ projectId, viewer }: Omit<PanelProp
             "You comment directly on each piece in Work.",
           ].map((text, i) => (
             <li key={i} className="flex gap-3">
-              <span className="flex size-[22px] shrink-0 items-center justify-center rounded-full bg-ds-subtle text-[12px] font-semibold">
+              <span className="flex size-[22px] shrink-0 items-center justify-center rounded-full bg-ds-subtle text-[12px] font-fw-semibold">
                 {i + 1}
               </span>
               <span>{text}</span>
@@ -414,7 +414,7 @@ export async function WaitingForReviewCard({ projectId, viewer }: Omit<PanelProp
         title="Waiting for your review"
         meta={<StatusPill tone="turn">{assets.length}</StatusPill>}
         action={
-          <Link href={`/projects/${projectId}/work?filter=review`} className="text-[13px] font-medium text-ds-text no-underline hover:underline">
+          <Link href={`/projects/${projectId}/work?filter=review`} className="text-[13px] font-fw-medium text-ds-text no-underline hover:underline">
             Open in Work
           </Link>
         }
@@ -434,7 +434,7 @@ export async function WaitingForReviewCard({ projectId, viewer }: Omit<PanelProp
                   <span className="absolute inset-0 flex flex-col justify-center gap-1 px-3 text-left">
                     {a.copy.lines.map((l) => (
                       <span key={l.lang} className="line-clamp-1 text-[12px] leading-[1.4] text-ds-text">
-                        <span className="mr-1 font-semibold uppercase text-ds-text-2">{l.lang}</span>
+                        <span className="mr-1 font-fw-semibold uppercase text-ds-text-2">{l.lang}</span>
                         {l.text}
                       </span>
                     ))}
@@ -447,7 +447,7 @@ export async function WaitingForReviewCard({ projectId, viewer }: Omit<PanelProp
                   <ImageIcon className="size-5 text-ds-text/35" strokeWidth={1.5} />
                 )}
               </span>
-              <span className="truncate text-[13px] font-medium text-ds-text">{a.name}</span>
+              <span className="truncate text-[13px] font-fw-medium text-ds-text">{a.name}</span>
               <span className="-mt-1 text-[12px] text-ds-text-2">{a.format}</span>
             </Link>
           </li>
@@ -494,7 +494,7 @@ export async function DeliveryPackageCard({ projectId, viewer }: Omit<PanelProps
             <li key={li.id} className="flex items-start gap-3 text-[14px]">
               <Check className="mt-0.5 size-4 shrink-0 text-ds-check" strokeWidth={2} />
               <span>
-                <span className="font-medium text-ds-text">{lineName(li)}</span>
+                <span className="font-fw-medium text-ds-text">{lineName(li)}</span>
                 {li.detail && <span className="text-ds-text-2"> · {li.detail}</span>}
               </span>
             </li>
@@ -517,7 +517,7 @@ export async function DeliveryPackageCard({ projectId, viewer }: Omit<PanelProps
               </div>
               <div className="flex items-start gap-2">
                 <div className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate text-[14px] font-semibold text-ds-text">{a.name}</span>
+                  <span className="truncate text-[14px] font-fw-semibold text-ds-text">{a.name}</span>
                   <span className="text-[12px] text-ds-text-2">{a.format}</span>
                 </div>
                 <Button asChild variant="ghost" size="icon" aria-label={`Download ${a.name}`}>
@@ -553,7 +553,7 @@ export function SignOffCard({ projectId }: { projectId: string }) {
     <Card aria-label="Sign off">
       <div className="flex flex-col items-start gap-4 px-6 py-5 md:flex-row md:items-center">
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <h2 className="m-0 text-[15px] font-semibold text-ds-text">Sign off and close the project</h2>
+          <h2 className="m-0 text-[15px] font-fw-semibold text-ds-text">Sign off and close the project</h2>
           <p className="text-[14px] text-ds-text-2">Files move to your archive and you get a full project report.</p>
         </div>
         <SignOffButton projectId={projectId} />

@@ -89,11 +89,11 @@ export function CampaignDetailDialog({
           </div>
           <div className="flex min-w-0 flex-1 flex-col gap-1.5">
             <div className="flex items-start justify-between gap-2">
-              <p className="truncate text-sm font-medium" title={campaign.campaignName}>
+              <p className="truncate text-sm font-fw-medium" title={campaign.campaignName}>
                 {campaign.campaignName}
               </p>
               {(isStrong || isWeak) && (
-                <span className={`flex shrink-0 items-center gap-0.5 text-[10px] font-medium ${isStrong ? "text-success-foreground" : "text-ink"}`}>
+                <span className={`flex shrink-0 items-center gap-0.5 text-[10px] font-fw-medium ${isStrong ? "text-success-foreground" : "text-ink"}`}>
                   {isStrong ? <TrendingUp className="size-3" /> : <TrendingDown className="size-3" />}
                   {isStrong ? "Strong" : "Weak"}
                 </span>
@@ -102,10 +102,10 @@ export function CampaignDetailDialog({
             <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
               <span>{campaign.impressions.toLocaleString()} impr.</span>
               <span>{campaign.clicks.toLocaleString()} clicks</span>
-              <span className="font-medium text-foreground">{campaign.ctr}% CTR</span>
+              <span className="font-fw-medium text-foreground">{campaign.ctr}% CTR</span>
             </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px]">
-              <span className="font-medium text-foreground">{formatMoney(campaign.spend, campaign.currency)} spent</span>
+              <span className="font-fw-medium text-foreground">{formatMoney(campaign.spend, campaign.currency)} spent</span>
               {campaign.conversions > 0 ? (
                 <span className="text-muted-foreground">
                   {campaign.conversions} conv. · {formatMoney(campaign.costPerConversion ?? 0, campaign.currency)}/conv.
@@ -136,29 +136,29 @@ export function CampaignDetailDialog({
         </DialogHeader>
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-lg border border-border bg-paper p-3">
-            <p className="text-lg font-semibold">{campaign.impressions.toLocaleString()}</p>
+            <p className="text-lg font-fw-semibold">{campaign.impressions.toLocaleString()}</p>
             <p className="text-xs text-muted-foreground">Impressions</p>
           </div>
           <div className="rounded-lg border border-border bg-paper p-3">
-            <p className="text-lg font-semibold">{campaign.clicks.toLocaleString()}</p>
+            <p className="text-lg font-fw-semibold">{campaign.clicks.toLocaleString()}</p>
             <p className="text-xs text-muted-foreground">Clicks</p>
           </div>
           <div className="rounded-lg border border-border bg-paper p-3">
-            <p className="text-lg font-semibold">{campaign.ctr}%</p>
+            <p className="text-lg font-fw-semibold">{campaign.ctr}%</p>
             <p className="text-xs text-muted-foreground">Click-through rate</p>
           </div>
           <div className="rounded-lg border border-border bg-paper p-3">
-            <p className="text-lg font-semibold">{formatMoney(campaign.spend, campaign.currency)}</p>
+            <p className="text-lg font-fw-semibold">{formatMoney(campaign.spend, campaign.currency)}</p>
             <p className="text-xs text-muted-foreground">Spend (30d)</p>
           </div>
           {campaign.conversions > 0 && (
             <>
               <div className="rounded-lg border border-border bg-paper p-3">
-                <p className="text-lg font-semibold">{campaign.conversions}</p>
+                <p className="text-lg font-fw-semibold">{campaign.conversions}</p>
                 <p className="text-xs text-muted-foreground">Conversions</p>
               </div>
               <div className="rounded-lg border border-border bg-paper p-3">
-                <p className="text-lg font-semibold">{formatMoney(campaign.costPerConversion ?? 0, campaign.currency)}</p>
+                <p className="text-lg font-fw-semibold">{formatMoney(campaign.costPerConversion ?? 0, campaign.currency)}</p>
                 <p className="text-xs text-muted-foreground">Cost / conversion</p>
               </div>
             </>
@@ -167,7 +167,7 @@ export function CampaignDetailDialog({
 
         {insights.length > 0 && (
           <div className="mt-4 flex flex-col gap-2 rounded-lg border border-border bg-paper p-3">
-            <p className="flex items-center gap-1.5 text-xs font-semibold">
+            <p className="flex items-center gap-1.5 text-xs font-fw-semibold">
               <Lightbulb className="size-3.5 text-ink" />
               Insights &amp; tips
             </p>
@@ -182,7 +182,7 @@ export function CampaignDetailDialog({
                 );
               })}
             </div>
-            <p className="mt-1 border-t border-border pt-2 text-xs font-medium text-foreground">{recommendation}</p>
+            <p className="mt-1 border-t border-border pt-2 text-xs font-fw-medium text-foreground">{recommendation}</p>
           </div>
         )}
       </DialogContent>

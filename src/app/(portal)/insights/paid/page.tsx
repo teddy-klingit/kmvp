@@ -107,11 +107,11 @@ export default async function PaidAdsPage({ searchParams }: { searchParams: Prom
             <table className="w-full min-w-[620px] border-collapse text-[14px]">
               <thead>
                 <tr className="bg-[#FAF8F3] text-left font-brand-mono text-[11px] uppercase tracking-[0.04em] text-brand-ink-2">
-                  <th className="px-6 py-3 font-normal">Channel</th>
-                  <th className="w-[42%] px-3 py-3 font-normal">Spend (grey) vs sales (purple)</th>
-                  <th className="px-3 py-3 font-normal">Spend</th>
-                  <th className="px-3 py-3 font-normal">Sales</th>
-                  <th className="px-6 py-3 font-normal">Return</th>
+                  <th className="px-6 py-3 font-fw-regular">Channel</th>
+                  <th className="w-[42%] px-3 py-3 font-fw-regular">Spend (grey) vs sales (purple)</th>
+                  <th className="px-3 py-3 font-fw-regular">Spend</th>
+                  <th className="px-3 py-3 font-fw-regular">Sales</th>
+                  <th className="px-6 py-3 font-fw-regular">Return</th>
                 </tr>
               </thead>
               <tbody>

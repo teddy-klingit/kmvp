@@ -55,7 +55,7 @@ export default async function NotificationSettingsPage() {
           <div className="px-6 py-5">
             {prefs?.slackWorkspace ? (
               <p className="text-sm text-muted-foreground">
-                Connected to <span className="font-medium text-foreground">{prefs.slackWorkspace}</span>.
+                Connected to <span className="font-fw-medium text-foreground">{prefs.slackWorkspace}</span>.
               </p>
             ) : (
               <form action={connectSlackAction} className="flex gap-2">

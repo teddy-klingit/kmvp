@@ -134,10 +134,10 @@ export default async function YourSkillsPage() {
               {[
                 <>Describe what you need. Klingit scopes it with you and quotes the build.</>,
                 <>
-                  The build is paid once in <b className="font-semibold">team credits</b>.
+                  The build is paid once in <b className="font-fw-semibold">team credits</b>.
                 </>,
                 <>
-                  Every run after that uses <b className="font-semibold">AI credits</b>, shown before you press Run.
+                  Every run after that uses <b className="font-fw-semibold">AI credits</b>, shown before you press Run.
                 </>,
               ].map((line, i) => (
                 <li key={i} className="flex gap-3 text-[15px] leading-[1.5]">

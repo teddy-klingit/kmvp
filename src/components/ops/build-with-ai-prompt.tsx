@@ -36,7 +36,7 @@ export function BuildWithAiPrompt() {
         className="flex w-full items-center gap-4 rounded-[12px] px-6 py-5 text-left hover:bg-brand-chip/60"
       >
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="text-[18px] font-normal leading-[1.45] text-brand-ink">Build with AI</span>
+          <span className="text-[18px] font-fw-regular leading-[1.45] text-brand-ink">Build with AI</span>
           <span className="text-[13px] text-brand-ink-2">Not built yet? Get a prompt to hand to a coding agent, then register the result below.</span>
         </span>
         {open ? <ChevronUp className="size-4 shrink-0 text-brand-ink-2" strokeWidth={1.75} /> : <ChevronDown className="size-4 shrink-0 text-brand-ink-2" strokeWidth={1.75} />}

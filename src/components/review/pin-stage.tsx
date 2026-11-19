@@ -139,7 +139,7 @@ export function PinStage({
 
 export function PinBadge({ thread, className, active }: { thread: Thread; className?: string; active?: boolean }) {
   return (
-    <span className={cn("flex size-7 items-center justify-center rounded-[10px_10px_10px_2px] border-2 border-white text-[12px] font-semibold text-white shadow-md", thread.messages[0]?.fromClient ? "bg-brand-orange" : "bg-brand-ink", active && "scale-110", className)}>
+    <span className={cn("flex size-7 items-center justify-center rounded-[10px_10px_10px_2px] border-2 border-white text-[12px] font-fw-semibold text-white shadow-md", thread.messages[0]?.fromClient ? "bg-brand-orange" : "bg-brand-ink", active && "scale-110", className)}>
       {thread.number}
     </span>
   );

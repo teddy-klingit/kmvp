@@ -325,7 +325,7 @@ function UserLink({ user, active, onClose }: { user: NavProps["user"]; active: b
     >
       <Avatar name={user.name} size={34} />
       <span className="flex min-w-0 flex-col whitespace-nowrap rail:sr-only">
-        <span className="truncate text-[15px] font-semibold text-brand-ink">{user.name}</span>
+        <span className="truncate text-[15px] font-fw-semibold text-brand-ink">{user.name}</span>
         <span className="truncate text-[12px] text-brand-ink-2">{user.sub}</span>
       </span>
     </Link>

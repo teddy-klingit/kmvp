@@ -58,7 +58,7 @@ export default async function BrandOsOverviewPage() {
           <Card className="flex flex-wrap items-center gap-5 px-6 py-6 @min-[600px]/col:px-8">
             <span
               aria-hidden
-              className="flex size-[72px] shrink-0 items-center justify-center rounded-[10px] text-[28px] font-light text-brand-ink"
+              className="flex size-[72px] shrink-0 items-center justify-center rounded-[10px] text-[28px] font-fw-medium text-brand-ink"
               style={{ backgroundColor: colors[0] ? `color-mix(in srgb, ${colors[0]} 45%, white)` : "var(--brand-pink)" }}
             >
               {mark?.fileUrl ? (
@@ -69,7 +69,7 @@ export default async function BrandOsOverviewPage() {
               )}
             </span>
             <div className="flex min-w-0 flex-1 basis-[260px] flex-col gap-1.5">
-              <h2 className="m-0 text-[24px] font-normal leading-[1.25]">{client.name}</h2>
+              <h2 className="m-0 text-[24px] font-fw-medium leading-[1.25]">{client.name}</h2>
               <p className="m-0 text-[15px] text-brand-ink-2">{client.brandSummary ?? "No brand summary yet."}</p>
               {(colors.length > 0 || typefaces > 0) && (
                 <div className="mt-1 flex items-center gap-3">
@@ -149,7 +149,7 @@ export default async function BrandOsOverviewPage() {
           <SectionCard title="Brand health" action={<span className="text-[13px] text-brand-ink-2">{health.label}</span>}>
             <div className="flex flex-col gap-4 px-6 py-5">
               <div className="flex items-baseline gap-2.5">
-                <span className="text-[40px] font-light leading-none tabular-nums">{health.score}</span>
+                <span className="text-[40px] font-fw-medium leading-none tabular-nums">{health.score}</span>
                 <span className="text-[15px] text-brand-ink-2">of 100</span>
               </div>
               <ul className="m-0 flex list-none flex-col gap-2.5 p-0">

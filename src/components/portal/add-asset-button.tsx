@@ -34,15 +34,15 @@ export function AddAssetButton({ category }: { category: string }) {
         >
           <input type="hidden" name="category" value={category} />
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-muted-foreground">Name</label>
+            <label className="text-xs font-fw-medium text-muted-foreground">Name</label>
             <Input name="name" placeholder="e.g. Summer campaign key visual" required disabled={pending} />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-muted-foreground">Variant (optional)</label>
+            <label className="text-xs font-fw-medium text-muted-foreground">Variant (optional)</label>
             <Input name="variant" placeholder="e.g. Primary, Square crop" disabled={pending} />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-muted-foreground">Format (optional)</label>
+            <label className="text-xs font-fw-medium text-muted-foreground">Format (optional)</label>
             <Input name="format" placeholder="e.g. SVG, PNG, MP4" disabled={pending} />
           </div>
           <Button type="submit" disabled={pending} className="mt-1 self-start">

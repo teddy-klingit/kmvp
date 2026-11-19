@@ -40,7 +40,7 @@ export default async function SkillOutputPage({ params }: { params: Promise<{ id
         <div className="flex min-w-0 flex-col gap-5">
           <div className="flex flex-col gap-1">
             <span className="self-start rounded-full bg-[#F7E6F7] px-2.5 py-0.5 text-[13px]">Made with a skill</span>
-            <h1 className="m-0 text-[28px] font-normal leading-tight">{output.title}</h1>
+            <h1 className="m-0 text-[28px] font-fw-regular leading-tight">{output.title}</h1>
             <span className="text-[15px] text-brand-ink-2">{[output.format, output.channel].filter(Boolean).join(" · ")}</span>
           </div>
           <SectionCard title="About this output">

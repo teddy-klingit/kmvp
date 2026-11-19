@@ -21,7 +21,7 @@ function Card({ title, link, children }: { title: React.ReactNode; link?: { labe
   return (
     <section className="overflow-hidden rounded-[12px] bg-white">
       <header className="flex items-baseline gap-2 border-b border-brand-line px-6 py-4">
-        <h2 className="m-0 flex-1 text-[18px] font-normal">{title}</h2>
+        <h2 className="m-0 flex-1 text-[18px] font-fw-medium">{title}</h2>
         {link && (
           <Link href={link.href} className="font-brand-mono text-[12px] uppercase tracking-[0.04em] text-brand-ink">
             {link.label}
@@ -194,7 +194,7 @@ export default async function ClientOverviewPage({ params }: { params: Promise<{
         {ob.onboarding && (
           <Card title="Next check-in">
             <div className="flex flex-col gap-3 px-6 py-5">
-              <span className="text-[20px] font-light">{ci.next ? `${ci.next.kind.replace(/^./, (c) => c.toUpperCase())} · ${dayLabel(ci.next.at)}` : `${ob.steps.find((x) => x.key === "kickoff")?.done ? "Monthly review" : "Kick-off"} · not booked`}</span>
+              <span className="text-[20px] font-fw-medium">{ci.next ? `${ci.next.kind.replace(/^./, (c) => c.toUpperCase())} · ${dayLabel(ci.next.at)}` : `${ob.steps.find((x) => x.key === "kickoff")?.done ? "Monthly review" : "Kick-off"} · not booked`}</span>
               <span className="text-[13px] text-brand-ink-2">After that: a monthly review. A check-in puts a task on your Today the day before.</span>
               {!ci.next && (
                 <Link href={`${base}/notes#relationship`} className="inline-flex h-10 items-center justify-center rounded-full bg-brand-ink px-4 font-brand-mono text-[12px] text-white no-underline">
@@ -251,7 +251,7 @@ export default async function ClientOverviewPage({ params }: { params: Promise<{
         <Card title="Account health">
           <div className="flex flex-col gap-3 px-6 py-5">
             <span className="flex items-baseline gap-2">
-              <span className="text-[32px] font-light">{health.word}</span>
+              <span className="text-[32px] font-fw-medium">{health.word}</span>
               {health.fix > 0 && <span className="text-[13px] text-brand-ink-2">{health.fix} thing{health.fix === 1 ? "" : "s"} to fix</span>}
             </span>
             <ul className="m-0 flex list-none flex-col gap-2 p-0 text-[13px]">

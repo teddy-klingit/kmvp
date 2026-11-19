@@ -139,7 +139,7 @@ export default async function ConnectionsPage({ searchParams }: { searchParams: 
             <li key={p.title} className="flex gap-2">
               <Check className="mt-0.5 size-4 shrink-0 text-[#8D9E47]" strokeWidth={2} />
               <span>
-                <b className="font-semibold">{p.title}</b> {p.text}
+                <b className="font-fw-semibold">{p.title}</b> {p.text}
               </span>
             </li>
           ))}
@@ -192,11 +192,11 @@ export default async function ConnectionsPage({ searchParams }: { searchParams: 
           <span aria-hidden className="mt-1.5 size-2 shrink-0 rounded-full bg-[#8D9E47]" />
           {plan.ownModel ? (
             <span>
-              You&apos;re on <b className="font-semibold">Basic</b>: connect your own model and your skills and assistants run on it. Your provider bills the tokens; Klingit shows how many were used.
+              You&apos;re on <b className="font-fw-semibold">Basic</b>: connect your own model and your skills and assistants run on it. Your provider bills the tokens; Klingit shows how many were used.
             </span>
           ) : (
             <span>
-              You&apos;re on <b className="font-semibold">{plan.name}</b>: skills use Klingit AI credits and assistants are included. On <b className="font-semibold">Basic</b>, connect your own model here and your provider bills the tokens.
+              You&apos;re on <b className="font-fw-semibold">{plan.name}</b>: skills use Klingit AI credits and assistants are included. On <b className="font-fw-semibold">Basic</b>, connect your own model here and your provider bills the tokens.
             </span>
           )}
         </p>
@@ -230,7 +230,7 @@ function Count({ n, of }: { n: number; of: number }) {
 }
 
 function Monogram({ text, tone }: { text: string; tone?: string }) {
-  return <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-[8px] font-brand-mono text-[12px] font-semibold", tone ?? "bg-brand-chip text-brand-ink")}>{text}</span>;
+  return <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-[8px] font-brand-mono text-[12px] font-fw-semibold", tone ?? "bg-brand-chip text-brand-ink")}>{text}</span>;
 }
 
 function Row({ icon, name, description, meta, status, accent, children }: { icon: React.ReactNode; name: string; description: string; meta: string | null; status: Status; accent?: boolean; children?: React.ReactNode }) {

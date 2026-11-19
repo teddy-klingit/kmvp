@@ -76,7 +76,7 @@ export default async function LibraryAssetPage({ params, searchParams }: { param
 
         <div className="flex min-w-0 flex-col gap-5">
           <div className="flex flex-col gap-1">
-            <h1 className="m-0 text-[28px] font-normal leading-tight">{a.title}</h1>
+            <h1 className="m-0 text-[28px] font-fw-regular leading-tight">{a.title}</h1>
             <span className="text-[15px] text-brand-ink-2">
               {[category, a.format, a.size, a.video?.durationSeconds ? `${Math.round(a.video.durationSeconds)} s` : null].filter(Boolean).join(" · ")} ·{" "}
               <Link href={`/projects/${a.project.id}`} className="text-brand-ink-2 underline underline-offset-2">
@@ -91,7 +91,7 @@ export default async function LibraryAssetPage({ params, searchParams }: { param
               <CardBody className="flex flex-col gap-5">
                 <div className="flex flex-wrap items-end gap-x-4 gap-y-2">
                   <span className="flex items-baseline gap-2">
-                    <span className="text-[44px] font-semibold leading-none tabular-nums">{pct(p.ctr)}</span>
+                    <span className="text-[44px] font-fw-semibold leading-none tabular-nums">{pct(p.ctr)}</span>
                     <span className="text-[15px] text-brand-ink-2">click-through rate</span>
                   </span>
                   {vsAvg !== null && (
@@ -153,7 +153,7 @@ export default async function LibraryAssetPage({ params, searchParams }: { param
           {sold && sold.revenue > 0 && (
             <SectionCard title="What it sold" meta={<Link href="/insights/sales" className="font-brand-mono text-[12px] uppercase text-brand-ink underline underline-offset-4">Revenue</Link>}>
               <CardBody className="flex flex-col gap-2">
-                <span className="text-[28px] font-light tabular-nums">
+                <span className="text-[28px] font-fw-medium tabular-nums">
                   {sold.currency === "EUR" ? "€" : ""}
                   {sold.revenue >= 10000 ? `${(sold.revenue / 1000).toFixed(1).replace(/\.0$/, "")}k` : Math.round(sold.revenue).toLocaleString("en-GB")}
                   {sold.currency !== "EUR" ? ` ${sold.currency}` : ""}

@@ -51,7 +51,7 @@ export default async function AdminSetupPage({ searchParams }: { searchParams: P
     <div className="flex flex-col gap-6">
       {(q.ok || q.error) && <p className={cn("m-0 rounded-[10px] px-4 py-3 text-[14px]", q.error ? "bg-ds-watch-tint text-ds-watch-text" : "bg-white")}>{q.error ?? q.ok}</p>}
       <section aria-label="To set up" className="overflow-hidden rounded-[12px] bg-white">
-        <h2 className="m-0 flex items-baseline gap-2 border-b border-brand-line px-6 py-4 text-[18px] font-normal">
+        <h2 className="m-0 flex items-baseline gap-2 border-b border-brand-line px-6 py-4 text-[18px] font-fw-medium">
           To set up <span className="text-[13px] text-brand-ink-2">Things that keep the PMs&apos; lists clean · {count}</span>
         </h2>
         {count === 0 ? (

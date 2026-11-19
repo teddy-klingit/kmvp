@@ -40,7 +40,7 @@ export function OpportunityCard({ o, v, rank, pmNoteBy }: { o: Opportunity; v: O
   const open = o.status === "new" || o.status === "considering";
   return (
     <article aria-labelledby={`opp-${o.id}`} className="grid grid-cols-1 gap-6 rounded-[12px] bg-white px-6 py-6 min-[1100px]:grid-cols-[32px_minmax(0,1.15fr)_minmax(0,1fr)_250px] min-[1100px]:px-8">
-      <span className="text-[28px] font-light leading-none text-brand-ink-2" aria-hidden>
+      <span className="text-[28px] font-fw-medium leading-none text-brand-ink-2" aria-hidden>
         {rank}
       </span>
       <div className="flex min-w-0 flex-col gap-3">
@@ -48,7 +48,7 @@ export function OpportunityCard({ o, v, rank, pmNoteBy }: { o: Opportunity; v: O
           {KINDS[v.kind]}
           {v.tag ? ` · ${v.tag}` : ""}
         </span>
-        <h2 id={`opp-${o.id}`} className="m-0 text-[22px] font-normal leading-[1.25] [text-wrap:balance]">
+        <h2 id={`opp-${o.id}`} className="m-0 text-[22px] font-fw-medium leading-[1.25] [text-wrap:balance]">
           <Link href={`/opportunities/${o.id}`} className="text-brand-ink no-underline hover:underline">
             {o.title}
           </Link>

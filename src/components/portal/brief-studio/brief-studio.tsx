@@ -154,7 +154,7 @@ export function BriefStudio({ initial, viewerName, start, drafts = [] }: { initi
           ) : (
             <section aria-label="Live brief" className="flex flex-col gap-3 rounded-2xl bg-white px-7 py-6">
               <span className="text-[12px] text-brand-mute">Your brief</span>
-              <span className="text-[24px] font-light">{thinking ? "Starting your brief…" : "Untitled brief"}</span>
+              <span className="text-[24px] font-fw-medium">{thinking ? "Starting your brief…" : "Untitled brief"}</span>
               <p className="m-0 text-[15px] text-brand-mute">It fills in here as you talk: what Klingit already knows from your Brand OS and past projects first, then your answers.</p>
             </section>
           )}
@@ -259,7 +259,7 @@ function AttachDialog({ open, onOpenChange, projectId, onAttach }: { open: boole
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[calc(100%-32px)] max-w-[420px] rounded-[16px] border-none font-brand">
         <DialogHeader>
-          <DialogTitle className="text-[18px] font-normal">Add a reference</DialogTitle>
+          <DialogTitle className="text-[18px] font-fw-regular">Add a reference</DialogTitle>
           <DialogDescription className="text-[14px] text-brand-ink-2">An image, PDF or video, or a link to something you like.</DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-3">

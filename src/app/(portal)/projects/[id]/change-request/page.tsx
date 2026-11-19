@@ -25,7 +25,7 @@ export default async function ChangeRequestPage({ params }: { params: Promise<{ 
   return (
     <div className="flex flex-col gap-6">
       <Card className="p-5">
-        <p className="text-sm font-semibold">Request additional scope</p>
+        <p className="text-sm font-fw-semibold">Request additional scope</p>
         <p className="mb-4 text-sm text-muted-foreground">
           {closed
             ? "This project is closed, but you can request new work without reopening it — we'll scope it as a fresh mini-brief."
@@ -47,7 +47,7 @@ export default async function ChangeRequestPage({ params }: { params: Promise<{ 
             {requests.map((r) => (
               <div key={r.id} className="flex items-center justify-between gap-4 px-5 py-3.5">
                 <div>
-                  <p className="text-sm font-medium">{r.description}</p>
+                  <p className="text-sm font-fw-medium">{r.description}</p>
                   <p className="text-xs text-muted-foreground">{formatDate(r.createdAt)}</p>
                 </div>
                 <Badge tone={STATUS_TONE[r.status as keyof typeof STATUS_TONE] ?? "neutral"}>{r.status}</Badge>

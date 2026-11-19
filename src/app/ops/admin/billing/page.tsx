@@ -87,7 +87,7 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
               <thead>
                 <tr className="text-left text-[12px] text-brand-ink-2">
                   {["Invoice", "Client", "Period", "Total", "Status", "Due", ""].map((h) => (
-                    <th key={h} className="px-3 py-2.5 font-medium first:pl-6 last:pr-6">
+                    <th key={h} className="px-3 py-2.5 font-fw-medium first:pl-6 last:pr-6">
                       {h}
                     </th>
                   ))}

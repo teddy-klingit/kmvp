@@ -13,7 +13,7 @@ export function NoAdAccount({ admin, compact = false }: { admin: boolean; compac
   if (compact)
     return (
       <p role="status" className="m-0 flex flex-col gap-1 rounded-[10px] bg-brand-page px-4 py-3 text-[13px] leading-[1.5]">
-        <b className="font-semibold">No ad account connected yet</b>
+        <b className="font-fw-semibold">No ad account connected yet</b>
         <span className="text-brand-ink-2">Answers about your ads need one. Market and SEO questions still work.</span>
         <Link href="/settings/connections" className="self-start text-brand-ink underline underline-offset-2">
           Go to Connections
@@ -26,7 +26,7 @@ export function NoAdAccount({ admin, compact = false }: { admin: boolean; compac
         <Link2 className="size-5" strokeWidth={1.75} />
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-1">
-        <h2 className="m-0 text-[20px] font-normal leading-[1.3]">No ad account connected yet</h2>
+        <h2 className="m-0 text-[20px] font-fw-medium leading-[1.3]">No ad account connected yet</h2>
         <span className="max-w-[60ch] text-[15px] leading-[1.5] text-brand-ink-2">{body}</span>
       </span>
       <Link href="/settings/connections" className={pillClass("primary", "md")}>

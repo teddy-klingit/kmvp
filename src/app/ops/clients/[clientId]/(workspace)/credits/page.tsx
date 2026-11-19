@@ -147,7 +147,7 @@ export default async function CreditsPage({ params, searchParams }: { params: Pr
                     <li key={a.text} className="flex gap-2.5">
                       {a.tone === "warn" ? <AlertTriangle className="mt-1 size-3.5 shrink-0 text-brand-orange" strokeWidth={2} /> : <Check className="mt-1 size-3.5 shrink-0 text-[#6E7D2F]" strokeWidth={2} />}
                       <span>
-                        {a.text} {a.strong && <b className="font-semibold">{a.strong}</b>}
+                        {a.text} {a.strong && <b className="font-fw-semibold">{a.strong}</b>}
                       </span>
                     </li>
                   ))}

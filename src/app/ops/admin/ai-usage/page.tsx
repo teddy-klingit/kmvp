@@ -16,7 +16,7 @@ function Card({ title, right, children }: { title: string; right?: React.ReactNo
   return (
     <section className="overflow-hidden rounded-[12px] bg-white">
       <header className="flex flex-wrap items-center gap-3 border-b border-brand-line px-6 py-4">
-        <h2 className="m-0 flex-1 text-[18px] font-normal">{title}</h2>
+        <h2 className="m-0 flex-1 text-[18px] font-fw-medium">{title}</h2>
         {right}
       </header>
       {children}
@@ -70,11 +70,11 @@ export default async function AiUsagePage({ searchParams }: { searchParams: Prom
             <table className="w-full min-w-[640px] border-collapse text-[14px]">
               <thead>
                 <tr className="text-left font-brand-mono text-[11px] uppercase tracking-[0.06em] text-brand-ink-2">
-                  <th className="py-2 font-normal">Plan</th>
-                  <th className="py-2 font-normal">Price</th>
-                  <th className="py-2 font-normal">AI budget / month</th>
-                  <th className="py-2 font-normal">= AI credits</th>
-                  <th className="py-2 font-normal">AI share of price</th>
+                  <th className="py-2 font-fw-regular">Plan</th>
+                  <th className="py-2 font-fw-regular">Price</th>
+                  <th className="py-2 font-fw-regular">AI budget / month</th>
+                  <th className="py-2 font-fw-regular">= AI credits</th>
+                  <th className="py-2 font-fw-regular">AI share of price</th>
                 </tr>
               </thead>
               <tbody>
@@ -118,7 +118,7 @@ export default async function AiUsagePage({ searchParams }: { searchParams: Prom
         ].map((t) => (
           <div key={t.label} className="flex flex-col gap-1 rounded-[12px] bg-white px-5 py-5">
             <span className="text-[13px] text-brand-ink-2">{t.label}</span>
-            <span className={cn("text-[28px] font-light tabular-nums", t.warn && "text-[#C2410C]")}>{t.value}</span>
+            <span className={cn("text-[28px] font-fw-medium tabular-nums", t.warn && "text-[#C2410C]")}>{t.value}</span>
             <span className="text-[12px] text-brand-ink-2">{t.note}</span>
           </div>
         ))}
@@ -149,11 +149,11 @@ export default async function AiUsagePage({ searchParams }: { searchParams: Prom
             <table className="w-full min-w-[860px] border-collapse text-[14px]">
               <thead>
                 <tr className="text-left font-brand-mono text-[11px] uppercase tracking-[0.06em] text-brand-ink-2">
-                  <th className="px-6 py-2.5 font-normal">Client</th>
-                  <th className="px-3 py-2.5 font-normal">Plan</th>
-                  <th className="px-3 py-2.5 font-normal">AI credits this month</th>
-                  <th className="px-3 py-2.5 font-normal">AI cost</th>
-                  <th className="px-3 py-2.5 font-normal">Top-ups</th>
+                  <th className="px-6 py-2.5 font-fw-regular">Client</th>
+                  <th className="px-3 py-2.5 font-fw-regular">Plan</th>
+                  <th className="px-3 py-2.5 font-fw-regular">AI credits this month</th>
+                  <th className="px-3 py-2.5 font-fw-regular">AI cost</th>
+                  <th className="px-3 py-2.5 font-fw-regular">Top-ups</th>
                   <th className="px-6 py-2.5" />
                 </tr>
               </thead>

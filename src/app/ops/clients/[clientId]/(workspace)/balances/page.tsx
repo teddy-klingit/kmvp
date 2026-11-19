@@ -40,7 +40,7 @@ export default async function BalancesPage({ params, searchParams }: { params: P
               const b = balances[pool];
               return (
                 <li key={pool} className="flex flex-wrap items-baseline gap-x-5 gap-y-1 px-6 py-3 text-[14px]">
-                  <span className="w-20 font-semibold">{pool === "pm" ? "PM" : "Creative"}</span>
+                  <span className="w-20 font-fw-semibold">{pool === "pm" ? "PM" : "Creative"}</span>
                   <span>
                     <b className="tabular-nums">{b.left}</b> left of {b.monthly} a month
                   </span>
@@ -129,7 +129,7 @@ export default async function BalancesPage({ params, searchParams }: { params: P
               <thead>
                 <tr className="text-left text-[12px] text-brand-ink-2">
                   {["When", "Balance", "What", "Credits", "Note"].map((h) => (
-                    <th key={h} className="px-3 py-2 font-medium first:pl-6 last:pr-6">
+                    <th key={h} className="px-3 py-2 font-fw-medium first:pl-6 last:pr-6">
                       {h}
                     </th>
                   ))}

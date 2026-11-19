@@ -63,7 +63,7 @@ export default async function PlanSettingsPage() {
   const balance = (label: string, left: number, of: number, sub: string, purple = false) => (
     <div className="flex flex-col gap-2 rounded-[12px] bg-white px-5 py-4">
       <span className="text-[13px] text-brand-ink-2">{label}</span>
-      <span className="text-[28px] font-light tabular-nums">
+      <span className="text-[28px] font-fw-medium tabular-nums">
         {Math.round(left).toLocaleString("en-GB")} <span className="text-[14px] text-brand-ink-2">of {Math.round(of).toLocaleString("en-GB")} left</span>
       </span>
       <span className="h-1.5 overflow-hidden rounded-full bg-brand-track">

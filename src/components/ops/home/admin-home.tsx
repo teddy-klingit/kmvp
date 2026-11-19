@@ -38,19 +38,19 @@ export async function AdminHome({ viewer }: { viewer: StaffMember & { user: User
 
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <Card className="border border-border bg-paper p-4">
-            <p className="font-display text-2xl font-light">{clients.length}</p>
+            <p className="font-display text-2xl font-fw-medium">{clients.length}</p>
             <p className="text-xs text-muted-foreground">Active clients</p>
           </Card>
           <Card className="border border-border bg-paper p-4">
-            <p className="font-display text-2xl font-light">{creditsBurned}c</p>
+            <p className="font-display text-2xl font-fw-medium">{creditsBurned}c</p>
             <p className="text-xs text-muted-foreground">Credits burned (30d)</p>
           </Card>
           <Card className="border border-border bg-paper p-4">
-            <p className="font-display text-2xl font-light">{avgUtilization}%</p>
+            <p className="font-display text-2xl font-fw-medium">{avgUtilization}%</p>
             <p className="text-xs text-muted-foreground">Team utilization</p>
           </Card>
           <Card className="border border-border bg-paper p-4">
-            <p className="font-display text-2xl font-light">
+            <p className="font-display text-2xl font-fw-medium">
               €{(overdueInvoiceRisk._sum.amount ?? 0).toLocaleString()}
             </p>
             <p className="text-xs text-muted-foreground">Revenue at risk</p>
@@ -72,7 +72,7 @@ export async function AdminHome({ viewer }: { viewer: StaffMember & { user: User
                   className="flex items-center justify-between gap-4 px-5 py-3.5 hover:bg-muted/50"
                 >
                   <div>
-                    <p className="text-sm font-medium">
+                    <p className="text-sm font-fw-medium">
                       {item.clientName} · {item.projectName}
                     </p>
                     <p className="text-sm text-muted-foreground">

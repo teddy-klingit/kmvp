@@ -32,7 +32,7 @@ export function Findings({ data }: { data: Findings }) {
         </Link>
       </p>
       <section aria-labelledby="found" className="flex flex-col gap-3">
-        <h2 id="found" className="m-0 flex flex-wrap items-baseline gap-x-3 text-[20px] font-normal">
+        <h2 id="found" className="m-0 flex flex-wrap items-baseline gap-x-3 text-[20px] font-fw-medium">
           What we found this month <span className="text-[13px] text-brand-ink-2">Each finding shows its sources, and which opportunity it&apos;s used in</span>
         </h2>
         <div className="grid grid-cols-1 gap-4 min-[900px]:grid-cols-2">

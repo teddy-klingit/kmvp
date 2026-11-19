@@ -91,7 +91,7 @@ export function PmPanel({ side, clientId, projectId, onClose }: { side: "client"
       <button type="button" aria-label="Close" onClick={onClose} className="absolute inset-0 hidden bg-[rgba(30,30,30,0.18)] sm:block" />
       <div className="relative flex h-full w-full flex-col bg-white shadow-[-8px_0_32px_rgba(30,30,30,0.12)] sm:w-[460px]">
         <header className="flex items-start gap-3 border-b border-brand-line px-5 py-4" style={{ paddingTop: "calc(16px + env(safe-area-inset-top, 0px))" }}>
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#B8860B] text-[14px] font-medium text-white">{data?.initials ?? "…"}</span>
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#B8860B] text-[14px] font-fw-medium text-white">{data?.initials ?? "…"}</span>
           <span className="flex min-w-0 flex-1 flex-col">
             <span className="text-[17px]">{data?.title ?? "Messages"}</span>
             <span className="text-[12px] leading-[1.4] text-brand-ink-2">{data?.subtitle ?? ""}</span>

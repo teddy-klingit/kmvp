@@ -36,7 +36,7 @@ export default async function AccountOverviewPage() {
           <SectionCard title="Plan">
             <div className="flex flex-col gap-4 px-6 py-6">
               <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <span className="text-[36px] font-light leading-none">{PLAN_TIER_LABEL[client.planTier] ?? client.planTier}</span>
+                <span className="text-[36px] font-fw-medium leading-none">{PLAN_TIER_LABEL[client.planTier] ?? client.planTier}</span>
                 <span className="text-[16px] text-brand-ink-2">
                   {credits.allowance ?? 0} team credits a month{client.renewalDate ? ` · renews ${formatDate(client.renewalDate, { day: "numeric", month: "short" })}` : ""}
                 </span>

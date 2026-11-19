@@ -22,7 +22,7 @@ const NUMBER = ["No", "One", "Two", "Three", "Four", "Five"];
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const day = (d: Date) => new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short" }).format(d);
 const card = "overflow-hidden rounded-[12px] bg-white";
-const h2 = "m-0 border-b border-brand-line px-6 py-4 text-[18px] font-normal";
+const h2 = "m-0 border-b border-brand-line px-6 py-4 text-[18px] font-fw-regular";
 const action = "inline-flex h-10 w-full items-center justify-center rounded-full border px-4 font-brand-mono text-[12px] no-underline";
 
 /**
@@ -160,31 +160,31 @@ export default async function OpportunityPage({ params, searchParams }: { params
             )}
           </ol>
         </div>
-        <h1 className="m-0 max-w-[46ch] text-[36px] font-light leading-[1.15] [text-wrap:balance]">{o.title}</h1>
+        <h1 className="m-0 max-w-[46ch] text-[36px] font-fw-medium leading-[1.15] [text-wrap:balance]">{o.title}</h1>
       </header>
 
       {/* The chain: noticed → means → do. */}
       <section aria-label="Why, and what to do" className="grid grid-cols-1 gap-5 rounded-[16px] bg-[#EFEBE1] p-5 min-[1100px]:grid-cols-[minmax(0,1fr)_16px_minmax(0,1fr)_16px_minmax(0,1fr)]">
         <div className="flex min-w-0 flex-col gap-3">
-          <h2 className="m-0 font-brand-mono text-[11px] font-normal uppercase tracking-[0.06em] text-brand-ink-2">1 · What we noticed</h2>
+          <h2 className="m-0 font-brand-mono text-[11px] font-fw-medium uppercase tracking-[0.06em] text-brand-ink-2">1 · What we noticed</h2>
           {v.insights.map((i) => (
             <InsightCard key={i.id} insight={i} />
           ))}
         </div>
         <ArrowRight aria-hidden className="hidden size-4 self-start text-brand-ink-2 min-[1100px]:mt-8 min-[1100px]:block" />
         <div className="flex min-w-0 flex-col gap-3">
-          <h2 className="m-0 font-brand-mono text-[11px] font-normal uppercase tracking-[0.06em] text-brand-ink-2">2 · What it means</h2>
+          <h2 className="m-0 font-brand-mono text-[11px] font-fw-medium uppercase tracking-[0.06em] text-brand-ink-2">2 · What it means</h2>
           <div className="flex flex-col gap-4 rounded-[12px] bg-brand-ink px-5 py-5 text-white">
             <p className="m-0 text-[18px] leading-[1.4]">{combined?.meaning?.why ?? o.summary}</p>
             {(combined?.meaning?.move ?? picked?.description) && <p className="m-0 text-[14px] leading-[1.5] text-white/75">{combined?.meaning?.move ?? `${picked!.name}: ${picked!.description}`}</p>}
             <dl className="m-0 grid grid-cols-2 gap-4 border-t border-white/15 pt-4">
               <div className="flex flex-col gap-1">
                 <dt className="text-[12px] text-white/60">Expected</dt>
-                <dd className="m-0 text-[20px] font-light">{v.estimate.low !== null ? v.estimate.text.replace(/ in \d+ days$/, "") : v.estimate.text}</dd>
+                <dd className="m-0 text-[20px] font-fw-medium">{v.estimate.low !== null ? v.estimate.text.replace(/ in \d+ days$/, "") : v.estimate.text}</dd>
               </div>
               <div className="flex flex-col gap-1">
                 <dt className="text-[12px] text-white/60">Decide by</dt>
-                <dd className="m-0 text-[20px] font-light">{v.decideBy ? wday(v.decideBy) : "Any time"}</dd>
+                <dd className="m-0 text-[20px] font-fw-medium">{v.decideBy ? wday(v.decideBy) : "Any time"}</dd>
               </div>
             </dl>
           </div>
@@ -196,7 +196,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
         </div>
         <ArrowRight aria-hidden className="hidden size-4 self-start text-brand-ink-2 min-[1100px]:mt-8 min-[1100px]:block" />
         <div className="flex min-w-0 flex-col gap-3">
-          <h2 className="m-0 font-brand-mono text-[11px] font-normal uppercase tracking-[0.06em] text-brand-ink-2">3 · What to do</h2>
+          <h2 className="m-0 font-brand-mono text-[11px] font-fw-medium uppercase tracking-[0.06em] text-brand-ink-2">3 · What to do</h2>
           {!open && (
             <p className="m-0 rounded-[12px] bg-white px-5 py-4 text-[14px]">
               {o.status === "dismissed" ? `Set aside: “${o.dismissReason}”.` : o.status === "in_plan" ? "It's in your Planner." : o.status === "running" ? "It's running. We'll measure it when the window ends." : "Done, and measured."}
@@ -222,7 +222,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
               <div className="flex flex-wrap items-center gap-4 px-6 py-5 text-[15px]">
                 <span className="text-brand-ink-2">Expected {prediction?.text ?? "not estimated"}</span>
                 <span>
-                  Got <b className="font-semibold">{result.text}</b>
+                  Got <b className="font-fw-semibold">{result.text}</b>
                 </span>
                 <OutcomePill outcome={result.outcome} />
               </div>
@@ -236,7 +236,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
                 <>
                   {combined.maths.map((m) => (
                     <p key={m.label} className="m-0">
-                      <b className="font-semibold">{m.label}:</b> {m.text}
+                      <b className="font-fw-semibold">{m.label}:</b> {m.text}
                     </p>
                   ))}
                   <p className="m-0 text-[13px] text-brand-ink-2">{combined.mathsNote}</p>
@@ -320,7 +320,7 @@ export default async function OpportunityPage({ params, searchParams }: { params
       {!combined && o.routes.length > 0 && (
         <div className="grid grid-cols-1 items-start gap-6 min-[1100px]:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
           <section aria-label="Ways to do it" className={card}>
-            <h2 className="m-0 flex flex-wrap items-baseline gap-2 border-b border-brand-line px-6 py-4 text-[18px] font-normal">
+            <h2 className="m-0 flex flex-wrap items-baseline gap-2 border-b border-brand-line px-6 py-4 text-[18px] font-fw-medium">
               {NUMBER[o.routes.length] ?? o.routes.length} way{o.routes.length === 1 ? "" : "s"} to do it <span className="text-[13px] text-brand-ink-2">· pick one</span>
               <span className="ml-auto">
                 <AnotherRoute id={o.id} />

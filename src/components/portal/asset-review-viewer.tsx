@@ -86,12 +86,12 @@ export function AssetReviewGrid({
                       <Play className="size-4 fill-white" />
                     </span>
                   )}
-                  <span className="rounded-full bg-black/40 px-2 py-0.5 text-xs font-medium text-white">
+                  <span className="rounded-full bg-black/40 px-2 py-0.5 text-xs font-fw-medium text-white">
                     {asset.format}
                   </span>
                   <span className="absolute right-2 top-2 flex items-center gap-1.5">
                     {commentCount > 0 && (
-                      <span className="flex items-center gap-1 rounded-full bg-black/40 px-2 py-0.5 text-xs font-medium text-white">
+                      <span className="flex items-center gap-1 rounded-full bg-black/40 px-2 py-0.5 text-xs font-fw-medium text-white">
                         <MessageSquarePlus className="size-3" />
                         {commentCount}
                       </span>
@@ -278,7 +278,7 @@ function AssetViewer({ asset, projectId, index, total, onPrev, onNext, onClose }
               // eslint-disable-next-line @next/next/no-img-element -- the access-checked file the client was sent
               <img src={asset.fileUrl} alt={asset.name} draggable={false} className="pointer-events-none absolute inset-0 size-full object-cover" />
             )}
-            <span className="absolute bottom-3 left-3 rounded-full bg-black/40 px-2 py-0.5 text-xs font-medium text-white">
+            <span className="absolute bottom-3 left-3 rounded-full bg-black/40 px-2 py-0.5 text-xs font-fw-medium text-white">
               {asset.format}
             </span>
 
@@ -298,7 +298,7 @@ function AssetViewer({ asset, projectId, index, total, onPrev, onNext, onClose }
                       "absolute",
                       isRegion
                         ? "rounded-sm border-2 border-dashed hover:border-solid"
-                        : "flex size-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white text-[11px] font-bold text-white shadow-md transition-transform hover:scale-110"
+                        : "flex size-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white text-[11px] font-fw-semibold text-white shadow-md transition-transform hover:scale-110"
                     )}
                     style={
                       isRegion
@@ -314,7 +314,7 @@ function AssetViewer({ asset, projectId, index, total, onPrev, onNext, onClose }
                   >
                     <span
                       className={cn(
-                        "flex size-6 shrink-0 items-center justify-center rounded-full border-2 border-white text-[11px] font-bold text-white shadow-md",
+                        "flex size-6 shrink-0 items-center justify-center rounded-full border-2 border-white text-[11px] font-fw-semibold text-white shadow-md",
                         isRegion && "absolute -left-2.5 -top-2.5",
                         activePinId === pin.id ? "bg-accent" : "bg-primary"
                       )}
@@ -332,7 +332,7 @@ function AssetViewer({ asset, projectId, index, total, onPrev, onNext, onClose }
                         top: `calc(${(pin.yPercent ?? 0) + (isRegion ? (pin.heightPercent ?? 0) : 0)}% + 12px)`,
                       }}
                     >
-                      <p className="text-xs font-semibold">{pin.authorName}</p>
+                      <p className="text-xs font-fw-semibold">{pin.authorName}</p>
                       <p className="mt-0.5 text-xs text-muted-foreground">{pin.body}</p>
                       <p className="mt-1 text-[10px] text-muted-foreground">
                         {formatDate(new Date(pin.createdAt), { day: "2-digit", month: "short" })}
@@ -399,13 +399,13 @@ function PendingPinComposer({
           className="absolute rounded-sm border-2 border-dashed border-accent bg-accent/10"
           style={{ left: `${pin.x}%`, top: `${pin.y}%`, width: `${pin.width}%`, height: `${pin.height}%` }}
         >
-          <span className="absolute -left-2.5 -top-2.5 flex size-6 items-center justify-center rounded-full border-2 border-white bg-accent text-[11px] font-bold text-ink shadow-md">
+          <span className="absolute -left-2.5 -top-2.5 flex size-6 items-center justify-center rounded-full border-2 border-white bg-accent text-[11px] font-fw-semibold text-ink shadow-md">
             {nextNumber}
           </span>
         </div>
       ) : (
         <span
-          className="absolute z-10 flex size-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white bg-accent text-[11px] font-bold text-ink shadow-md"
+          className="absolute z-10 flex size-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white bg-accent text-[11px] font-fw-semibold text-ink shadow-md"
           style={{ left: `${pin.x}%`, top: `${pin.y}%` }}
         >
           {nextNumber}
@@ -457,7 +457,7 @@ function ViewerHeader({ asset, onClose, hint }: { asset: ReviewAsset; onClose: (
   return (
     <div className="flex items-center justify-between border-b border-border px-4 py-3">
       <div>
-        <p className="text-sm font-semibold">{asset.name}</p>
+        <p className="text-sm font-fw-semibold">{asset.name}</p>
         <p className="text-xs text-muted-foreground">{hint}</p>
       </div>
       <button onClick={onClose} className="rounded-md p-1 text-muted-foreground hover:bg-muted">
@@ -477,7 +477,7 @@ function ViewerNav({ total, index, onPrev, onNext }: { total: number; index: num
       <button onClick={onNext} className="absolute right-2 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-card/90 shadow hover:bg-card">
         <ChevronRight className="size-4" />
       </button>
-      <span className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-black/50 px-2.5 py-1 text-xs font-medium text-white">
+      <span className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-full bg-black/50 px-2.5 py-1 text-xs font-fw-medium text-white">
         {index + 1} / {total}
       </span>
     </>
@@ -500,7 +500,7 @@ function CommentSidebar({
   return (
     <div className="flex max-h-[32rem] flex-col gap-3 overflow-y-auto border-t border-border p-4 lg:max-h-none lg:border-l lg:border-t-0">
       <div className="flex items-center gap-2">
-        <p className="text-sm font-semibold">Comments</p>
+        <p className="text-sm font-fw-semibold">Comments</p>
         <Badge tone="neutral">{totalCount}</Badge>
       </div>
       {totalCount === 0 && <p className="text-xs text-muted-foreground">No comments yet — click the asset to leave one.</p>}
@@ -513,11 +513,11 @@ function CommentSidebar({
             activePinId === pin.id && "bg-muted"
           )}
         >
-          <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
+          <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-fw-semibold text-white">
             {i + 1}
           </span>
           <div className="min-w-0">
-            <p className="text-xs font-semibold">{pin.authorName}</p>
+            <p className="text-xs font-fw-semibold">{pin.authorName}</p>
             <p className="text-xs text-muted-foreground">{pin.body}</p>
           </div>
         </button>
@@ -526,7 +526,7 @@ function CommentSidebar({
         <div key={c.id} className="flex items-start gap-2 p-2">
           <PersonAvatar name={c.authorName} size="sm" />
           <div className="min-w-0">
-            <p className="text-xs font-semibold">{c.authorName}</p>
+            <p className="text-xs font-fw-semibold">{c.authorName}</p>
             <p className="text-xs text-muted-foreground">{c.body}</p>
           </div>
         </div>
@@ -597,7 +597,7 @@ function VideoViewer({ asset, projectId, index, total, onPrev, onNext, onClose }
                 {playing ? <Pause className="size-6 fill-white" /> : <Play className="size-6 fill-white" />}
               </span>
             </button>
-            <span className="absolute bottom-3 left-3 rounded-full bg-black/40 px-2 py-0.5 text-xs font-medium text-white">
+            <span className="absolute bottom-3 left-3 rounded-full bg-black/40 px-2 py-0.5 text-xs font-fw-medium text-white">
               {asset.format}
             </span>
           </div>
@@ -628,7 +628,7 @@ function VideoViewer({ asset, projectId, index, total, onPrev, onNext, onClose }
                   setActiveCommentId(activeCommentId === c.id ? null : c.id);
                 }}
                 className={cn(
-                  "absolute top-1/2 flex size-4 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white text-[8px] font-bold text-white shadow",
+                  "absolute top-1/2 flex size-4 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white text-[8px] font-fw-semibold text-white shadow",
                   activeCommentId === c.id ? "bg-accent" : "bg-warning"
                 )}
                 style={{ left: `${((c.timestampSeconds ?? 0) / duration) * 100}%` }}
@@ -649,7 +649,7 @@ function VideoViewer({ asset, projectId, index, total, onPrev, onNext, onClose }
             <input type="hidden" name="projectId" value={projectId} />
             <input type="hidden" name="assetId" value={asset.id} />
             <input type="hidden" name="timestampSeconds" value={currentTime} />
-            <span className="flex shrink-0 items-center rounded-md bg-muted px-2 text-xs font-medium text-muted-foreground">
+            <span className="flex shrink-0 items-center rounded-md bg-muted px-2 text-xs font-fw-medium text-muted-foreground">
               {formatTime(currentTime)}
             </span>
             <input
@@ -668,7 +668,7 @@ function VideoViewer({ asset, projectId, index, total, onPrev, onNext, onClose }
 
       <div className="flex max-h-[32rem] flex-col gap-3 overflow-y-auto border-t border-border p-4 lg:max-h-none lg:border-l lg:border-t-0">
         <div className="flex items-center gap-2">
-          <p className="text-sm font-semibold">Comments</p>
+          <p className="text-sm font-fw-semibold">Comments</p>
           <Badge tone="neutral">{timeComments.length}</Badge>
         </div>
         {timeComments.length === 0 && (
@@ -686,12 +686,12 @@ function VideoViewer({ asset, projectId, index, total, onPrev, onNext, onClose }
               activeCommentId === c.id && "bg-muted"
             )}
           >
-            <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-warning text-[10px] font-bold text-ink">
+            <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-warning text-[10px] font-fw-semibold text-ink">
               {i + 1}
             </span>
             <div className="min-w-0">
-              <p className="text-xs font-semibold">
-                {c.authorName} <span className="font-normal text-muted-foreground">· {formatTime(c.timestampSeconds ?? 0)}</span>
+              <p className="text-xs font-fw-semibold">
+                {c.authorName} <span className="font-fw-regular text-muted-foreground">· {formatTime(c.timestampSeconds ?? 0)}</span>
               </p>
               <p className="text-xs text-muted-foreground">{c.body}</p>
             </div>

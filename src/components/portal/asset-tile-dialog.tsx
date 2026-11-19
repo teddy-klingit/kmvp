@@ -66,7 +66,7 @@ export function AssetTile({ asset, transparent = false }: { asset: BrandAssetLik
             ) : (
               transparent && (
                 <span
-                  className="flex size-2/3 items-center justify-center rounded-md text-lg font-bold text-white"
+                  className="flex size-2/3 items-center justify-center rounded-md text-lg font-fw-semibold text-white"
                   style={{ backgroundColor: asset.previewColor }}
                 >
                   {asset.name.slice(0, 2).toUpperCase()}
@@ -75,7 +75,7 @@ export function AssetTile({ asset, transparent = false }: { asset: BrandAssetLik
             )}
           </div>
           <div>
-            <p className="truncate text-xs font-medium">{asset.name}</p>
+            <p className="truncate text-xs font-fw-medium">{asset.name}</p>
             {asset.variant && <p className="truncate text-xs text-muted-foreground">{asset.variant}</p>}
           </div>
         </button>
@@ -96,7 +96,7 @@ export function AssetTile({ asset, transparent = false }: { asset: BrandAssetLik
           ) : (
             transparent && (
               <span
-                className="flex size-24 items-center justify-center rounded-xl font-display text-2xl font-light text-white"
+                className="flex size-24 items-center justify-center rounded-xl font-display text-2xl font-fw-medium text-white"
                 style={{ backgroundColor: asset.previewColor }}
               >
                 {asset.name.slice(0, 2).toUpperCase()}
@@ -118,15 +118,15 @@ export function AssetTile({ asset, transparent = false }: { asset: BrandAssetLik
             <input type="hidden" name="assetId" value={asset.id} />
             <input type="hidden" name="oldCategory" value={asset.category} />
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-muted-foreground">Name</label>
+              <label className="text-xs font-fw-medium text-muted-foreground">Name</label>
               <Input name="name" defaultValue={asset.name} disabled={pending} />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-muted-foreground">Variant</label>
+              <label className="text-xs font-fw-medium text-muted-foreground">Variant</label>
               <Input name="variant" defaultValue={asset.variant ?? ""} disabled={pending} />
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-muted-foreground">Folder</label>
+              <label className="text-xs font-fw-medium text-muted-foreground">Folder</label>
               <select
                 name="category"
                 defaultValue={asset.category}
@@ -219,7 +219,7 @@ function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between border-b border-border pb-2">
       <dt className="text-muted-foreground">{label}</dt>
-      <dd className="font-medium">{value}</dd>
+      <dd className="font-fw-medium">{value}</dd>
     </div>
   );
 }

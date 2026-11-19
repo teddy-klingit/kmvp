@@ -261,7 +261,7 @@ export default async function CustomReportPage({
       </SectionCard>
 
       <div className="hidden flex-col gap-1 print:flex">
-        <h1 className="m-0 text-[24px] font-light">{viewer.client.name} — Custom report</h1>
+        <h1 className="m-0 text-[24px] font-fw-medium">{viewer.client.name} — Custom report</h1>
         <p className="m-0 text-[13px] text-brand-ink-2">
           {range.label} · {filters.platform ?? "All platforms"} · {filters.contentType ?? "All content types"} — vs. {formatDate(prevRange.from)}–{formatDate(prevRange.to)}
         </p>

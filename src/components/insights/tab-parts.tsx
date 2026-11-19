@@ -34,7 +34,7 @@ export function ShortAnswer({ card, sources, weighted = true }: { card: AnswerCa
           </span>
         )}
       </div>
-      <p className={cn("m-0 text-balance text-[22px] leading-[1.3] text-brand-ink min-[700px]:text-[26px]", weighted ? "font-fw-medium" : "font-light")}>{card.headline}</p>
+      <p className={cn("m-0 text-balance text-[22px] leading-[1.3] text-brand-ink min-[700px]:text-[26px]", weighted ? "font-fw-medium" : "font-fw-medium")}>{card.headline}</p>
       {card.tiles.length > 0 && (
         <ul className="m-0 grid list-none grid-cols-1 gap-3 p-0 min-[700px]:grid-cols-3">
           {card.tiles.map((t) => {
@@ -44,7 +44,7 @@ export function ShortAnswer({ card, sources, weighted = true }: { card: AnswerCa
                 <span className={cn("inline-flex items-center gap-1.5 font-brand-mono text-[11px] uppercase tracking-[0.04em]", k.text, weighted && "font-fw-medium")}>
                   <k.Icon className="size-3.5" strokeWidth={2} aria-hidden /> {k.label}
                 </span>
-                <span className={cn("text-[26px] leading-[1.15] tabular-nums text-brand-ink", weighted ? "font-fw-semibold" : "font-light")}>{t.value}</span>
+                <span className={cn("text-[26px] leading-[1.15] tabular-nums text-brand-ink", weighted ? "font-fw-semibold" : "font-fw-medium")}>{t.value}</span>
                 <span className="text-[14px] leading-snug text-brand-ink-2">{t.label}</span>
               </li>
             );

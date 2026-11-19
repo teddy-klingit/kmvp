@@ -54,10 +54,10 @@ function summaryItems(state: ProjectState, assets: { total: number; approved: nu
       key: "team",
       label: "Klingit team",
       wide: true,
-      value: <span className="font-medium text-ds-text-2">Assigned on approval</span>,
+      value: <span className="font-fw-medium text-ds-text-2">Assigned on approval</span>,
     });
   } else if (stage === "staffing") {
-    items.push({ key: "team", label: "Klingit team", wide: true, value: <span className="font-medium text-ds-text-2">Being staffed</span> });
+    items.push({ key: "team", label: "Klingit team", wide: true, value: <span className="font-fw-medium text-ds-text-2">Being staffed</span> });
   }
   return items;
 }
@@ -87,7 +87,7 @@ export function ProjectHeaderCard({
       <div className="flex flex-col items-start gap-4 px-5 pb-5 pt-5 sm:flex-row sm:px-6 sm:pt-6">
         <div className="flex min-w-0 flex-1 flex-col gap-2">
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="m-0 text-[28px] font-light leading-[1.2] tracking-[0.01em] text-ds-text min-[700px]:text-[32px]">{project.name}</h1>
+            <h1 className="m-0 text-[28px] font-fw-medium leading-[1.2] tracking-[0.01em] text-ds-text min-[700px]:text-[32px]">{project.name}</h1>
             <StatusPill tone={pill.tone} dot>
               {pill.label}
             </StatusPill>

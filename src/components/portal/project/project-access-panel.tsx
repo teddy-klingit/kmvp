@@ -46,11 +46,11 @@ export async function ProjectAccessPanel({ projectId, viewer }: { projectId: str
               <div className="flex items-center gap-3">
                 <PersonAvatar name={project.createdBy.user.name} size="sm" />
                 <div>
-                  <p className="text-sm font-medium">{project.createdBy.user.name}</p>
+                  <p className="text-sm font-fw-medium">{project.createdBy.user.name}</p>
                   <p className="text-xs text-muted-foreground">{project.createdBy.jobTitle ?? project.createdBy.user.email}</p>
                 </div>
               </div>
-              <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+              <span className="flex items-center gap-1 text-xs font-fw-medium text-muted-foreground">
                 <Crown className="size-3.5" />
                 Creator
               </span>
@@ -61,7 +61,7 @@ export async function ProjectAccessPanel({ projectId, viewer }: { projectId: str
               <div className="flex items-center gap-3">
                 <PersonAvatar name={m.clientUser.user.name} size="sm" />
                 <div>
-                  <p className="text-sm font-medium">{m.clientUser.user.name}</p>
+                  <p className="text-sm font-fw-medium">{m.clientUser.user.name}</p>
                   <p className="text-xs text-muted-foreground">{m.clientUser.jobTitle ?? m.clientUser.user.email}</p>
                 </div>
               </div>
@@ -134,7 +134,7 @@ export async function ProjectAccessPanel({ projectId, viewer }: { projectId: str
               <Globe className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
             )}
             <div>
-              <p className="text-sm font-medium">
+              <p className="text-sm font-fw-medium">
                 {project.confidential ? "Confidential — creator and added people only" : "Visible to your whole team"}
               </p>
               <p className="text-xs text-muted-foreground">

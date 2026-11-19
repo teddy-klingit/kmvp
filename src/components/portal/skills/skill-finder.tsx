@@ -21,7 +21,7 @@ export function SkillFinder() {
   const s = fit?.settings;
   return (
     <section aria-label="What do you want to make?" className="flex flex-col gap-4 rounded-[16px] bg-brand-ink px-5 py-6 text-white min-[700px]:px-7">
-      <h2 className="m-0 text-[22px] font-normal">What do you want to make?</h2>
+      <h2 className="m-0 text-[22px] font-fw-medium">What do you want to make?</h2>
       <form ref={form} action={action} className="flex h-14 items-center gap-2 rounded-full bg-white pl-5 pr-1.5">
         <label htmlFor="skill-finder" className="sr-only">
           What do you want to make?
@@ -36,7 +36,7 @@ export function SkillFinder() {
         <div className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-[12px] bg-white/10 px-4 py-3.5">
           <span className="font-brand-mono text-[12px] text-white/70">BEST FIT</span>
           <span className="min-w-0 flex-1 text-[15px]">
-            <b className="font-semibold">{fit.skill.name}</b>
+            <b className="font-fw-semibold">{fit.skill.name}</b>
             {[s.format ?? s.channel, s.product, fit.skill.availability === "klingit_run" ? null : `${s.versions} version${s.versions === 1 ? "" : "s"}`].filter(Boolean).map((x) => ` · ${x}`)}
             {fit.then && <span className="text-white/80"> · then {fit.then.name} for each</span>}
           </span>

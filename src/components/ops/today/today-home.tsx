@@ -56,7 +56,7 @@ export async function TodayHome({ viewer, scope, client, kind, children }: { vie
             <span className="font-brand-mono text-[12px] uppercase text-brand-ink-2">
               {date} · {scope.mine ? `your clients: ${scopeClients.map((c) => c.name).join(", ") || "none yet"}` : "all PMs' clients"}
             </span>
-            <h1 className="m-0 text-[30px] font-light leading-[1.15] tracking-[0.01em] min-[700px]:text-[36px]">
+            <h1 className="m-0 text-[30px] font-fw-medium leading-[1.15] tracking-[0.01em] min-[700px]:text-[36px]">
               {kind === "REQUEST" ? "Requests" : `${greeting(now)}, ${viewer.user.name.split(" ")[0]}`}
             </h1>
             <span className="text-[15px] text-brand-ink-2">
@@ -100,7 +100,7 @@ export async function TodayHome({ viewer, scope, client, kind, children }: { vie
           { title: "This week", note: "", list: week },
         ].map((s) => (
           <section key={s.title} aria-label={s.title} className="overflow-hidden rounded-[12px] bg-white">
-            <h2 className="m-0 flex items-baseline gap-2 border-b border-brand-line px-5 py-4 text-[18px] font-normal sm:px-6">
+            <h2 className="m-0 flex items-baseline gap-2 border-b border-brand-line px-5 py-4 text-[18px] font-fw-medium sm:px-6">
               {s.title}
               <span className="text-[13px] text-brand-ink-2">
                 {s.note ? `${s.note} · ` : ""}
@@ -122,14 +122,14 @@ export async function TodayHome({ viewer, scope, client, kind, children }: { vie
         {children}
 
         <section aria-label="Keep an eye on" className="flex flex-col gap-4 rounded-[12px] bg-white px-5 py-5 sm:px-6">
-          <h2 className="m-0 flex items-baseline gap-2 text-[18px] font-normal">
+          <h2 className="m-0 flex items-baseline gap-2 text-[18px] font-fw-medium">
             Keep an eye on <span className="text-[13px] text-brand-ink-2">Nothing to do yet. You&apos;ll get a task if something changes.</span>
           </h2>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             {today.keepAnEye.map((k) => {
               const body = (
                 <>
-                  <span className="text-[22px] font-light">{k.title}</span>
+                  <span className="text-[22px] font-fw-medium">{k.title}</span>
                   <span className="text-[14px]">{k.line}</span>
                   <span className="text-[12px] text-brand-ink-2">{k.note}</span>
                 </>

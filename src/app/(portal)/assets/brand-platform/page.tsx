@@ -31,7 +31,7 @@ export default async function BrandPlatformPage() {
           <SectionCard title="Brand health">
             <div className="flex flex-col gap-3 px-6 py-5">
               <span className="text-[15px]">
-                <span className="text-[28px] font-light tabular-nums">{status.done}</span> of {status.total} sections done
+                <span className="text-[28px] font-fw-medium tabular-nums">{status.done}</span> of {status.total} sections done
               </span>
               <Meter value={status.done} max={status.total} label={`${status.done} of ${status.total} sections done`} />
               <span className="text-[13px] text-brand-ink-2">Computed from Brand OS, not a stored score.</span>

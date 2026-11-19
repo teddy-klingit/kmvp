@@ -25,7 +25,7 @@ export function StatRows({ rows }: { rows: Stat[] }) {
         <div key={r.label} className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 border-t border-brand-line px-6 py-3.5 first:border-t-0">
           <dt className="min-w-0 flex-1 text-[14px] text-brand-ink-2">{r.label}</dt>
           <dd className="m-0 flex items-baseline gap-2">
-            <span className="text-[24px] font-light leading-[1.2] tabular-nums">{r.value}</span>
+            <span className="text-[24px] font-fw-medium leading-[1.2] tabular-nums">{r.value}</span>
             {r.note && <span className="text-[12px] text-brand-ink-2">{r.note}</span>}
             {r.change && <Change change={r.change} />}
           </dd>
@@ -45,7 +45,7 @@ export function StatTiles({ tiles, className }: { tiles: Stat[]; className?: str
         {tiles.map((t) => (
           <div key={t.label} className="flex min-w-0 flex-1 basis-[150px] flex-col gap-1 bg-white px-6 py-5">
             <span className="text-[13px] text-brand-ink-2">{t.label}</span>
-            <span className="text-[28px] font-light leading-[1.15] tabular-nums">{t.value}</span>
+            <span className="text-[28px] font-fw-medium leading-[1.15] tabular-nums">{t.value}</span>
             {t.note && <span className="text-[12px] text-brand-ink-2">{t.note}</span>}
             {t.change && <Change change={t.change} />}
           </div>

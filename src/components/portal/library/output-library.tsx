@@ -223,7 +223,7 @@ export function OutputLibrary({ cards, newThisMonth, counts, total, projects, vi
   const shelf = (title: string, list: LibraryCard[], see: Record<string, string | null>, note?: string, offset = 0) => (
     <section key={title} aria-label={title} className="flex flex-col gap-4 rounded-[12px] bg-white px-5 py-5 sm:px-6">
       <header className="flex flex-wrap items-baseline gap-2">
-        <h2 className="m-0 text-[18px] font-normal">{title}</h2>
+        <h2 className="m-0 text-[18px] font-fw-medium">{title}</h2>
         <span className="text-[13px] text-brand-ink-2">{list.length}</span>
         {note && <span className="text-[12px] text-brand-ink-2">{note}</span>}
         <button type="button" onClick={() => set(see)} className="ml-auto font-brand-mono text-[12px] uppercase tracking-[0.04em] underline underline-offset-4">

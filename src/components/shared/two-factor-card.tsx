@@ -12,7 +12,7 @@ export function TwoFactorCard({ enabled, path }: { enabled: boolean; path: strin
           <ShieldCheck className="size-4" />
         </span>
         <div>
-          <p className="text-sm font-semibold">Two-factor authentication</p>
+          <p className="text-sm font-fw-semibold">Two-factor authentication</p>
           <p className="text-sm text-muted-foreground">Require a one-time code in addition to your password.</p>
         </div>
       </div>

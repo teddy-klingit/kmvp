@@ -13,7 +13,7 @@ export function CollapsibleGaps({ gaps }: { gaps: string[] }) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1.5 self-start rounded-full bg-warning-soft px-3 py-1.5 text-xs font-medium text-warning-foreground transition-colors hover:brightness-95"
+        className="flex items-center gap-1.5 self-start rounded-full bg-warning-soft px-3 py-1.5 text-xs font-fw-medium text-warning-foreground transition-colors hover:brightness-95"
       >
         <ChevronDown className={cn("size-3.5 transition-transform", open && "rotate-180")} />
         {gaps.length} thing{gaps.length === 1 ? "" : "s"} worth double-checking before production

@@ -23,7 +23,7 @@ export default async function SkillsLayout({ children }: { children: React.React
                   <AiCreditMeter used={ai.used} allowance={ai.used + ai.left} />
                 </span>
                 <span>
-                  <b className="font-semibold">{n(ai.left)}</b> AI credits left
+                  <b className="font-fw-semibold">{n(ai.left)}</b> AI credits left
                 </span>
               </span>
             )}

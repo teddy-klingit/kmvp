@@ -80,7 +80,7 @@ export default async function TrendsPage() {
               <thead>
                 <tr className="bg-[#FAF8F3] text-left font-brand-mono text-[11px] uppercase tracking-[0.04em] text-brand-ink-2">
                   {["Trend", "Change", "Last 12 weeks", "Stage", "Fit for you", ""].map((h, i) => (
-                    <th key={i} className="px-4 py-3 font-normal first:pl-6 last:pr-6">
+                    <th key={i} className="px-4 py-3 font-fw-regular first:pl-6 last:pr-6">
                       {h}
                     </th>
                   ))}

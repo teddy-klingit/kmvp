@@ -78,7 +78,7 @@ export default async function ProjectWorkPage({
       <Card className="flex flex-wrap items-center gap-3 px-5 py-4">
         <span className="min-w-0 flex-1 text-[15px]">{canReview ? "Review the work full screen: pin comments, approve a concept or a slide, suggest copy." : "Open the work full screen with its comments."}</span>
         {kinds.map((x, i) => (
-          <Link key={x.k} href={`/review/${id}?kind=${x.k}`} className={cn("inline-flex h-10 items-center rounded-full px-4 text-[13px] font-medium no-underline", i === 0 ? "bg-ds-text text-white" : "border border-ds-control-border bg-white text-ds-text hover:border-ds-text-3")}>
+          <Link key={x.k} href={`/review/${id}?kind=${x.k}`} className={cn("inline-flex h-10 items-center rounded-full px-4 text-[13px] font-fw-medium no-underline", i === 0 ? "bg-ds-text text-white" : "border border-ds-control-border bg-white text-ds-text hover:border-ds-text-3")}>
             {KIND_LABEL[x.k]} · {x.n}
           </Link>
         ))}
@@ -93,7 +93,7 @@ export default async function ProjectWorkPage({
               href={f.key === "all" ? `/projects/${id}/work` : `/projects/${id}/work?filter=${f.key}`}
               aria-current={on ? "true" : undefined}
               className={cn(
-                "inline-flex h-11 items-center rounded-full sm:h-8 border px-3 text-[13px] font-medium no-underline",
+                "inline-flex h-11 items-center rounded-full sm:h-8 border px-3 text-[13px] font-fw-medium no-underline",
                 on ? "border-ds-text bg-ds-text text-white" : "border-ds-control-border bg-white text-ds-text hover:border-ds-text-3"
               )}
             >

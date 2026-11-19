@@ -24,7 +24,7 @@ export function AppIcon({ app, size = 20, tile = false, className }: { app: stri
     return (
       <span
         aria-hidden
-        className={cn("inline-flex shrink-0 items-center justify-center rounded-[6px] font-semibold text-white", className)}
+        className={cn("inline-flex shrink-0 items-center justify-center rounded-[6px] font-fw-semibold text-white", className)}
         style={{ width: tile ? size * 2 : size, height: tile ? size * 2 : size, backgroundColor: meta.color, fontSize: Math.max(8, (tile ? size * 2 : size) * (meta.monogram.length > 2 ? 0.28 : 0.42)) }}
       >
         {meta.monogram}

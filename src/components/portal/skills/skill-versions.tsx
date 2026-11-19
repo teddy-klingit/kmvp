@@ -52,7 +52,7 @@ export function SkillVersions({ agentId, brand, versions, format, visual, then }
           <li key={v.runId} onClick={() => setPicked(v.letter)} className={cn("flex cursor-pointer flex-col gap-3 rounded-[14px] bg-white p-3", picked === v.letter && "ring-2 ring-brand-ink")}>
             {visual ? (
               <div className={cn("relative flex w-full flex-col justify-end gap-3 overflow-hidden rounded-[10px] p-4", ASPECT[format ?? ""] ?? "aspect-[4/5]")} style={{ backgroundColor: TINTS[i % TINTS.length] }}>
-                <span className="absolute left-3 top-3 z-20 flex size-6 items-center justify-center rounded-[6px] bg-white text-[11px] font-semibold">{v.letter}</span>
+                <span className="absolute left-3 top-3 z-20 flex size-6 items-center justify-center rounded-[6px] bg-white text-[11px] font-fw-semibold">{v.letter}</span>
                 {v.image ? (
                   <>
                     {/* eslint-disable-next-line @next/next/no-img-element -- this version's generated image */}
@@ -79,8 +79,8 @@ export function SkillVersions({ agentId, brand, versions, format, visual, then }
               </div>
             ) : (
               <div className="flex min-h-40 flex-col gap-2 rounded-[10px] bg-brand-page p-4 text-[14px] leading-[1.5]">
-                <span className="flex size-6 items-center justify-center rounded-[6px] bg-white text-[11px] font-semibold">{v.letter}</span>
-                {v.headline && <b className="font-semibold">{v.headline}</b>}
+                <span className="flex size-6 items-center justify-center rounded-[6px] bg-white text-[11px] font-fw-semibold">{v.letter}</span>
+                {v.headline && <b className="font-fw-semibold">{v.headline}</b>}
                 <span className="line-clamp-6 text-brand-ink-2">{v.body}</span>
               </div>
             )}
@@ -114,7 +114,7 @@ export function SkillVersions({ agentId, brand, versions, format, visual, then }
                   <ul className="m-0 mt-2 flex list-none flex-col gap-2 p-0 text-brand-ink">
                     {v.check.violations.map((x) => (
                       <li key={x.rule} className="rounded-[8px] bg-[#FDF1F0] px-3 py-2 leading-[1.45]">
-                        <span className="block font-medium">{x.rule}</span>
+                        <span className="block font-fw-medium">{x.rule}</span>
                         {x.why && <span className="block text-brand-ink-2">{x.why}</span>}
                       </li>
                     ))}

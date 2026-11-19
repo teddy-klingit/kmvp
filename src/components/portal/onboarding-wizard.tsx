@@ -38,7 +38,7 @@ export function OnboardingWizard({ brandName, industry }: { brandName: string; i
                   i < step ? "bg-success" : i === step ? "bg-primary" : "bg-border"
                 )}
               />
-              <span className={cn("text-sm", i === step ? "font-medium text-foreground" : "text-muted-foreground")}>
+              <span className={cn("text-sm", i === step ? "font-fw-medium text-foreground" : "text-muted-foreground")}>
                 {label}
               </span>
             </div>
@@ -56,7 +56,7 @@ export function OnboardingWizard({ brandName, industry }: { brandName: string; i
             }}
             className="flex max-w-lg flex-col gap-5"
           >
-            <h1 className="text-lg font-semibold">
+            <h1 className="text-lg font-fw-semibold">
               <span className="mr-2 inline-flex size-6 items-center justify-center rounded-full bg-info-soft text-xs text-primary">1</span>
               Tell us about your brand
             </h1>
@@ -82,7 +82,7 @@ export function OnboardingWizard({ brandName, industry }: { brandName: string; i
                     key={p}
                     onClick={() => togglePersonality(p)}
                     className={cn(
-                      "rounded-full border px-3 py-1.5 text-sm font-medium",
+                      "rounded-full border px-3 py-1.5 text-sm font-fw-medium",
                       personality.includes(p)
                         ? "border-foreground bg-foreground text-background"
                         : "border-border bg-card text-muted-foreground hover:bg-muted"
@@ -114,7 +114,7 @@ export function OnboardingWizard({ brandName, industry }: { brandName: string; i
 
         {step === 1 && (
           <div className="flex max-w-lg flex-col gap-5">
-            <h1 className="text-lg font-semibold">
+            <h1 className="text-lg font-fw-semibold">
               <span className="mr-2 inline-flex size-6 items-center justify-center rounded-full bg-info-soft text-xs text-primary">2</span>
               Upload your assets
             </h1>
@@ -139,7 +139,7 @@ export function OnboardingWizard({ brandName, industry }: { brandName: string; i
 
         {step === 2 && (
           <div className="flex max-w-lg flex-col gap-5">
-            <h1 className="text-lg font-semibold">
+            <h1 className="text-lg font-fw-semibold">
               <span className="mr-2 inline-flex size-6 items-center justify-center rounded-full bg-info-soft text-xs text-primary">3</span>
               Brand guidelines
             </h1>
@@ -167,7 +167,7 @@ export function OnboardingWizard({ brandName, industry }: { brandName: string; i
 
         {step === 3 && (
           <div className="flex max-w-lg flex-col gap-5">
-            <h1 className="text-lg font-semibold">
+            <h1 className="text-lg font-fw-semibold">
               <span className="mr-2 inline-flex size-6 items-center justify-center rounded-full bg-info-soft text-xs text-primary">4</span>
               Invite your team
             </h1>
@@ -192,7 +192,7 @@ export function OnboardingWizard({ brandName, industry }: { brandName: string; i
             <div className="flex size-12 items-center justify-center rounded-full bg-success-soft text-success-foreground">
               <Check className="size-6" />
             </div>
-            <h1 className="text-lg font-semibold">You&apos;re all set</h1>
+            <h1 className="text-lg font-fw-semibold">You&apos;re all set</h1>
             <p className="-mt-3 text-sm text-muted-foreground">
               We&apos;re building your Brand OS now. Your account lead will follow up once it&apos;s ready — usually
               within a few hours.

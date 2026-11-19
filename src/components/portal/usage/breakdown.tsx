@@ -15,7 +15,7 @@ export function Breakdown({ title, meta, tabs, kind, footer }: { title: string; 
   return (
     <section aria-label={title} className="overflow-hidden rounded-[12px] bg-white">
       <div className="flex items-center gap-3 border-b border-brand-line px-6 py-5">
-        <h2 className="m-0 flex-1 text-[18px] font-normal">{title}</h2>
+        <h2 className="m-0 flex-1 text-[18px] font-fw-medium">{title}</h2>
         <span className="font-brand-mono text-[12px] uppercase text-brand-ink">{meta}</span>
       </div>
       <div className="flex flex-col gap-4 px-6 py-5">

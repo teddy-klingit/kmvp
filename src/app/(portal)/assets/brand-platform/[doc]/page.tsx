@@ -138,7 +138,7 @@ function renderDoc(
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {values.map((v) => (
                 <div key={v.title} className="rounded-[10px] bg-brand-chip p-4">
-                  <p className="m-0 text-[15px] font-semibold">{v.title}</p>
+                  <p className="m-0 text-[15px] font-fw-semibold">{v.title}</p>
                   <p className="m-0 mt-1 text-[14px] text-brand-ink-2">{v.description}</p>
                 </div>
               ))}
@@ -200,7 +200,7 @@ function renderDoc(
               {personas.map((p) => (
                 <div key={p.name} className="rounded-[10px] bg-brand-chip p-4">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="m-0 text-[15px] font-semibold">{p.name}</p>
+                    <p className="m-0 text-[15px] font-fw-semibold">{p.name}</p>
                     <StatusPill>{p.ageRange}</StatusPill>
                   </div>
                   <p className="m-0 mt-1 text-[14px] text-brand-ink-2">{p.description}</p>

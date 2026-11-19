@@ -94,7 +94,7 @@ export function AddSourcePopover({ section, connected, label = "Add source" }: {
                 role="tab"
                 aria-selected={tab === t}
                 onClick={() => setTab(t)}
-                className={cn("h-8 rounded-[6px] text-[13px]", tab === t ? "bg-white font-semibold text-ds-text shadow-[0_1px_2px_rgba(16,24,40,0.08)]" : "font-medium text-ds-text-2")}
+                className={cn("h-8 rounded-[6px] text-[13px]", tab === t ? "bg-white font-fw-semibold text-ds-text shadow-[0_1px_2px_rgba(16,24,40,0.08)]" : "font-fw-medium text-ds-text-2")}
               >
                 {t === "link" ? "Paste a link" : "From connected apps"}
               </button>
@@ -137,7 +137,7 @@ export function PasteLinkForm({ section, onDone, submitLabel = "Add link", inlin
       <input name="title" placeholder="Name (optional)" className="h-10 rounded-[8px] border border-ds-control-border px-2.5 text-[14px] outline-none placeholder:text-ds-text-3 focus:border-ds-text-3 focus:ring-4 focus:ring-ds-text/5" />
       <div className={cn("flex items-center gap-2", inline && "sm:col-span-2")}>
         <span className="min-w-0 flex-1 text-[12px] text-ds-text-2">{app ? `Recognised: ${appMeta(app).name}` : "Google Drive, Figma, Notion, Dropbox, SharePoint, Canva, Frame.io or any site"}</span>
-        <button type="submit" disabled={pending || !valid} className="h-9 rounded-[8px] bg-ds-text px-3.5 text-[13px] font-medium text-white disabled:opacity-40">
+        <button type="submit" disabled={pending || !valid} className="h-9 rounded-[8px] bg-ds-text px-3.5 text-[13px] font-fw-medium text-white disabled:opacity-40">
           {submitLabel}
         </button>
       </div>
@@ -156,7 +156,7 @@ function FromAppsList({ section, connected, onDone }: { section: string; connect
     return (
       <p className="m-0 px-1 py-2 text-[13px] text-ds-text-2">
         No apps connected yet.{" "}
-        <Link href="/settings/connections" className="font-medium text-ds-text">
+        <Link href="/settings/connections" className="font-fw-medium text-ds-text">
           Connect one in Sources
         </Link>
         .
@@ -167,7 +167,7 @@ function FromAppsList({ section, connected, onDone }: { section: string; connect
     <div className="flex max-h-64 flex-col gap-1 overflow-y-auto">
       {connected.map((c) => (
         <div key={c.app} className="flex flex-col">
-          <span className="flex items-center gap-1.5 px-1 pb-1 pt-2 text-[12px] font-medium text-ds-text-2">
+          <span className="flex items-center gap-1.5 px-1 pb-1 pt-2 text-[12px] font-fw-medium text-ds-text-2">
             <AppIcon app={c.app} size={12} />
             {appMeta(c.app).name}
           </span>
@@ -195,7 +195,7 @@ export function RemoveSourceButton({ sourceId, label }: { sourceId: string; labe
   return (
     <form action={removeSourceAction}>
       <input type="hidden" name="sourceId" value={sourceId} />
-      <button type="submit" className="inline-flex h-9 items-center gap-1.5 rounded-[8px] px-3 text-[13px] font-medium text-ds-text-2 hover:bg-ds-subtle hover:text-ds-text">
+      <button type="submit" className="inline-flex h-9 items-center gap-1.5 rounded-[8px] px-3 text-[13px] font-fw-medium text-ds-text-2 hover:bg-ds-subtle hover:text-ds-text">
         <X className="size-3.5" strokeWidth={2} />
         {label}
       </button>

@@ -40,7 +40,7 @@ export default async function OpsGoalsPage({ params }: { params: Promise<{ clien
               <form key={g?.id ?? "new"} action={saveGoalAction} className="flex flex-col gap-3 border-b border-brand-line pb-5 last:border-b-0 last:pb-0">
                 <input type="hidden" name="clientId" value={clientId} />
                 {g && <input type="hidden" name="id" value={g.id} />}
-                <h3 className="m-0 text-[16px] font-normal">
+                <h3 className="m-0 text-[16px] font-fw-medium">
                   {g ? g.title : "Add a goal"}
                   {v?.status ? <span className="ml-2 text-[13px] text-brand-ink-2">· {v.status}{v.line ? ` · ${v.line}` : ""}</span> : null}
                 </h3>
@@ -97,7 +97,7 @@ export default async function OpsGoalsPage({ params }: { params: Promise<{ clien
               <form key={m} action={setAdBudgetAction} className="flex flex-col gap-3 border-b border-brand-line pb-5 last:border-b-0 last:pb-0">
                 <input type="hidden" name="clientId" value={clientId} />
                 <input type="hidden" name="month" value={m} />
-                <h3 className="m-0 text-[16px] font-normal">{monthName(m)}</h3>
+                <h3 className="m-0 text-[16px] font-fw-medium">{monthName(m)}</h3>
                 <div className="grid grid-cols-2 gap-3 min-[900px]:grid-cols-6">
                   {CHANNELS.map((c) => (
                     <Field key={c.key} label={c.label} htmlFor={`${m}-${c.key}`}>

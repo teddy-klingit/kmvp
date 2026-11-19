@@ -120,7 +120,7 @@ export default async function OpsOpportunitiesPage({ params }: { params: Promise
                   <ul className="m-0 flex list-none flex-col gap-1 p-0 text-[13px]">
                     {evidenceOf(o).map((e, i) => (
                       <li key={i}>
-                        <b className="font-semibold">{e.value}</b> {e.text} <span className="text-brand-ink-2">({e.source}{e.demo ? ", demo" : ""})</span>
+                        <b className="font-fw-semibold">{e.value}</b> {e.text} <span className="text-brand-ink-2">({e.source}{e.demo ? ", demo" : ""})</span>
                       </li>
                     ))}
                   </ul>
@@ -134,7 +134,7 @@ export default async function OpsOpportunitiesPage({ params }: { params: Promise
                 {o.dismissReason && <p className="m-0 text-[13px]">Not for us: {o.dismissReason}</p>}
                 {resultOf(o) && (
                   <p className="m-0 text-[13px]">
-                    Result: expected {predictionOf(o)?.text ?? "not estimated"}, got {resultOf(o)!.text} · <b className="font-semibold">{resultOf(o)!.outcome}</b>
+                    Result: expected {predictionOf(o)?.text ?? "not estimated"}, got {resultOf(o)!.text} · <b className="font-fw-semibold">{resultOf(o)!.outcome}</b>
                   </p>
                 )}
                 {resultOf(o)?.outcome === "missed" && (

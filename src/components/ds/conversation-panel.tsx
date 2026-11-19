@@ -160,12 +160,12 @@ export function ConversationPanel({
         <DialogPrimitive.Trigger asChild>
           <button
             type="button"
-            className="fixed bottom-5 right-5 z-40 flex h-12 items-center gap-2 rounded-full bg-ds-text px-5 text-[14px] font-medium text-white shadow-lg"
+            className="fixed bottom-5 right-5 z-40 flex h-12 items-center gap-2 rounded-full bg-ds-text px-5 text-[14px] font-fw-medium text-white shadow-lg"
           >
             <MessageCircle className="size-4" />
             Chat
             {totalUnread > 0 && (
-              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-ds-turn px-1.5 text-[11px] font-semibold">
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-ds-turn px-1.5 text-[11px] font-fw-semibold">
                 {totalUnread}
               </span>
             )}
@@ -221,7 +221,7 @@ function Rail({ unread, onOpen, className }: { unread: number; onOpen: () => voi
       >
         <MessageCircle className="size-[18px]" strokeWidth={1.75} />
         {unread > 0 && (
-          <span className="absolute -right-[5px] -top-[5px] flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-ds-turn px-[5px] text-[11px] font-semibold text-white">
+          <span className="absolute -right-[5px] -top-[5px] flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-ds-turn px-[5px] text-[11px] font-fw-semibold text-white">
             {unread}
           </span>
         )}
@@ -273,7 +273,7 @@ function PanelInner({
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex flex-col gap-3.5 border-b border-ds-divider px-5 pb-4 pt-5">
         <div className="flex items-center gap-2">
-          <h2 className="m-0 flex-1 text-[18px] font-normal text-ds-text">{title}</h2>
+          <h2 className="m-0 flex-1 text-[18px] font-fw-medium text-ds-text">{title}</h2>
           <AvatarStack names={participants} size={26} max={3} />
           <button
             type="button"
@@ -344,7 +344,7 @@ function EmptyThread({ suggestions, onPick }: { suggestions?: string[]; onPick: 
       <span className="flex size-10 items-center justify-center rounded-[10px] bg-ds-subtle text-ds-text-2">
         <MessageCircle className="size-5" strokeWidth={1.75} />
       </span>
-      <p className="m-0 text-[14px] font-medium text-ds-text">No messages yet</p>
+      <p className="m-0 text-[14px] font-fw-medium text-ds-text">No messages yet</p>
       {suggestions && suggestions.length > 0 && (
         <div className="flex flex-wrap justify-center gap-2">
           {suggestions.map((text) => (
@@ -352,7 +352,7 @@ function EmptyThread({ suggestions, onPick }: { suggestions?: string[]; onPick: 
               key={text}
               type="button"
               onClick={() => onPick(text)}
-              className="h-11 rounded-full border border-ds-control-border bg-white px-3 text-[13px] font-medium text-ds-text hover:border-ds-text-3 sm:h-8"
+              className="h-11 rounded-full border border-ds-control-border bg-white px-3 text-[13px] font-fw-medium text-ds-text hover:border-ds-text-3 sm:h-8"
             >
               {text}
             </button>
@@ -395,7 +395,7 @@ function MessageList({ messages }: { messages: ChatMessage[] }) {
                     <span className="text-ds-text-2">You · {formatStamp(m.createdAt)}</span>
                   ) : (
                     <>
-                      <span className="font-semibold text-ds-text">{m.authorName}</span>
+                      <span className="font-fw-semibold text-ds-text">{m.authorName}</span>
                       <span className="text-ds-text-2">
                         {m.authorRole ? ` · ${m.authorRole}` : ""} · {formatStamp(m.createdAt)}
                       </span>

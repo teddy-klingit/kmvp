@@ -61,7 +61,7 @@ export default async function AllSkillsPage({ searchParams }: { searchParams: Pr
         if (!group.length) return null;
         return (
           <section key={g.goal} aria-label={g.title} className="flex flex-col gap-4">
-            <h2 className="m-0 flex flex-wrap items-baseline gap-3 text-[22px] font-normal">
+            <h2 className="m-0 flex flex-wrap items-baseline gap-3 text-[22px] font-fw-medium">
               {g.title} <span className="text-[13px] text-brand-ink-2">{g.sub}</span>
             </h2>
             <ul className="m-0 grid list-none grid-cols-1 gap-4 p-0 min-[700px]:grid-cols-2 min-[1200px]:grid-cols-4">

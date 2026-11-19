@@ -15,14 +15,14 @@ export function IntelligenceRail({ client, activeProject }: ClientWorkspace) {
     <aside className="flex w-72 shrink-0 flex-col gap-6 border-l border-border px-5 py-6">
       <div>
         <SectionLabel>Brand intelligence</SectionLabel>
-        <p className="mt-1 text-sm font-semibold">{client.name}</p>
+        <p className="mt-1 text-sm font-fw-semibold">{client.name}</p>
         <p className="text-sm text-muted-foreground">{client.brandSummary}</p>
       </div>
 
       {activeProject && (
         <div>
           <SectionLabel>Active project</SectionLabel>
-          <p className="mt-1 text-sm font-semibold">{activeProject.name}</p>
+          <p className="mt-1 text-sm font-fw-semibold">{activeProject.name}</p>
           <p className="text-sm text-muted-foreground">
             {/* Only facts we have: no "—c" or "TBD" placeholders. */}
             {[
@@ -45,7 +45,7 @@ export function IntelligenceRail({ client, activeProject }: ClientWorkspace) {
         return (
           <div>
             <SectionLabel>Foundation</SectionLabel>
-            <p className="mt-1 text-sm font-medium">
+            <p className="mt-1 text-sm font-fw-medium">
               Brand OS: {brand.done} of {brand.total} sections written
             </p>
             <Progress value={(brand.done / brand.total) * 100} className="mt-1.5" />
@@ -73,7 +73,7 @@ export function IntelligenceRail({ client, activeProject }: ClientWorkspace) {
           <div className="mt-1.5 flex items-center gap-2.5">
             <PersonAvatar name={client.accountLead.user.name} size="sm" />
             <div>
-              <p className="text-sm font-medium">{client.accountLead.user.name}</p>
+              <p className="text-sm font-fw-medium">{client.accountLead.user.name}</p>
               <button className="text-xs text-primary hover:underline">Schedule a call</button>
             </div>
           </div>
@@ -86,7 +86,7 @@ export function IntelligenceRail({ client, activeProject }: ClientWorkspace) {
           <div className="mt-1.5 flex flex-col gap-1">
             {client.touchpoints.map((t) => (
               <p key={t.id} className="text-xs text-muted-foreground">
-                <span className="font-medium text-foreground">{formatDate(t.scheduledAt, { day: "2-digit", month: "2-digit" })}</span>{" "}
+                <span className="font-fw-medium text-foreground">{formatDate(t.scheduledAt, { day: "2-digit", month: "2-digit" })}</span>{" "}
                 {t.title}
                 {t.withClientUser && ` · ${t.withClientUser.user.name}`}
               </p>

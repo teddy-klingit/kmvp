@@ -38,7 +38,7 @@ export function PageHeader({
             </Link>
           )}
           {eyebrow && <span className="font-brand-mono text-[12px] uppercase text-brand-ink-2">{eyebrow}</span>}
-          <h1 className="m-0 text-[30px] font-light leading-[1.15] tracking-[0.01em] text-brand-ink min-[700px]:text-[36px]">{title}</h1>
+          <h1 className="m-0 text-[30px] font-fw-medium leading-[1.15] tracking-[0.01em] text-brand-ink min-[700px]:text-[36px]">{title}</h1>
         </div>
         {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
       </header>

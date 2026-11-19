@@ -15,7 +15,7 @@ export function PlatformList({ sections, drafted, current }: { sections: { slug:
             className="flex min-h-11 items-center gap-3 px-6 py-4 text-brand-ink no-underline hover:bg-brand-chip"
           >
             <span aria-hidden className={cn("size-2 shrink-0 rounded-full", s.done ? "bg-brand-lime-strong" : "bg-brand-outline")} />
-            <span className={cn("min-w-0 flex-1 truncate text-[16px]", s.slug === current && "font-semibold")}>{s.label}</span>
+            <span className={cn("min-w-0 flex-1 truncate text-[16px]", s.slug === current && "font-fw-semibold")}>{s.label}</span>
             {current === undefined && (
               <span className="text-[14px] text-brand-ink-2">{s.done ? <span className="text-brand-ink">Done</span> : drafted.has(s.slug) ? "Draft ready" : "Not written yet"}</span>
             )}

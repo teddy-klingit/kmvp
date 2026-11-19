@@ -96,7 +96,7 @@ export default async function ClientsDirectoryPage({ searchParams }: { searchPar
               <thead>
                 <tr className="text-left text-[12px] text-brand-ink-2">
                   {["Client", "Way", "Plan · pack", "Balances", "Contact person", "Active", "Notice · renews", ...(money ? ["Invoices"] : [])].map((h) => (
-                    <th key={h} className="px-3 py-2.5 font-medium first:pl-6 last:pr-6">
+                    <th key={h} className="px-3 py-2.5 font-fw-medium first:pl-6 last:pr-6">
                       {h}
                     </th>
                   ))}

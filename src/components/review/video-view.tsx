@@ -229,7 +229,7 @@ export function VideoView({ shell, projectId, items, threads, canReview, focusId
             {visible
               .filter((th) => !th.pin)
               .map((th) => (
-                <span key={th.id} className={cn("flex size-7 items-center justify-center rounded-[10px_10px_10px_2px] border-2 border-white text-[12px] font-semibold text-white", badge(th))}>
+                <span key={th.id} className={cn("flex size-7 items-center justify-center rounded-[10px_10px_10px_2px] border-2 border-white text-[12px] font-fw-semibold text-white", badge(th))}>
                   {th.number}
                 </span>
               ))}
@@ -242,7 +242,7 @@ export function VideoView({ shell, projectId, items, threads, canReview, focusId
                 type="button"
                 onClick={() => select(th)}
                 aria-label={`Comment ${th.number}`}
-                className={cn("absolute flex size-8 -translate-x-1/2 -translate-y-full items-center justify-center rounded-[10px_10px_10px_2px] border-2 border-white text-[13px] font-semibold text-white shadow", badge(th), active === th.id && "ring-2 ring-brand-ink ring-offset-1")}
+                className={cn("absolute flex size-8 -translate-x-1/2 -translate-y-full items-center justify-center rounded-[10px_10px_10px_2px] border-2 border-white text-[13px] font-fw-semibold text-white shadow", badge(th), active === th.id && "ring-2 ring-brand-ink ring-offset-1")}
                 style={{ left: `${th.pin!.x}%`, top: `${th.pin!.y}%` }}
               >
                 {th.number}
@@ -326,7 +326,7 @@ export function VideoView({ shell, projectId, items, threads, canReview, focusId
               type="button"
               onClick={() => select(th)}
               aria-label={`Comment ${th.number} at ${timecode(th.timestamp!)}${th.timestampEnd != null ? ` to ${timecode(th.timestampEnd)}` : ""}`}
-              className={cn("absolute top-0 z-10 flex size-6 -translate-x-1/2 items-center justify-center rounded-[8px_8px_8px_2px] text-[11px] font-semibold text-white", badge(th), th.resolved && "opacity-40", active === th.id && "ring-2 ring-brand-ink ring-offset-1")}
+              className={cn("absolute top-0 z-10 flex size-6 -translate-x-1/2 items-center justify-center rounded-[8px_8px_8px_2px] text-[11px] font-fw-semibold text-white", badge(th), th.resolved && "opacity-40", active === th.id && "ring-2 ring-brand-ink ring-offset-1")}
               style={{ left: pct(th.timestamp!) }}
             >
               {th.number}

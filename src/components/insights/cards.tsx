@@ -93,7 +93,7 @@ function DataTableView({ table }: { table: TableData }) {
         <thead>
           <tr>
             {table.columns.map((c, i) => (
-              <th key={c} className={cn("border-b border-brand-line py-2 font-normal text-brand-mute", i ? "text-right" : "text-left")}>
+              <th key={c} className={cn("border-b border-brand-line py-2 font-fw-regular text-brand-mute", i ? "text-right" : "text-left")}>
                 {c}
               </th>
             ))}
@@ -156,7 +156,7 @@ export function WhySheet({ title, reasoning, label = "Why?" }: { title: string; 
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/30" />
         <DialogPrimitive.Content className="fixed inset-y-0 right-0 z-50 flex w-[440px] max-w-[92vw] flex-col gap-4 overflow-y-auto bg-white p-7 font-brand shadow-xl outline-none">
           <div className="flex items-start gap-3">
-            <DialogPrimitive.Title className="m-0 flex-1 text-[19px] font-normal">{title}</DialogPrimitive.Title>
+            <DialogPrimitive.Title className="m-0 flex-1 text-[19px] font-fw-regular">{title}</DialogPrimitive.Title>
             <DialogPrimitive.Close aria-label="Close" className="flex size-9 items-center justify-center rounded-full text-brand-ink-2 hover:bg-brand-chip">
               <X className="size-4" strokeWidth={1.75} />
             </DialogPrimitive.Close>

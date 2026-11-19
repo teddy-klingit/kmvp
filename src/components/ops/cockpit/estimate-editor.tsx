@@ -120,11 +120,11 @@ export function EstimateEditor({
         <table className="w-full min-w-[760px] border-collapse text-[14px]">
           <thead>
             <tr className="text-left text-[12px] text-ds-text-2">
-              <th scope="col" className="px-6 py-2.5 font-medium">Deliverable</th>
-              <th scope="col" className="w-[88px] px-3 py-2.5 font-medium">Quantity</th>
-              <th scope="col" className="w-[200px] px-3 py-2.5 font-medium">Credits</th>
-              <th scope="col" className="w-[90px] px-3 py-2.5 font-medium">Balance</th>
-              <th scope="col" className="w-[80px] px-3 py-2.5 text-right font-medium">Total</th>
+              <th scope="col" className="px-6 py-2.5 font-fw-medium">Deliverable</th>
+              <th scope="col" className="w-[88px] px-3 py-2.5 font-fw-medium">Quantity</th>
+              <th scope="col" className="w-[200px] px-3 py-2.5 font-fw-medium">Credits</th>
+              <th scope="col" className="w-[90px] px-3 py-2.5 font-fw-medium">Balance</th>
+              <th scope="col" className="w-[80px] px-3 py-2.5 text-right font-fw-medium">Total</th>
               <th scope="col" className="w-[56px] px-6 py-2.5">
                 <span className="sr-only">Remove</span>
               </th>
@@ -142,11 +142,11 @@ export function EstimateEditor({
                   <td className="px-6 py-2.5">
                     <div className="flex flex-col gap-1">
                       {r.kind === "custom" ? (
-                        <input aria-label="Deliverable" value={r.deliverable} onChange={(e) => update(r.key, { deliverable: e.target.value })} className={cn(inputCls, "font-medium")} />
+                        <input aria-label="Deliverable" value={r.deliverable} onChange={(e) => update(r.key, { deliverable: e.target.value })} className={cn(inputCls, "font-fw-medium")} />
                       ) : (
-                        <span className="font-medium text-ds-text">
+                        <span className="font-fw-medium text-ds-text">
                           {name}
-                          {it?.unit ? <span className="font-normal text-ds-text-2"> · {it.unit}</span> : null}
+                          {it?.unit ? <span className="font-fw-regular text-ds-text-2"> · {it.unit}</span> : null}
                         </span>
                       )}
                       <input aria-label="Details" value={r.detail} placeholder="Details the client sees" onChange={(e) => update(r.key, { detail: e.target.value })} className={cn(inputCls, "h-8 text-[13px] text-ds-text-2")} />
@@ -256,16 +256,16 @@ export function EstimateEditor({
                       setRows((rs) => [...rs, { key: `new-${Date.now()}`, kind: "price", itemId: adding, quantity: 1, detail: "", credits: null, confirmed: false }]);
                       setAdding("");
                     }}
-                    className="inline-flex h-8 items-center gap-1.5 rounded-[8px] border border-dashed border-ds-dashed bg-white px-2.5 text-[13px] font-medium text-ds-text disabled:opacity-50"
+                    className="inline-flex h-8 items-center gap-1.5 rounded-[8px] border border-dashed border-ds-dashed bg-white px-2.5 text-[13px] font-fw-medium text-ds-text disabled:opacity-50"
                   >
                     <Plus className="size-3.5" strokeWidth={2} />
                     Add line
                   </button>
-                  <button type="button" onClick={() => setRows((rs) => [...rs, { key: `custom-${Date.now()}`, kind: "custom", deliverable: "", detail: "", quantity: 1, credits: 0, reason: "", balance: "creative", taskType: null, hours: null }])} className="h-8 rounded-[8px] px-2.5 text-[13px] font-medium text-ds-text hover:bg-ds-subtle">
+                  <button type="button" onClick={() => setRows((rs) => [...rs, { key: `custom-${Date.now()}`, kind: "custom", deliverable: "", detail: "", quantity: 1, credits: 0, reason: "", balance: "creative", taskType: null, hours: null }])} className="h-8 rounded-[8px] px-2.5 text-[13px] font-fw-medium text-ds-text hover:bg-ds-subtle">
                     Add PM quote
                   </button>
                   {!rows.some((r) => r.kind === "pm") && (
-                    <button type="button" onClick={() => setRows((rs) => [...rs, { key: `pm-${Date.now()}`, kind: "pm", credits: suggestedPm, detail: "" }])} className="h-8 rounded-[8px] px-2.5 text-[13px] font-medium text-ds-text hover:bg-ds-subtle">
+                    <button type="button" onClick={() => setRows((rs) => [...rs, { key: `pm-${Date.now()}`, kind: "pm", credits: suggestedPm, detail: "" }])} className="h-8 rounded-[8px] px-2.5 text-[13px] font-fw-medium text-ds-text hover:bg-ds-subtle">
                       Add PM line
                     </button>
                   )}
@@ -277,14 +277,14 @@ export function EstimateEditor({
                 <tr key={`need-${i}`} className="border-t border-ds-divider bg-ds-watch-tint/50">
                   <td className="px-6 py-2.5" colSpan={2}>
                     <div className="flex flex-col">
-                      <span className="font-medium text-ds-text">{n.description}</span>
+                      <span className="font-fw-medium text-ds-text">{n.description}</span>
                       <span className="text-[12px] text-ds-watch-text">Needs PM quote · {n.reason ?? "not on the price list"}</span>
                     </div>
                   </td>
                   <td className="px-3 py-2.5" colSpan={4}>
                     <div className="flex flex-wrap items-center justify-end gap-2">
                       <input type="number" min={0} step="0.5" aria-label={`Credits for ${n.description}`} placeholder="Credits" value={resolutions[i]?.kind === "priced" ? (resolutions[i]?.credits ?? "") : ""} onChange={(e) => setResolutions((r) => ({ ...r, [i]: { kind: "priced", credits: Math.max(0, Number(e.target.value) || 0) } }))} className={cn(inputCls, "w-[96px]")} />
-                      <button type="button" onClick={() => setResolutions((r) => ({ ...r, [i]: { kind: "excluded" } }))} className={cn("h-8 rounded-[8px] px-2.5 text-[13px] font-medium", resolutions[i]?.kind === "excluded" ? "bg-ds-text text-white" : "text-ds-text hover:bg-ds-subtle")}>
+                      <button type="button" onClick={() => setResolutions((r) => ({ ...r, [i]: { kind: "excluded" } }))} className={cn("h-8 rounded-[8px] px-2.5 text-[13px] font-fw-medium", resolutions[i]?.kind === "excluded" ? "bg-ds-text text-white" : "text-ds-text hover:bg-ds-subtle")}>
                         {resolutions[i]?.kind === "excluded" ? "Excluded" : "Exclude"}
                       </button>
                     </div>
@@ -294,10 +294,10 @@ export function EstimateEditor({
             )}
             <tr className="border-t border-ds-border bg-ds-subtle-2">
               <td colSpan={4} className="px-6 py-3.5 text-ds-text">
-                <span className="font-semibold">Total</span> <span className="text-[13px] text-ds-text-2">· PM {fmt(pm)} · Creative {fmt(creative)}</span>
+                <span className="font-fw-semibold">Total</span> <span className="text-[13px] text-ds-text-2">· PM {fmt(pm)} · Creative {fmt(creative)}</span>
               </td>
-              <td className="px-3 py-3.5 text-right font-semibold tabular-nums text-ds-text">
-                {total !== origTotal && <span className="mr-1.5 font-medium text-ds-text-3 line-through">{fmt(origTotal)}</span>}
+              <td className="px-3 py-3.5 text-right font-fw-semibold tabular-nums text-ds-text">
+                {total !== origTotal && <span className="mr-1.5 font-fw-medium text-ds-text-3 line-through">{fmt(origTotal)}</span>}
                 {fmt(total)}
               </td>
               <td />
@@ -306,7 +306,7 @@ export function EstimateEditor({
         </table>
       </div>
       <div className="flex flex-col gap-2 border-t border-ds-divider px-6 pb-5 pt-4">
-        <label htmlFor="estimate-reason" className="text-[13px] font-medium text-ds-text">
+        <label htmlFor="estimate-reason" className="text-[13px] font-fw-medium text-ds-text">
           Reason for the client{clientHasVersion ? " (required)" : " (optional on a draft)"}
         </label>
         <input id="estimate-reason" name="reason" value={reason} onChange={(e) => setReason(e.target.value)} required={clientHasVersion} placeholder="What changed and why, in words the client will read" className="h-[38px] rounded-[8px] border border-ds-control-border px-3 text-[14px] outline-none focus:border-ds-text-3" />

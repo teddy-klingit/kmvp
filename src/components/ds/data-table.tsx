@@ -27,7 +27,7 @@ export function DataTable({ columns, rows, label, empty }: { columns: Column[]; 
               <th
                 key={c.key}
                 scope="col"
-                className={cn("whitespace-nowrap px-6 py-3 text-[12px] font-normal text-brand-mute", c.align === "right" ? "text-right" : "text-left", c.className)}
+                className={cn("whitespace-nowrap px-6 py-3 text-[12px] font-fw-regular text-brand-mute", c.align === "right" ? "text-right" : "text-left", c.className)}
               >
                 {c.label}
               </th>

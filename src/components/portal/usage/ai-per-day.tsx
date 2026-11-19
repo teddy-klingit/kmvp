@@ -19,7 +19,7 @@ export function AiPerDay({ perDay, lastMonth, months, footer, method }: { perDay
   return (
     <section aria-label="AI credits per day" className="overflow-hidden rounded-[12px] bg-white">
       <div className="flex flex-wrap items-center gap-3 border-b border-brand-line px-6 py-5">
-        <h2 className="m-0 flex-1 text-[18px] font-normal">{tab === "year" ? "AI credits per month" : "AI credits per day"}</h2>
+        <h2 className="m-0 flex-1 text-[18px] font-fw-medium">{tab === "year" ? "AI credits per month" : "AI credits per day"}</h2>
         <div role="tablist" className="flex gap-1 rounded-full bg-[var(--seg-track)] p-1">
           {(
             [

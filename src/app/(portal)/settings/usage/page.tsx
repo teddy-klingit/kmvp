@@ -70,7 +70,7 @@ export default async function UsagePage() {
                   <span key={k} className="flex flex-col gap-2">
                     <span className="flex items-baseline gap-2">
                       <span className="w-[72px] text-[14px]">{k === "pm" ? "PM" : "Creative"}</span>
-                      <span className="text-[32px] font-light leading-none tabular-nums">{n(p.left)}</span>
+                      <span className="text-[32px] font-fw-medium leading-none tabular-nums">{n(p.left)}</span>
                       <span className="text-[14px] text-brand-ink-2">left of {n(of)}{p.monthly > 0 ? " a month" : ""}</span>
                     </span>
                     <span className="flex h-2 overflow-hidden rounded-full bg-brand-line" role="img" aria-label={`${n(p.left)} of ${n(of)} left`}>
@@ -95,7 +95,7 @@ export default async function UsagePage() {
             <span className="text-[12px] text-brand-mute">Klingit team time · 1 credit = 1 hour</span>
           </span>
           <span className="flex items-baseline gap-2">
-            <span className="text-[44px] font-light leading-none tabular-nums">{n(teamLeft)}</span>
+            <span className="text-[44px] font-fw-medium leading-none tabular-nums">{n(teamLeft)}</span>
             <span className="text-[14px] text-brand-ink-2">left of {n(team.available ?? 0)}</span>
           </span>
           <span className="relative flex h-2 overflow-hidden rounded-full bg-brand-line" role="img" aria-label={`${team.used} used, ${team.awaiting} held, ${teamLeft} left`}>
@@ -125,7 +125,7 @@ export default async function UsagePage() {
           ) : (
             <>
               <span className="flex items-baseline gap-2">
-                <span className="text-[44px] font-light leading-none tabular-nums">{n(ai.left)}</span>
+                <span className="text-[44px] font-fw-medium leading-none tabular-nums">{n(ai.left)}</span>
                 <span className="text-[14px] text-brand-ink-2">
                   left of {n(ai.allowance)}
                   {ai.bundleLeft > 0 ? ` + ${n(ai.bundleLeft)} from bundles` : ""}
@@ -139,7 +139,7 @@ export default async function UsagePage() {
               {ai.runsOutBeforeReset ? (
                 <p className="m-0 flex flex-wrap items-center gap-2 rounded-[10px] bg-brand-peach-pale px-4 py-2.5 text-[13px]" title={FORECAST_METHOD}>
                   <span aria-hidden className="size-2 rounded-full bg-brand-orange" />
-                  <span className="flex-1">Forecast: runs out around {runOut ? <b className="font-semibold">{day(runOut)}</b> : "the end of the month"} at this pace.</span>
+                  <span className="flex-1">Forecast: runs out around {runOut ? <b className="font-fw-semibold">{day(runOut)}</b> : "the end of the month"} at this pace.</span>
                   <Link href="#top-up" className="rounded-full bg-brand-ink px-3 py-1.5 font-brand-mono text-[11px] text-white no-underline">
                     Top up
                   </Link>
@@ -158,13 +158,13 @@ export default async function UsagePage() {
       {pools && (
         // Phase S: AI, PM and creative are three ledgers; fixed monthly services are their own lines.
         <section aria-label="Team credits by balance" className="overflow-hidden rounded-[12px] bg-white">
-          <h2 className="m-0 border-b border-brand-line px-6 py-5 text-[18px] font-normal">PM and creative credits this month</h2>
+          <h2 className="m-0 border-b border-brand-line px-6 py-5 text-[18px] font-fw-medium">PM and creative credits this month</h2>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px] border-collapse text-[14px]">
               <thead>
                 <tr className="text-left text-[12px] text-brand-ink-2">
                   {["", "A month", "Carried over", "Bought", "Used", "Fixed services", "Expired", "Left"].map((h) => (
-                    <th key={h} className="px-3 py-2.5 text-right font-medium first:pl-6 first:text-left last:pr-6">
+                    <th key={h} className="px-3 py-2.5 text-right font-fw-medium first:pl-6 first:text-left last:pr-6">
                       {h}
                     </th>
                   ))}
@@ -181,7 +181,7 @@ export default async function UsagePage() {
                           {n(v)}
                         </td>
                       ))}
-                      <td className="py-3 pl-3 pr-6 text-right font-semibold">{n(p.left)}</td>
+                      <td className="py-3 pl-3 pr-6 text-right font-fw-semibold">{n(p.left)}</td>
                     </tr>
                   );
                 })}
@@ -211,7 +211,7 @@ export default async function UsagePage() {
         footer={
           <p className="m-0 flex flex-wrap gap-x-6 gap-y-1 text-[13px] text-brand-ink-2">
             <span key="average">
-              Average <b className="font-semibold text-brand-ink">{n(ai.average)}</b> a day
+              Average <b className="font-fw-semibold text-brand-ink">{n(ai.average)}</b> a day
             </span>
             {ai.busiest && (
               <span key="busiest">
@@ -271,9 +271,9 @@ export default async function UsagePage() {
             <table className="w-full border-collapse text-[14px]">
               <thead>
                 <tr className="text-[12px] text-brand-mute">
-                  <th className="px-6 py-3 text-left font-normal">Person</th>
-                  <th className="px-6 py-3 text-right font-normal">Team credits</th>
-                  <th className="px-6 py-3 text-right font-normal">AI credits</th>
+                  <th className="px-6 py-3 text-left font-fw-regular">Person</th>
+                  <th className="px-6 py-3 text-right font-fw-regular">Team credits</th>
+                  <th className="px-6 py-3 text-right font-fw-regular">AI credits</th>
                 </tr>
               </thead>
               <tbody>
@@ -303,7 +303,7 @@ export default async function UsagePage() {
                 return (
                   <div key={p.tier} className={cn("flex flex-col gap-0.5 rounded-[10px] border px-4 py-3", current ? "border-2 border-brand-ink" : "border-brand-line")}>
                     <span className="flex items-center gap-2">
-                      <span className="flex-1 text-[14px] font-semibold">{p.name}</span>
+                      <span className="flex-1 text-[14px] font-fw-semibold">{p.name}</span>
                       {current && <span className="rounded-full bg-brand-lime-pale px-2 py-0.5 text-[11px]">Current</span>}
                     </span>
                     <span className="text-[13px] text-brand-ink-2">{p.ownModel ? "Your own AI model" : `${n(p.monthlyAiCredits)} AI credits / month`}</span>
@@ -326,7 +326,7 @@ export default async function UsagePage() {
           </SectionCard>
 
           <section id="top-up" aria-label="Top up AI credits" className="scroll-mt-6 overflow-hidden rounded-[12px] bg-white">
-            <h2 className="m-0 border-b border-brand-line px-6 py-5 text-[18px] font-normal">Top up AI credits</h2>
+            <h2 className="m-0 border-b border-brand-line px-6 py-5 text-[18px] font-fw-medium">Top up AI credits</h2>
             <div className="flex flex-col gap-3 px-6 py-5">
               <p className="m-0 text-[14px] leading-[1.5] text-brand-ink-2">1,000 credits and up, added right away and on your next invoice. Top-ups don&apos;t expire at the end of the month; they&apos;re used after your monthly credits.</p>
               {pendingTopUp && <p className="m-0 text-[14px]">{`${n(Number((pendingTopUp.payload as { credits?: number }).credits ?? 0))} AI credits requested ${formatDay(pendingTopUp.createdAt)}: waiting for Klingit to approve.`}</p>}
@@ -372,7 +372,7 @@ export default async function UsagePage() {
 
       <section aria-label="Monthly history" className="overflow-hidden rounded-[12px] bg-white">
         <div className="flex items-center border-b border-brand-line px-6 py-5">
-          <h2 className="m-0 flex-1 text-[18px] font-normal">Monthly history</h2>
+          <h2 className="m-0 flex-1 text-[18px] font-fw-medium">Monthly history</h2>
           <span className="font-brand-mono text-[12px] uppercase text-brand-ink">Last 6 months</span>
         </div>
         <div className="grid grid-cols-1 gap-8 px-6 py-5 min-[900px]:grid-cols-2">
@@ -412,7 +412,7 @@ async function MyUsage({ clientId, userId }: { clientId: string; userId: string 
     <div className="grid grid-cols-1 gap-6 min-[1000px]:grid-cols-2">
       <SectionCard title="Your team credits" action={<span className="font-brand-mono text-[12px] uppercase text-brand-ink">{me.label}</span>}>
         <div className="flex flex-col gap-3 px-6 py-5">
-          <span className="text-[40px] font-light leading-none tabular-nums">{n(me.team)}</span>
+          <span className="text-[40px] font-fw-medium leading-none tabular-nums">{n(me.team)}</span>
           <span className="text-[14px] text-brand-ink-2">from estimates you approved this month</span>
           {me.teamByProject.map((r) => (
             <span key={r.key} className="flex justify-between text-[14px]">
@@ -424,7 +424,7 @@ async function MyUsage({ clientId, userId }: { clientId: string; userId: string 
       </SectionCard>
       <SectionCard title="Your AI credits" action={<span className="font-brand-mono text-[12px] uppercase text-brand-ink">{me.label}</span>}>
         <div className="flex flex-col gap-3 px-6 py-5">
-          <span className="text-[40px] font-light leading-none tabular-nums">{n(me.ai)}</span>
+          <span className="text-[40px] font-fw-medium leading-none tabular-nums">{n(me.ai)}</span>
           <span className="text-[14px] text-brand-ink-2">{me.aiTokens ? `${n(me.aiTokens)} tokens on your own model, billed by your provider` : "from the skills you ran and assistants you asked"}</span>
           {me.bySource.map((r) => (
             <span key={r.key} className="flex justify-between text-[14px]">

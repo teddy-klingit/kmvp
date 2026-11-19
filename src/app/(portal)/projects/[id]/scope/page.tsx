@@ -92,7 +92,7 @@ export default async function ProjectScopePage({
             <ul className="m-0 flex list-none flex-col gap-2 p-0 text-[14px]">
               {unresolved.map((need) => (
                 <li key={need.description}>
-                  <span className="font-medium text-ds-text">{need.description}</span>
+                  <span className="font-fw-medium text-ds-text">{need.description}</span>
                   {need.reason && <span className="text-ds-text-2"> — {need.reason}</span>}
                 </li>
               ))}

@@ -96,7 +96,7 @@ export function DatesForm({
         ))}
       </div>
       <label className="flex flex-col gap-1.5">
-        <span className="text-[13px] font-medium text-ds-text">Reason for the client (required)</span>
+        <span className="text-[13px] font-fw-medium text-ds-text">Reason for the client (required)</span>
         <input name="reason" required placeholder="e.g. Waiting on the Q3 numbers from finance" className={`${fieldCls} h-[38px]`} />
       </label>
       <Status state={state} />
@@ -152,7 +152,7 @@ export function UploadAssetForm({ projectId, assets = [] }: { projectId: string;
       <div className="flex flex-wrap items-end gap-3">
         <label className="flex min-w-0 flex-1 flex-col gap-1.5">
           <span className="text-[12px] text-ds-text-2">File · images and PDF up to 25 MB, video up to 250 MB</span>
-          <input type="file" name="file" required accept="image/*,application/pdf,video/*" className="h-9 text-[13px] file:mr-3 file:h-9 file:rounded-[8px] file:border file:border-ds-control-border file:bg-white file:px-3 file:text-[13px] file:font-medium" />
+          <input type="file" name="file" required accept="image/*,application/pdf,video/*" className="h-9 text-[13px] file:mr-3 file:h-9 file:rounded-[8px] file:border file:border-ds-control-border file:bg-white file:px-3 file:text-[13px] file:font-fw-medium" />
         </label>
         <Button type="submit" variant="secondary" size="md" disabled={pending}>
           <Upload strokeWidth={1.75} />

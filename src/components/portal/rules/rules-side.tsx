@@ -33,7 +33,7 @@ export function TestCopyCard({ clientId }: { clientId?: string }) {
   const r = state.result;
   return (
     <section aria-label="Test copy against your rules" className="overflow-hidden rounded-[12px] bg-white">
-      <h2 className="m-0 border-b border-brand-line px-6 py-5 text-[18px] font-normal">Test copy against your rules</h2>
+      <h2 className="m-0 border-b border-brand-line px-6 py-5 text-[18px] font-fw-medium">Test copy against your rules</h2>
       <form action={action} className="flex flex-col gap-4 px-6 py-5">
         {clientId && <input type="hidden" name="clientId" value={clientId} />}
         <label htmlFor="rules-test-copy" className="sr-only">
@@ -58,7 +58,7 @@ export function TestCopyCard({ clientId }: { clientId?: string }) {
                   <li key={v.ruleId} className="flex gap-2.5 text-[14px] leading-[1.45]">
                     <AlertTriangle className="mt-0.5 size-4 shrink-0 text-brand-orange" strokeWidth={1.75} />
                     <span className="flex flex-col">
-                      <b className="font-semibold">{v.why}</b>
+                      <b className="font-fw-semibold">{v.why}</b>
                       <span className="text-[13px] text-brand-ink-2">{v.rule}</span>
                     </span>
                   </li>
@@ -106,7 +106,7 @@ export function ImportCard({ clientId }: { clientId?: string }) {
   const [name, setName] = useState<string | null>(null);
   return (
     <section id="import" aria-label="Import from guidelines" className="overflow-hidden rounded-[12px] bg-white">
-      <h2 className="m-0 border-b border-brand-line px-6 py-5 text-[18px] font-normal">Import from guidelines</h2>
+      <h2 className="m-0 border-b border-brand-line px-6 py-5 text-[18px] font-fw-medium">Import from guidelines</h2>
       <form action={action} className="flex flex-col gap-3 px-6 py-5">
         {clientId && <input type="hidden" name="clientId" value={clientId} />}
         <p className="m-0 text-[14px] leading-[1.5] text-brand-ink-2">Upload your brand guidelines (PDF). We turn them into draft rules you approve one by one.</p>

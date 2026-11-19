@@ -55,7 +55,7 @@ export async function SkillBuildView({ projectId, build, share }: { projectId: s
                 </span>
                 <span className="flex min-w-0 flex-1 flex-col gap-1">
                   <span className="flex flex-wrap items-center gap-3">
-                    <h1 className="m-0 text-[28px] font-normal leading-[1.2]">{project.name}</h1>
+                    <h1 className="m-0 text-[28px] font-fw-regular leading-[1.2]">{project.name}</h1>
                     <span className="rounded-full bg-brand-chip px-2.5 py-1 text-[13px]">{build.step}</span>
                   </span>
                   <span className="text-[15px] text-brand-ink-2">
@@ -111,7 +111,7 @@ export async function SkillBuildView({ projectId, build, share }: { projectId: s
                         </span>
                         {i < BUILD_STEPS.length - 1 && <span aria-hidden className={cn("mx-2 h-0.5 flex-1", done ? "bg-brand-ink" : "bg-brand-line")} />}
                       </span>
-                      <span className={cn("text-[15px]", now && "font-semibold")}>{s}</span>
+                      <span className={cn("text-[15px]", now && "font-fw-semibold")}>{s}</span>
                       <span className={cn("text-[13px]", now ? "text-brand-orange-text" : "text-brand-mute")}>{now ? "Now" : when ? `${done ? "" : "Est. "}${date(when)}` : ""}</span>
                     </li>
                   );
@@ -121,7 +121,7 @@ export async function SkillBuildView({ projectId, build, share }: { projectId: s
 
             <section aria-label="Skill spec" className="overflow-hidden rounded-2xl bg-white">
               <header className="flex items-center border-b border-brand-line px-6 py-5">
-                <h2 className="m-0 flex-1 text-[20px] font-normal">Skill spec</h2>
+                <h2 className="m-0 flex-1 text-[20px] font-fw-medium">Skill spec</h2>
                 {editable && <span className="text-[13px] text-brand-ink-2">Editable until building starts</span>}
               </header>
               {editable ? (
@@ -129,7 +129,7 @@ export async function SkillBuildView({ projectId, build, share }: { projectId: s
                   <input type="hidden" name="projectId" value={projectId} />
                   {SPEC.map((f) => (
                     <label key={f.key} className="grid grid-cols-1 gap-2 border-b border-brand-line px-6 py-4 min-[700px]:grid-cols-[180px_minmax(0,1fr)]">
-                      <span className="text-[15px] font-semibold">{f.label}</span>
+                      <span className="text-[15px] font-fw-semibold">{f.label}</span>
                       <textarea name={f.key} defaultValue={build.spec[f.key]} rows={2} className="w-full resize-none rounded-[10px] border border-brand-outline px-3 py-2 text-[15px] outline-none focus-visible:ring-2 focus-visible:ring-brand-orange" />
                     </label>
                   ))}
@@ -143,7 +143,7 @@ export async function SkillBuildView({ projectId, build, share }: { projectId: s
                 <dl className="m-0">
                   {SPEC.map((f, i) => (
                     <div key={f.key} className={cn("grid grid-cols-1 gap-1 px-6 py-4 min-[700px]:grid-cols-[180px_minmax(0,1fr)] min-[700px]:gap-4", i > 0 && "border-t border-brand-line")}>
-                      <dt className="text-[15px] font-semibold">{f.label}</dt>
+                      <dt className="text-[15px] font-fw-semibold">{f.label}</dt>
                       <dd className="m-0 text-[16px] leading-[1.5]">{build.spec[f.key]}</dd>
                     </div>
                   ))}
@@ -153,7 +153,7 @@ export async function SkillBuildView({ projectId, build, share }: { projectId: s
 
             <section aria-label="Test output" className="overflow-hidden rounded-2xl bg-white">
               <header className="flex items-center border-b border-brand-line px-6 py-5">
-                <h2 className="m-0 flex-1 text-[20px] font-normal">Test output</h2>
+                <h2 className="m-0 flex-1 text-[20px] font-fw-medium">Test output</h2>
                 {build.testOutput?.at && <span className="font-brand-mono text-[12px] text-brand-ink">TEST RUN · {date(new Date(build.testOutput.at)).toUpperCase()}</span>}
               </header>
               {build.testOutput ? (
@@ -193,7 +193,7 @@ export async function SkillBuildView({ projectId, build, share }: { projectId: s
 
           <aside className="flex min-w-0 flex-col gap-6 min-[1100px]:pt-10">
             <section aria-label="Conversation" className="overflow-hidden rounded-2xl bg-white">
-              <h2 className="m-0 border-b border-brand-line px-6 py-5 text-[20px] font-normal">Conversation</h2>
+              <h2 className="m-0 border-b border-brand-line px-6 py-5 text-[20px] font-fw-medium">Conversation</h2>
               <div className="flex flex-col gap-4 px-6 py-5">
                 {messages.length === 0 && <span className="text-[14px] text-brand-ink-2">Questions from Klingit about the build show up here.</span>}
                 {messages.map((m) => {
@@ -212,7 +212,7 @@ export async function SkillBuildView({ projectId, build, share }: { projectId: s
                       <Avatar name={name} size={32} />
                       <span className="flex min-w-0 flex-1 flex-col gap-1.5">
                         <span className="text-[13px]">
-                          <span className="font-semibold">{name}</span> <span className="text-brand-mute">· {date(m.createdAt)}</span>
+                          <span className="font-fw-semibold">{name}</span> <span className="text-brand-mute">· {date(m.createdAt)}</span>
                         </span>
                         <span className={cn("rounded-[12px] px-4 py-3 text-[15px] leading-[1.5]", staff ? "bg-brand-chip" : "bg-brand-lime-pale")}>{m.body}</span>
                       </span>
@@ -223,7 +223,7 @@ export async function SkillBuildView({ projectId, build, share }: { projectId: s
             </section>
 
             <section aria-label="Build log" className="overflow-hidden rounded-2xl bg-white">
-              <h2 className="m-0 border-b border-brand-line px-6 py-5 text-[20px] font-normal">Build log</h2>
+              <h2 className="m-0 border-b border-brand-line px-6 py-5 text-[20px] font-fw-medium">Build log</h2>
               <ul className="m-0 list-none p-0">
                 {log.map((l) => (
                   <li key={l.id} className="grid grid-cols-[72px_minmax(0,1fr)] gap-3 border-b border-brand-line px-6 py-3.5 last:border-b-0">

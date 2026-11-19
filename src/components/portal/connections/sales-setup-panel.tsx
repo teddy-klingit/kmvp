@@ -67,9 +67,9 @@ function Panel({ source, name, monogram, tone, status: initialStatus, settings: 
       <button type="button" aria-label="Close" onClick={onClose} className="absolute inset-0 hidden bg-[rgba(30,30,30,0.18)] sm:block" />
       <div className="relative flex h-full w-full flex-col gap-5 overflow-y-auto bg-white px-6 py-6 shadow-[-8px_0_32px_rgba(30,30,30,0.12)] sm:w-[500px]" style={{ paddingTop: "calc(24px + env(safe-area-inset-top, 0px))" }}>
         <header className="flex items-start gap-3">
-          <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-[10px] font-brand-mono text-[12px] font-semibold", tone)}>{monogram}</span>
+          <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-[10px] font-brand-mono text-[12px] font-fw-semibold", tone)}>{monogram}</span>
           <span className="flex min-w-0 flex-1 flex-col">
-            <h2 className="m-0 text-[22px] font-light">Connect {name}</h2>
+            <h2 className="m-0 text-[22px] font-fw-medium">Connect {name}</h2>
             <span className="text-[13px] text-brand-ink-2">{loggedIn ? `Logged in as ${settings?.login} · read-only access` : "Read-only access · totals only"}</span>
           </span>
           <button type="button" onClick={onClose} aria-label="Close" className="flex size-9 items-center justify-center rounded-full hover:bg-brand-page">
@@ -99,14 +99,14 @@ function Panel({ source, name, monogram, tone, status: initialStatus, settings: 
         ) : steps[shown] === "Map your stages" ? (
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1">
-              <h3 className="m-0 text-[16px] font-normal">Map your deal stages to ours</h3>
+              <h3 className="m-0 text-[16px] font-fw-medium">Map your deal stages to ours</h3>
               <p className="m-0 text-[13px] text-brand-ink-2">So we can count leads, qualified leads, deals and customers the same way for every client. We pre-filled it from your stage names.</p>
             </div>
             <table className="w-full border-collapse text-[14px]">
               <thead>
                 <tr className="text-left font-brand-mono text-[11px] uppercase tracking-[0.06em] text-brand-ink-2">
-                  <th className="py-2 font-normal">Your stage in {name}</th>
-                  <th className="py-2 font-normal">Klingit stage</th>
+                  <th className="py-2 font-fw-regular">Your stage in {name}</th>
+                  <th className="py-2 font-fw-regular">Klingit stage</th>
                 </tr>
               </thead>
               <tbody>
@@ -130,7 +130,7 @@ function Panel({ source, name, monogram, tone, status: initialStatus, settings: 
               </tbody>
             </table>
             <div className="rounded-[10px] bg-brand-page px-4 py-3 text-[13px] leading-[1.55]">
-              <b className="font-semibold">How we find the source of each deal</b>
+              <b className="font-fw-semibold">How we find the source of each deal</b>
               <p className="m-0 mt-1 text-brand-ink-2">
                 From the UTM tags on the first visit ({name} &ldquo;Original source&rdquo;).{health ? ` ${Math.round(health.withSource * 100)}% of ${health.of} last year have one.` : ""} Everything Klingit ships from now on is tagged automatically.
               </p>
@@ -138,7 +138,7 @@ function Panel({ source, name, monogram, tone, status: initialStatus, settings: 
           </div>
         ) : (
           <div className="flex flex-col gap-4 text-[14px]">
-            <h3 className="m-0 text-[16px] font-normal">Choose what to sync</h3>
+            <h3 className="m-0 text-[16px] font-fw-medium">Choose what to sync</h3>
             {(settings?.pipelines ?? []).length > 0 && (
               <fieldset className="m-0 flex flex-col gap-2 border-0 p-0">
                 <legend className="mb-1 text-[13px] text-brand-ink-2">{source === "HubSpot" ? "Pipelines" : source === "Klaviyo" ? "What to count" : "Store"}</legend>

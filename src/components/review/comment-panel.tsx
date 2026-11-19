@@ -40,7 +40,7 @@ export function CommentPanel({
   return (
     <div className="flex flex-col">
       <div className="flex items-center gap-3 border-b border-brand-line px-6 py-4">
-        <h2 className="m-0 flex-1 text-[20px] font-normal">{title}</h2>
+        <h2 className="m-0 flex-1 text-[20px] font-fw-medium">{title}</h2>
         <div role="tablist" aria-label="Comment status" className="flex gap-1 rounded-full bg-[var(--seg-track)] p-1">
           {(["open", "resolved"] as const).map((t) => (
             <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => setTab(t)} className={cn("inline-flex h-9 items-center rounded-full px-4 text-[14px]", tab === t ? "bg-brand-ink text-white" : "text-brand-ink hover:bg-black/5")}>
@@ -67,7 +67,7 @@ function ThreadCard({ thread: t, active, onSelect }: { thread: Thread; active: b
     <article className={cn("flex flex-col gap-3 rounded-[14px] px-3 py-3", active && "border border-brand-peach-line bg-brand-peach-pale/50")}>
       <div className="flex items-center gap-2.5">
         <button type="button" onClick={() => onSelect?.(t)} className="flex min-w-0 flex-1 items-center gap-2.5 text-left">
-          <span aria-hidden className={cn("flex size-6 shrink-0 items-center justify-center rounded-[8px_8px_8px_2px] text-[12px] font-semibold text-white", t.number == null ? "bg-brand-chip text-brand-ink-2" : fromClient ? "bg-brand-orange" : "bg-brand-ink")}>
+          <span aria-hidden className={cn("flex size-6 shrink-0 items-center justify-center rounded-[8px_8px_8px_2px] text-[12px] font-fw-semibold text-white", t.number == null ? "bg-brand-chip text-brand-ink-2" : fromClient ? "bg-brand-orange" : "bg-brand-ink")}>
             {t.number ?? "·"}
           </span>
           {t.timestamp != null && (
@@ -91,7 +91,7 @@ function ThreadCard({ thread: t, active, onSelect }: { thread: Thread; active: b
           <Avatar name={m.author} size={32} />
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <span className="flex flex-wrap items-center gap-x-2 text-[13px]">
-              <span className="font-semibold">{m.author}</span>
+              <span className="font-fw-semibold">{m.author}</span>
               <span className="text-brand-mute">
                 {m.org} · {time(m.at)}
               </span>

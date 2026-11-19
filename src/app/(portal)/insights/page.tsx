@@ -193,11 +193,11 @@ export default async function InsightsOverviewPage({ searchParams }: { searchPar
             <table className="w-full min-w-[640px] border-collapse text-[14px]">
               <thead>
                 <tr className="bg-[#FAF8F3] text-left font-brand-mono text-[11px] uppercase tracking-[0.04em] text-brand-ink-2">
-                  <th className="w-[56px] py-3 pl-6 font-normal" aria-label="Segment" />
-                  <th className="px-3 py-3 font-normal">Channel</th>
-                  <th className="px-3 py-3 font-normal">Result</th>
-                  <th className="px-3 py-3 font-normal">Key detail</th>
-                  <th className="px-6 py-3 font-normal">Status</th>
+                  <th className="w-[56px] py-3 pl-6 font-fw-regular" aria-label="Segment" />
+                  <th className="px-3 py-3 font-fw-regular">Channel</th>
+                  <th className="px-3 py-3 font-fw-regular">Result</th>
+                  <th className="px-3 py-3 font-fw-regular">Key detail</th>
+                  <th className="px-6 py-3 font-fw-regular">Status</th>
                 </tr>
               </thead>
               <tbody>

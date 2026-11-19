@@ -34,19 +34,19 @@ export async function PmHome({ viewer }: { viewer: StaffMember & { user: User } 
 
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <Card className="border border-border bg-paper p-4">
-            <p className="font-display text-2xl font-light">{clients.length}</p>
+            <p className="font-display text-2xl font-fw-medium">{clients.length}</p>
             <p className="text-xs text-muted-foreground">My accounts</p>
           </Card>
           <Card className="border border-border bg-paper p-4">
-            <p className="font-display text-2xl font-light">{activeProjectCount}</p>
+            <p className="font-display text-2xl font-fw-medium">{activeProjectCount}</p>
             <p className="text-xs text-muted-foreground">Active projects</p>
           </Card>
           <Card className="border border-border bg-paper p-4">
-            <p className="font-display text-2xl font-light">{nextDeadline ? formatDate(nextDeadline.dueDate!) : "—"}</p>
+            <p className="font-display text-2xl font-fw-medium">{nextDeadline ? formatDate(nextDeadline.dueDate!) : "—"}</p>
             <p className="text-xs text-muted-foreground">Next deadline</p>
           </Card>
           <Card className="border border-border bg-paper p-4">
-            <p className="font-display text-2xl font-light text-ink">{atRiskClients.length}</p>
+            <p className="font-display text-2xl font-fw-medium text-ink">{atRiskClients.length}</p>
             <p className="text-xs text-muted-foreground">Accounts at risk</p>
           </Card>
         </div>
@@ -66,7 +66,7 @@ export async function PmHome({ viewer }: { viewer: StaffMember & { user: User } 
                   className="flex items-center justify-between gap-4 px-5 py-3.5 hover:bg-muted/50"
                 >
                   <div>
-                    <p className="text-sm font-medium">
+                    <p className="text-sm font-fw-medium">
                       {item.clientName} · {item.projectName}
                     </p>
                     <p className="text-sm text-muted-foreground">
@@ -92,7 +92,7 @@ export async function PmHome({ viewer }: { viewer: StaffMember & { user: User } 
                 <Link key={c.id} href={`/ops/clients/${c.id}/dashboard`}>
                   <Card className="flex flex-col gap-2 p-5 transition-colors hover:border-ink/30">
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-semibold">{c.name}</p>
+                      <p className="text-sm font-fw-semibold">{c.name}</p>
                       <Badge tone={c.healthScore < 75 ? "warning" : "success"}>Health {c.healthScore}</Badge>
                     </div>
                     <p className="text-xs text-muted-foreground">

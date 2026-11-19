@@ -128,9 +128,9 @@ export default async function QualityCheckPage({ params, searchParams }: { param
                 <table className="w-full min-w-[720px] border-collapse">
                   <thead>
                     <tr className="text-[13px] text-brand-mute">
-                      <th className="w-[170px] px-6 py-4 text-left font-normal">Concept</th>
+                      <th className="w-[170px] px-6 py-4 text-left font-fw-regular">Concept</th>
                       {columns.map((c) => (
-                        <th key={c} className="px-2 py-4 font-normal">
+                        <th key={c} className="px-2 py-4 font-fw-regular">
                           {c}
                         </th>
                       ))}
@@ -223,7 +223,7 @@ export default async function QualityCheckPage({ params, searchParams }: { param
         <aside data-scroll className="flex w-full shrink-0 flex-col border-t border-brand-line bg-white min-[1000px]:w-[420px] min-[1000px]:border-l min-[1000px]:border-t-0">
           {asClient ? (
             <>
-              <h2 className="m-0 border-b border-brand-line px-7 py-5 text-[20px] font-normal">Comments</h2>
+              <h2 className="m-0 border-b border-brand-line px-7 py-5 text-[20px] font-fw-medium">Comments</h2>
               <div className="flex-1 px-7 py-5 min-[1000px]:overflow-y-auto">
                 {comments.length === 0 ? (
                   <p className="m-0 text-[14px] text-brand-ink-2">No comments yet. The client comments on each asset; Klingit replies here too.</p>
@@ -233,7 +233,7 @@ export default async function QualityCheckPage({ params, searchParams }: { param
                       <li key={c.id} className="flex flex-col gap-1">
                         <span className="text-[12px] text-brand-mute">{c.asset ? assetTitle(c.asset.name, c.asset.format) : "Whole set"}</span>
                         <span className="text-[14px]">
-                          <span className="font-semibold">{c.clientAuthor?.user.name ?? c.author?.name ?? "Someone"}</span> {c.body}
+                          <span className="font-fw-semibold">{c.clientAuthor?.user.name ?? c.author?.name ?? "Someone"}</span> {c.body}
                         </span>
                       </li>
                     ))}
@@ -243,12 +243,12 @@ export default async function QualityCheckPage({ params, searchParams }: { param
             </>
           ) : (
             <>
-              <h2 className="m-0 border-b border-brand-line px-7 py-5 text-[20px] font-normal">Brand OS check</h2>
+              <h2 className="m-0 border-b border-brand-line px-7 py-5 text-[20px] font-fw-medium">Brand OS check</h2>
               <div className="flex flex-1 flex-col gap-5 px-7 py-6 min-[1000px]:overflow-y-auto">
                 {totalChecks > 0 ? (
                   <div className="flex flex-col gap-3">
                     <span className="flex items-baseline gap-2">
-                      <span className="text-[40px] font-semibold leading-none tabular-nums">{passed}</span>
+                      <span className="text-[40px] font-fw-semibold leading-none tabular-nums">{passed}</span>
                       <span className="text-[15px] text-brand-ink-2">of {totalChecks} checks passed</span>
                     </span>
                     <span className="flex h-2 gap-0.5 overflow-hidden rounded-full" role="img" aria-label={`${passed} of ${totalChecks} passed`}>
@@ -260,7 +260,7 @@ export default async function QualityCheckPage({ params, searchParams }: { param
                 ) : sentChecks.length > 0 ? (
                   <div className="flex flex-col gap-3">
                     <span className="flex items-baseline gap-2">
-                      <span className="text-[40px] font-semibold leading-none tabular-nums">{sentChecks.filter((c) => c.passed).length}</span>
+                      <span className="text-[40px] font-fw-semibold leading-none tabular-nums">{sentChecks.filter((c) => c.passed).length}</span>
                       <span className="text-[15px] text-brand-ink-2">of {sentChecks.length} checks passed</span>
                     </span>
                     <span className="text-[13px] leading-[1.5] text-brand-mute">On the version{set.length === 1 ? "" : "s"} with the client · the client never sees this panel</span>
@@ -271,7 +271,7 @@ export default async function QualityCheckPage({ params, searchParams }: { param
 
                 {fixed.length > 0 && (
                   <section className="flex flex-col gap-3">
-                    <h3 className="m-0 text-[14px] font-normal text-brand-mute">Fixed before sending</h3>
+                    <h3 className="m-0 text-[14px] font-fw-medium text-brand-mute">Fixed before sending</h3>
                     {fixed.map(({ f, v }) => (
                       <span key={f.id} className="flex gap-3">
                         <span aria-hidden className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-[#8D9E47]">
@@ -290,10 +290,10 @@ export default async function QualityCheckPage({ params, searchParams }: { param
 
                 {open.length > 0 && (
                   <section className="flex flex-col gap-4">
-                    <h3 className="m-0 text-[14px] font-normal text-brand-mute">To look at</h3>
+                    <h3 className="m-0 text-[14px] font-fw-medium text-brand-mute">To look at</h3>
                     {open.map(({ f, v }) => (
                       <div key={f.id} className="flex gap-3">
-                        <span aria-hidden className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-brand-peach-pale text-[13px] font-semibold text-brand-orange">!</span>
+                        <span aria-hidden className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-brand-peach-pale text-[13px] font-fw-semibold text-brand-orange">!</span>
                         <span className="flex min-w-0 flex-1 flex-col gap-2">
                           <span className="text-[15px] leading-[1.4]">
                             {assetTitle(v.asset.name, v.asset.format)} {expectedShape(v.asset.format)?.label ?? ""}: {f.detail}
@@ -318,7 +318,7 @@ export default async function QualityCheckPage({ params, searchParams }: { param
 
                 {withDesigner.length > 0 && (
                   <section className="flex flex-col gap-3">
-                    <h3 className="m-0 text-[14px] font-normal text-brand-mute">With the designer</h3>
+                    <h3 className="m-0 text-[14px] font-fw-medium text-brand-mute">With the designer</h3>
                     {withDesigner.map(({ f, v }) => (
                       <span key={f.id} className="text-[14px] text-brand-ink-2">
                         {assetTitle(v.asset.name, v.asset.format)} v{v.number}: {f.detail} · fixed in the next version
@@ -329,7 +329,7 @@ export default async function QualityCheckPage({ params, searchParams }: { param
 
                 {accepted.length > 0 && (
                   <section className="flex flex-col gap-3">
-                    <h3 className="m-0 text-[14px] font-normal text-brand-mute">Accepted as is (Klingit only)</h3>
+                    <h3 className="m-0 text-[14px] font-fw-medium text-brand-mute">Accepted as is (Klingit only)</h3>
                     {accepted.map(({ f, v }) => (
                       <span key={f.id} className="flex flex-col">
                         <span className="text-[14px]">
@@ -343,7 +343,7 @@ export default async function QualityCheckPage({ params, searchParams }: { param
 
                 {late.length > 0 && (
                   <section className="flex flex-col gap-3 rounded-[12px] bg-brand-peach-pale p-4">
-                    <h3 className="m-0 text-[14px] font-normal">Already with the client · now failing</h3>
+                    <h3 className="m-0 text-[14px] font-fw-medium">Already with the client · now failing</h3>
                     {late.map(({ f, v }) => (
                       <div key={f.id} className="flex flex-col gap-2">
                         <span className="text-[14px]">
@@ -368,7 +368,7 @@ export default async function QualityCheckPage({ params, searchParams }: { param
 
                 {passedGroups.length > 0 && (
                   <section className="flex flex-col gap-4">
-                    <h3 className="m-0 text-[14px] font-normal text-brand-mute">Passed</h3>
+                    <h3 className="m-0 text-[14px] font-fw-medium text-brand-mute">Passed</h3>
                     {passedGroups.map(([label, source]) => (
                       <span key={label} className="flex items-start gap-3">
                         <span aria-hidden className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-[#8D9E47]">

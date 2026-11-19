@@ -26,13 +26,13 @@ export function CopyView({ shell, projectId, items, canReview, mode }: { shell: 
         <table className="w-full min-w-[720px] border-collapse">
           <thead>
             <tr className="text-[13px] text-brand-mute">
-              <th className="w-[160px] px-6 py-4 text-left font-normal">Element</th>
+              <th className="w-[160px] px-6 py-4 text-left font-fw-regular">Element</th>
               {langs.map(([lang, label]) => (
-                <th key={lang} className="px-4 py-4 text-left font-normal">
+                <th key={lang} className="px-4 py-4 text-left font-fw-regular">
                   {label}
                 </th>
               ))}
-              <th className="px-6 py-4 text-right font-normal">Status</th>
+              <th className="px-6 py-4 text-right font-fw-regular">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -83,7 +83,7 @@ export function CopyView({ shell, projectId, items, canReview, mode }: { shell: 
       main={main}
       panel={
         <div className="flex flex-col">
-          <h2 className="m-0 border-b border-brand-line px-6 py-5 text-[20px] font-normal">Suggestions</h2>
+          <h2 className="m-0 border-b border-brand-line px-6 py-5 text-[20px] font-fw-medium">Suggestions</h2>
           <div className="flex items-center px-6 pt-4">
             <span className="flex-1 text-[15px]">
               {suggestions.length} suggestion{suggestions.length === 1 ? "" : "s"}

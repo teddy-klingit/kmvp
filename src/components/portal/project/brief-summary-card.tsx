@@ -29,7 +29,7 @@ export async function BriefSummaryCard({ projectId, viewer }: { projectId: strin
       {score !== null && (
         <div className="flex flex-col gap-2 border-b border-brand-line px-6 py-4">
           <span className="text-[14px]">
-            <span className="font-semibold">Brief quality {score}</span> <span className="text-brand-mute">{qualityLabel(score)}</span>
+            <span className="font-fw-semibold">Brief quality {score}</span> <span className="text-brand-mute">{qualityLabel(score)}</span>
           </span>
           <QualityBar score={score} compact />
         </div>
@@ -41,7 +41,7 @@ export async function BriefSummaryCard({ projectId, viewer }: { projectId: strin
           {sections.map((s) => (
             <li key={s.key} className="flex flex-col gap-1 px-6 py-3.5">
               <span className="flex items-center gap-2">
-                <span className="flex-1 text-[13px] font-semibold">{SECTION_LABEL[s.key]}</span>
+                <span className="flex-1 text-[13px] font-fw-semibold">{SECTION_LABEL[s.key]}</span>
                 <SourceTag tone={TAG[s.source][0]}>{s.source === "pastProject" && s.sourceRef ? `From ${s.sourceRef.name}` : TAG[s.source][1]}</SourceTag>
               </span>
               <span className="text-[15px]">{s.value || [...(s.items ?? []), ...(s.refs ?? []).map((r) => r.label)].join(", ")}</span>

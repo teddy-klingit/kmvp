@@ -267,7 +267,7 @@ function Row({ k, v }: { k: string; v: React.ReactNode }) {
 
 function Initials({ name }: { name: string }) {
   const parts = name.trim().split(/\s+/);
-  return <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#C8A13A] text-[11px] font-medium text-white">{(parts[0][0] + (parts.at(-1)?.[0] ?? "")).toUpperCase()}</span>;
+  return <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#C8A13A] text-[11px] font-fw-medium text-white">{(parts[0][0] + (parts.at(-1)?.[0] ?? "")).toUpperCase()}</span>;
 }
 
 function ProfileForm({ clientId, profile }: { clientId: string; profile: Awaited<ReturnType<typeof getProfile>> }) {

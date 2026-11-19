@@ -61,7 +61,7 @@ export function ProfileMenu({ name, email, clientName, role, admin, summary, onN
         >
           <Avatar name={name} size={34} />
           <span className="flex min-w-0 flex-1 flex-col whitespace-nowrap rail:sr-only">
-            <span className="truncate text-[15px] font-semibold text-brand-ink">{name}</span>
+            <span className="truncate text-[15px] font-fw-semibold text-brand-ink">{name}</span>
             <span className="truncate font-brand-mono text-[11px] uppercase text-brand-ink-2">{clientName}</span>
           </span>
           <ChevronsUpDown className="size-4 shrink-0 text-brand-ink-2 rail:hidden" strokeWidth={1.75} />
@@ -71,7 +71,7 @@ export function ProfileMenu({ name, email, clientName, role, admin, summary, onN
         <div className="flex items-center gap-3 px-2 pb-3 pt-2">
           <Avatar name={name} size={40} />
           <span className="flex min-w-0 flex-col">
-            <span className="truncate text-[15px] font-semibold text-brand-ink">{name}</span>
+            <span className="truncate text-[15px] font-fw-semibold text-brand-ink">{name}</span>
             <span className="truncate text-[12px] text-brand-ink-2">
               {email} · {role}
             </span>
@@ -80,7 +80,7 @@ export function ProfileMenu({ name, email, clientName, role, admin, summary, onN
         <DropdownMenuItem asChild className="mb-1 rounded-[12px] p-0 focus:bg-transparent">
           <Link href="/settings/plan" onClick={onNavigate} className="flex items-center gap-2 rounded-[12px] bg-brand-page px-3 py-2.5 no-underline hover:bg-[#F2EDE3]">
             <span className="flex min-w-0 flex-1 flex-col">
-              <span className="text-[13px] font-semibold text-brand-ink">{summary.plan} plan</span>
+              <span className="text-[13px] font-fw-semibold text-brand-ink">{summary.plan} plan</span>
               <span className="truncate text-[12px] text-brand-ink-2">{[team, ai].filter(Boolean).join(" · ") || "See usage"}</span>
             </span>
             <ChevronRight className="size-4 shrink-0 text-brand-ink-2" strokeWidth={1.75} />
@@ -98,7 +98,7 @@ export function ProfileMenu({ name, email, clientName, role, admin, summary, onN
               <Avatar name={summary.marketingPm.name} size={28} />
               <span className="flex min-w-0 flex-1 flex-col">
                 <span className="text-[12px] text-brand-ink-2">Your Marketing PM</span>
-                <span className="truncate text-[13px] font-semibold text-brand-ink">{summary.marketingPm.name}</span>
+                <span className="truncate text-[13px] font-fw-semibold text-brand-ink">{summary.marketingPm.name}</span>
               </span>
               <span className="text-[12px] text-brand-ink underline underline-offset-2">Message</span>
             </span>
@@ -123,7 +123,7 @@ export function ProfileMenu({ name, email, clientName, role, admin, summary, onN
           <DropdownMenuSubContent className="w-56 font-brand">
             {DEMO_PERSONAS.map((p) => (
               <DropdownMenuItem key={p.key} disabled={pending} onSelect={() => start(() => switchPersonaAction(personaForm(p.key)))} className="flex w-full flex-col items-start">
-                <span className={cn("text-[14px]", p.email === email && "font-semibold")}>{p.name}</span>
+                <span className={cn("text-[14px]", p.email === email && "font-fw-semibold")}>{p.name}</span>
                 <span className="text-[12px] text-brand-ink-2">{p.subtitle}</span>
               </DropdownMenuItem>
             ))}

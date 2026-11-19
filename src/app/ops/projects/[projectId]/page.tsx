@@ -93,7 +93,7 @@ export default async function CockpitPage({ params, searchParams }: { params: Pr
             value: (
               <>
                 {credits}
-                {hours > 0 && <span className="ml-1 text-[12px] font-medium text-ds-text-2">· ≈ {Math.round(hours)} h</span>}
+                {hours > 0 && <span className="ml-1 text-[12px] font-fw-medium text-ds-text-2">· ≈ {Math.round(hours)} h</span>}
               </>
             ),
           },
@@ -131,7 +131,7 @@ export default async function CockpitPage({ params, searchParams }: { params: Pr
               <div className="flex flex-col items-start gap-4 px-6 pb-5 pt-6 sm:flex-row">
                 <div className="flex min-w-0 flex-1 flex-col gap-2">
                   <div className="flex flex-wrap items-center gap-3">
-                    <h1 className="m-0 text-[28px] font-light leading-[1.2] tracking-[0.01em] text-ds-text min-[700px]:text-[32px]">{project.name}</h1>
+                    <h1 className="m-0 text-[28px] font-fw-medium leading-[1.2] tracking-[0.01em] text-ds-text min-[700px]:text-[32px]">{project.name}</h1>
                     <StatusPill>{internalStagePill(state)}</StatusPill>
                     <StatusPill tone={project.autopilot ? "success" : "watch"} dot>
                       {project.autopilot ? "Autopilot on" : "Autopilot paused"}
@@ -241,9 +241,9 @@ function ActivityTimeline({ items }: { items: ActivityItem[] }) {
     <ol className="m-0 flex list-none flex-col p-0">
       {items.map((e) => (
         <li key={e.id} className="flex gap-3 pb-[18px]">
-          <span className={cn("flex size-7 shrink-0 items-center justify-center rounded-[8px] text-[10px] font-bold", TAG_TONE[e.tone])}>{e.tag}</span>
+          <span className={cn("flex size-7 shrink-0 items-center justify-center rounded-[8px] text-[10px] font-fw-semibold", TAG_TONE[e.tone])}>{e.tag}</span>
           <div className="flex min-w-0 flex-col gap-0.5">
-            <span className="text-[14px] font-medium text-ds-text">{e.title}</span>
+            <span className="text-[14px] font-fw-medium text-ds-text">{e.title}</span>
             {e.detail && <span className="text-[13px] text-ds-text-2">{e.detail}</span>}
             <span className="text-[12px] text-ds-text-3">{fmt.format(e.at)}</span>
           </div>
@@ -314,7 +314,7 @@ function BriefStep({ c, canEdit, editing, base }: { c: Cockpit; canEdit: boolean
       {!editing && score !== null && (
         <div className="flex max-w-[420px] flex-col gap-1.5">
           <span className="text-[13px]">
-            <span className="font-semibold">Brief quality {score}</span> <span className="text-brand-mute">{qualityLabel(score)}</span>
+            <span className="font-fw-semibold">Brief quality {score}</span> <span className="text-brand-mute">{qualityLabel(score)}</span>
           </span>
           <QualityBar score={score} compact />
         </div>
@@ -430,8 +430,8 @@ function EstimateStep({ c, canEdit, editing, base, clientFirst }: { c: Cockpit; 
                 {l.needsConfirm && !l.confirmedAt && <span className="text-ds-watch-text"> · needs your number</span>}
               </span>
             ))}
-            <span className="font-semibold text-ds-text">
-              Total {est.totalCredits} <span className="font-normal text-ds-text-2">· PM {est.pmCredits} · Creative {est.creativeCredits}</span>
+            <span className="font-fw-semibold text-ds-text">
+              Total {est.totalCredits} <span className="font-fw-regular text-ds-text-2">· PM {est.pmCredits} · Creative {est.creativeCredits}</span>
             </span>
           </div>
           {open.length > 0 && (
@@ -507,7 +507,7 @@ function StaffingStep({ c, canEdit, editing, base }: { c: Cockpit; canEdit: bool
             <li key={m.id} className="flex flex-wrap items-center gap-3 border-b border-ds-divider px-6 py-3">
               <Avatar name={m.staffMember.user.name} size={32} />
               <div className="flex min-w-0 flex-1 flex-col">
-                <span className="text-[14px] font-medium text-ds-text">{m.staffMember.user.name}</span>
+                <span className="text-[14px] font-fw-medium text-ds-text">{m.staffMember.user.name}</span>
                 <span className="text-[12px] text-ds-text-2">
                   {m.roleOnProject} · {m.allocatedHours} h
                 </span>
@@ -565,13 +565,13 @@ function StaffingStep({ c, canEdit, editing, base }: { c: Cockpit; canEdit: bool
             >
               <Avatar name={s.name} size={36} />
               <div className="flex min-w-0 flex-1 flex-col">
-                <span className="text-[14px] font-medium text-ds-text">{short(s.name)}</span>
+                <span className="text-[14px] font-fw-medium text-ds-text">{short(s.name)}</span>
                 <span className="text-[12px] text-ds-text-2">
                   {INTERNAL_ROLE_LABEL[s.title]} · {AVAILABLE_TEXT(s)}
                   {editing && ` · skills ${s.skillMatchPct}%${s.workedWithClientBefore ? " · worked with client" : ""}`}
                 </span>
               </div>
-              <span className={cn("text-[15px] font-semibold tabular-nums", s.overallScore < c.autoStaffThreshold ? "text-ds-watch-text" : "text-ds-text")}>{s.overallScore}</span>
+              <span className={cn("text-[15px] font-fw-semibold tabular-nums", s.overallScore < c.autoStaffThreshold ? "text-ds-watch-text" : "text-ds-text")}>{s.overallScore}</span>
               {editing && (
                 <form action={addTeamMemberAction} className="flex items-center gap-2">
                   <input type="hidden" name="projectId" value={c.project.id} />
@@ -682,7 +682,7 @@ async function DeliveryStep({ c, canEdit, tier, editingDates, base }: { c: Cockp
             {r.status === "done" && <span className="size-2 rounded-full bg-white" />}
           </span>
           <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <span className="text-[14px] font-semibold text-ds-text">{r.name}</span>
+            <span className="text-[14px] font-fw-semibold text-ds-text">{r.name}</span>
             <span className="text-[14px] text-ds-text-2">{r.detail}</span>
           </div>
           <span className="text-[12px] text-ds-text-3">{r.when}</span>
@@ -710,7 +710,7 @@ async function DeliveryStep({ c, canEdit, tier, editingDates, base }: { c: Cockp
       {/* Assets: upload (Admin, PM, Creator) → Brand OS check → the quality check, which is where work is sent to the client. */}
       <div className="flex flex-col gap-4 border-t border-ds-divider px-6 py-5">
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="m-0 flex-1 text-[15px] font-semibold text-ds-text">Assets</h3>
+          <h3 className="m-0 flex-1 text-[15px] font-fw-semibold text-ds-text">Assets</h3>
           {assets.length > 0 && (
             <Button asChild variant={qcReady.length > 0 || lateFlags > 0 ? "primary" : "secondary"} size="sm">
               <Link href={`/ops/projects/${project.id}/qc`}>
@@ -743,7 +743,7 @@ async function DeliveryStep({ c, canEdit, tier, editingDates, base }: { c: Cockp
                     {a.type === "VIDEO" ? <Play className="size-4 text-ds-text/40" strokeWidth={1.5} /> : <ImageIcon className="size-4 text-ds-text/40" strokeWidth={1.5} />}
                   </span>
                   <div className="flex min-w-0 flex-1 flex-col">
-                    <span className="truncate text-[14px] font-medium text-ds-text">{assetTitle(a.name, a.format)}</span>
+                    <span className="truncate text-[14px] font-fw-medium text-ds-text">{assetTitle(a.name, a.format)}</span>
                     <span className="text-[12px] text-ds-text-2">
                       {formatLabel(a.format)} · v{a.version}
                       {a.sentVersion !== null && a.sentVersion !== a.version ? ` · client has v${a.sentVersion}` : ""}

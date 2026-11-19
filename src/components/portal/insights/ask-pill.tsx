@@ -101,7 +101,7 @@ export function AskPill({ recent, notice }: { recent: Question[]; notice?: React
             {state.error && <p className="m-0 text-[14px] text-ds-danger-text">{state.error}</p>}
             {state.answer && (
               <div className="flex flex-col gap-1.5">
-                <span className="text-[14px] font-semibold">{state.question}</span>
+                <span className="text-[14px] font-fw-semibold">{state.question}</span>
                 <p className="m-0 whitespace-pre-line text-[14px] leading-[1.55]">{state.answer}</p>
                 <Basis sources={state.sources} size={state.dataSize} confidence={state.confidence} />
               </div>
@@ -115,7 +115,7 @@ export function AskPill({ recent, notice }: { recent: Question[]; notice?: React
                 <ul className="m-0 flex list-none flex-col gap-4 p-0">
                   {past.map((q) => (
                     <li key={q.id} className="flex flex-col gap-1">
-                      <span className="text-[13px] font-semibold">{q.question}</span>
+                      <span className="text-[13px] font-fw-semibold">{q.question}</span>
                       <span className="line-clamp-4 text-[13px] leading-[1.5] text-brand-ink-2">{q.answer}</span>
                       <Basis sources={q.sources} size={q.dataSize} confidence={q.confidence} />
                     </li>

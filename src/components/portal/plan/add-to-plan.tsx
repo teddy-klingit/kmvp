@@ -61,7 +61,7 @@ function Dialog({ leadTimes, projects, prefill, onClose }: { leadTimes: LeadTime
         {prefill?.opportunityId && <input type="hidden" name="opportunityId" value={prefill.opportunityId} />}
         {prefill?.route && <input type="hidden" name="route" value={prefill.route} />}
         <header className="flex items-center justify-between bg-white px-7 py-5">
-          <h2 id="add-to-plan-title" className="m-0 text-[22px] font-normal">
+          <h2 id="add-to-plan-title" className="m-0 text-[22px] font-fw-medium">
             Add to plan
           </h2>
           <button type="button" onClick={onClose} aria-label="Close" className="flex size-9 items-center justify-center rounded-full hover:bg-brand-chip">
@@ -70,21 +70,21 @@ function Dialog({ leadTimes, projects, prefill, onClose }: { leadTimes: LeadTime
         </header>
         <div className="flex flex-col gap-5 px-7 py-6">
           <label className="flex flex-col gap-2">
-            <span className="text-[14px] font-semibold">What is it?</span>
+            <span className="text-[14px] font-fw-semibold">What is it?</span>
             <input name="title" required defaultValue={prefill?.title} placeholder="Singles Day self-care set" className="h-12 rounded-full border border-brand-outline bg-white px-4 text-[15px] outline-none focus:border-brand-ink" />
           </label>
           <div className="grid grid-cols-1 gap-4 min-[560px]:grid-cols-2">
             <label className="flex flex-col gap-2">
-              <span className="text-[14px] font-semibold">Live date</span>
+              <span className="text-[14px] font-fw-semibold">Live date</span>
               <input type="date" name="date" required value={date} onChange={(e) => setDate(e.target.value)} className="h-12 rounded-full border border-brand-outline bg-white px-4 text-[15px]" />
             </label>
             <label className="flex flex-col gap-2">
-              <span className="text-[14px] font-semibold">Or a date range</span>
+              <span className="text-[14px] font-fw-semibold">Or a date range</span>
               <input type="date" name="endDate" defaultValue={prefill?.endDate} min={date || undefined} aria-label="End date" className="h-12 rounded-full border border-brand-outline bg-white px-4 text-[15px]" />
             </label>
           </div>
           <div className="flex flex-col gap-2" role="group" aria-label="Channel">
-            <span className="text-[14px] font-semibold">Channel</span>
+            <span className="text-[14px] font-fw-semibold">Channel</span>
             <div className="flex flex-wrap gap-2">
               {CHANNELS.map((c) => (
                 <button key={c} type="button" onClick={() => setChannels(toggle(channels, c))} className={chip(channels.includes(c))} aria-pressed={channels.includes(c)}>
@@ -94,7 +94,7 @@ function Dialog({ leadTimes, projects, prefill, onClose }: { leadTimes: LeadTime
             </div>
           </div>
           <div className="flex flex-col gap-2" role="group" aria-label="Format">
-            <span className="text-[14px] font-semibold">Format</span>
+            <span className="text-[14px] font-fw-semibold">Format</span>
             <div className="flex flex-wrap gap-2">
               {leadTimes.map((l) => (
                 <button key={l.format} type="button" onClick={() => setFormats(toggle(formats, l.format))} className={chip(formats.includes(l.format))} aria-pressed={formats.includes(l.format)}>
@@ -104,7 +104,7 @@ function Dialog({ leadTimes, projects, prefill, onClose }: { leadTimes: LeadTime
             </div>
           </div>
           <div className="flex flex-col gap-2" role="radiogroup" aria-label="Who makes it?">
-            <span className="text-[14px] font-semibold">Who makes it?</span>
+            <span className="text-[14px] font-fw-semibold">Who makes it?</span>
             {(
               [
                 { v: "client", title: "You make it", text: "Your team makes and posts it. It just shows on the plan." },
@@ -123,7 +123,7 @@ function Dialog({ leadTimes, projects, prefill, onClose }: { leadTimes: LeadTime
                 {o.v === "klingit_help" && maker === "klingit_help" && brief && (
                   <span className="ml-7 flex flex-col gap-0.5 rounded-[8px] bg-white px-3 py-2.5 text-[13px]">
                     <span>
-                      <b className="font-semibold">Brief by {day(brief.briefBy)}</b> · {brief.format.toLowerCase()} usually take{brief.format.endsWith("s") ? "" : "s"} {brief.days} working days
+                      <b className="font-fw-semibold">Brief by {day(brief.briefBy)}</b> · {brief.format.toLowerCase()} usually take{brief.format.endsWith("s") ? "" : "s"} {brief.days} working days
                     </span>
                     {credits != null && (
                       <span className="flex flex-wrap items-center gap-2 text-brand-ink-2">
@@ -146,7 +146,7 @@ function Dialog({ leadTimes, projects, prefill, onClose }: { leadTimes: LeadTime
             ))}
           </div>
           <label className="flex flex-col gap-2">
-            <span className="text-[14px] font-semibold">Notes for Klingit</span>
+            <span className="text-[14px] font-fw-semibold">Notes for Klingit</span>
             <textarea name="notes" rows={2} defaultValue={prefill?.notes} className="rounded-[14px] border border-brand-outline bg-white px-4 py-3 text-[15px] outline-none focus:border-brand-ink" />
             {prefill?.source && <span className="text-[12px] text-brand-ink-2">{prefill.source}</span>}
           </label>

@@ -55,7 +55,7 @@ function Panel({ onClose }: { onClose: () => void }) {
       <button type="button" aria-label="Close" onClick={onClose} className="absolute inset-0 hidden bg-[rgba(30,30,30,0.18)] sm:block" />
       <div className="relative flex h-full w-full flex-col gap-5 overflow-y-auto bg-white px-6 py-6 shadow-[-8px_0_32px_rgba(30,30,30,0.12)] sm:w-[460px]" style={{ paddingTop: "calc(24px + env(safe-area-inset-top, 0px))" }}>
         <header className="flex items-start justify-between gap-3">
-          <h2 className="m-0 text-[22px] font-light">Top up AI credits</h2>
+          <h2 className="m-0 text-[22px] font-fw-medium">Top up AI credits</h2>
           <button type="button" onClick={onClose} aria-label="Close" className="flex size-9 items-center justify-center rounded-full hover:bg-brand-page">
             <X className="size-5" strokeWidth={1.75} />
           </button>

@@ -23,7 +23,7 @@ type Props = {
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="text-xs font-fw-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
       <div className="text-sm text-foreground">{value}</div>
     </div>
   );
@@ -100,7 +100,7 @@ export function SelfServiceOutput({ agentId, agentKey, status, output, channels 
     return (
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-4 rounded-lg border border-border bg-paper p-4">
-          <p className="text-base font-semibold">{String(data.title ?? "")}</p>
+          <p className="text-base font-fw-semibold">{String(data.title ?? "")}</p>
           <dl className="flex flex-col gap-3 text-sm">
             <div className="flex gap-4">
               <dt className="w-36 shrink-0 text-muted-foreground">Objective</dt>
@@ -147,7 +147,7 @@ export function SelfServiceOutput({ agentId, agentKey, status, output, channels 
     return (
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-2 rounded-lg border border-border bg-paper p-4">
-          <p className="text-sm font-semibold">{String(data.hook ?? "")}</p>
+          <p className="text-sm font-fw-semibold">{String(data.hook ?? "")}</p>
           <p className="whitespace-pre-wrap text-sm text-foreground">{String(data.body ?? "")}</p>
           {((data.hashtags as string[] | undefined)?.length ?? 0) > 0 && (
             <p className="text-xs text-ink">{(data.hashtags as string[]).map((h) => `#${h}`).join(" ")}</p>
@@ -164,7 +164,7 @@ export function SelfServiceOutput({ agentId, agentKey, status, output, channels 
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-4 rounded-lg border border-border bg-paper p-4">
           <div>
-            <p className="text-base font-semibold">{String(data.headline ?? "")}</p>
+            <p className="text-base font-fw-semibold">{String(data.headline ?? "")}</p>
             <p className="text-sm text-muted-foreground">{String(data.subheadline ?? "")}</p>
           </div>
           {sections.map((s, i) => (

@@ -148,7 +148,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
                 return (
                   <section key={l.lane} aria-label={l.title} data-section={l.title} className="flex flex-col gap-2">
                     <div className="flex items-baseline gap-2 px-1">
-                      <h2 className="m-0 text-[15px] font-semibold">{l.title}</h2>
+                      <h2 className="m-0 text-[15px] font-fw-semibold">{l.title}</h2>
                       <span className="text-[13px] text-brand-ink-2">{group.length}</span>
                       <span className="text-[12px] text-brand-ink-2">· {l.hint}</span>
                     </div>

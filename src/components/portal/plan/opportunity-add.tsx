@@ -55,7 +55,7 @@ export function OpportunityAdd({ opportunityId, title, route, windowStart, windo
         </>
       )}
       <div className="flex flex-col gap-2">
-        <span className="text-[13px] font-semibold">Route</span>
+        <span className="text-[13px] font-fw-semibold">Route</span>
         {route ? (
           <span className="flex items-center gap-2 rounded-[8px] bg-[#FBF6EE] px-3.5 py-2.5 text-[14px]">
             <span className="font-brand-mono text-[11px] text-brand-ink-2">{route.letter}</span>
@@ -112,7 +112,7 @@ export function OpportunityAdd({ opportunityId, title, route, windowStart, windo
       </div>
 
       <div className="flex flex-col gap-2" role="radiogroup" aria-label="Who makes it?">
-        <span className="text-[13px] font-semibold">Who makes it?</span>
+        <span className="text-[13px] font-fw-semibold">Who makes it?</span>
         <span className="flex flex-wrap gap-2">
           {(
             [

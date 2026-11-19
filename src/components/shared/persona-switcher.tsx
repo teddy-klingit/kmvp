@@ -54,7 +54,7 @@ export function PersonaSwitcher({ currentEmail, compact = false }: { currentEmai
           >
             <PersonAvatar name={persona.name} size="sm" />
             <span className="min-w-0 flex-1 text-left">
-              <span className={persona.email === currentEmail ? "block truncate font-semibold text-primary" : "block truncate"}>{persona.name}</span>
+              <span className={persona.email === currentEmail ? "block truncate font-fw-semibold text-primary" : "block truncate"}>{persona.name}</span>
               <span className="block truncate text-xs text-muted-foreground">{persona.subtitle}</span>
             </span>
           </DropdownMenuItem>

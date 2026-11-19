@@ -125,7 +125,7 @@ export default async function CompetitorsPage({ searchParams }: { searchParams: 
             <thead>
               <tr className="bg-[#FAF8F3] text-left font-brand-mono text-[11px] uppercase tracking-[0.04em] text-brand-ink-2">
                 {["Rank", "Brand", ...(ai ? ["Named in AI answers"] : []), "Google visibility", "Ads live", "Latest move"].map((h) => (
-                  <th key={h} className="px-5 py-3 font-normal first:pl-6">
+                  <th key={h} className="px-5 py-3 font-fw-regular first:pl-6">
                     {h}
                   </th>
                 ))}
@@ -187,7 +187,7 @@ export default async function CompetitorsPage({ searchParams }: { searchParams: 
                 />
                 <span className="flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-brand-ink-2">
                   {[t.brand, ...t.brands].map((b) => (
-                    <BrandMark key={b} name={brandLabel(b)} logo={t.logos[b]} you={b === t.brand} size={14} className="gap-1" nameClassName="font-normal" />
+                    <BrandMark key={b} name={brandLabel(b)} logo={t.logos[b]} you={b === t.brand} size={14} className="gap-1" nameClassName="font-fw-regular" />
                   ))}
                 </span>
               </div>
@@ -195,9 +195,9 @@ export default async function CompetitorsPage({ searchParams }: { searchParams: 
                 <table className="w-full min-w-[460px] border-collapse text-[14px]">
                   <thead>
                     <tr className="bg-[#FAF8F3] text-left font-brand-mono text-[11px] uppercase tracking-[0.04em] text-brand-ink-2">
-                      <th className="px-6 py-3 font-normal">Buying question</th>
-                      <th className="px-3 py-3 font-normal">You</th>
-                      <th className="px-6 py-3 font-normal">Named, in order</th>
+                      <th className="px-6 py-3 font-fw-regular">Buying question</th>
+                      <th className="px-3 py-3 font-fw-regular">You</th>
+                      <th className="px-6 py-3 font-fw-regular">Named, in order</th>
                     </tr>
                   </thead>
                   <tbody>

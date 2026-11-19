@@ -65,7 +65,7 @@ export function ShareReport({ medium = false }: { medium?: boolean }) {
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[280px]">
-        <DropdownMenuLabel className="text-[13px] font-normal text-brand-ink-2">This tab and period, as a report. The link opens for anyone on your team.</DropdownMenuLabel>
+        <DropdownMenuLabel className="text-[13px] font-fw-regular text-brand-ink-2">This tab and period, as a report. The link opens for anyone on your team.</DropdownMenuLabel>
         <DropdownMenuItem onSelect={(e) => { e.preventDefault(); void copy(); }}>
           {copied ? <Check className="size-4" strokeWidth={1.75} /> : <Link2 className="size-4" strokeWidth={1.75} />}
           {copied ? "Link copied" : "Copy link"}
@@ -96,7 +96,7 @@ export function InsightsHeader({ ask }: { ask: React.ReactNode }) {
         ) : (
           <span className="font-brand-mono text-[12px] uppercase text-brand-ink-2">Insights</span>
         )}
-        <h1 className={cn("m-0 text-[32px] leading-[1.15] tracking-[0.01em] min-[700px]:text-[36px]", weighted ? "font-fw-medium" : "font-light")}>{tab.label}</h1>
+        <h1 className={cn("m-0 text-[32px] leading-[1.15] tracking-[0.01em] min-[700px]:text-[36px]", weighted ? "font-fw-medium" : "font-fw-medium")}>{tab.label}</h1>
         <p className="m-0 text-[15px] text-brand-ink-2">{tab.question}</p>
       </div>
       <div className="flex w-full flex-col items-stretch gap-3 min-[1100px]:w-auto min-[1100px]:items-end">

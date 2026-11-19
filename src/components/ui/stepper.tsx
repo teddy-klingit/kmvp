@@ -19,7 +19,7 @@ function Stepper({ steps, className }: { steps: StepperStep[]; className?: strin
           <div className="flex items-center">
             <div
               className={cn(
-                "flex size-6 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold text-ink",
+                "flex size-6 shrink-0 items-center justify-center rounded-full border text-[11px] font-fw-semibold text-ink",
                 step.state === "completed" && "border-ink/15 bg-success",
                 step.state === "active" && "border-2 border-ink bg-card",
                 step.state === "upcoming" && "border-border bg-card text-muted-foreground"
@@ -44,7 +44,7 @@ function Stepper({ steps, className }: { steps: StepperStep[]; className?: strin
             <p
               className={cn(
                 "text-sm",
-                step.state === "active" ? "font-semibold text-ink" : "font-medium text-foreground"
+                step.state === "active" ? "font-fw-semibold text-ink" : "font-fw-medium text-foreground"
               )}
             >
               {step.label}

@@ -22,7 +22,7 @@ export function EmptyState({
         <Icon className="size-5" />
       </span>
       <div>
-        <p className="text-sm font-semibold">{title}</p>
+        <p className="text-sm font-fw-semibold">{title}</p>
         <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">{description}</p>
       </div>
       {actionLabel && actionHref && (

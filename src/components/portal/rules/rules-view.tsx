@@ -38,7 +38,7 @@ export async function RulesView({ clientId, mode, showAll = false }: { clientId:
               <RulesEditor rules={data.rules} mode={mode} clientId={staffId} lastChanged={data.lastChangedAt ? when(data.lastChangedAt).toUpperCase() : null} />
             </Suspense>
             <section aria-label="Word lists" className="overflow-hidden rounded-[12px] bg-white">
-              <h2 className="m-0 border-b border-brand-line px-6 py-5 text-[18px] font-normal">Word lists</h2>
+              <h2 className="m-0 border-b border-brand-line px-6 py-5 text-[18px] font-fw-medium">Word lists</h2>
               <div className="grid grid-cols-1 gap-6 px-6 py-5 min-[700px]:grid-cols-2">
                 <WordList title="Words to use" list="use" words={data.words.use} canEdit={canEdit} clientId={staffId} icon={<Check className="size-4 text-brand-lime-strong" />} />
                 <WordList title="Words to avoid" list="avoid" words={data.words.avoid} canEdit={canEdit} clientId={staffId} icon={<AlertTriangle className="size-4 text-brand-orange" strokeWidth={1.75} />} />
@@ -51,7 +51,7 @@ export async function RulesView({ clientId, mode, showAll = false }: { clientId:
             <TestCopyCard clientId={staffId} />
             <section aria-label="Change history" className="overflow-hidden rounded-[12px] bg-white">
               <div className="flex items-center gap-3 border-b border-brand-line px-6 py-5">
-                <h2 className="m-0 flex-1 text-[18px] font-normal">Change history</h2>
+                <h2 className="m-0 flex-1 text-[18px] font-fw-medium">Change history</h2>
                 {data.changes.length > 4 && !showAll && (
                   <a href="?history=all#history" className="font-brand-mono text-[12px] text-brand-ink underline underline-offset-4">
                     ALL
@@ -66,7 +66,7 @@ export async function RulesView({ clientId, mode, showAll = false }: { clientId:
                     <li key={c.id} className="flex gap-4 border-b border-brand-line px-6 py-3.5 text-[14px] leading-[1.45] last:border-b-0">
                       <span className="w-20 shrink-0 text-[13px] text-brand-mute">{when(c.at)}</span>
                       <span className={c.undone ? "flex-1 text-brand-mute line-through" : "flex-1"}>
-                        <b className="font-semibold">
+                        <b className="font-fw-semibold">
                           {c.who}
                           {c.byKlingit ? " · Klingit" : ""}
                         </b>{" "}
@@ -97,7 +97,7 @@ export async function RulesView({ clientId, mode, showAll = false }: { clientId:
 function WordList({ title, list, words, canEdit, clientId, icon }: { title: string; list: "use" | "avoid"; words: string[]; canEdit: boolean; clientId?: string; icon: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-3">
-      <span className="flex items-center gap-2 text-[14px] font-semibold">
+      <span className="flex items-center gap-2 text-[14px] font-fw-semibold">
         {icon}
         {title}
       </span>

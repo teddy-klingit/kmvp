@@ -165,7 +165,7 @@ export function ProjectsBoard({ cards: initial, slots }: { cards: BoardCard[]; s
       <Dialog open={Boolean(confirm)} onOpenChange={(o) => !o && setConfirm(null)}>
         <DialogContent className="w-[calc(100%-32px)] max-w-[420px] rounded-[16px] border-none font-brand">
           <DialogHeader>
-            <DialogTitle className="text-[18px] font-normal">Send {confirm?.name}?</DialogTitle>
+            <DialogTitle className="text-[18px] font-fw-regular">Send {confirm?.name}?</DialogTitle>
             <DialogDescription className="text-[15px] text-brand-ink-2">Klingit may come back with questions. Send anyway?</DialogDescription>
           </DialogHeader>
           {confirm?.quality != null && <p className="m-0 text-[13px] text-brand-mute">Brief quality {confirm.quality}</p>}
@@ -203,7 +203,7 @@ function LaneColumn({ lane, title, hint, count, blockedReason, accepting, childr
     >
       <div className="flex flex-col gap-0.5 px-1 pb-0.5 pt-1">
         <div className="flex items-center">
-          <h2 className="m-0 flex-1 text-[16px] font-normal">{title}</h2>
+          <h2 className="m-0 flex-1 text-[16px] font-fw-medium">{title}</h2>
           <span className={cn("text-[13px] text-brand-ink-2", typeof count === "string" && "font-brand-mono text-[12px] uppercase text-brand-ink")}>{count}</span>
         </div>
         <span className="text-[12px] text-brand-ink-2">{hint}</span>

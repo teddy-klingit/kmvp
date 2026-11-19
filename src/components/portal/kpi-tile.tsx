@@ -29,7 +29,7 @@ export function KpiTile({
 
   return (
     <Card className={cn("flex flex-col gap-2 p-4", className)}>
-      <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+      <div className="flex items-center gap-2 text-[11px] font-fw-medium uppercase tracking-wide text-muted-foreground">
         <span
           className={cn(
             "flex size-6 items-center justify-center rounded-md",
@@ -43,11 +43,11 @@ export function KpiTile({
       <div className="flex items-baseline gap-1.5">
         {tone === "good" && <CheckCircle2 className="size-4 shrink-0 text-success-foreground" />}
         {tone === "bad" && <AlertTriangle className="size-4 shrink-0 text-ink" />}
-        <p className={cn("font-display text-2xl font-light tracking-tight", tone === "good" && "text-success-foreground", tone === "bad" && "text-ink")}>{value}</p>
+        <p className={cn("font-display text-2xl font-fw-medium tracking-tight", tone === "good" && "text-success-foreground", tone === "bad" && "text-ink")}>{value}</p>
         {hasDelta && (
           <span
             className={cn(
-              "flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[11px] font-medium",
+              "flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[11px] font-fw-medium",
               isUp ? "bg-success-soft text-success-foreground" : "bg-danger-soft text-danger-foreground"
             )}
           >

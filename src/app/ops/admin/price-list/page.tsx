@@ -61,7 +61,7 @@ export default async function PriceListPage({ searchParams }: { searchParams: Pr
             <thead>
               <tr className="text-left text-[12px] text-brand-ink-2">
                 {["Item", "Credits", "Unit", "Balance", "Status", "Lead time", "Clients", "Version", "Used in", ""].map((h) => (
-                  <th key={h} scope="col" className="px-3 py-2.5 font-medium first:pl-6 last:pr-6">
+                  <th key={h} scope="col" className="px-3 py-2.5 font-fw-medium first:pl-6 last:pr-6">
                     {h}
                   </th>
                 ))}

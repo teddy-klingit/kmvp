@@ -23,7 +23,7 @@ export function InvoiceDocument({ invoice, clientName, profile }: { invoice: Inv
       <header className="flex items-start justify-between gap-4">
         <span className="flex flex-col">
           <span className="font-brand-mono text-[12px] uppercase text-brand-ink-2">Invoice · Klingit AB</span>
-          <span className="text-[28px] font-light">{invoice.number}</span>
+          <span className="text-[28px] font-fw-medium">{invoice.number}</span>
         </span>
         <span className="print:hidden">
           <PrintButton />
@@ -60,10 +60,10 @@ export function InvoiceDocument({ invoice, clientName, profile }: { invoice: Inv
           <table className="w-full min-w-[480px] border-collapse text-[14px]">
             <thead>
               <tr className="border-b border-brand-line text-left text-[12px] text-brand-ink-2">
-                <th className="py-2 font-medium">Item</th>
-                <th className="py-2 text-right font-medium">Qty</th>
-                <th className="py-2 text-right font-medium">Unit</th>
-                <th className="py-2 text-right font-medium">Amount</th>
+                <th className="py-2 font-fw-medium">Item</th>
+                <th className="py-2 text-right font-fw-medium">Qty</th>
+                <th className="py-2 text-right font-fw-medium">Unit</th>
+                <th className="py-2 text-right font-fw-medium">Amount</th>
               </tr>
             </thead>
             <tbody>

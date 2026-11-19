@@ -52,17 +52,17 @@ function EstimatePanel({ task, data, onClose }: { task: Task; data: Extract<Inli
       <input type="hidden" name="rows" value={payload} />
       <input type="hidden" name="duplicates" value={(task.duplicates ?? []).map((d) => d.id).join(",")} />
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <span className="text-[14px] font-medium">Estimate · {task.subject}</span>
+        <span className="text-[14px] font-fw-medium">Estimate · {task.subject}</span>
         <span className="text-[12px] text-brand-ink-2">{data.splitNote}</span>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[620px] border-collapse text-[13px]">
           <thead>
             <tr className="text-left font-brand-mono text-[11px] uppercase tracking-[0.04em] text-brand-ink-2">
-              <th className="py-2 pr-3 font-normal">What the client needs</th>
-              <th className="py-2 pr-3 font-normal">Price List match</th>
-              <th className="py-2 pr-3 font-normal" />
-              <th className="py-2 text-right font-normal">Credits</th>
+              <th className="py-2 pr-3 font-fw-regular">What the client needs</th>
+              <th className="py-2 pr-3 font-fw-regular">Price List match</th>
+              <th className="py-2 pr-3 font-fw-regular" />
+              <th className="py-2 text-right font-fw-regular">Credits</th>
             </tr>
           </thead>
           <tbody>
@@ -320,7 +320,7 @@ export function TaskRow({ task, inline, compact = false }: { task: Task; inline?
                 <span className="font-brand-mono text-[11px] uppercase tracking-[0.06em] text-brand-ink-2">{task.kind}</span>
               </span>
             )}
-            <span className={cn("leading-[1.35] text-brand-ink", compact ? "text-[15px]" : "text-[16px]")}>
+            <span className={cn("font-fw-medium leading-[1.35] text-brand-ink", compact ? "text-[15px]" : "text-[16px]")}>
               {task.sentence}
               {compact && <span className="text-[13px] text-brand-ink-2"> · {task.subject}</span>}
             </span>

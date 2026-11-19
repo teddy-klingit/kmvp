@@ -28,8 +28,8 @@ export function ColorSwatch({ hex, name, showCmyk = false }: { hex: string; name
         )}
       </span>
       <div className="flex flex-col items-center gap-0.5">
-        {name && <span className="text-xs font-medium text-foreground">{name}</span>}
-        <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+        {name && <span className="text-xs font-fw-medium text-foreground">{name}</span>}
+        <span className="flex items-center gap-1 text-xs font-fw-medium text-muted-foreground">
           {copied ? "Copied!" : hex.toUpperCase()}
           {!copied && <Copy className="size-3" />}
         </span>

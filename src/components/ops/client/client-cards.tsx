@@ -7,7 +7,7 @@ export function OpsCard({ title, link, children, id, className }: { title: React
   return (
     <section id={id} className={cn("overflow-hidden rounded-[12px] bg-white", className)}>
       <header className="flex items-baseline gap-2 border-b border-brand-line px-6 py-4">
-        <h2 className="m-0 flex-1 text-[18px] font-normal">{title}</h2>
+        <h2 className="m-0 flex-1 text-[18px] font-fw-medium">{title}</h2>
         {link && (
           <Link href={link.href} className="font-brand-mono text-[12px] uppercase tracking-[0.04em] text-brand-ink underline underline-offset-4">
             {link.label}
@@ -36,7 +36,7 @@ export function BalanceMeter({ b, big = false }: { b: Balance; big?: boolean }) 
           <span className="text-[13px] text-brand-ink-2">{b.headline}</span>
         ) : (
           <>
-            <span className={cn("font-light tabular-nums", big ? "text-[28px]" : "text-[22px]", b.warn && "text-brand-orange-text")}>{num}</span>
+            <span className={cn("font-fw-medium tabular-nums", big ? "text-[28px]" : "text-[22px]", b.warn && "text-brand-orange-text")}>{num}</span>
             <span className="text-[13px] text-brand-ink-2">{rest.join(" ")}</span>
           </>
         )}

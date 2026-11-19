@@ -1,5 +1,18 @@
 import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { extendTailwindMerge } from "tailwind-merge";
+
+/**
+ * tailwind-merge with this app's tokens: font-fw-regular / -medium / -semibold are font weights and font-brand /
+ * font-brand-mono are font families, so a weight never removes a family (or the other way round).
+ */
+const twMerge = extendTailwindMerge({
+  extend: {
+    classGroups: {
+      "font-weight": [{ font: ["fw-regular", "fw-medium", "fw-semibold"] }],
+      "font-family": [{ font: ["brand", "brand-mono"] }],
+    },
+  },
+});
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));

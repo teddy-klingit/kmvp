@@ -68,7 +68,7 @@ export function WorkGrid({
                     <span className="absolute inset-0 flex flex-col justify-center gap-1.5 px-5 pt-8 text-left">
                       {a.copy.lines.map((l) => (
                         <span key={l.lang} className="line-clamp-2 text-[13px] leading-[1.4] text-ds-text">
-                          <span className="mr-1.5 font-semibold uppercase text-ds-text-2">{l.lang}</span>
+                          <span className="mr-1.5 font-fw-semibold uppercase text-ds-text-2">{l.lang}</span>
                           {l.text}
                         </span>
                       ))}
@@ -85,7 +85,7 @@ export function WorkGrid({
                   )}
                 </button>
                 <div className="flex flex-col gap-0.5 px-4 pb-1 pt-3.5">
-                  <span className="text-[14px] font-semibold text-ds-text">{a.name}</span>
+                  <span className="text-[14px] font-fw-semibold text-ds-text">{a.name}</span>
                   <span className="text-[12px] text-ds-text-2">{a.format}</span>
                 </div>
                 <div className="flex items-center gap-2 px-4 pb-4 pt-2.5">

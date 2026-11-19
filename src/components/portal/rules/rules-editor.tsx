@@ -52,7 +52,7 @@ export function RulesEditor({ rules, mode, clientId, lastChanged }: { rules: Rul
   return (
     <section id="rules" aria-label="Rules" className="overflow-hidden rounded-[12px] bg-white">
       <div className="flex flex-wrap items-baseline gap-3 border-b border-brand-line px-6 py-5">
-        <h2 className="m-0 flex-1 text-[18px] font-normal">
+        <h2 className="m-0 flex-1 text-[18px] font-fw-medium">
           Rules <span className="text-[14px] text-brand-ink-2">{listed.length}</span>
         </h2>
         {lastChanged && <span className="font-brand-mono text-[12px] uppercase text-brand-ink">Last changed {lastChanged}</span>}

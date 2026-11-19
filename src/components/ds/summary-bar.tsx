@@ -23,7 +23,7 @@ export function SummaryBar({ items, className }: { items: SummaryItem[]; classNa
             {item.leading && <span className="hidden sm:flex">{item.leading}</span>}
             <div className="flex min-w-0 flex-col gap-0.5">
               <span className="whitespace-nowrap text-[12px] text-ds-text-2">{item.label}</span>
-              <span className="text-[15px] font-semibold tabular-nums text-ds-text sm:truncate sm:whitespace-nowrap">{item.value}</span>
+              <span className="text-[15px] font-fw-semibold tabular-nums text-ds-text sm:truncate sm:whitespace-nowrap">{item.value}</span>
             </div>
           </div>
         ))}

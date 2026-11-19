@@ -22,7 +22,7 @@ export function ChangeScheduleDialog({ day, time, team }: { day: number; time: s
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/30" />
         <DialogPrimitive.Content className="fixed left-1/2 top-1/2 z-50 flex w-[420px] max-w-[calc(100vw-32px)] -translate-x-1/2 -translate-y-1/2 flex-col rounded-[12px] bg-white font-brand shadow-[0_16px_48px_rgba(30,30,30,0.2)] outline-none">
           <div className="flex items-center border-b border-brand-line px-6 py-5">
-            <DialogPrimitive.Title className="m-0 flex-1 text-[18px] font-normal">Report schedule</DialogPrimitive.Title>
+            <DialogPrimitive.Title className="m-0 flex-1 text-[18px] font-fw-regular">Report schedule</DialogPrimitive.Title>
             <DialogPrimitive.Close aria-label="Close" className="flex size-9 items-center justify-center rounded-full text-brand-ink-2 hover:bg-brand-chip">
               <X className="size-4" />
             </DialogPrimitive.Close>

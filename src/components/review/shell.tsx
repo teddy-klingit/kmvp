@@ -49,7 +49,7 @@ export function ReviewShell({
         </Link>
         <span aria-hidden className="hidden h-8 w-px bg-brand-line min-[900px]:block" />
         <span className="flex min-w-[180px] flex-1 flex-col">
-          <h1 className="m-0 truncate text-[19px] font-normal">{title}</h1>
+          <h1 className="m-0 truncate text-[19px] font-fw-regular">{title}</h1>
           <span className="truncate text-[13px] text-brand-mute">{subtitle}</span>
         </span>
         {formats && formats.length > 1 && (

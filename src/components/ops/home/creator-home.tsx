@@ -31,23 +31,23 @@ export async function CreatorHome({ viewer }: { viewer: StaffMember & { user: Us
 
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <Card className="border border-border bg-paper p-4">
-            <p className="font-display text-2xl font-light">{memberships.length}</p>
+            <p className="font-display text-2xl font-fw-medium">{memberships.length}</p>
             <p className="text-xs text-muted-foreground">Active assignments</p>
           </Card>
           <Card className="border border-border bg-paper p-4">
-            <p className="font-display text-2xl font-light">
+            <p className="font-display text-2xl font-fw-medium">
               {allocatedHours}h / {viewer.capacityHoursPerWeek}h
             </p>
             <p className="text-xs text-muted-foreground">Allocated this sprint</p>
           </Card>
           <Card className="border border-border bg-paper p-4">
-            <p className="font-display text-2xl font-light">{nextDeadline ? formatDate(nextDeadline) : "—"}</p>
+            <p className="font-display text-2xl font-fw-medium">{nextDeadline ? formatDate(nextDeadline) : "—"}</p>
             <p className="text-xs text-muted-foreground">Next deadline</p>
           </Card>
           <Card className="flex flex-col justify-center gap-1.5 border border-border bg-paper p-4">
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">Utilization</span>
-              <span className="font-semibold">{utilization}%</span>
+              <span className="font-fw-semibold">{utilization}%</span>
             </div>
             <Progress value={utilization} indicatorClassName={utilization > 90 ? "bg-danger" : undefined} />
           </Card>
@@ -68,7 +68,7 @@ export async function CreatorHome({ viewer }: { viewer: StaffMember & { user: Us
                   className="flex items-center justify-between gap-4 px-5 py-3.5 hover:bg-muted/50"
                 >
                   <div>
-                    <p className="text-sm font-medium">
+                    <p className="text-sm font-fw-medium">
                       {m.team.project.client.name} · {m.team.project.name}
                     </p>
                     <p className="text-xs text-muted-foreground">
@@ -90,7 +90,7 @@ export async function CreatorHome({ viewer }: { viewer: StaffMember & { user: Us
               {distinctClients.map((c) => (
                 <Link key={c.id} href={`/ops/clients/${c.id}/brand-os`}>
                   <Card className="flex flex-col gap-1 p-4 transition-colors hover:border-ink/30">
-                    <p className="text-sm font-semibold">{c.name} Brand OS</p>
+                    <p className="text-sm font-fw-semibold">{c.name} Brand OS</p>
                     <p className="text-xs text-muted-foreground">{c.brandSummary}</p>
                   </Card>
                 </Link>

@@ -40,10 +40,10 @@ export function NextStepCard({
         {icon ?? (turn ? <CheckSquare strokeWidth={1.75} /> : <Clock3 strokeWidth={1.75} />)}
       </span>
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className={cn("text-[12px] font-semibold tracking-[0.02em]", turn ? "text-ds-turn-strong" : "text-ds-text-2")}>
+        <span className={cn("text-[12px] font-fw-semibold tracking-[0.02em]", turn ? "text-ds-turn-strong" : "text-ds-text-2")}>
           {eyebrow ?? (turn ? "YOUR TURN" : "KLINGIT IS ON IT")}
         </span>
-        <span className="text-[16px] font-semibold text-ds-text">{title}</span>
+        <span className="text-[16px] font-fw-semibold text-ds-text">{title}</span>
         {description && <span className="text-[14px] text-ds-text-2">{description}</span>}
       </div>
       {/* Phones: full-width buttons, stacked, primary first (callers pass the primary last). */}

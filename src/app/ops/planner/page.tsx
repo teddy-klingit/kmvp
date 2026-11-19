@@ -139,7 +139,7 @@ export default async function OpsPlanPage({ searchParams }: { searchParams: Prom
           { n: `≈ ${Math.round(plannedTotal)}`, line: "creative credits planned", note: [...planned.entries()].map(([c, n]) => `${c} ${Math.round(n)}`).join(" · ") || "Nothing planned yet", red: false },
         ].map((c) => (
           <div key={c.line} className="flex flex-col gap-1 rounded-[12px] bg-white px-5 py-5">
-            <span className={cn("text-[28px] font-light", c.red ? "text-[#C2410C]" : "text-brand-ink")}>{c.n}</span>
+            <span className={cn("text-[28px] font-fw-medium", c.red ? "text-[#C2410C]" : "text-brand-ink")}>{c.n}</span>
             <span className="text-[14px]">{c.line}</span>
             <span className="text-[12px] text-brand-ink-2">{c.note}</span>
           </div>
@@ -165,7 +165,7 @@ export default async function OpsPlanPage({ searchParams }: { searchParams: Prom
           const own = all.filter((i) => !needs(i) && mondayOf(i.date).getTime() === ws.getTime()).length;
           return (
             <section key={ws.toISOString()} aria-label={firstWeekLabel(w, ws)} className="overflow-hidden rounded-[12px] bg-white">
-              <h2 className="m-0 border-b border-brand-line px-6 py-4 font-brand-mono text-[12px] font-normal uppercase tracking-[0.06em]">{firstWeekLabel(w, ws)}</h2>
+              <h2 className="m-0 border-b border-brand-line px-6 py-4 font-brand-mono text-[12px] font-fw-medium uppercase tracking-[0.06em]">{firstWeekLabel(w, ws)}</h2>
               {list.length === 0 ? (
                 <p className="m-0 px-6 py-4 text-[14px] text-brand-ink-2">
                   Nothing that needs Klingit.{own ? ` ${own} item${own === 1 ? "" : "s"} the clients make themselves.` : ""}

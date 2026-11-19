@@ -82,7 +82,7 @@ export function SendToChannelDialog({
               >
                 <ChannelBadge type={c.type} className="size-8" />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{c.name}</p>
+                  <p className="truncate text-sm font-fw-medium">{c.name}</p>
                   <p className="text-xs text-muted-foreground">{channelTypeLabel(c.type)}</p>
                 </div>
               </button>

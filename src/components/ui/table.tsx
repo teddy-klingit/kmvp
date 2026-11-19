@@ -18,7 +18,7 @@ function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
 }
 
 function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
-  return <tfoot className={cn("bg-muted/60 font-medium", className)} {...props} />;
+  return <tfoot className={cn("bg-muted/60 font-fw-medium", className)} {...props} />;
 }
 
 function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
@@ -29,7 +29,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
   return (
     <th
       className={cn(
-        "h-10 px-4 text-left align-middle text-xs font-medium uppercase tracking-wide text-muted-foreground",
+        "h-10 px-4 text-left align-middle text-xs font-fw-medium uppercase tracking-wide text-muted-foreground",
         className
       )}
       {...props}

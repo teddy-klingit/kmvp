@@ -73,7 +73,7 @@ export default async function PlansAndPacksPage() {
               <li key={pack.key} className="flex flex-col gap-3 px-6 py-4">
                 {pack.perRequest ? (
                   <span className="text-[14px]">
-                    <b className="font-semibold">{pack.name}</b> <span className="text-brand-ink-2">· credits and price set by staff on each contract</span>
+                    <b className="font-fw-semibold">{pack.name}</b> <span className="text-brand-ink-2">· credits and price set by staff on each contract</span>
                   </span>
                 ) : (
                   <form action={saveTeamPackAction} className="flex flex-wrap items-end gap-3">

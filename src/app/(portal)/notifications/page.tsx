@@ -77,7 +77,7 @@ export default async function NotificationsPage({
                 <div className="flex items-start gap-3">
                   <Badge tone={badge.tone}>{badge.label}</Badge>
                   <div>
-                    <p className="text-sm font-medium">{n.title}</p>
+                    <p className="text-sm font-fw-medium">{n.title}</p>
                     <p className="text-sm text-muted-foreground">{n.body}</p>
                   </div>
                 </div>

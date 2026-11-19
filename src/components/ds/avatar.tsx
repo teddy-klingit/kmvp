@@ -44,7 +44,7 @@ export function Avatar({
     <span
       title={name}
       className={cn(
-        "inline-flex shrink-0 items-center justify-center rounded-full font-semibold text-white",
+        "inline-flex shrink-0 items-center justify-center rounded-full font-fw-semibold text-white",
         ring && "border-2 border-white",
         className
       )}

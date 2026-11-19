@@ -66,7 +66,7 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
 
       {q.how && (
         <section aria-label="How opportunities work" className="flex flex-col gap-3 rounded-[12px] bg-white px-6 py-5 text-[14px] leading-[1.55]">
-          <h2 className="m-0 text-[18px] font-normal">How opportunities work</h2>
+          <h2 className="m-0 text-[18px] font-fw-medium">How opportunities work</h2>
           <p className="m-0 max-w-[70ch]">Every week Klingit reads your results, the market and your Planner. What it finds shows in Insights; when a few findings point the same way, they become an opportunity, with what to do, what it should bring and by when to decide.</p>
           <p className="m-0 max-w-[70ch]">The numbers are worked out from your own data, never guessed. Confidence goes up with more data and with sources that agree, and down when a source is disconnected.</p>
           <p className="m-0 max-w-[70ch]">When you act on one, we write down what we expect. When its window ends, we measure what it brought and show it here: beat, met or missed. Saying “not for us” tells us what to suggest next.</p>
@@ -106,7 +106,7 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
           { n: record.revenue ? `+${formatAmount(record.revenue.value, "money", record.revenue.currency)}` : "None yet", l: "revenue from them" },
         ].map((s) => (
           <p key={s.l} className="m-0 flex flex-col gap-1">
-            <span className="text-[28px] font-light leading-none tabular-nums">{s.n}</span>
+            <span className="text-[28px] font-fw-medium leading-none tabular-nums">{s.n}</span>
             <span className="text-[12px] text-white/70">{s.l}</span>
           </p>
         ))}
@@ -133,7 +133,7 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
       {record.recent.length > 0 && (
         <section aria-label="Recent results" className="overflow-hidden rounded-[12px] bg-white">
           <header className="flex items-center gap-3 border-b border-brand-line px-6 py-4">
-            <h2 className="m-0 flex-1 text-[18px] font-normal">Recent results</h2>
+            <h2 className="m-0 flex-1 text-[18px] font-fw-medium">Recent results</h2>
             <Link href="/opportunities?status=result" className="font-brand-mono text-[12px] uppercase text-brand-ink underline underline-offset-4">
               All {record.results} results
             </Link>
@@ -146,7 +146,7 @@ export default async function OpportunitiesPage({ searchParams }: { searchParams
                 </Link>
                 <span className="text-brand-ink-2">Expected {r.prediction?.text ?? "not estimated"}</span>
                 <span>
-                  Got <b className="font-semibold">{r.result.text}</b>
+                  Got <b className="font-fw-semibold">{r.result.text}</b>
                 </span>
                 <OutcomePill outcome={r.result.outcome} />
               </li>

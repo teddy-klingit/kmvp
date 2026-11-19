@@ -18,7 +18,7 @@ const pillOff = "text-[var(--seg-text)] hover:bg-black/5";
 
 function Badge({ n }: { n: number }) {
   return (
-    <span aria-label={`${n} unread`} className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-ds-turn px-[5px] text-[11px] font-semibold text-white">
+    <span aria-label={`${n} unread`} className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-ds-turn px-[5px] text-[11px] font-fw-semibold text-white">
       {n}
     </span>
   );

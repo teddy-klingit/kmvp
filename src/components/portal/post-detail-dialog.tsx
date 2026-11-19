@@ -29,7 +29,7 @@ type Post = {
 function Stat({ icon: Icon, value, label }: { icon: React.ElementType; value: string | number; label: string }) {
   return (
     <div className="rounded-lg border border-border bg-paper p-3">
-      <p className="flex items-center gap-1.5 text-lg font-semibold">
+      <p className="flex items-center gap-1.5 text-lg font-fw-semibold">
         <Icon className="size-3.5 text-muted-foreground" />
         {value}
       </p>

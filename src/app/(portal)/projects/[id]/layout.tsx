@@ -69,7 +69,7 @@ export default async function ProjectLayout({
               {pm && (
                 // The client's Marketing PM on every project; Message opens the PM panel about this project (Phase U).
                 <span className="flex items-center gap-2 text-[13px] text-ds-text-2">
-                  Your Marketing PM <b className="font-semibold text-ds-text">{pm.name}</b>
+                  Your Marketing PM <b className="font-fw-semibold text-ds-text">{pm.name}</b>
                   <MessagePmButton projectId={id} className="text-ds-text underline underline-offset-2">
                     Message
                   </MessagePmButton>

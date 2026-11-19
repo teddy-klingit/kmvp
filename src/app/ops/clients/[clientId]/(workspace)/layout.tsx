@@ -53,7 +53,7 @@ export default async function ClientWorkspaceLayout({ children, params }: { chil
             title={
               <span className="inline-flex flex-wrap items-center gap-3">
                 {h.client.name}
-                {ob.status && <span className={cn("rounded-full px-3 py-1 align-middle font-brand text-[13px] font-normal tracking-normal", STATUS_PILL[ob.status])}>{ob.status}</span>}
+                {ob.status && <span className={cn("rounded-full px-3 py-1 align-middle font-brand text-[13px] font-fw-regular tracking-normal", STATUS_PILL[ob.status])}>{ob.status}</span>}
               </span>
             }
             actions={

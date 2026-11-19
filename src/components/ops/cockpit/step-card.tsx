@@ -77,7 +77,7 @@ export function StepCard({
         <Dot status={status} />
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="m-0 text-[15px] font-semibold text-ds-text">{title}</h2>
+            <h2 className="m-0 text-[15px] font-fw-semibold text-ds-text">{title}</h2>
             {pills.map((p) => (
               <StatusPill key={p.label} tone={p.tone}>
                 {p.label}
@@ -89,7 +89,7 @@ export function StepCard({
         <div className="flex items-center gap-2">
           {why && (
             <details className="group relative">
-              <summary className="flex h-8 cursor-pointer list-none items-center rounded-[8px] px-3 text-[13px] font-medium text-ds-text hover:bg-ds-subtle [&::-webkit-details-marker]:hidden">
+              <summary className="flex h-8 cursor-pointer list-none items-center rounded-[8px] px-3 text-[13px] font-fw-medium text-ds-text hover:bg-ds-subtle [&::-webkit-details-marker]:hidden">
                 Why
               </summary>
               <div className="absolute right-0 top-9 z-20 w-[360px] max-w-[80vw] rounded-[10px] border border-ds-border bg-white p-4 text-[13px] text-ds-text-body shadow-lg">
@@ -123,7 +123,7 @@ export function AgentWhy({
   const notes = typeof output?.notes === "string" ? output.notes : null;
   return (
     <div className="flex flex-col gap-2">
-      <p className="m-0 font-medium text-ds-text">{run.agent.name}</p>
+      <p className="m-0 font-fw-medium text-ds-text">{run.agent.name}</p>
       <p className="m-0">{run.decision ?? "No decision recorded."}</p>
       {notes && <p className="m-0 text-ds-text-2">“{notes}”</p>}
       <p className="m-0 text-[12px] text-ds-text-3">

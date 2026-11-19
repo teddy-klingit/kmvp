@@ -8,7 +8,7 @@ export function LiveStatusCard({ title, message }: { title: string; message: str
         <span className="relative inline-flex size-3 rounded-full bg-primary" />
       </span>
       <div>
-        <p className="text-sm font-semibold">{title}</p>
+        <p className="text-sm font-fw-semibold">{title}</p>
         <p className="text-sm text-muted-foreground">{message}</p>
       </div>
     </Card>

@@ -60,7 +60,7 @@ export function StreamedText({ text, animate, onDone, className }: { text: strin
         /^\s+$/.test(w.text) ? (
           <span key={i}>{w.text}</span>
         ) : (
-          <span key={i} className={cn(live && "studio-rise inline-block", w.bold && "font-semibold")}>
+          <span key={i} className={cn(live && "studio-rise inline-block", w.bold && "font-fw-semibold")}>
             {w.text}
           </span>
         )

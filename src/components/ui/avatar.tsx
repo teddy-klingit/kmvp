@@ -24,7 +24,7 @@ function PersonAvatar({
   return (
     <AvatarPrimitive.Root
       className={cn(
-        "relative flex shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold text-white",
+        "relative flex shrink-0 items-center justify-center overflow-hidden rounded-full font-fw-semibold text-white",
         sizeClasses[size],
         className
       )}
@@ -51,7 +51,7 @@ function BrandAvatar({
   return (
     <AvatarPrimitive.Root
       className={cn(
-        "relative flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-white font-semibold text-white",
+        "relative flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-white font-fw-semibold text-white",
         sizeClasses[size],
         className
       )}
