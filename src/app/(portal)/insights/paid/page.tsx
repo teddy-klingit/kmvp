@@ -5,7 +5,7 @@ import { parseRange } from "@/lib/insights/daily";
 import { loadPaidTab } from "@/lib/insights/paid-tab";
 import { tabFindings } from "@/lib/insight-records";
 import { hrefAliases } from "@/lib/insights/tabs";
-import { shortAnswer } from "@/lib/insights/short-answer";
+import { answerCard, type Signal, type SignalStatus } from "@/lib/insights/short-answer";
 import { money, pct1, pts, signedPct, times, vsLabel } from "@/lib/insights/format";
 import { marketingPm } from "@/lib/contact-person";
 import { adDataStatus } from "@/lib/integrations/live-ads-owner";
@@ -44,12 +44,21 @@ export default async function PaidAdsPage({ searchParams }: { searchParams: Prom
   // ─── The short answer: every number below is computed above ───────────────────
   const ret = n.spend.value ? n.sales.value / n.spend.value : null;
   const bestChannel = t.channels.filter((c) => c.return !== null && c.spend >= n.spend.value * 0.1).sort((a, b) => (b.return ?? 0) - (a.return ?? 0))[0];
-  const parts = [
-    n.spend.value ? `Your ads brought ${money(n.sales.value, cur)} in sales on ${money(n.spend.value, cur)}${ret ? ` (${times(ret)})` : ""}${n.costPerOrder.value ? `, and cost ${money(n.costPerOrder.value, cur)} per online order` : ""}.` : "No ad spend in this period yet.",
-    bestChannel && t.channels.length > 1 ? `${bestChannel.platform} brings back the most for each euro.` : null,
-    t.tired.length === 1 ? "One ad is wearing out and should be refreshed." : t.tired.length > 1 ? `${t.tired.length} ads are wearing out and should be refreshed.` : null,
+  const [topFormat, lowFormat] = [t.formatOrders[0], t.formatOrders.at(-1)];
+  const formatGap = topFormat && lowFormat && topFormat !== lowFormat ? topFormat.orderValue / lowFormat.orderValue - 1 : null;
+  const signals: Signal[] = [
+    ...(n.spend.value && n.sales.value ? [{ id: "sales", status: (ret !== null && ret >= 1 ? "good" : "attention") as SignalStatus, value: money(n.sales.value, cur), label: `Sales from ${money(n.spend.value, cur)} ad spend`, weight: 3 }] : []),
+    ...(topFormat && formatGap !== null && formatGap >= 0.1 ? [{ id: "format", status: "good" as const, value: money(topFormat.orderValue, cur), label: `Average ${topFormat.format} order, ${Math.round(formatGap * 100)}% bigger than ${lowFormat!.format}`, weight: 2 }] : []),
+    ...(t.tired.length ? [{ id: "tired", status: "attention" as const, value: `${t.tired.length} ad${t.tired.length === 1 ? "" : "s"}`, label: "Worn out and losing clicks: refresh it", weight: 2.5 }] : []),
+    ...(n.costPerOrder.value !== null && n.costPerOrder.previous !== null ? [{ id: "cpo", status: (n.costPerOrder.value <= n.costPerOrder.previous ? "good" : "attention") as SignalStatus, value: money(n.costPerOrder.value, cur), label: `Per online order, was ${money(n.costPerOrder.previous, cur)}`, weight: 1 }] : []),
+    ...(t.budget && t.budget.share > 1 ? [{ id: "budget", status: "attention" as const, value: `${Math.round(t.budget.share * 100)}%`, label: "Of this month's ad budget spent", weight: 2.2 }] : []),
   ];
-  const answer = shortAnswer(`${clientId}:paid:${days}`, parts.filter(Boolean).join(" "));
+  const card = answerCard(`${clientId}:paid:${days}`, {
+    headline: n.spend.value
+      ? [ret ? `Ads paid back ${times(ret)}.` : `${money(n.spend.value, cur)} spent on ads.`, topFormat && formatGap !== null && formatGap >= 0.1 ? `${topFormat.format} ads are your best spend.` : bestChannel && t.channels.length > 1 ? `${bestChannel.platform} brings back the most.` : null].filter(Boolean).join(" ")
+      : "No ad spend in this period yet.",
+    signals,
+  });
 
   const delta = (change: number | null, goodWhenUp = true) => (change === null ? null : { text: `${signedPct(change)} ${vs}`, tone: (change >= 0) === goodWhenUp ? ("good" as const) : ("bad" as const) });
   const cpoDiff = n.costPerOrder.value !== null && n.costPerOrder.previous !== null ? n.costPerOrder.value - n.costPerOrder.previous : null;
@@ -64,7 +73,7 @@ export default async function PaidAdsPage({ searchParams }: { searchParams: Prom
 
   return (
     <div className="flex flex-col gap-6">
-      <ShortAnswer text={answer} sources={[...new Set([...t.sources.spend, ...t.sources.sales])].map((s) => (s === "Google" ? "Google Ads" : s))} />
+      <ShortAnswer card={card} sources={[...new Set([...t.sources.spend, ...t.sources.sales])].map((s) => (s === "Google" ? "Google Ads" : s))} />
 
       <KeyNumbers
         items={[

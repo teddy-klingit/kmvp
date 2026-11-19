@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { AlertTriangle, ChevronRight, Crosshair } from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowRight, ArrowUp, ChevronRight, Crosshair, Eye, Sparkle } from "lucide-react";
+import type { AnswerCard, SignalStatus } from "@/lib/insights/short-answer";
 import type { TabFinding } from "@/lib/insight-records";
 import { insightSources } from "@/lib/insight-records";
 import { Chips } from "@/components/insights/source-chip";
@@ -13,13 +14,104 @@ import { cn } from "@/lib/utils";
  * own views, what we found, and what we can't see yet.
  */
 
-export function ShortAnswer({ text, sources }: { text: string; sources: string[] }) {
+const SIGNAL: Record<SignalStatus, { label: string; tile: string; text: string; Icon: typeof ArrowUp }> = {
+  good: { label: "Good news", tile: "bg-[#F2F6E4]", text: "text-[#6E7D2F]", Icon: ArrowUp },
+  attention: { label: "Needs attention", tile: "bg-[#FFF1E8]", text: "text-brand-orange-text", Icon: ArrowDown },
+  watch: { label: "Keep an eye on", tile: "bg-[#EEF1FA]", text: "text-[#5B6FB0]", Icon: Eye },
+};
+
+/** "The short answer": a headline of 12 words or fewer, and 3 signal tiles. Sources sit in a "Based on" row. */
+export function ShortAnswer({ card, sources }: { card: AnswerCard; sources: string[] }) {
   return (
     <section aria-label="The short answer" className="flex flex-col gap-4 rounded-2xl bg-white px-6 py-6">
-      <span className="font-brand-mono text-[12px] uppercase tracking-[0.04em] text-brand-ink-2">The short answer</span>
-      <p className="m-0 max-w-[68ch] text-[20px] font-light leading-[1.45] text-brand-ink min-[700px]:text-[23px]">{text}</p>
-      {sources.length > 0 && <Chips sources={sources} />}
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <span className="font-brand-mono text-[12px] uppercase tracking-[0.04em] text-brand-ink-2">The short answer</span>
+        {sources.length > 0 && (
+          <span className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[12px] text-brand-mute">Based on</span>
+            <Chips sources={sources} />
+          </span>
+        )}
+      </div>
+      <p className="m-0 text-balance text-[22px] font-light leading-[1.3] text-brand-ink min-[700px]:text-[26px]">{card.headline}</p>
+      {card.tiles.length > 0 && (
+        <ul className="m-0 grid list-none grid-cols-1 gap-3 p-0 min-[700px]:grid-cols-3">
+          {card.tiles.map((t) => {
+            const k = SIGNAL[t.status];
+            return (
+              <li key={t.id} className={cn("flex min-w-0 flex-col gap-1.5 rounded-xl px-4 py-4", k.tile)}>
+                <span className={cn("inline-flex items-center gap-1.5 font-brand-mono text-[11px] uppercase tracking-[0.04em]", k.text)}>
+                  <k.Icon className="size-3.5" strokeWidth={2} aria-hidden /> {k.label}
+                </span>
+                <span className="text-[26px] font-light leading-[1.15] tabular-nums text-brand-ink">{t.value}</span>
+                <span className="text-[14px] leading-snug text-brand-ink-2">{t.label}</span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </section>
+  );
+}
+
+export type PillTone = "good" | "bad" | "neutral" | "watch";
+const PILL: Record<PillTone, string> = {
+  good: "bg-[#EEF4DA] text-[#5E6B2A]",
+  bad: "bg-[#FFF1E8] text-brand-orange-text",
+  neutral: "bg-brand-chip text-brand-ink-2",
+  watch: "bg-[#EEF1FA] text-[#5B6FB0]",
+};
+
+/** Status as a small icon pill: ▲ good, ▼ bad, eye to watch (Best / Weakest, On track / Behind, Planned / Not planned…). */
+export function StatusPill({ tone, children, icon = true, className }: { tone: PillTone; children: React.ReactNode; icon?: boolean; className?: string }) {
+  const Icon = tone === "good" ? ArrowUp : tone === "bad" ? ArrowDown : tone === "watch" ? Eye : null;
+  return (
+    <span className={cn("inline-flex h-6 shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2.5 text-[12px]", PILL[tone], className)}>
+      {icon && Icon && <Icon className="size-3" strokeWidth={2.25} aria-hidden />}
+      {children}
+    </span>
+  );
+}
+
+/** One "What it means" box at the bottom of a chart card: one sentence, and an optional action. */
+export function WhatItMeans({ children, action, className }: { children: React.ReactNode; action?: React.ReactNode; className?: string }) {
+  return (
+    <div className={cn("mx-6 mb-6 flex flex-wrap items-center gap-3 rounded-xl bg-[#F4F1EA] px-4 py-3", className)}>
+      <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-brand-ink text-white" aria-hidden>
+        <ArrowRight className="size-3.5" strokeWidth={2.25} />
+      </span>
+      <p className="m-0 min-w-0 flex-1 basis-[260px] text-[14px] leading-snug text-brand-ink">
+        <b className="font-semibold">What it means:</b> {children}
+      </p>
+      {action && <span className="shrink-0 print:hidden">{action}</span>}
+    </div>
+  );
+}
+
+/** The dark pill button used inside a "What it means" box. */
+export function MeansButton({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link href={href} className="inline-flex h-9 items-center rounded-full bg-brand-ink px-4 font-brand-mono text-[12px] text-white no-underline hover:opacity-90">
+      {children}
+    </Link>
+  );
+}
+
+export type StatTile = { value: string; label: string; sub?: string | null; tone?: PillTone };
+const TILE: Record<PillTone, string> = { good: "bg-[#F2F6E4]", bad: "bg-[#FFF1E8]", neutral: "bg-[#F4F1EA]", watch: "bg-[#EEF1FA]" };
+
+/** Small stat tiles in place of sentences (sentiment, list health, new vs returning, pipeline, budget…). */
+export function StatTiles({ items, className }: { items: StatTile[]; className?: string }) {
+  return (
+    <ul className={cn("m-0 grid list-none gap-2.5 p-0", items.length >= 4 ? "grid-cols-2 min-[700px]:grid-cols-4" : items.length === 3 ? "grid-cols-3" : "grid-cols-2", className)}>
+      {items.map((t) => (
+        <li key={t.label} className={cn("flex min-w-0 flex-col gap-0.5 rounded-xl px-4 py-3", TILE[t.tone ?? "neutral"])}>
+          <span className={cn("text-[24px] font-light leading-[1.2] tabular-nums", t.tone === "bad" ? "text-brand-orange-text" : "text-brand-ink")}>{t.value}</span>
+          <span className="text-[13px] text-brand-ink-2">{t.label}</span>
+          {t.sub && <span className="text-[12px] text-brand-mute">{t.sub}</span>}
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -76,8 +168,11 @@ export function WhatWeFound({ findings, pm, className }: { findings: TabFinding[
       <ul className="m-0 list-none p-0">
         {findings.map(({ insight, used, askedAt }) => (
           <li key={insight.id} id={`finding-${insight.id}`} className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-brand-line px-6 py-4 first:border-t-0">
-            <span className="flex min-w-0 flex-1 basis-[260px] flex-col gap-2">
-              <span className="text-[15px] leading-snug">{findingLine(insight)}</span>
+            <span className="flex size-7 shrink-0 items-center justify-center self-start rounded-lg bg-[#FFF1E8] text-brand-orange" aria-hidden>
+              <Sparkle className="size-3.5" strokeWidth={2} />
+            </span>
+            <span className="flex min-w-0 flex-1 basis-[240px] flex-col gap-2">
+              <span className="text-[15px] font-medium leading-snug">{findingLine(insight)}</span>
               <Chips sources={insightSources(insight)} />
             </span>
             {used.length ? (

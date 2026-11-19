@@ -4,7 +4,7 @@ import { parseRange } from "@/lib/insights/daily";
 import { loadEmailTab } from "@/lib/insights/email-tab";
 import { tabFindings } from "@/lib/insight-records";
 import { hrefAliases } from "@/lib/insights/tabs";
-import { shortAnswer } from "@/lib/insights/short-answer";
+import { answerCard, type Signal, type SignalStatus } from "@/lib/insights/short-answer";
 import { count, money, pct1, pts, signedPct, vsLabel } from "@/lib/insights/format";
 import { connectHref } from "@/lib/insights-data";
 import { marketingPm } from "@/lib/contact-person";
@@ -51,23 +51,29 @@ export default async function EmailPage({ searchParams }: { searchParams: Promis
   }
 
   const topFlow = t.flows[0];
-  const answer = shortAnswer(
-    `${clientId}:email:${days}`,
-    [
-      `Email brought ${money(n.sales.value, cur)}${t.flowSales > t.newsletterSales ? ", most of it from automatic flows" : t.newsletterSales ? ", most of it from newsletters" : ""}.`,
-      topFlow ? `The ${topFlow.name.toLowerCase()} is your best flow.` : null,
-      t.list.inactiveShare !== null && t.list.inactiveShare >= 0.2 ? `${t.list.inactiveShare >= 0.24 && t.list.inactiveShare <= 0.26 ? "A quarter" : `${Math.round(t.list.inactiveShare * 100)}%`} of your list hasn't opened in 90 days.` : null,
+  const asleep = t.list.inactiveShare !== null && t.list.inactiveShare >= 0.2;
+  const signals: Signal[] = [
+    ...(t.flowSales ? [{ id: "flows", status: "good" as const, value: money(t.flowSales, cur), label: `From automatic flows, of ${money(n.sales.value, cur)} total`, weight: 3 }] : []),
+    ...(topFlow ? [{ id: "top", status: "good" as const, value: money(topFlow.sales, cur), label: `From the ${topFlow.name.toLowerCase()}, your best flow`, weight: 1.5 }] : []),
+    ...(n.sales.change !== null ? [{ id: "change", status: (n.sales.change >= 0 ? "good" : "attention") as SignalStatus, value: signedPct(n.sales.change), label: "Sales from email", weight: 1.8 }] : []),
+    ...(t.list.inactive !== null && asleep ? [{ id: "asleep", status: "attention" as const, value: count(t.list.inactive), label: "Subscribers haven’t opened in 90 days", weight: 2.8 }] : []),
+  ];
+  const card = answerCard(`${clientId}:email:${days}`, {
+    headline: [
+      t.flowSales > t.newsletterSales ? "Automatic flows earn most." : t.newsletterSales ? "Newsletters earn most." : `Email brought ${money(n.sales.value, cur)}.`,
+      asleep ? `${t.list.inactiveShare! >= 0.24 && t.list.inactiveShare! <= 0.26 ? "A quarter" : `${Math.round(t.list.inactiveShare! * 100)}%`} of your list is asleep.` : null,
     ]
       .filter(Boolean)
-      .join(" ")
-  );
+      .join(" "),
+    signals,
+  });
   const openDiff = n.open.value !== null && n.open.previous !== null ? n.open.value - n.open.previous : null;
   const clickDiff = n.click.value !== null && n.click.previous !== null ? n.click.value - n.click.previous : null;
   const maxFlow = Math.max(1, ...t.flows.map((f) => f.sales));
 
   return (
     <div className="flex flex-col gap-6">
-      <ShortAnswer text={answer} sources={["Klaviyo", "Shopify"]} />
+      <ShortAnswer card={card} sources={["Klaviyo", "Shopify"]} />
 
       <KeyNumbers
         items={[

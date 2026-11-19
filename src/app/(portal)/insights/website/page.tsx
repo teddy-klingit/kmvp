@@ -4,7 +4,7 @@ import { parseRange } from "@/lib/insights/daily";
 import { loadWebsiteTab } from "@/lib/insights/website-tab";
 import { tabFindings } from "@/lib/insight-records";
 import { hrefAliases } from "@/lib/insights/tabs";
-import { shortAnswer } from "@/lib/insights/short-answer";
+import { answerCard, type Signal, type SignalStatus } from "@/lib/insights/short-answer";
 import { count, pct1, pts, signedPct, vsLabel } from "@/lib/insights/format";
 import { connectHref } from "@/lib/insights-data";
 import { marketingPm } from "@/lib/contact-person";
@@ -32,7 +32,6 @@ export default async function WebsitePage({ searchParams }: { searchParams: Prom
   const pmFirst = pm?.name.split(" ")[0] ?? "Klingit";
   const n = t.numbers;
   const vs = vsLabel(days);
-  const lastLabel = days === 365 ? "12 months" : `${days} days`;
 
   const blind: BlindSpot[] = [
     ...(t.ga4 && ["needs_reconnect", "error"].includes(t.ga4.status) ? [{ text: `Google Analytics disconnected since ${day(t.ga4.updatedAt)}: visits stopped coming in.`, action: { label: "Reconnect", href: "/settings/connections" } }] : []),
@@ -57,15 +56,20 @@ export default async function WebsitePage({ searchParams }: { searchParams: Prom
   // ─── The short answer ───────────────────────────────────────────────────────
   const ai = t.sources.find((s) => s.group === "AI assistants");
   const missing = t.rankings.find((r) => r.position === null);
-  const answer = shortAnswer(
-    `${clientId}:website:${days}`,
-    [
-      n.visits.change !== null ? `${n.visits.change >= 0 ? "More" : "Fewer"} people find you: visits ${n.visits.change >= 0 ? "up" : "down"} ${Math.abs(Math.round(n.visits.change * 100))}%${ai && n.ai.value ? `, and AI assistants now send ${count(n.ai.value)} visitors${ai.buyRate !== null && t.overallBuyRate !== null && ai.buyRate > t.overallBuyRate ? " who buy well" : ""}` : ""}.` : `${count(n.visits.value)} visits in the last ${lastLabel}.`,
-      t.biggestDrop ? `Most visitors leave between ${t.biggestDrop.from === "Visited" ? "arriving" : `the ${t.biggestDrop.from.replace("Viewed a ", "").toLowerCase()} page`} and ${t.biggestDrop.to === "Added to cart" ? "the cart" : t.biggestDrop.to === "Bought" ? "buying" : "a product page"}${missing ? `, and you're invisible for “${missing.keyword}”` : ""}.` : missing ? `You're invisible for “${missing.keyword}”.` : null,
-    ]
-      .filter(Boolean)
-      .join(" ")
-  );
+  const kept = t.biggestDrop?.kept ?? null;
+  const signals: Signal[] = [
+    ...(n.visits.change !== null ? [{ id: "visits", status: (n.visits.change >= 0 ? "good" : "attention") as SignalStatus, value: signedPct(n.visits.change), label: `Visits, now ${count(n.visits.value)}`, weight: 2 }] : []),
+    ...(t.biggestDrop && kept !== null ? [{ id: "drop", status: "attention" as const, value: `${Math.round(kept * 100)}%`, label: `Of ${t.biggestDrop.from === "Visited" ? "visitors" : t.biggestDrop.from.replace("Viewed a ", "").toLowerCase() + " views"} reach ${t.biggestDrop.to === "Added to cart" ? "the cart" : t.biggestDrop.to === "Bought" ? "a purchase" : "a product page"}`, weight: 3 }] : []),
+    ...(ai && n.ai.value ? [{ id: "ai", status: "good" as const, value: count(n.ai.value), label: `Visits from AI assistants${ai.buyRate !== null ? `, and ${pct1(ai.buyRate)} of them buy` : ""}`, weight: 2.2 }] : []),
+    ...(missing ? [{ id: "missing", status: "attention" as const, value: "Not in top 50", label: `On Google for “${missing.keyword}”`, weight: 1.5 }] : []),
+  ];
+  const card = answerCard(`${clientId}:website:${days}`, {
+    headline: [
+      n.visits.change !== null ? (n.visits.change >= 0 ? "More people find you" : "Fewer people find you") : `${count(n.visits.value)} visits`,
+      t.biggestDrop ? `, but most leave before ${t.biggestDrop.to === "Added to cart" ? "the cart" : t.biggestDrop.to === "Bought" ? "buying" : "a product page"}.` : ".",
+    ].join(""),
+    signals,
+  });
 
   const brDiff = n.buyRate.value !== null && n.buyRate.previous !== null ? n.buyRate.value - n.buyRate.previous : null;
   const delta = (ch: number | null) => (ch === null ? null : { text: `${signedPct(ch)} ${vs}`, tone: ch >= 0 ? ("good" as const) : ("bad" as const) });
@@ -75,7 +79,7 @@ export default async function WebsitePage({ searchParams }: { searchParams: Prom
 
   return (
     <div className="flex flex-col gap-6">
-      <ShortAnswer text={answer} sources={["GA4", ...(t.rankings.length ? ["Search Console"] : []), "Shopify"]} />
+      <ShortAnswer card={card} sources={["GA4", ...(t.rankings.length ? ["Search Console"] : []), "Shopify"]} />
 
       <KeyNumbers
         items={[

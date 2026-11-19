@@ -11,7 +11,7 @@ import { brandLabel, loadCompetitorsTab } from "@/lib/insights/market-tabs";
 import { goalViews } from "@/lib/insights/goals";
 import { insightsSourceStatus } from "@/lib/insights/source-status";
 import { tabFindings } from "@/lib/insight-records";
-import { shortAnswer } from "@/lib/insights/short-answer";
+import { answerCard, type Signal, type SignalStatus } from "@/lib/insights/short-answer";
 import { count, money, pct1, signedPct, times, vsLabel } from "@/lib/insights/format";
 import { SEGMENTS, type SegmentKey } from "@/lib/insights/tabs";
 import { marketingPm } from "@/lib/contact-person";
@@ -82,32 +82,34 @@ export default async function InsightsOverviewPage({ searchParams }: { searchPar
     .slice(0, 3);
 
   // ─── The short answer ──────────────────────────────────────────────────────
-  const onTrack = goals.find((g) => g.status === "On track");
   const behind = goals.find((g) => g.status === "Behind");
-  const watch = [reach.change !== null && reach.change < 0 && organic.posts ? "organic reach" : null, leader && own.aiShare !== null && leader.aiShare! > own.aiShare ? brandLabel(leader.brand) : null].filter(Boolean);
-  const answer = shortAnswer(
-    `${clientId}:overview:${days}`,
-    [
-      s.sales.value
-        ? s.sales.change !== null
-          ? s.sales.change >= 0
-            ? `Sales from marketing grew ${Math.round(s.sales.change * 100)}% in the last ${days === 365 ? "12 months" : `${days} days`}${salesTop.length ? `, mostly from ${salesTop.join(" and ")}` : ""}.`
-            : `Sales from marketing fell ${Math.abs(Math.round(s.sales.change * 100))}% in the last ${days === 365 ? "12 months" : `${days} days`}.${salesTop.length ? ` ${salesTop.join(" and ").replace(/^./, (c) => c.toUpperCase())} still bring the most.` : ""}`
-          : `Marketing brought ${money(s.sales.value, cur)} in the last ${days === 365 ? "12 months" : `${days} days`}.`
-        : "Connect your shop or CRM to see what marketing brings in.",
-      onTrack || behind ? `You're ${[onTrack ? `on track for ${onTrack.title.replace(/^./, (c) => c.toLowerCase())}` : null, behind ? `${onTrack ? "but " : ""}behind on ${behind.title.replace(/^[\d,.+%]+\s*/, "").replace(/^./, (c) => c.toLowerCase())}` : null].filter(Boolean).join(", ")}.` : null,
-      watch.length ? `Watch ${watch.join(" and ")}.` : null,
+  const leads = leader && own.aiShare !== null && leader.aiShare! > own.aiShare;
+  const fewerReels = organicReels && organicReels.postedBefore !== null && organicReels.posted < organicReels.postedBefore;
+  const signals: Signal[] = [
+    ...(s.sales.value && s.sales.change !== null ? [{ id: "sales", status: (s.sales.change >= 0 ? "good" : "attention") as SignalStatus, value: signedPct(s.sales.change), label: `Sales from marketing, now ${money(s.sales.value, cur)}`, weight: 3 }] : []),
+    ...(organic.posts && reach.change !== null ? [{ id: "reach", status: (reach.change >= 0 ? "good" : "attention") as SignalStatus, value: signedPct(reach.change), label: `Organic reach${reach.change < 0 && fewerReels ? ", because of fewer Reels" : ""}`, weight: 1 + Math.abs(reach.change) * 10 }] : []),
+    ...(leads ? [{ id: "ai", status: "watch" as const, value: `${Math.round(leader.aiShare! * 100)}% vs ${Math.round(own.aiShare! * 100)}%`, label: `${brandLabel(leader.brand)} is named more than you in AI answers`, weight: 1.5 }] : []),
+    ...(behind ? [{ id: "goal", status: "attention" as const, value: behind.line?.split(" · ")[0] ?? "Behind", label: `${behind.title}: behind`, weight: 0.8 }] : []),
+    ...(email.hasKlaviyoNumbers && email.numbers.sales.change !== null ? [{ id: "email", status: (email.numbers.sales.change >= 0 ? "good" : "attention") as SignalStatus, value: signedPct(email.numbers.sales.change), label: "Sales from email", weight: 0.6 }] : []),
+  ];
+  const needs = [organic.posts && reach.change !== null && reach.change < 0 ? "organic reach" : null, behind ? "community" : null, leads ? "AI visibility" : null].filter(Boolean) as string[];
+  const needList = (needs.length > 2 ? `${needs.slice(0, -1).join(", ")} and ${needs.at(-1)}` : needs.join(" and ")).replace(/^./, (c) => c.toUpperCase());
+  const card = answerCard(`${clientId}:overview:${days}`, {
+    headline: [
+      s.sales.value ? (s.sales.change === null ? `Marketing brought ${money(s.sales.value, cur)}.` : `Sales are ${s.sales.change >= 0 ? "up" : "down"}.`) : "Connect your shop or CRM to see what marketing brings in.",
+      needs.length ? `${needList} need${needs.length === 1 ? "s" : ""} attention.` : null,
     ]
       .filter(Boolean)
-      .join(" ")
-  );
+      .join(" "),
+    signals,
+  });
 
   const blind: BlindSpot[] = status.attention.map((x) => ({ text: `${x.name}: ${x.note ?? "needs reconnecting"}.`, action: { label: "Reconnect", href: "/settings/connections" } }));
   const roasDiff = roas !== null && roasPrev !== null ? roas - roasPrev : null;
 
   return (
     <div className="flex flex-col gap-6">
-      <ShortAnswer text={answer} sources={[...new Set([...sales.sources.spend, ...sales.sources.sales])].map((x) => (x === "Google" ? "Google Ads" : x))} />
+      <ShortAnswer card={card} sources={[...new Set([...sales.sources.spend, ...sales.sources.sales])].map((x) => (x === "Google" ? "Google Ads" : x))} />
 
       <KeyNumbers
         items={[

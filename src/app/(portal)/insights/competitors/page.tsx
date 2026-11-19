@@ -5,7 +5,7 @@ import { parseRange } from "@/lib/insights/daily";
 import { brandLabel, competitorLimit, loadCompetitorsTab } from "@/lib/insights/market-tabs";
 import { tabFindings } from "@/lib/insight-records";
 import { hrefAliases } from "@/lib/insights/tabs";
-import { shortAnswer } from "@/lib/insights/short-answer";
+import { answerCard, type Signal } from "@/lib/insights/short-answer";
 import { entitlements } from "@/lib/entitlements";
 import { marketingPm } from "@/lib/contact-person";
 import { addSuggestedCompetitorAction, dismissSuggestedCompetitorAction, removeCompetitorAction, trackCompetitorAction } from "@/lib/actions/market-intelligence-actions";
@@ -18,6 +18,16 @@ const BLUE = "#5B6FB0";
 const day = (d: Date) => new Intl.DateTimeFormat("en-GB", { timeZone: WORK_TZ, day: "numeric", month: "short" }).format(d);
 const ord = (n: number) => (n === 1 ? "1st" : n === 2 ? "2nd" : n === 3 ? "3rd" : `${n}th`);
 /** A move's headline, short enough for a table cell. */
+/** "2 new products and a price cut" from the moves' type tags. */
+function moveSummary(kinds: string[]) {
+  const counts = [...new Set(kinds)].map((k) => {
+    const n = kinds.filter((x) => x === k).length;
+    const noun = k.toLowerCase();
+    return n === 1 ? `a ${noun}` : `${n} ${noun.replace(/(product|cut|campaign)$/, "$1s")}`;
+  });
+  return (counts.length > 1 ? `${counts.slice(0, -1).join(", ")} and ${counts.at(-1)}` : counts[0] ?? "").replace(/^./, (c) => c.toUpperCase());
+}
+
 const shortMove = (title: string, brand: string) => title.replace(new RegExp(`^${brandLabel(brand).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*(\\(demo\\))?\\s*`, "i"), "").replace(/^./, (c) => c.toUpperCase());
 
 /**
@@ -42,21 +52,24 @@ export default async function CompetitorsPage({ searchParams }: { searchParams: 
   const limit = competitorLimit(ent.tier);
   const own = t.table[0];
   const leader = [...t.table].filter((r) => !r.own && r.aiShare !== null).sort((a, b) => b.aiShare! - a.aiShare!)[0];
-  const firstFor = t.questions.find((x) => x.ownPosition === 1);
   const onPrice = t.table.find((r) => !r.own && r.move && /%|price|discount|sale|off\b/i.test(r.move.title));
 
-  const answer = t.brands.length
-    ? shortAnswer(
-        `${clientId}:competitors:${days}`,
-        [
-          ai && leader && own.aiShare !== null && leader.aiShare! > own.aiShare ? `${brandLabel(leader.brand)} is pulling ahead: it's named in ${Math.round(leader.aiShare! * 100)}% of AI answers vs your ${Math.round(own.aiShare * 100)}%${leader.move ? `, and ${shortMove(leader.move.title, leader.brand).replace(/^./, (c) => c.toLowerCase())} on ${day(leader.move.at)}` : ""}.` : leader?.move ? `${brandLabel(leader.brand)}'s latest move: ${shortMove(leader.move.title, leader.brand).replace(/^./, (c) => c.toLowerCase())} (${day(leader.move.at)}).` : `You track ${t.brands.length} competitor${t.brands.length === 1 ? "" : "s"}.`,
-          ai && firstFor ? `You're still named first for “${firstFor.question}”.` : null,
-          onPrice && onPrice !== leader ? `${brandLabel(onPrice.brand)} is competing on price.` : null,
-        ]
-          .filter(Boolean)
-          .join(" ")
-      )
-    : "Add the brands you compete with, and this tab follows what they do: their ads, their moves, and how often AI assistants name them.";
+  const leads = ai && leader && own.aiShare !== null && leader.aiShare! > own.aiShare;
+  const moves = t.moves.length;
+  const wins = ai ? t.questions.filter((x) => x.ownPosition === 1) : [];
+  const signals: Signal[] = [
+    ...(leads ? [{ id: "ai", status: "attention" as const, value: `${Math.round(leader.aiShare! * 100)}% vs ${Math.round(own.aiShare! * 100)}%`, label: `${brandLabel(leader.brand)} vs you, named in AI answers`, weight: 3 }] : []),
+    ...(moves ? [{ id: "moves", status: "watch" as const, value: `${moves} move${moves === 1 ? "" : "s"}`, label: moveSummary(t.moves.map((m) => m.kind)), weight: 2 }] : []),
+    ...(wins.length ? [{ id: "wins", status: "good" as const, value: "#1", label: `For ${wins.slice(0, 2).map((w) => `“${w.question}”`).join(" and ")}`, weight: 2.5 }] : []),
+    ...(onPrice && onPrice !== leader ? [{ id: "price", status: "watch" as const, value: brandLabel(onPrice.brand), label: "Is competing on price", weight: 1 }] : []),
+  ];
+  const ownWord = wins[0]?.question.match(/refill|cleanser|spf|serum/i)?.[0]?.toLowerCase();
+  const card = answerCard(`${clientId}:competitors:${days}`, {
+    headline: !t.brands.length
+      ? "Add the brands you compete with to follow what they do."
+      : [leads ? `${brandLabel(leader.brand)} is pulling ahead.` : leader?.move ? `${brandLabel(leader.brand)} made the latest move.` : `You track ${t.brands.length} competitors.`, ownWord ? `You still own “${ownWord}”.` : wins.length ? "You still lead some buying questions." : null].filter(Boolean).join(" "),
+    signals,
+  });
 
   const blind: BlindSpot[] = [
     ...(t.brands.length ? [] : [{ text: "No competitors tracked yet.", action: { label: "Add competitors", href: "/insights/competitors?edit=1#edit" } }]),
@@ -68,7 +81,7 @@ export default async function CompetitorsPage({ searchParams }: { searchParams: 
 
   return (
     <div className="flex flex-col gap-6">
-      <ShortAnswer text={answer} sources={[...(ai && t.checksInRun ? ["AI answers"] : []), "Search Console", "Ad libraries"]} />
+      <ShortAnswer card={card} sources={[...(ai && t.checksInRun ? ["AI answers"] : []), "Search Console", "Ad libraries"]} />
 
       <Card title="You vs your competitors" flush action={<a href="?edit=1#edit" className="font-brand-mono text-[12px] uppercase text-brand-ink underline underline-offset-4">Edit competitors</a>}>
         <div className="overflow-x-auto">

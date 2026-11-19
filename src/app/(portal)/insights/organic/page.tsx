@@ -6,7 +6,7 @@ import { parseRange } from "@/lib/insights/daily";
 import { DAYS, SLOTS, formatGroup, loadOrganicTab } from "@/lib/insights/organic-tab";
 import { askedAbout, tabFindings } from "@/lib/insight-records";
 import { hrefAliases } from "@/lib/insights/tabs";
-import { shortAnswer } from "@/lib/insights/short-answer";
+import { answerCard, type Signal, type SignalStatus } from "@/lib/insights/short-answer";
 import { count, pct1, pts, signedPct, times, vsLabel } from "@/lib/insights/format";
 import { connectHref } from "@/lib/insights-data";
 import { marketingPm } from "@/lib/contact-person";
@@ -66,20 +66,24 @@ export default async function OrganicSocialPage({ searchParams }: { searchParams
   const fewerReels = reels && reels.postedBefore && reels.posted <= reels.postedBefore / 2;
   const topTheme = t.themes[0];
   const best = t.activity?.best;
-  const answer = shortAnswer(
-    `${clientId}:organic:${days}`,
-    [
-      !t.posts
-        ? `We don't have reach numbers for posts in the last ${days === 365 ? "12 months" : `${days} days`} yet.`
-        : n.reach.change !== null
-          ? `Reach ${n.reach.change < 0 ? "fell" : "grew"} ${Math.abs(Math.round(n.reach.change * 100))}%${n.reach.change < 0 && fewerReels ? " because you posted half as many Reels" : ""}.`
-          : `Your posts reached ${count(n.reach.value)} people.`,
-      topTheme || best ? `Your audience ${[topTheme ? `saves “${topTheme.theme.toLowerCase()}” content most` : null, best ? `is most active on ${DAYS[best.day]} ${SLOTS[best.slot].toLowerCase()}s` : null].filter(Boolean).join(" and ")}.` : null,
-      n.followers.growth ? `Followers ${n.reach.change !== null && n.reach.change < 0 && n.followers.growth > 0 ? "still " : ""}${n.followers.growth > 0 ? "grew" : "fell"} by ${count(Math.abs(n.followers.growth), { exactUnder: 10_000 })}.` : null,
-    ]
-      .filter(Boolean)
-      .join(" ")
-  );
+  const reelsDown = reels && reels.postedBefore !== null && reels.posted < reels.postedBefore;
+  const signals: Signal[] = [
+    ...(reels && reels.postedBefore !== null && reels.posted !== reels.postedBefore ? [{ id: "reels", status: (reelsDown ? "attention" : "good") as SignalStatus, value: `${reels.posted} vs ${reels.postedBefore}`, label: `Reels posted, ${days === 30 ? "this month vs last" : "this period vs the one before"}`, weight: reelsDown ? 3 : 1 }] : []),
+    ...(n.reach.change !== null && t.posts ? [{ id: "reach", status: (n.reach.change >= 0 ? "good" : "attention") as SignalStatus, value: signedPct(n.reach.change), label: `Reach, now ${count(n.reach.value)}`, weight: reelsDown ? 1 : 2.5 }] : []),
+    ...(n.followers.growth ? [{ id: "followers", status: (n.followers.growth > 0 ? "good" : "attention") as SignalStatus, value: `${n.followers.growth > 0 ? "+" : "−"}${count(Math.abs(n.followers.growth), { exactUnder: 1_000 })}`, label: `New followers, now ${count(n.followers.value)}`, weight: 2 }] : []),
+    ...(best ? [{ id: "slot", status: "watch" as const, value: `${DAYS[best.day].slice(0, 3)} ${SLOTS[best.slot].toLowerCase()}`, label: "When your audience is most active", weight: 1.5 }] : []),
+    ...(topTheme ? [{ id: "theme", status: "good" as const, value: `“${topTheme.theme.toLowerCase()}”`, label: "The content your audience saves most", weight: 1.2 }] : []),
+  ];
+  const card = answerCard(`${clientId}:organic:${days}`, {
+    headline: !t.posts
+      ? "No reach numbers for posts in this period yet."
+      : n.reach.change !== null
+        ? reelsDown && n.reach.change < 0
+          ? `Fewer Reels cut your reach by ${Math.abs(Math.round(n.reach.change * 100))}%.`
+          : `Reach ${n.reach.change < 0 ? "fell" : "grew"} ${Math.abs(Math.round(n.reach.change * 100))}%.`
+        : `Your posts reached ${count(n.reach.value)} people.`,
+    signals,
+  });
 
   const erDiff = n.engagement.value !== null && n.engagement.previous !== null ? n.engagement.value - n.engagement.previous : null;
   const maxReach = Math.max(1, ...t.formats.map((f) => f.avgReach));
@@ -94,7 +98,7 @@ export default async function OrganicSocialPage({ searchParams }: { searchParams
 
   return (
     <div className="flex flex-col gap-6">
-      <ShortAnswer text={answer} sources={t.platforms} />
+      <ShortAnswer card={card} sources={t.platforms} />
 
       <KeyNumbers
         items={[

@@ -6,7 +6,7 @@ import { jsonArray } from "@/lib/utils";
 import { loadTrendsTab } from "@/lib/insights/market-tabs";
 import { askedAbout, tabFindings } from "@/lib/insight-records";
 import { hrefAliases } from "@/lib/insights/tabs";
-import { shortAnswer } from "@/lib/insights/short-answer";
+import { answerCard, type Signal, type SignalStatus } from "@/lib/insights/short-answer";
 import { entitlements } from "@/lib/entitlements";
 import { marketingPm } from "@/lib/contact-person";
 import { AskIdeaButton } from "@/components/insights/ask-idea-button";
@@ -50,16 +50,15 @@ export default async function TrendsPage() {
   const notPlanned = t.moments.filter((m) => !m.planned && !m.opportunity);
   const rising = [...t.rows].filter((r) => r.change > 0).sort((a, b) => b.change - a.change)[0];
 
-  const answer = shortAnswer(
-    `${clientId}:trends`,
-    [
-      rising ? `${rising.topic.replace(/^./, (c) => c.toUpperCase())} is the fastest-rising trend in ${category} (${signedPct(rising.change)})${rising.opportunity ? `, and it fits “${rising.opportunity.title}”` : ""}.` : null,
-      t.demand?.change != null ? `Demand for your category is ${t.demand.change >= 0 ? "up" : "down"} ${Math.round(Math.abs(t.demand.change) * 100)}% on last year.` : null,
-      notPlanned.length ? `${notPlanned.length === 1 ? "One moment" : `${notPlanned.length} moments`} in the next 90 days ${notPlanned.length === 1 ? "isn't" : "aren't"} planned yet.` : null,
-    ]
-      .filter(Boolean)
-      .join(" ") || "Trends for your category show here once the weekly trend check has run.",
-  );
+  const signals: Signal[] = [
+    ...(rising ? [{ id: "rising", status: "good" as const, value: signedPct(rising.change), label: `${rising.topic}, last 12 weeks`, weight: 3 }] : []),
+    ...(t.demand?.change != null ? [{ id: "demand", status: (t.demand.change >= 0 ? "good" : "attention") as SignalStatus, value: signedPct(t.demand.change), label: "Category demand vs last year", weight: 2 }] : []),
+    ...(notPlanned.length ? [{ id: "moments", status: "attention" as const, value: String(notPlanned.length), label: `Moment${notPlanned.length === 1 ? "" : "s"} in the next 90 days with nothing planned`, weight: 2.5 }] : []),
+  ];
+  const card = answerCard(`${clientId}:trends`, {
+    headline: rising ? `${rising.topic.replace(/^./, (c) => c.toUpperCase())} is the fastest-rising trend.` : "Trends show here once the weekly trend check has run.",
+    signals,
+  });
 
   const themes = jsonArray<Theme>(brief?.themes).sort((a, b) => b.articleTitles.length - a.articleTitles.length).slice(0, 4);
   const blind: BlindSpot[] = [
@@ -72,7 +71,7 @@ export default async function TrendsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <ShortAnswer text={answer} sources={["Search trends", "TikTok", "Instagram"]} />
+      <ShortAnswer card={card} sources={["Search trends", "TikTok", "Instagram"]} />
 
       {t.rows.length > 0 && (
         <Card title={`What's rising in ${category}`} flush>

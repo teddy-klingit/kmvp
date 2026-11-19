@@ -69,6 +69,19 @@ export async function loadPaidTab(clientId: string, opts: { days: number; now?: 
       return { id: a.id, title: a.title, format: a.format, platform: a.platform ?? null, ctr: a.ctr, thumbnail: a.thumbnail, color: a.color, orderValue: p && p.orders >= 5 ? p.revenue / p.orders : null };
     })
     .sort((a, b) => b.ctr - a.ctr);
+  // Average order per ad format (Story vs Feed…), from ads with enough orders behind them.
+  const byFormat = new Map<string, { revenue: number; orders: number }>();
+  const pieceFormats = await prisma.asset.findMany({ where: { clientId, id: { in: [...perPiece.keys()] } }, select: { id: true, format: true } });
+  for (const a of pieceFormats) {
+    const p = perPiece.get(a.id);
+    if (!p || !a.format) continue;
+    const f = a.format.split(/\s/)[0];
+    const x = byFormat.get(f) ?? { revenue: 0, orders: 0 };
+    x.revenue += p.revenue;
+    x.orders += p.orders;
+    byFormat.set(f, x);
+  }
+  const formatOrders = [...byFormat].filter(([, x]) => x.orders >= 20).map(([format, x]) => ({ format, orderValue: x.revenue / x.orders })).sort((a, b) => b.orderValue - a.orderValue);
   const best = ads.length >= 3 ? [...ads.slice(0, 2).map((a) => ({ ...a, tag: "Winner" as const })), { ...ads[ads.length - 1], tag: "Weakest" as const }] : [];
 
   // ─── Budget this month: spent so far against the plan, and where the month will end at this pace ────────────
@@ -118,6 +131,7 @@ export async function loadPaidTab(clientId: string, opts: { days: number; now?: 
     best,
     budget,
     tired,
+    formatOrders,
     sources: { spend: L.sourcesOf(cur, ["spend"], isAd), sales: L.sourcesOf(cur, ["revenue", "won_value"], fromAds) },
   };
 }

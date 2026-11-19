@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import { SourceChip } from "@/components/insights/source-chip";
 import { Card, KeyNumbers, ShortAnswer } from "@/components/insights/tab-parts";
 import { loadSalesTab } from "@/lib/insights/sales-tab";
-import { shortAnswer } from "@/lib/insights/short-answer";
+import { answerCard, type Signal } from "@/lib/insights/short-answer";
 import { count, money, signedPct, vsLabel } from "@/lib/insights/format";
 
 /**
@@ -49,22 +49,23 @@ export default async function RevenuePage({ searchParams }: { searchParams: Prom
   const delta = (ch: number | null) => (ch === null ? null : { text: `${signedPct(ch)} ${vs}`, tone: ch >= 0 ? ("good" as const) : ("bad" as const) });
   const avgDiff = n.avgOrder.value !== null && n.avgOrder.previous !== null ? n.avgOrder.value - n.avgOrder.previous : null;
 
-  // The short answer: every number in it is computed above.
-  const answer = shortAnswer(
-    `${viewer.clientId}:sales:${days}:${model}`,
-    [
-      `Marketing brought ${money(n.sales.value, cur)} in the last ${label}${n.won.value ? `: ${money(st.onlineSales, cur)} online (${count(n.orders.value, { exactUnder: 10_000 })} orders) and ${money(n.won.wonValue, cur)} from ${Math.round(n.won.value)} retail deal${Math.round(n.won.value) === 1 ? "" : "s"}` : ` from ${count(n.orders.value, { exactUnder: 10_000 })} online orders`}.`,
-      c.fresh ? `${count(c.fresh, { exactUnder: 10_000 })} new customers came in${c.costToWin ? `, at ${money(c.costToWin, cur)} each` : ""}${c.costToWin && c.firstOrder && c.firstOrder >= c.costToWin ? ", and they pay that back on their first order" : ""}.` : null,
-    ]
-      .filter(Boolean)
-      .join(" ")
-  );
+  // The short answer: a headline and 3 tiles, every number computed above.
+  const signals: Signal[] = [
+    ...(st.onlineSales ? [{ id: "online", status: "good" as const, value: money(st.onlineSales, cur), label: `Online, from ${count(n.orders.value, { exactUnder: 10_000 })} orders`, weight: 3 }] : []),
+    ...(n.won.value ? [{ id: "retail", status: "good" as const, value: money(n.won.wonValue, cur), label: `From ${Math.round(n.won.value)} retail deal${Math.round(n.won.value) === 1 ? "" : "s"}`, weight: 2.5 }] : []),
+    ...(c.costToWin ? [{ id: "cac", status: "watch" as const, value: money(c.costToWin, cur), label: `To win a new customer${c.firstOrder && c.firstOrder >= c.costToWin ? ", paid back on the first order" : ""}`, weight: 2 }] : []),
+    ...(n.sales.change !== null && n.sales.change < 0 ? [{ id: "down", status: "attention" as const, value: signedPct(n.sales.change), label: `Sales from marketing ${vs}`, weight: 4 }] : []),
+  ];
+  const card = answerCard(`${viewer.clientId}:sales:${days}:${model}`, {
+    headline: `Marketing brought ${money(n.sales.value, cur)} ${days === 30 ? "this month" : `in ${label}`}${n.sales.change !== null ? `, ${n.sales.change >= 0 ? "up" : "down"} ${Math.abs(Math.round(n.sales.change * 100))}%` : ""}.`,
+    signals,
+  });
   const maxGroup = Math.max(1, ...st.from.map((g) => g.sales));
   const retailSteps = r.funnels.retail.steps;
 
   return (
     <div className="flex flex-col gap-6">
-      <ShortAnswer text={answer} sources={[...new Set([...st.sources.sales, ...st.sources.spend])].map((x) => (x === "Google" ? "Google Ads" : x))} />
+      <ShortAnswer card={card} sources={[...new Set([...st.sources.sales, ...st.sources.spend])].map((x) => (x === "Google" ? "Google Ads" : x))} />
       {r.period.coverageFrom && <p className="m-0 text-[13px] text-brand-ink-2">Numbers from {fmtDay(r.period.coverageFrom)}: that&apos;s as far back as the connected sources go.</p>}
 
       <KeyNumbers

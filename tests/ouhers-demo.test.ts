@@ -276,7 +276,10 @@ describe("the ouhers demo seed", () => {
     expect(card(/SPF/).insights.map((i) => i.title)).toEqual(["Competitor launch", "Plume Skin leads AI answers for “tinted SPF”", "“tinted SPF” searches are rising", "Missing from “tinted SPF” searches", "sun day stick sells second best"]);
     expect(card(/refill/)).toMatchObject({ confidence: "low", estimate: { text: "Unclear: no TikTok data" }, cost: "≈ 40 AI credits or 4 creative credits", missing: ["TikTok"] });
     // Decide by: the SPF answer in two days (7 working days before it goes live), the refill test 7 before the launch.
-    expect(card(/SPF/).decideBy!.toDateString()).toBe(new Date(Date.now() + 2 * 86400000).toDateString());
+    // (Counted in working days, so it lands 1–4 calendar days out depending on the weekday the test runs.)
+    const daysOut = (card(/SPF/).decideBy!.getTime() - Date.now()) / 86400000;
+    expect(daysOut).toBeGreaterThan(0.5);
+    expect(daysOut).toBeLessThan(4.5);
     expect((await prisma.opportunity.findFirstOrThrow({ where: { clientId: OUHERS_CLIENT_ID, origin: "combined" } })).pmNote).toMatch(/^I'd do this one\. Concept B is ready/);
   });
 

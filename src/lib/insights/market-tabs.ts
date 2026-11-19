@@ -11,6 +11,14 @@ import type { PlatformTier } from "@/lib/entitlements";
 const DAY = 86400000;
 
 /** How many competitors a plan tracks (Phase X: 3 on Pro and Basic, 4 on Enterprise). */
+/** A competitor move's type tag, from its wording: New product, Price cut or Campaign. */
+export type MoveKind = "New product" | "Price cut" | "Campaign";
+export function moveKind(title: string): MoveKind {
+  if (/\d+\s*%|\bprice|discount|\boff\b|\bsale\b/i.test(title)) return "Price cut";
+  if (/launch|\bnew\b|introduc|pouch|refill|range|product/i.test(title)) return "New product";
+  return "Campaign";
+}
+
 export const competitorLimit = (tier: PlatformTier) => (tier === "enterprise" ? 4 : 3);
 /** How many trends a plan sees (the top ones on Pro and Basic; all on Enterprise). */
 export const trendLimit = (tier: PlatformTier) => (tier === "enterprise" ? 12 : 3);
@@ -80,7 +88,7 @@ export async function loadCompetitorsTab(clientId: string, opts: { days: number;
 
   const moves = signals
     .filter((s) => s.publishedAt.getTime() >= now.getTime() - opts.days * DAY)
-    .map((s) => ({ id: s.id, at: s.publishedAt, brand: brands.find((b) => mentionsBrand(s.title, b)) ?? null, title: s.title }))
+    .map((s) => ({ id: s.id, at: s.publishedAt, brand: brands.find((b) => mentionsBrand(s.title, b)) ?? null, title: s.title, kind: moveKind(s.title) }))
     // Only moves a tracked brand made; market-wide headlines belong to Trends and the findings.
     .filter((m) => m.brand)
     .slice(0, 6);
